@@ -25,7 +25,7 @@ List<Widget> buildInlineContent(String text, AgentColors nc, BuildContext contex
     }
     final url = match.group(1)!;
     if (seenUrls.add(url)) {
-      widgets.add(_imageWidget(url, nc, context));
+      widgets.add(_mediaWidget(url, nc, context));
     }
     lastEnd = match.end;
   }
@@ -38,8 +38,53 @@ List<Widget> buildInlineContent(String text, AgentColors nc, BuildContext contex
   return widgets;
 }
 
-Widget _imageWidget(String url, AgentColors nc, BuildContext context) {
+Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
   final isLocal = url.startsWith('file://');
+  final filePath = isLocal ? url.replaceFirst('file://', '') : url;
+  final isVideo = filePath.endsWith('.mp4') || filePath.endsWith('.mov') || filePath.endsWith('.webm');
+
+  if (isVideo) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: GestureDetector(
+        onTap: () => _openVideo(filePath),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Container(
+            decoration: BoxDecoration(
+              color: nc.primarySurface,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (isLocal && File(filePath).existsSync())
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(File(filePath), fit: BoxFit.cover, width: double.infinity, height: double.infinity,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                Container(
+                  width: 56, height: 56,
+                  decoration: const BoxDecoration(color: Color(0xAA000000), shape: BoxShape.circle),
+                  child: const Icon(Icons.play_arrow_rounded, size: 30, color: Colors.white),
+                ),
+                Positioned(
+                  bottom: 8, right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: const Color(0xAA000000), borderRadius: BorderRadius.circular(6)),
+                    child: const Text('视频', style: TextStyle(fontSize: 11, color: Colors.white70)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
@@ -50,7 +95,7 @@ Widget _imageWidget(String url, AgentColors nc, BuildContext context) {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: isLocal
-            ? Image.file(File(url.replaceFirst('file://', '')), fit: BoxFit.contain, width: double.infinity,
+            ? Image.file(File(filePath), fit: BoxFit.contain, width: double.infinity,
                 errorBuilder: (ctx, err, stack) => Container(
                   height: 160, decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(12)),
                   child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -98,6 +143,12 @@ Widget _imageWidget(String url, AgentColors nc, BuildContext context) {
       ),
     ),
   );
+}
+
+Future<void> _openVideo(String filePath) async {
+  try {
+    await const MethodChannel('com.example/open_file').invokeMethod('openFile', {'path': filePath});
+  } catch (_) {}
 }
 
 Widget mdBlock(String text, AgentColors nc) {

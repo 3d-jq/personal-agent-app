@@ -167,7 +167,7 @@ class AIService {
       yield '🔧 调用工具: ${tc.name}\n';
       final result = await toolRegistry.execute(tc);
       yield '✅ ${tc.name} 完成\n';
-      if (tc.name == 'generate_image' && result.content.isNotEmpty) {
+      if ((tc.name == 'generate_image' || tc.name == 'generate_video') && result.content.isNotEmpty) {
         yield '${result.content}\n';
       }
       messages.add({
@@ -286,7 +286,7 @@ class AIService {
           yield '🔧 调用工具: ${tc.name}\n';
           final toolResult = await toolRegistry.execute(tc);
           yield '✅ ${tc.name} 完成\n';
-          if (tc.name == 'generate_image' && toolResult.content.isNotEmpty) {
+          if ((tc.name == 'generate_image' || tc.name == 'generate_video') && toolResult.content.isNotEmpty) {
             yield '${toolResult.content}\n';
           }
           toolResults.add({

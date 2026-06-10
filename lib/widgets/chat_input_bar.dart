@@ -40,8 +40,9 @@ class _ChatInputBarState extends State<ChatInputBar> {
       curve: Curves.easeOutCubic,
       child: Container(
         decoration: BoxDecoration(
-          color: nc.surface,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(28),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 2))],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

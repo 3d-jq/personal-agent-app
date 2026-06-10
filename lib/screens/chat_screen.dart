@@ -67,9 +67,12 @@ class _ChatScreenState extends State<ChatScreen> {
     final searchTool = WebSearchTool();
     final imageTool = AgnesImageTool()
       ..apiKey = 'sk-3STpwSvUPUyYP1LIUc4O2yGjrEqapMPm2XNUPgmd0sa7IwaJ';
+    final videoTool = AgnesVideoTool()
+      ..apiKey = 'sk-3STpwSvUPUyYP1LIUc4O2yGjrEqapMPm2XNUPgmd0sa7IwaJ';
     _toolRegistry.register(weatherTool);
     _toolRegistry.register(searchTool);
     _toolRegistry.register(imageTool);
+    _toolRegistry.register(videoTool);
   }
 
   @override
@@ -264,11 +267,13 @@ class _ChatScreenState extends State<ChatScreen> {
         showModelPicker(context, _aiSettings, () => setState(() {}));
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: nc.primarySurface,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: nc.divider, width: 0.5),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 1))],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -291,6 +296,7 @@ class _ChatScreenState extends State<ChatScreen> {
       case 'file_manager': return '文件管理';
       case 'clipboard': return '剪贴板';
       case 'generate_image': return '生成图片';
+      case 'generate_video': return '生成视频';
       default: return name;
     }
   }
@@ -304,7 +310,7 @@ class _ChatScreenState extends State<ChatScreen> {
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: nc.background,
+        systemNavigationBarColor: const Color(0xFFF6F6F6),
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: GestureDetector(
@@ -315,7 +321,7 @@ class _ChatScreenState extends State<ChatScreen> {
         },
         child: Scaffold(
           key: _scaffoldKey,
-          backgroundColor: nc.background,
+          backgroundColor: const Color(0xFFF6F6F6),
           drawerEnableOpenDragGesture: false,
           drawerScrimColor: Colors.black38,
           drawer: AgentSideDrawer(

@@ -1,9 +1,12 @@
 package com.example.personal_agent_app
 
 import android.content.ContentValues
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -12,6 +15,7 @@ import java.io.FileOutputStream
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example/save_to_gallery"
+    private val OPEN_CHANNEL = "com.example/open_file"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -28,6 +32,30 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 } catch (e: Exception) {
                     result.error("SAVE_ERROR", e.message, null)
+                }
+            } else {
+                result.notImplemented()
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, OPEN_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "openFile") {
+                try {
+                    val path = call.argument<String>("path")
+                    if (path == null) {
+                        result.error("NO_PATH", "No file path", null)
+                        return@setMethodCallHandler
+                    }
+                    val file = File(path)
+                    val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
+                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, "video/*")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    startActivity(intent)
+                    result.success(true)
+                } catch (e: Exception) {
+                    result.error("OPEN_ERROR", e.message, null)
                 }
             } else {
                 result.notImplemented()

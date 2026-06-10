@@ -39,9 +39,9 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: colors.primarySurface,
-                        border: Border.all(color: colors.divider, width: 0.5),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 1))],
                       ),
                       child: Icon(Icons.menu_rounded, size: 18, color: colors.textPrimary),
                     ),

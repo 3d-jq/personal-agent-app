@@ -11,7 +11,7 @@ class App extends StatelessWidget {
     final dark = AgentColors.dark();
 
     return MaterialApp(
-      title: 'Personal Agent',
+      title: 'DWeis',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

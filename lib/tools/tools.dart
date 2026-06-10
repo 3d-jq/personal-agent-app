@@ -7,3 +7,4 @@ export 'reminder_tool.dart';
 export 'file_tool.dart';
 export 'clipboard_tool.dart';
 export 'agnes_image_tool.dart';
+export 'agnes_video_tool.dart';
