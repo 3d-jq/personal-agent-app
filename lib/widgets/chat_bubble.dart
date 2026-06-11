@@ -10,33 +10,80 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (msg.isUser) return _userBubble();
-    return _aiBubble(context);
+    if (msg.isUser) return _userBubble(context);
+    return _AIBubble(msg: msg, nc: nc);
   }
 
-  Widget _userBubble() => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: Align(
-      alignment: Alignment.centerRight,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF37352F),
-          borderRadius: BorderRadius.circular(18),
+  Widget _userBubble(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 300),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF2A4A42) : const Color(0xFFD4EDE5),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Text(msg.text, style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.47)),
         ),
-        child: Text(msg.text, style: const TextStyle(fontSize: 15, color: Colors.white, height: 1.47)),
       ),
-    ),
-  );
+    );
+  }
+}
 
-  Widget _aiBubble(BuildContext context) {
-    final nc = this.nc;
+// ── AI Bubble: self-managing state via ChangeNotifier listener ──
+
+class _AIBubble extends StatefulWidget {
+  final ChatMessage msg;
+  final AgentColors nc;
+  const _AIBubble({required this.msg, required this.nc});
+
+  @override
+  State<_AIBubble> createState() => _AIBubbleState();
+}
+
+class _AIBubbleState extends State<_AIBubble> {
+  String _lastText = '';
+  List<Widget> _cachedContent = [];
+
+  @override
+  void initState() {
+    super.initState();
+    widget.msg.addListener(_onChanged);
+  }
+
+  @override
+  void didUpdateWidget(_AIBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.msg != widget.msg) {
+      oldWidget.msg.removeListener(_onChanged);
+      widget.msg.addListener(_onChanged);
+    }
+    // Clear cache on any update (theme change, parent rebuild, etc.)
+    _lastText = '';
+  }
+
+  @override
+  void dispose() {
+    widget.msg.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  void _onChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final msg = widget.msg;
+    final nc = widget.nc;
     final steps = msg.steps;
     final hasSteps = steps != null && steps.isNotEmpty;
     final textContent = msg.cleanText;
 
-    // Current running process step
     TimelineStep? running;
     if (hasSteps) {
       for (final s in steps!) {
@@ -49,12 +96,17 @@ class ChatBubble extends StatelessWidget {
 
     final showProcessLine = running != null || (msg.isStreaming && textContent.isEmpty);
 
+    // Cache parsed markdown — only re-parse when text actually changes
+    if (textContent != _lastText) {
+      _lastText = textContent;
+      _cachedContent = buildInlineContent(textContent, nc, context);
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Process area: single line, overwrite not append ──
           if (showProcessLine)
             Padding(
               padding: EdgeInsets.only(bottom: textContent.isNotEmpty ? 8 : 0),
@@ -64,8 +116,7 @@ class ChatBubble extends StatelessWidget {
                 Expanded(child: Text(running?.label ?? '思考中…', style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500))),
               ]),
             ),
-          // ── Result area: clean output only ──
-          if (textContent.isNotEmpty) ...buildInlineContent(textContent, nc, context),
+          if (textContent.isNotEmpty) ..._cachedContent,
         ],
       ),
     );

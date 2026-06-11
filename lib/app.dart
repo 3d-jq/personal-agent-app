@@ -1,9 +1,25 @@
 import 'package:flutter/material.dart';
 import 'core/agent_colors.dart';
 import 'screens/chat_screen.dart';
+import 'services/theme_service.dart';
 
-class App extends StatelessWidget {
+class App extends StatefulWidget {
   const App({super.key});
+
+  @override
+  State<App> createState() => _AppState();
+}
+
+class _AppState extends State<App> {
+  final _themeService = ThemeService();
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _themeService.addListener(() => setState(() {}));
+    _themeService.load().then((_) => setState(() => _loaded = true));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +63,7 @@ class App extends StatelessWidget {
         ),
         extensions: [dark],
       ),
-      themeMode: ThemeMode.light,
+      themeMode: _loaded ? _themeService.mode : ThemeMode.light,
       home: const ChatScreen(),
     );
   }

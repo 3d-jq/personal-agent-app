@@ -2,37 +2,59 @@ import 'package:flutter/material.dart';
 
 // ── Message ──
 
-class ChatMessage {
-  String text;
+class ChatMessage extends ChangeNotifier {
+  String _text;
   final bool isUser;
-  bool isStreaming;
+  bool _isStreaming;
+  List<TimelineStep>? _steps;
+
+  ChatMessage({
+    required String text,
+    required this.isUser,
+    bool isStreaming = false,
+    List<TimelineStep>? steps,
+  })  : _text = text,
+        _isStreaming = isStreaming,
+        _steps = steps;
+
+  String get text => _text;
+  set text(String value) {
+    if (_text != value) {
+      _text = value;
+      notifyListeners();
+    }
+  }
+
+  bool get isStreaming => _isStreaming;
+  set isStreaming(bool value) {
+    if (_isStreaming != value) {
+      _isStreaming = value;
+      notifyListeners();
+    }
+  }
+
+  List<TimelineStep>? get steps => _steps;
+  set steps(List<TimelineStep>? value) {
+    _steps = value;
+    notifyListeners();
+  }
 
   /// Clean text without tool status markers (image markdown stays for inline rendering)
-  String get cleanText => text
+  String get cleanText => _text
       .replaceAll(RegExp(r'🔧.*\n'), '')
       .replaceAll(RegExp(r'✅.*\n'), '')
       .trim();
-
-  /// Timeline steps for AI messages
-  List<TimelineStep>? steps;
-
-  ChatMessage({
-    required this.text,
-    required this.isUser,
-    this.isStreaming = false,
-    this.steps,
-  });
 
   /// Extract image URLs from the message text (from markdown images or plain URLs)
   List<String> get imageUrls {
     final urls = <String>[];
     final mdPattern = RegExp(r'!\[.*?\]\((https?://[^\s)]+)\)');
-    for (final match in mdPattern.allMatches(text)) {
+    for (final match in mdPattern.allMatches(_text)) {
       final url = match.group(1);
       if (url != null && url.isNotEmpty) urls.add(url);
     }
     final urlPattern = RegExp(r'(?:图片\s*URL[：:]\s*)(https?://\S+)');
-    for (final match in urlPattern.allMatches(text)) {
+    for (final match in urlPattern.allMatches(_text)) {
       final url = match.group(1);
       if (url != null && url.isNotEmpty) urls.add(url);
     }

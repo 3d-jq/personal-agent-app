@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -47,7 +48,9 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: GestureDetector(
-        onTap: () => _openVideo(filePath),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => _FullscreenVideo(filePath: filePath)),
+        ),
         child: AspectRatio(
           aspectRatio: 16 / 9,
           child: Container(
@@ -105,32 +108,24 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                   ])),
                 ),
               )
-            : Image.network(url, fit: BoxFit.contain, width: double.infinity,
-                loadingBuilder: (ctx, child, progress) {
-                  if (progress == null) return child;
-                  final pct = (progress.cumulativeBytesLoaded / (progress.expectedTotalBytes ?? 1)).clamp(0.0, 1.0);
-                  return Container(
-                    height: 200,
-                    decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(12)),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Stack(children: [
-                        Positioned(top: 0, left: 0, right: 0, height: 200 * pct,
-                          child: Container(decoration: BoxDecoration(gradient: LinearGradient(
-                            begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                            colors: [nc.divider.withValues(alpha: 0.4), nc.divider.withValues(alpha: 0.15)],
-                          ))),
-                        ),
-                        Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.image_outlined, size: 28, color: nc.textSecondary.withValues(alpha: 0.25)),
-                          const SizedBox(height: 6),
-                          Text('${(pct * 100).toInt()}%', style: TextStyle(fontSize: 13, color: nc.textSecondary.withValues(alpha: 0.4), fontWeight: FontWeight.w500)),
-                        ])),
-                      ]),
-                    ),
-                  );
-                },
-                errorBuilder: (ctx, err, stack) => Container(
+            : CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                memCacheWidth: 1080,
+                placeholder: (ctx, url) => Container(
+                  height: 200,
+                  decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(12)),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.image_outlined, size: 28, color: nc.textSecondary.withValues(alpha: 0.25)),
+                      const SizedBox(height: 6),
+                      Text('加载中…', style: TextStyle(fontSize: 13, color: nc.textSecondary.withValues(alpha: 0.4), fontWeight: FontWeight.w500)),
+                    ])),
+                  ),
+                ),
+                errorWidget: (ctx, url, error) => Container(
                   height: 160,
                   decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(12)),
                   child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -143,12 +138,6 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
       ),
     ),
   );
-}
-
-Future<void> _openVideo(String filePath) async {
-  try {
-    await const MethodChannel('com.example/open_file').invokeMethod('openFile', {'path': filePath});
-  } catch (_) {}
 }
 
 Widget mdBlock(String text, AgentColors nc) {
@@ -338,6 +327,96 @@ class _FullscreenImageState extends State<_FullscreenImage> {
         minScale: 0.5,
         maxScale: 4.0,
         child: Center(child: _buildImage()),
+      ),
+    );
+  }
+}
+
+// ── Fullscreen video viewer ──
+
+class _FullscreenVideo extends StatefulWidget {
+  final String filePath;
+  const _FullscreenVideo({required this.filePath});
+
+  @override
+  State<_FullscreenVideo> createState() => _FullscreenVideoState();
+}
+
+class _FullscreenVideoState extends State<_FullscreenVideo> {
+  bool _saving = false;
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      final bytes = await File(widget.filePath).readAsBytes();
+      await const MethodChannel('com.example/save_to_gallery').invokeMethod('saveVideo', {
+        'bytes': bytes,
+        'name': 'dweis_video_${DateTime.now().millisecondsSinceEpoch}.mp4',
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已保存到相册')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: _saving ? null : _save,
+            icon: _saving
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.download_rounded),
+            tooltip: '保存',
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: Text('视频文件', style: TextStyle(color: Colors.white70, fontSize: 16)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(32),
+            child: GestureDetector(
+              onTap: () {
+                try {
+                  MethodChannel('com.example/open_file').invokeMethod('openFile', {'path': widget.filePath});
+                } catch (_) {}
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: const [
+                  Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                  SizedBox(width: 8),
+                  Text('用播放器打开', style: TextStyle(color: Colors.white, fontSize: 15)),
+                ]),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

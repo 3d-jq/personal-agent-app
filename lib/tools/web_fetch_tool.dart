@@ -1,12 +1,27 @@
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:html/parser.dart' as html_parser;
 import '../tools/base_tool.dart';
 
 class WebFetchTool extends AgentTool {
+  final Dio _dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 20),
+    followRedirects: true,
+    maxRedirects: 5,
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br',
+    },
+    responseType: ResponseType.plain,
+  ));
+
   @override
   String get name => 'web_fetch';
 
   @override
-  String get description => '抓取网页内容并提取正文。当用户提供URL并要求读取、总结或分析网页内容时使用。支持大多数公开网页。';
+  String get description => '抓取网页内容并提取正文。当用户提供URL并要求读取、总结或分析网页内容时使用。支持大多数公开网页，能自动处理重定向和压缩。';
 
   @override
   Map<String, dynamic> get parameters => {
@@ -18,7 +33,7 @@ class WebFetchTool extends AgentTool {
       },
       'max_length': {
         'type': 'integer',
-        'description': '返回内容的最大长度（字符数），默认 3000',
+        'description': '返回内容的最大长度（字符数），默认 5000',
       },
     },
     'required': ['url'],
@@ -27,65 +42,65 @@ class WebFetchTool extends AgentTool {
   @override
   Future<String> execute(Map<String, dynamic> args) async {
     final url = args['url'] as String?;
-    if (url == null || url.isEmpty) {
-      return '错误: 请提供网页URL';
-    }
-
-    final maxLength = (args['max_length'] as num?)?.toInt() ?? 3000;
+    if (url == null || url.isEmpty) return '错误: 请提供网页URL';
+    final maxLen = (args['max_length'] as num?)?.toInt() ?? 5000;
     final uri = Uri.tryParse(url);
-    if (uri == null || (!uri.hasScheme || !uri.hasAuthority)) {
-      return '错误: 无效的URL格式';
-    }
+    if (uri == null || !uri.hasScheme) return '错误: URL格式无效（需要 http:// 或 https://）';
 
     try {
-      final response = await http.get(
-        uri,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; PersonalAgent/1.0)',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        },
-      ).timeout(const Duration(seconds: 15));
+      final response = await _dio.get(uri.toString(),
+        options: Options(responseType: ResponseType.plain),
+      );
 
       if (response.statusCode != 200) {
-        return '网页返回错误 (${response.statusCode})';
+        return '请求失败 (HTTP ${response.statusCode})';
       }
 
-      final html = response.body;
-      final text = _extractTextFromHtml(html);
-
-      if (text.length > maxLength) {
-        return '网页内容(前$maxLength字符):\n${text.substring(0, maxLength)}\n\n...(内容过长，已截断)';
+      final html = response.data as String;
+      if (html.isEmpty || html.length < 100) {
+        return '网页内容为空或过短';
       }
 
-      return '网页内容:\n$text';
+      // Parse HTML and extract meaningful text
+      final document = html_parser.parse(html);
+
+      // Remove noise elements
+      document.querySelectorAll('script, style, noscript, iframe, nav, footer, header, aside, [role="navigation"], [role="banner"], [role="contentinfo"], .sidebar, .nav, .footer, .header, .advertisement, .ad, .comments').forEach((e) => e.remove());
+
+      // Try to find main content area
+      var body = document.querySelector('main, article, [role="main"], .content, .post, .article, #content, #main, #article');
+      body ??= document.body;
+
+      if (body == null) return '无法解析网页内容';
+
+      // Extract title
+      final title = document.querySelector('title')?.text.trim() ?? '';
+      // Extract meta description
+      final metaDesc = document.querySelector('meta[name="description"]')?.attributes['content']?.trim() ?? '';
+
+      // Get text content
+      String text = body.text
+          .replaceAll(RegExp(r'[ \t]+'), ' ')
+          .replaceAll(RegExp(r'\n\s*\n+'), '\n\n')
+          .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+          .trim();
+
+      // Build result
+      final buf = StringBuffer();
+      if (title.isNotEmpty) buf.writeln('标题: $title');
+      if (metaDesc.isNotEmpty) buf.writeln('摘要: $metaDesc');
+      if (buf.isNotEmpty) buf.writeln('');
+      buf.write(text.length > maxLen ? '${text.substring(0, maxLen)}...(已截断)' : text);
+
+      return buf.toString().trim();
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 404) return '网页不存在 (404)';
+      if (code == 403) return '网页拒绝访问 (403)';
+      if (e.type == DioExceptionType.connectionTimeout) return '连接超时，请检查URL或网络';
+      return '抓取失败: ${e.message}';
     } catch (e) {
       return '网页抓取错误: $e';
     }
-  }
-
-  /// Simple HTML to text extraction (no external dependencies)
-  String _extractTextFromHtml(String html) {
-    // Remove script and style elements
-    String text = html
-        .replaceAll(RegExp(r'<script[^>]*>[\s\S]*?</script>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'<style[^>]*>[\s\S]*?</style>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'<!--[\s\S]*?-->', caseSensitive: false), '')
-        // Replace block-level elements with newlines
-        .replaceAll(RegExp(r'</(?:p|div|br|hr|h[1-6]|li|tr|table|ul|ol|blockquote|pre|header|footer|section|article|aside|nav)>', caseSensitive: false), '\n')
-        // Remove all remaining tags
-        .replaceAll(RegExp(r'<[^>]+>'), '')
-        // Decode common HTML entities
-        .replaceAll('&nbsp;', ' ')
-        .replaceAll('&lt;', '<')
-        .replaceAll('&gt;', '>')
-        .replaceAll('&amp;', '&')
-        .replaceAll('&quot;', '"')
-        .replaceAll('&#39;', "'")
-        // Clean up whitespace
-        .replaceAll(RegExp(r'[ \t]+'), ' ')
-        .replaceAll(RegExp(r'\n\s*\n'), '\n\n')
-        .trim();
-
-    return text;
   }
 }

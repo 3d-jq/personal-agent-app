@@ -40,7 +40,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
       curve: Curves.easeOutCubic,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: nc.surface,
           borderRadius: BorderRadius.circular(28),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 2))],
         ),
@@ -106,7 +106,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 GestureDetector(
                   onTap: widget.isLoading ? widget.onStop : widget.onSend,
                   child: Container(
-                    width: 32, height: 32,
+                    width: 36, height: 36,
                     decoration: BoxDecoration(
                       color: nc.textPrimary,
                       shape: BoxShape.circle,

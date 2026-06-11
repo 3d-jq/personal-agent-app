@@ -7,6 +7,8 @@ import '../models/chat_message.dart';
 import '../models/chat_session.dart';
 import '../services/ai_service.dart';
 import '../services/chat_storage.dart';
+import '../services/memory_storage.dart';
+import '../services/notification_service.dart';
 import '../tools/tools.dart';
 import '../widgets/agent_top_bar.dart';
 import '../widgets/agent_side_drawer.dart';
@@ -32,6 +34,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ToolRegistry _toolRegistry = ToolRegistry();
   final ChatStorage _storage = ChatStorage();
   StreamSubscription<String>? _aiStream;
+  Timer? _scrollTimer;
   bool _isLoading = false;
   bool _loaded = false;
 
@@ -73,6 +76,9 @@ class _ChatScreenState extends State<ChatScreen> {
     _toolRegistry.register(searchTool);
     _toolRegistry.register(imageTool);
     _toolRegistry.register(videoTool);
+    _toolRegistry.register(SaveMemoryTool());
+    _toolRegistry.register(SaveNoteTool());
+    _toolRegistry.register(TimeTool());
   }
 
   @override
@@ -80,6 +86,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _inputCtrl.dispose();
     _inputFocus.dispose();
     _scrollCtrl.dispose();
+    _scrollTimer?.cancel();
     _aiStream?.cancel();
     super.dispose();
   }
@@ -131,7 +138,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _scrollDown() {
-    Future.delayed(const Duration(milliseconds: 50), () {
+    _scrollTimer?.cancel();
+    _scrollTimer = Timer(const Duration(milliseconds: 80), () {
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.animateTo(
           _scrollCtrl.position.maxScrollExtent,
@@ -148,13 +156,11 @@ class _ChatScreenState extends State<ChatScreen> {
     final aiMsg = _messages.isNotEmpty && !_messages.last.isUser
         ? _messages.last
         : null;
-    setState(() {
-      if (aiMsg != null) {
-        aiMsg.isStreaming = false;
-        if (aiMsg.text.isEmpty) aiMsg.text = '(已停止)';
-      }
-      _isLoading = false;
-    });
+    if (aiMsg != null) {
+      aiMsg.isStreaming = false;
+      if (aiMsg.text.isEmpty) aiMsg.text = '(已停止)';
+    }
+    setState(() => _isLoading = false);
   }
 
   Future<void> _sendMessage() async {
@@ -178,12 +184,19 @@ class _ChatScreenState extends State<ChatScreen> {
     _inputFocus.unfocus();
     _scrollDown();
 
-    final history = <Map<String, dynamic>>[
-      {
-        'role': 'system',
-        'content': '你是一个有用的AI助手。你可以使用可用的工具来帮助用户完成任务。',
-      }
-    ];
+    final storage = MemoryStorage();
+    await storage.loadAll();
+    final prefs = storage.preferencePrompt;
+    final memories = storage.memoryContext;
+    final systemPrompt = StringBuffer('你是一个叫DWeis的全能agent助手，你可以使用可用的工具来帮助用户完成任务。当用户要求记录、总结、保存、记下某些内容时，调用 save_note 工具保存为笔记。');
+    if (prefs.isNotEmpty) {
+      systemPrompt.write('\n\n## 用户偏好\n$prefs');
+    }
+    if (memories.isNotEmpty) {
+      systemPrompt.write('\n\n## 用户记忆\n$memories');
+    }
+
+    final history = <Map<String, dynamic>>[{'role': 'system', 'content': systemPrompt.toString()}];
     for (final m in _messages) {
       if (m.isStreaming) continue;
       history.add({
@@ -229,14 +242,24 @@ class _ChatScreenState extends State<ChatScreen> {
               finishRunning();
               final name = line.replaceFirst('🔧 调用工具:', '').trim();
               steps.add(TimelineStep(label: _toolLabel(name), type: TimelineStepType.tool, status: TimelineStepStatus.running));
+              // Notification for long-running tools
+              if (name == 'generate_image' || name == 'generate_video') {
+                NotificationService().startTask(id: name, title: _toolLabel(name), message: '准备中…');
+              }
             } else if (line.startsWith('✅') && line.contains('完成')) {
               final name = line.replaceFirst('✅', '').replaceFirst('完成', '').trim();
               final idx = steps.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.label == _toolLabel(name) && s.status == TimelineStepStatus.running);
               if (idx >= 0) steps[idx].status = TimelineStepStatus.done;
               steps.add(TimelineStep(label: '思考中', type: TimelineStepType.thinking, status: TimelineStepStatus.running));
+              if (name == 'generate_image' || name == 'generate_video') {
+                NotificationService().complete(id: name, title: _toolLabel(name), message: '已完成');
+              }
             }
           }
-          setState(() { aiMsg.text = buf.toString(); aiMsg.steps = List.unmodifiable(steps); });
+          setState(() {
+            aiMsg.text = buf.toString();
+            aiMsg.steps = List.unmodifiable(steps);
+          });
           _scrollDown();
         },
         onDone: () {
@@ -244,17 +267,25 @@ class _ChatScreenState extends State<ChatScreen> {
           setState(() {
             aiMsg.isStreaming = false;
             aiMsg.steps = steps.isEmpty ? null : List.unmodifiable(steps);
-            _isLoading = false;
             if (aiMsg.cleanText.isEmpty && !hasToolCalls) aiMsg.text = '(无响应)';
+            _isLoading = false;
           });
           _saveSession();
         },
         onError: (e) {
-          setState(() { aiMsg.text = '错误: $e'; aiMsg.isStreaming = false; _isLoading = false; });
+          setState(() {
+            aiMsg.text = '错误: $e';
+            aiMsg.isStreaming = false;
+            _isLoading = false;
+          });
         },
       );
     } catch (e) {
-      setState(() { aiMsg.text = '错误: $e'; aiMsg.isStreaming = false; _isLoading = false; });
+      setState(() {
+        aiMsg.text = '错误: $e';
+        aiMsg.isStreaming = false;
+        _isLoading = false;
+      });
     }
   }
 
@@ -271,7 +302,7 @@ class _ChatScreenState extends State<ChatScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: nc.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 1))],
         ),
@@ -297,6 +328,9 @@ class _ChatScreenState extends State<ChatScreen> {
       case 'clipboard': return '剪贴板';
       case 'generate_image': return '生成图片';
       case 'generate_video': return '生成视频';
+      case 'save_memory': return '记忆';
+      case 'save_note': return '保存笔记';
+      case 'get_current_time': return '获取时间';
       default: return name;
     }
   }
@@ -310,7 +344,7 @@ class _ChatScreenState extends State<ChatScreen> {
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: const Color(0xFFF6F6F6),
+        systemNavigationBarColor: nc.background,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: GestureDetector(
@@ -321,7 +355,7 @@ class _ChatScreenState extends State<ChatScreen> {
         },
         child: Scaffold(
           key: _scaffoldKey,
-          backgroundColor: const Color(0xFFF6F6F6),
+          backgroundColor: nc.background,
           drawerEnableOpenDragGesture: false,
           drawerScrimColor: Colors.black38,
           drawer: AgentSideDrawer(
@@ -344,6 +378,11 @@ class _ChatScreenState extends State<ChatScreen> {
                 _newSession();
               }
               setState(() {});
+            },
+            onReopenDrawer: () {
+              Future.delayed(const Duration(milliseconds: 100), () {
+                _scaffoldKey.currentState?.openDrawer();
+              });
             },
           ),
           appBar: AgentTopBar(afterMenu: _buildModelChip(nc)),

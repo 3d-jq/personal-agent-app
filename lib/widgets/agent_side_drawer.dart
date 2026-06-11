@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
 import '../models/chat_session.dart';
 import 'settings_page.dart';
+import 'memory_page.dart';
+import 'notes_page.dart';
 
 class AgentSideDrawer extends StatefulWidget {
   final List<ChatSession> sessions;
@@ -9,6 +11,7 @@ class AgentSideDrawer extends StatefulWidget {
   final ValueChanged<String> onSessionTap;
   final VoidCallback onNewChat;
   final ValueChanged<String> onSessionDeleted;
+  final VoidCallback? onReopenDrawer;
 
   const AgentSideDrawer({
     super.key,
@@ -17,6 +20,7 @@ class AgentSideDrawer extends StatefulWidget {
     required this.onSessionTap,
     required this.onNewChat,
     required this.onSessionDeleted,
+    this.onReopenDrawer,
   });
 
   @override
@@ -24,6 +28,11 @@ class AgentSideDrawer extends StatefulWidget {
 }
 
 class _AgentSideDrawerState extends State<AgentSideDrawer> {
+  void _openPage(Widget page) {
+    Navigator.of(context).pop();
+    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+  }
+
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
@@ -32,7 +41,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
     return SizedBox(
       width: width,
       child: Drawer(
-        backgroundColor: const Color(0xFFF6F6F6),
+        backgroundColor: nc.background,
         child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,8 +60,8 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: _Card(nc: nc, children: [
-                  _CardItem(icon: Icons.library_books_outlined, label: '文件库', nc: nc),
-                  _CardItem(icon: Icons.folder_outlined, label: '项目', nc: nc),
+                  _CardItem(icon: Icons.bookmark_border, label: '记忆', nc: nc, onTap: () => _openPage(MemoryPage(onPop: widget.onReopenDrawer))),
+                  _CardItem(icon: Icons.note_outlined, label: '笔记', nc: nc, onTap: () => _openPage(NotesPage(onPop: widget.onReopenDrawer))),
                   _CardItem(icon: Icons.apps_outlined, label: '应用', nc: nc),
                   _CardItem(icon: Icons.more_horiz, label: '更多', nc: nc, isLast: true),
                 ]),
@@ -66,16 +75,16 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                 child: Text('最近', style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500)),
               ),
               Expanded(
-                child: widget.sessions.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.only(top: 40),
-                        child: Center(child: Text('暂无对话', style: TextStyle(fontSize: 13, color: nc.textSecondary.withValues(alpha: 0.5)))),
-                      )
-                    : Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: _Card(
-                          nc: nc,
-                          children: List.generate(widget.sessions.length, (i) {
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: _Card(
+                    nc: nc,
+                    children: widget.sessions.isEmpty
+                        ? [Center(child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            child: Text('暂无对话', style: TextStyle(fontSize: 13, color: nc.textSecondary.withValues(alpha: 0.5))),
+                          ))]
+                        : List.generate(widget.sessions.length, (i) {
                             final s = widget.sessions[i];
                             return _CardItem(
                               label: s.title,
@@ -86,8 +95,8 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                               onLongPress: () => _confirmDelete(s),
                             );
                           }),
-                        ),
-                      ),
+                  ),
+                ),
               ),
 
               // ── Bottom bar ──
@@ -97,10 +106,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                   _Pill(icon: Icons.search_rounded, nc: nc),
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsPage()));
-                    },
+                    onTap: () => _openPage(SettingsPage(onPop: widget.onReopenDrawer)),
                     child: _Pill(icon: Icons.person_rounded, nc: nc),
                   ),
                   const Spacer(),
@@ -109,7 +115,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: nc.surface,
                         borderRadius: BorderRadius.circular(22),
                         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 1))],
                       ),
@@ -155,7 +161,7 @@ class _Card extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: nc.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 1))],
       ),
@@ -196,8 +202,12 @@ class _CardItem extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(children: [
+            if (isActive) ...[
+              Container(width: 8, height: 8, margin: const EdgeInsets.only(right: 10),
+                decoration: BoxDecoration(color: nc.textPrimary, shape: BoxShape.circle)),
+            ],
             if (icon != null) ...[
-              Icon(icon, size: 20, color: isActive ? const Color(0xFF0F7B6C) : nc.textPrimary),
+              Icon(icon, size: 20, color: nc.textPrimary),
               const SizedBox(width: 14),
             ],
             Expanded(
@@ -207,7 +217,7 @@ class _CardItem extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 15,
-                  color: isActive ? const Color(0xFF0F7B6C) : nc.textPrimary,
+                  color: nc.textPrimary,
                   fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                 ),
               ),
@@ -232,7 +242,7 @@ class _Pill extends StatelessWidget {
     return Container(
       width: 40, height: 40,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: nc.surface,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 1))],
       ),
