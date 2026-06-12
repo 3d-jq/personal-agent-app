@@ -22,6 +22,7 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example/save_to_gallery"
     private val OPEN_CHANNEL = "com.example/open_file"
     private val LIVE_CHANNEL = "com.example/live_activity"
+    private val SHARE_CHANNEL = "com.example/share_file"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -58,12 +59,17 @@ class MainActivity : FlutterActivity() {
                     val path = call.argument<String>("path")
                     if (path == null) { result.error("NO_PATH", "No file path", null); return@setMethodCallHandler }
                     val file = File(path)
+                    if (!file.exists()) {
+                        result.error("FILE_NOT_FOUND", "File not found: $path", null)
+                        return@setMethodCallHandler
+                    }
                     val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
                     val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, "video/*")
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        setDataAndType(uri, "video/mp4")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
-                    startActivity(intent)
+                    val chooser = Intent.createChooser(intent, "选择播放器")
+                    startActivity(chooser)
                     result.success(true)
                 } catch (e: Exception) { result.error("OPEN_ERROR", e.message, null) }
             } else result.notImplemented()
@@ -117,6 +123,29 @@ class MainActivity : FlutterActivity() {
             } catch (e: Exception) {
                 result.error("NOTIFICATION_ERROR", e.message, null)
             }
+        }
+
+        // ── Share file ──
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SHARE_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "shareFile") {
+                try {
+                    val path = call.argument<String>("path")
+                    val mimeType = call.argument<String>("mimeType") ?: "text/html"
+                    val title = call.argument<String>("title") ?: "分享笔记"
+                    if (path == null) { result.error("NO_PATH", "No file path", null); return@setMethodCallHandler }
+                    val file = File(path)
+                    if (!file.exists()) { result.error("FILE_NOT_FOUND", "File not found: $path", null); return@setMethodCallHandler }
+                    val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = mimeType
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        putExtra(Intent.EXTRA_SUBJECT, title)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    startActivity(Intent.createChooser(intent, title))
+                    result.success(true)
+                } catch (e: Exception) { result.error("SHARE_ERROR", e.message, null) }
+            } else result.notImplemented()
         }
     }
 
