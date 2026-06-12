@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:uuid/uuid.dart';
 import '../core/agent_colors.dart';
 import '../models/chat_message.dart';
@@ -9,6 +12,7 @@ import '../services/ai_service.dart';
 import '../services/chat_storage.dart';
 import '../services/memory_storage.dart';
 import '../services/notification_service.dart';
+import '../services/personalization_storage.dart';
 import '../tools/tools.dart';
 import '../widgets/agent_top_bar.dart';
 import '../widgets/agent_side_drawer.dart';
@@ -41,6 +45,8 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _sessionId;
   List<ChatMessage> _messages = [];
   List<ChatSession> _sessions = [];
+  File? _pendingAttachment;
+  String _pendingAttachmentType = '';
 
   String? get currentSessionId => _sessionId;
 
@@ -68,10 +74,9 @@ class _ChatScreenState extends State<ChatScreen> {
     _toolRegistry.register(WebFetchTool());
     final weatherTool = WeatherTool();
     final searchTool = WebSearchTool();
-    final imageTool = AgnesImageTool()
-      ..apiKey = 'sk-3STpwSvUPUyYP1LIUc4O2yGjrEqapMPm2XNUPgmd0sa7IwaJ';
-    final videoTool = AgnesVideoTool()
-      ..apiKey = 'sk-3STpwSvUPUyYP1LIUc4O2yGjrEqapMPm2XNUPgmd0sa7IwaJ';
+    final agnesKey = dotenv.env['AGNES_API_KEY'] ?? '';
+    final imageTool = AgnesImageTool()..apiKey = agnesKey;
+    final videoTool = AgnesVideoTool()..apiKey = agnesKey;
     _toolRegistry.register(weatherTool);
     _toolRegistry.register(searchTool);
     _toolRegistry.register(imageTool);
@@ -79,6 +84,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _toolRegistry.register(SaveMemoryTool());
     _toolRegistry.register(SaveNoteTool());
     _toolRegistry.register(TimeTool());
+    _toolRegistry.register(AiDailyTool());
   }
 
   @override
@@ -165,7 +171,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _sendMessage() async {
     final text = _inputCtrl.text.trim();
-    if (text.isEmpty || _isLoading) return;
+    if ((text.isEmpty && _pendingAttachment == null) || _isLoading) return;
     if (_sessionId == null) _newSession();
     if (!_aiSettings.hasVendor) {
       setState(() => _messages.add(ChatMessage(
@@ -175,8 +181,20 @@ class _ChatScreenState extends State<ChatScreen> {
       _scrollDown();
       return;
     }
+
+    String displayText = text;
+    String? attachmentBase64;
+    String? attachmentName;
+    if (_pendingAttachment != null) {
+      final bytes = await _pendingAttachment!.readAsBytes();
+      attachmentBase64 = base64Encode(bytes);
+      attachmentName = _pendingAttachment!.path.split(Platform.pathSeparator).last;
+      final typeLabel = _pendingAttachmentType == 'image' ? '图片' : '文档';
+      displayText = text.isEmpty ? '[附件: $typeLabel $attachmentName]' : '$text\n[附件: $typeLabel $attachmentName]';
+    }
+
     setState(() {
-      _messages.add(ChatMessage(text: text, isUser: true));
+      _messages.add(ChatMessage(text: displayText, isUser: true));
       _messages.add(ChatMessage(text: '', isUser: false, isStreaming: true));
       _isLoading = true;
     });
@@ -184,11 +202,25 @@ class _ChatScreenState extends State<ChatScreen> {
     _inputFocus.unfocus();
     _scrollDown();
 
+    final pendingFile = _pendingAttachment;
+    final pendingType = _pendingAttachmentType;
+    _pendingAttachment = null;
+    _pendingAttachmentType = '';
+
     final storage = MemoryStorage();
     await storage.loadAll();
     final prefs = storage.preferencePrompt;
     final memories = storage.memoryContext;
-    final systemPrompt = StringBuffer('你是一个叫DWeis的全能agent助手，你可以使用可用的工具来帮助用户完成任务。当用户要求记录、总结、保存、记下某些内容时，调用 save_note 工具保存为笔记。');
+    final personalization = PersonalizationStorage();
+    await personalization.load();
+    final systemPrompt = StringBuffer('你是一个叫DWeis的全能agent助手，你可以使用可用的工具来帮助用户完成任务。当用户要求记录、总结、保存、记下某些内容时，调用 save_note 工具保存为笔记。用户昵称是${personalization.userName}。');
+    final stylePrompt = personalization.stylePrompt;
+    if (stylePrompt.isNotEmpty) {
+      systemPrompt.write('\n\n## 回复风格\n$stylePrompt');
+    }
+    if (personalization.customPrompt.isNotEmpty) {
+      systemPrompt.write('\n\n## 自定义指令\n${personalization.customPrompt}');
+    }
     if (prefs.isNotEmpty) {
       systemPrompt.write('\n\n## 用户偏好\n$prefs');
     }
@@ -197,14 +229,28 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     final history = <Map<String, dynamic>>[{'role': 'system', 'content': systemPrompt.toString()}];
-    for (final m in _messages) {
+    for (var i = 0; i < _messages.length; i++) {
+      final m = _messages[i];
       if (m.isStreaming) continue;
-      history.add({
+      final msg = <String, dynamic>{
         'role': m.isUser ? 'user' : 'assistant',
         'content': m.text,
-      });
+      };
+      if (i == _messages.length - 2 && attachmentBase64 != null && pendingFile != null) {
+        if (pendingType == 'image') {
+          msg['content'] = [
+            {'type': 'text', 'text': text.isEmpty ? '请基于这张图片帮我生成图片或视频' : text},
+            {'type': 'image_url', 'image_url': {'url': 'data:image/png;base64,$attachmentBase64'}},
+          ];
+        } else {
+          msg['content'] = [
+            {'type': 'text', 'text': '${text.isEmpty ? '请分析这个文档' : text}\n\n文档文件名: $attachmentName\n文件大小: ${pendingFile.lengthSync()} bytes'},
+          ];
+        }
+      }
+      history.add(msg);
     }
-    history.removeWhere((m) => (m['content'] ?? '').isEmpty);
+    history.removeWhere((m) => (m['content'] ?? '').isEmpty || (m['content'] is List && (m['content'] as List).isEmpty));
 
     final ai = AIService(
       baseUrl: _aiSettings.baseUrl,
@@ -242,7 +288,6 @@ class _ChatScreenState extends State<ChatScreen> {
               finishRunning();
               final name = line.replaceFirst('🔧 调用工具:', '').trim();
               steps.add(TimelineStep(label: _toolLabel(name), type: TimelineStepType.tool, status: TimelineStepStatus.running));
-              // Notification for long-running tools
               if (name == 'generate_image' || name == 'generate_video') {
                 NotificationService().startTask(id: name, title: _toolLabel(name), message: '准备中…');
               }
@@ -379,11 +424,6 @@ class _ChatScreenState extends State<ChatScreen> {
               }
               setState(() {});
             },
-            onReopenDrawer: () {
-              Future.delayed(const Duration(milliseconds: 100), () {
-                _scaffoldKey.currentState?.openDrawer();
-              });
-            },
           ),
           appBar: AgentTopBar(afterMenu: _buildModelChip(nc)),
           resizeToAvoidBottomInset: true,
@@ -405,6 +445,20 @@ class _ChatScreenState extends State<ChatScreen> {
               isLoading: _isLoading,
               settings: _aiSettings,
               onChanged: () => setState(() {}),
+              pendingFile: _pendingAttachment,
+              pendingFileType: _pendingAttachmentType,
+              onAttachment: (file, type) {
+                setState(() {
+                  _pendingAttachment = file;
+                  _pendingAttachmentType = type;
+                });
+              },
+              onClearAttachment: () {
+                setState(() {
+                  _pendingAttachment = null;
+                  _pendingAttachmentType = '';
+                });
+              },
             ),
           ]),
         ),

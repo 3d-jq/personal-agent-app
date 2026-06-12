@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
 import '../models/note.dart';
+import '../services/note_export_service.dart';
 import '../services/note_storage.dart';
+import 'inline_content.dart';
 
 class NotesPage extends StatefulWidget {
-  final VoidCallback? onPop;
-  const NotesPage({super.key, this.onPop});
+  const NotesPage({super.key});
   @override
   State<NotesPage> createState() => _NotesPageState();
 }
@@ -30,23 +31,17 @@ class _NotesPageState extends State<NotesPage> {
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
 
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) widget.onPop?.call();
-      },
-      child: Scaffold(
-        backgroundColor: nc.background,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: nc.textPrimary),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: Text('笔记',
-            style: TextStyle(
-                fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+    return Scaffold(
+      backgroundColor: nc.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text('笔记',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
         centerTitle: true,
       ),
       body: !_loaded
@@ -58,7 +53,6 @@ class _NotesPageState extends State<NotesPage> {
                   itemCount: _notes.length,
                   itemBuilder: (_, i) => _noteCard(_notes[i], nc),
                 ),
-      ),
     );
   }
 
@@ -187,6 +181,22 @@ class _NoteDetail extends StatelessWidget {
             style: TextStyle(
                 fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.share_outlined, color: nc.textPrimary),
+            onPressed: () async {
+              try {
+                await NoteExportService.exportToWord(note);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('导出失败: $e')),
+                  );
+                }
+              }
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -200,9 +210,7 @@ class _NoteDetail extends StatelessWidget {
                   fontSize: 12, color: nc.textSecondary.withValues(alpha: 0.5)),
             ),
             const SizedBox(height: 16),
-            Text(note.content,
-                style: TextStyle(
-                    fontSize: 15, color: nc.textPrimary, height: 1.7)),
+            ...buildInlineContent(note.content, nc, context),
           ],
         ),
       ),

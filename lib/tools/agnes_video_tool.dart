@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
+import '../models/media_item.dart';
+import '../services/media_storage.dart';
 import '../tools/base_tool.dart';
 
 class AgnesVideoTool extends AgentTool {
@@ -28,7 +31,7 @@ class AgnesVideoTool extends AgentTool {
       },
       'image_url': {
         'type': 'string',
-        'description': '输入图片 URL，用于图生视频。留空则为文生视频',
+        'description': '输入图片的 URL 或 base64 编码（data:image/png;base64,...格式），用于图生视频。留空则为文生视频',
       },
       'duration': {
         'type': 'string',
@@ -106,10 +109,16 @@ class AgnesVideoTool extends AgentTool {
             return '视频生成完成但未返回下载地址';
           }
 
-          // Download video
-          final dir = await getTemporaryDirectory();
+          // Download video to permanent storage
+          final dir = await getApplicationDocumentsDirectory();
           final file = File('${dir.path}/agnes_video_${DateTime.now().millisecondsSinceEpoch}.mp4');
           await _dio.download(videoUrl, file.path);
+          await MediaStorage().add(MediaItem(
+            id: const Uuid().v4(),
+            type: MediaType.video,
+            filePath: file.path,
+            prompt: prompt,
+          ));
 
           final type = imageUrl != null ? '图生视频' : '文生视频';
           return '[$type] 视频已生成\n\n![生成的视频](file://${file.path})';

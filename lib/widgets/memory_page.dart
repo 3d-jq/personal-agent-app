@@ -4,8 +4,7 @@ import '../services/memory_storage.dart';
 import '../core/agent_colors.dart';
 
 class MemoryPage extends StatefulWidget {
-  final VoidCallback? onPop;
-  const MemoryPage({super.key, this.onPop});
+  const MemoryPage({super.key});
   @override State<MemoryPage> createState() => _MemoryPageState();
 }
 
@@ -36,14 +35,9 @@ class _MemoryPageState extends State<MemoryPage> with SingleTickerProviderStateM
     final nc = AgentColors.of(context);
     final items = _tab.index == 0 ? _facts : _prefs;
 
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) widget.onPop?.call();
-      },
-      child: Scaffold(
-        backgroundColor: nc.background,
-        appBar: AppBar(
+    return Scaffold(
+      backgroundColor: nc.background,
+      appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(icon: Icon(Icons.arrow_back, color: nc.textPrimary), onPressed: () => Navigator.pop(context)),
@@ -61,7 +55,7 @@ class _MemoryPageState extends State<MemoryPage> with SingleTickerProviderStateM
       ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
-              : items.isEmpty
+          : items.isEmpty
               ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -99,7 +93,6 @@ class _MemoryPageState extends State<MemoryPage> with SingleTickerProviderStateM
                     );
                   },
                 ),
-      ),
     );
   }
 }

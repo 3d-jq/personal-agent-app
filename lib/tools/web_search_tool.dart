@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../tools/base_tool.dart';
 
@@ -25,8 +26,7 @@ class WebSearchTool extends AgentTool {
     'required': ['query'],
   };
 
-  /// Tavily API Key (default: dev key)
-  String apiKey = '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';
+  String apiKey = dotenv.env['TAVILY_API_KEY'] ?? '';
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {

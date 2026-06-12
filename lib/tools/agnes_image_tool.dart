@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
+import '../models/media_item.dart';
+import '../services/media_storage.dart';
 import '../tools/base_tool.dart';
 
 class AgnesImageTool extends AgentTool {
@@ -33,7 +36,7 @@ class AgnesImageTool extends AgentTool {
       },
       'image_url': {
         'type': 'string',
-        'description': '输入图片的公网 URL，用于图生图（基于已有图片进行风格转换或编辑）。留空则为文生图',
+        'description': '输入图片的公网 URL 或 base64 编码的图片数据（data:image/png;base64,...格式），用于图生图。留空则为文生图',
       },
     },
     'required': ['prompt'],
@@ -62,10 +65,18 @@ class AgnesImageTool extends AgentTool {
 
       // Request base64 for reliable delivery (no extra network request by client)
       if (imageUrl != null && imageUrl.isNotEmpty) {
-        body['extra_body'] = {
-          'image': [imageUrl],
-          'response_format': 'b64_json',
-        };
+        final isBase64 = imageUrl.startsWith('data:image');
+        if (isBase64) {
+          body['extra_body'] = {
+            'image': [imageUrl],
+            'response_format': 'b64_json',
+          };
+        } else {
+          body['extra_body'] = {
+            'image': [imageUrl],
+            'response_format': 'b64_json',
+          };
+        }
       } else {
         body['return_base64'] = true;
       }
@@ -89,13 +100,19 @@ class AgnesImageTool extends AgentTool {
       final imageResultUrl = imageData['url'] as String?;
       final b64 = imageData['b64_json'] as String?;
 
-      // Save base64 to temp file for guaranteed local rendering
+      // Save base64 to permanent file
       if (b64 != null && b64.isNotEmpty) {
         final bytes = base64Decode(b64);
-        final dir = await getTemporaryDirectory();
+        final dir = await getApplicationDocumentsDirectory();
         final file = File('${dir.path}/agnes_img_${DateTime.now().millisecondsSinceEpoch}.png');
         await file.writeAsBytes(bytes);
         final type = imageUrl != null ? '图生图' : '文生图';
+        await MediaStorage().add(MediaItem(
+          id: const Uuid().v4(),
+          type: MediaType.image,
+          filePath: file.path,
+          prompt: prompt,
+        ));
         return '[$type] 图片已生成\n\n![生成的图片](file://${file.path})';
       }
 

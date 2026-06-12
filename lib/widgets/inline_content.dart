@@ -61,13 +61,6 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                if (isLocal && File(filePath).existsSync())
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.file(File(filePath), fit: BoxFit.cover, width: double.infinity, height: double.infinity,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                    ),
-                  ),
                 Container(
                   width: 56, height: 56,
                   decoration: const BoxDecoration(color: Color(0xAA000000), shape: BoxShape.circle),
@@ -188,8 +181,9 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: nc.primarySurface,
         borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: nc.divider, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -197,15 +191,15 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Color(0xFF333333), width: 0.5)),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: nc.divider, width: 0.5)),
             ),
             child: Row(children: [
-              Icon(Icons.code, size: 13, color: nc.textSecondary.withValues(alpha: 0.5)),
+              Icon(Icons.code, size: 13, color: nc.textSecondary.withValues(alpha: 0.6)),
               const SizedBox(width: 6),
               Text(
                 element.attributes['class']?.toString().replaceAll('language-', '') ?? 'code',
-                style: TextStyle(fontSize: 11, color: nc.textSecondary.withValues(alpha: 0.5)),
+                style: TextStyle(fontSize: 11, color: nc.textSecondary),
               ),
               const Spacer(),
               GestureDetector(
@@ -214,9 +208,9 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
                   HapticFeedback.lightImpact();
                 },
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.copy, size: 13, color: nc.textSecondary.withValues(alpha: 0.5)),
+                  Icon(Icons.copy, size: 13, color: nc.textSecondary.withValues(alpha: 0.6)),
                   const SizedBox(width: 4),
-                  Text('复制', style: TextStyle(fontSize: 11, color: nc.textSecondary.withValues(alpha: 0.5))),
+                  Text('复制', style: TextStyle(fontSize: 11, color: nc.textSecondary)),
                 ]),
               ),
             ]),
@@ -224,7 +218,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.all(14),
-            child: Text(code, style: const TextStyle(fontSize: 13, color: Color(0xFFD4D4D4), fontFamily: 'monospace', height: 1.5)),
+            child: Text(code, style: TextStyle(fontSize: 13, color: nc.textPrimary, fontFamily: 'monospace', height: 1.5)),
           ),
         ],
       ),
@@ -397,10 +391,12 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
           Padding(
             padding: const EdgeInsets.all(32),
             child: GestureDetector(
-              onTap: () {
+              onTap: () async {
                 try {
-                  MethodChannel('com.example/open_file').invokeMethod('openFile', {'path': widget.filePath});
-                } catch (_) {}
+                  await MethodChannel('com.example/open_file').invokeMethod('openFile', {'path': widget.filePath});
+                } catch (e) {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('无法播放: $e')));
+                }
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),

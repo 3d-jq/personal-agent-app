@@ -1,7 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import 'ai_settings_sheet.dart';
+import 'attachment_picker.dart';
 
 class ChatInputBar extends StatefulWidget {
   final double bottomSafe;
@@ -12,6 +14,10 @@ class ChatInputBar extends StatefulWidget {
   final bool isLoading;
   final AISettings settings;
   final VoidCallback onChanged;
+  final File? pendingFile;
+  final String pendingFileType;
+  final Function(File file, String type)? onAttachment;
+  final VoidCallback? onClearAttachment;
 
   const ChatInputBar({
     super.key,
@@ -23,6 +29,10 @@ class ChatInputBar extends StatefulWidget {
     required this.isLoading,
     required this.settings,
     required this.onChanged,
+    this.pendingFile,
+    this.pendingFileType = '',
+    this.onAttachment,
+    this.onClearAttachment,
   });
 
   @override
@@ -33,91 +43,157 @@ class _ChatInputBarState extends State<ChatInputBar> {
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
+    final hasFile = widget.pendingFile != null;
 
-    return AnimatedPadding(
-      padding: EdgeInsets.fromLTRB(12, 4, 12, widget.bottomSafe + 16),
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutCubic,
-      child: Container(
-        decoration: BoxDecoration(
-          color: nc.surface,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 2))],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 160),
-                child: TextField(
-                  controller: widget.controller,
-                  focusNode: widget.focusNode,
-                  maxLines: null,
-                  keyboardType: TextInputType.multiline,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => widget.onSend(),
-                  style: TextStyle(fontSize: 15, color: nc.textPrimary),
-                  decoration: InputDecoration(
-                    hintText: '询问、搜索或创作任何内容',
-                    hintStyle: TextStyle(
-                      color: nc.textSecondary.withValues(alpha: 0.7),
-                      fontSize: 15,
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (hasFile) _buildPreview(nc),
+        AnimatedPadding(
+          padding: EdgeInsets.fromLTRB(12, 4, 12, widget.bottomSafe + 16),
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: nc.surface,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: hasFile ? const Color(0xFF0F7B6C).withValues(alpha: 0.4) : nc.divider,
+                width: hasFile ? 1 : 0.5,
               ),
             ),
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-              child: Row(children: [
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: Icon(Icons.add_rounded, size: 22, color: nc.textSecondary),
-                  ),
-                ),
+            child: Row(
+              children: [
                 const SizedBox(width: 4),
                 GestureDetector(
                   onTap: () {
                     HapticFeedback.lightImpact();
-                    showBackendPicker(context, widget.settings, widget.onChanged);
+                    if (widget.onAttachment != null) {
+                      AttachmentPicker.show(context, nc, widget.onAttachment!);
+                    }
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.all(6),
+                  child: Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: hasFile ? const Color(0xFF0F7B6C).withValues(alpha: 0.1) : nc.primarySurface,
+                      shape: BoxShape.circle,
+                    ),
                     child: Icon(
-                      Icons.memory_rounded,
-                      size: 22,
-                      color: widget.settings.hasVendor
-                          ? const Color(0xFF0F7B6C)
-                          : const Color(0xFFDFAB01),
+                      hasFile ? Icons.check_rounded : Icons.add_rounded,
+                      size: 20,
+                      color: hasFile ? const Color(0xFF0F7B6C) : nc.textPrimary,
                     ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: TextField(
+                    controller: widget.controller,
+                    focusNode: widget.focusNode,
+                    maxLines: 1,
+                    style: TextStyle(fontSize: 15, color: nc.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: hasFile ? '添加描述（可选）' : '给 DWeis 发消息',
+                      hintStyle: TextStyle(
+                        color: nc.textSecondary.withValues(alpha: 0.6),
+                        fontSize: 15,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
                 GestureDetector(
                   onTap: widget.isLoading ? widget.onStop : widget.onSend,
                   child: Container(
-                    width: 36, height: 36,
+                    width: 40, height: 40,
                     decoration: BoxDecoration(
-                      color: nc.textPrimary,
+                      color: widget.isLoading
+                          ? Colors.red.withValues(alpha: 0.1)
+                          : widget.controller.text.isEmpty && !hasFile
+                              ? nc.primarySurface
+                              : nc.textPrimary,
                       shape: BoxShape.circle,
                     ),
-                    alignment: Alignment.center,
-                    child: widget.isLoading
-                        ? Icon(Icons.stop_rounded, size: 18, color: nc.surface)
-                        : Icon(Icons.arrow_upward_rounded, size: 18, color: nc.surface),
+                    child: Icon(
+                      widget.isLoading ? Icons.stop_rounded : Icons.arrow_upward_rounded,
+                      size: 18,
+                      color: widget.isLoading
+                          ? Colors.red
+                          : widget.controller.text.isEmpty && !hasFile
+                              ? nc.textSecondary
+                              : nc.surface,
+                    ),
                   ),
                 ),
-              ]),
+                const SizedBox(width: 4),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPreview(AgentColors nc) {
+    final file = widget.pendingFile!;
+    final isImage = widget.pendingFileType == 'image';
+    final name = file.path.split(Platform.pathSeparator).last;
+    final shortName = name.length > 20 ? '${name.substring(0, 17)}...' : name;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: nc.primarySurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: nc.divider, width: 0.5),
+        ),
+        child: Row(
+          children: [
+            if (isImage) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.file(file, width: 32, height: 32, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 32, height: 32,
+                    decoration: BoxDecoration(color: nc.surface, borderRadius: BorderRadius.circular(8)),
+                    child: Icon(Icons.image_outlined, size: 18, color: nc.textSecondary),
+                  ),
+                ),
+              ),
+            ] else ...[
+              Container(
+                width: 32, height: 32,
+                decoration: BoxDecoration(color: nc.surface, borderRadius: BorderRadius.circular(8)),
+                child: Icon(Icons.insert_drive_file_outlined, size: 18, color: nc.textSecondary),
+              ),
+            ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(shortName, maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, color: nc.textPrimary, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 1),
+                  Text(isImage ? '图片 · 点击加号更换' : '文档 · 点击加号更换',
+                    style: TextStyle(fontSize: 11, color: nc.textSecondary)),
+                ],
+              ),
+            ),
+            GestureDetector(
+              onTap: widget.onClearAttachment,
+              child: Container(
+                width: 24, height: 24,
+                decoration: BoxDecoration(color: nc.surface, shape: BoxShape.circle),
+                child: Icon(Icons.close, size: 14, color: nc.textSecondary),
+              ),
             ),
           ],
         ),

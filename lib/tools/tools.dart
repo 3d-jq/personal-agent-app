@@ -11,3 +11,4 @@ export 'agnes_video_tool.dart';
 export 'save_memory_tool.dart';
 export 'save_note_tool.dart';
 export 'time_tool.dart';
+export 'ai_daily_tool.dart';

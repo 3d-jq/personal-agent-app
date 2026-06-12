@@ -20,6 +20,10 @@ class VendorConfig {
 // ── Settings ──
 
 class AISettings {
+  static final AISettings _instance = AISettings._();
+  factory AISettings() => _instance;
+  AISettings._();
+
   static const _builtIn = [('DeepSeek', 'https://api.deepseek.com/v1')];
   List<VendorConfig> vendors = [];
   String? selectedVendorId;

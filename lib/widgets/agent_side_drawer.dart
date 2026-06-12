@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../models/chat_session.dart';
-import 'settings_page.dart';
 import 'memory_page.dart';
 import 'notes_page.dart';
+import 'settings_page.dart';
+import 'reminders_page.dart';
+import 'media_page.dart';
 
 class AgentSideDrawer extends StatefulWidget {
   final List<ChatSession> sessions;
@@ -11,7 +14,6 @@ class AgentSideDrawer extends StatefulWidget {
   final ValueChanged<String> onSessionTap;
   final VoidCallback onNewChat;
   final ValueChanged<String> onSessionDeleted;
-  final VoidCallback? onReopenDrawer;
 
   const AgentSideDrawer({
     super.key,
@@ -20,7 +22,6 @@ class AgentSideDrawer extends StatefulWidget {
     required this.onSessionTap,
     required this.onNewChat,
     required this.onSessionDeleted,
-    this.onReopenDrawer,
   });
 
   @override
@@ -60,10 +61,10 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: _Card(nc: nc, children: [
-                  _CardItem(icon: Icons.bookmark_border, label: '记忆', nc: nc, onTap: () => _openPage(MemoryPage(onPop: widget.onReopenDrawer))),
-                  _CardItem(icon: Icons.note_outlined, label: '笔记', nc: nc, onTap: () => _openPage(NotesPage(onPop: widget.onReopenDrawer))),
-                  _CardItem(icon: Icons.apps_outlined, label: '应用', nc: nc),
-                  _CardItem(icon: Icons.more_horiz, label: '更多', nc: nc, isLast: true),
+                  _CardItem(icon: Icons.bookmark_border, label: '记忆', nc: nc, onTap: () => _openPage(const MemoryPage())),
+                  _CardItem(icon: Icons.note_outlined, label: '笔记', nc: nc, onTap: () => _openPage(const NotesPage())),
+                  _CardItem(icon: Icons.photo_library_outlined, label: '图视', nc: nc, onTap: () => _openPage(const MediaView())),
+                  _CardItem(icon: Icons.alarm_outlined, label: '定时任务', nc: nc, isLast: true, onTap: () => _openPage(const RemindersView())),
                 ]),
               ),
 
@@ -106,7 +107,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                   _Pill(icon: Icons.search_rounded, nc: nc),
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: () => _openPage(SettingsPage(onPop: widget.onReopenDrawer)),
+                    onTap: () => _openPage(const SettingsPage()),
                     child: _Pill(icon: Icons.person_rounded, nc: nc),
                   ),
                   const Spacer(),
@@ -202,10 +203,6 @@ class _CardItem extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(children: [
-            if (isActive) ...[
-              Container(width: 8, height: 8, margin: const EdgeInsets.only(right: 10),
-                decoration: BoxDecoration(color: nc.textPrimary, shape: BoxShape.circle)),
-            ],
             if (icon != null) ...[
               Icon(icon, size: 20, color: nc.textPrimary),
               const SizedBox(width: 14),

@@ -1,0 +1,182 @@
+import 'package:flutter/material.dart';
+import '../core/agent_colors.dart';
+import 'ai_settings_sheet.dart';
+
+class ModelSettingsView extends StatefulWidget {
+  const ModelSettingsView({super.key});
+  @override
+  State<ModelSettingsView> createState() => _ModelSettingsViewState();
+}
+
+class _ModelSettingsViewState extends State<ModelSettingsView> {
+  final _aiSettings = AISettings();
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _aiSettings.load().then((_) => setState(() => _loaded = true));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final nc = AgentColors.of(context);
+    final vendor = _aiSettings.selectedVendor;
+
+    return Scaffold(
+      backgroundColor: nc.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text('模型', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        centerTitle: true,
+      ),
+      body: ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        const SizedBox(height: 8),
+        _RoundedCard(
+          nc: nc,
+          children: [
+            _SettingItem(
+              icon: Icons.check_circle_outline,
+              label: '当前厂商',
+              trailing: vendor?.name ?? '未配置',
+              onTap: () => showBackendPicker(context, _aiSettings, () => setState(() {})),
+            ),
+            _SettingItem(
+              icon: Icons.smart_toy_outlined,
+              label: '当前模型',
+              trailing: vendor?.model.isNotEmpty == true ? vendor!.model : '未设置',
+              onTap: () {
+                if (vendor != null) showModelPicker(context, _aiSettings, () => setState(() {}));
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _SectionHeader(title: '管理', nc: nc),
+        _RoundedCard(
+          nc: nc,
+          children: [
+            _SettingItem(
+              icon: Icons.settings_outlined,
+              label: '管理厂商配置',
+              onTap: () => showBackendPicker(context, _aiSettings, () => setState(() {})),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        if (vendor != null) ...[
+          _SectionHeader(title: '厂商信息', nc: nc),
+          _RoundedCard(
+            nc: nc,
+            children: [
+              _InfoRow(label: '名称', value: vendor.name, nc: nc),
+              _InfoRow(label: 'Base URL', value: vendor.baseUrl, nc: nc),
+              _InfoRow(label: 'API Key', value: '${vendor.apiKey.substring(0, vendor.apiKey.length.clamp(0, 8))}...', nc: nc),
+            ],
+          ),
+        ],
+        const SizedBox(height: 40),
+      ],
+      ),
+    );
+  }
+}
+
+class _RoundedCard extends StatelessWidget {
+  final AgentColors nc;
+  final List<Widget> children;
+  const _RoundedCard({required this.nc, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: nc.surface,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 1))],
+      ),
+      child: Column(children: children),
+    );
+  }
+}
+
+class _SettingItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? trailing;
+  final VoidCallback? onTap;
+  const _SettingItem({required this.icon, required this.label, this.trailing, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final nc = AgentColors.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap ?? () {},
+        borderRadius: BorderRadius.zero,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: nc.textPrimary),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(label, style: TextStyle(fontSize: 15, color: nc.textPrimary, fontWeight: FontWeight.w400)),
+              ),
+              if (trailing != null)
+                Text(trailing!, style: TextStyle(fontSize: 14, color: nc.textSecondary)),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final AgentColors nc;
+  const _SectionHeader({required this.title, required this.nc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8, bottom: 8),
+      child: Text(title, style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500)),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final AgentColors nc;
+  const _InfoRow({required this.label, required this.value, required this.nc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Text(label, style: TextStyle(fontSize: 14, color: nc.textSecondary)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(value, maxLines: 1, overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 14, color: nc.textPrimary)),
+          ),
+        ],
+      ),
+    );
+  }
+}
