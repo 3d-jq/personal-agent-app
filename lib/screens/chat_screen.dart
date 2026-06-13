@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:uuid/uuid.dart';
 import '../core/agent_colors.dart';
 import '../models/chat_message.dart';
@@ -22,6 +21,7 @@ import '../widgets/chat_input_bar.dart';
 import '../services/connectivity_service.dart';
 import '../providers/daily_card_provider.dart';
 import '../widgets/daily_card.dart';
+import 'chat_helpers.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sessionId;
@@ -101,24 +101,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _initTools() {
-    _toolRegistry.register(FileTool());
-    _toolRegistry.register(ClipboardTool());
-    _toolRegistry.register(ReminderTool());
-    _toolRegistry.register(WebFetchTool());
-    final weatherTool = WeatherTool();
-    final searchTool = WebSearchTool();
-    final agnesKey = dotenv.env['AGNES_API_KEY'] ?? '';
-    final imageTool = AgnesImageTool()..apiKey = agnesKey;
-    final videoTool = AgnesVideoTool()..apiKey = agnesKey;
-    _toolRegistry.register(weatherTool);
-    _toolRegistry.register(searchTool);
-    _toolRegistry.register(imageTool);
-    _toolRegistry.register(videoTool);
-    _toolRegistry.register(SaveMemoryTool());
-    _toolRegistry.register(SaveNoteTool());
-    _toolRegistry.register(TimeTool());
-    _toolRegistry.register(AiDailyTool());
-    _toolRegistry.register(CalendarTool());
+    registerAllTools(_toolRegistry);
   }
 
   @override
@@ -259,35 +242,19 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final storage = MemoryStorage();
     if (_cachedMemoryContext == null) await storage.loadAll();
-    final prefs = _cachedPreferencePrompt ?? storage.preferencePrompt;
-    final memories = _cachedMemoryContext ?? storage.memoryContext;
     final personalization = PersonalizationStorage();
     if (_cachedSystemPrompt == null) await personalization.load();
     final systemPrompt = StringBuffer(_cachedSystemPrompt ?? '你是一个叫DWeis的全能agent助手，你可以使用可用的工具来帮助用户完成任务。当用户要求记录、总结、保存、记下某些内容时，调用 save_note 工具保存为笔记。当工具调用返回错误或失败时，请根据失败信息自动调整参数重试一次，不要直接告诉用户失败了。用户昵称是${personalization.userName}。');
 
-    final history = <Map<String, dynamic>>[{'role': 'system', 'content': systemPrompt.toString()}];
-    for (var i = 0; i < _messages.length; i++) {
-      final m = _messages[i];
-      if (m.isStreaming) continue;
-      final msg = <String, dynamic>{
-        'role': m.isUser ? 'user' : 'assistant',
-        'content': m.text,
-      };
-      if (i == _messages.length - 2 && attachmentBase64 != null && pendingFile != null) {
-        if (pendingType == 'image') {
-          msg['content'] = [
-            {'type': 'text', 'text': text.isEmpty ? '请基于这张图片帮我生成图片或视频' : text},
-            {'type': 'image_url', 'image_url': {'url': 'data:image/png;base64,$attachmentBase64'}},
-          ];
-        } else {
-          msg['content'] = [
-            {'type': 'text', 'text': '${text.isEmpty ? '请分析这个文档' : text}\n\n文档文件名: $attachmentName\n文件大小: ${pendingFile.lengthSync()} bytes'},
-          ];
-        }
-      }
-      history.add(msg);
-    }
-    history.removeWhere((m) => (m['content'] ?? '').isEmpty || (m['content'] is List && (m['content'] as List).isEmpty));
+    final history = buildMessageHistory(
+      systemPrompt: systemPrompt.toString(),
+      messages: _messages,
+      attachmentBase64: attachmentBase64,
+      attachmentName: attachmentName,
+      pendingType: pendingType,
+      text: text,
+      pendingFileSize: pendingFile?.lengthSync(),
+    );
 
     final ai = AIService(
       baseUrl: _aiSettings.baseUrl,
@@ -302,14 +269,6 @@ class _ChatScreenState extends State<ChatScreen> {
     var firstChunk = true;
     var hasToolCalls = false;
 
-    void finishRunning() {
-      for (var i = 0; i < steps.length; i++) {
-        if (steps[i].status == TimelineStepStatus.running) {
-          steps[i].status = TimelineStepStatus.done;
-        }
-      }
-    }
-
     try {
       _aiStream = ai.sendMessageStream(history).listen(
         (chunk) {
@@ -322,7 +281,7 @@ class _ChatScreenState extends State<ChatScreen> {
           for (final line in lines) {
             if (line.startsWith('🔧 调用工具:')) {
               hasToolCalls = true;
-              finishRunning();
+              finishRunningSteps(steps);
               final name = line.replaceFirst('🔧 调用工具:', '').trim();
               steps.add(TimelineStep(label: _toolLabel(name), type: TimelineStepType.tool, status: TimelineStepStatus.running));
               if (name == 'generate_image' || name == 'generate_video') {
@@ -350,7 +309,7 @@ class _ChatScreenState extends State<ChatScreen> {
            _scrollDown();
         },
         onDone: () {
-          finishRunning();
+          finishRunningSteps(steps);
           setState(() {
             aiMsg.isStreaming = false;
             aiMsg.steps = steps.isEmpty ? null : List.unmodifiable(steps);
@@ -360,7 +319,7 @@ class _ChatScreenState extends State<ChatScreen> {
           _saveSession().then((_) => _loadStorageCache());
         },
         onError: (e) {
-          finishRunning();
+          finishRunningSteps(steps);
           setState(() {
             aiMsg.text = buf.isEmpty ? '错误: $e' : '${buf.toString()}\n\n错误: $e';
             aiMsg.isStreaming = false;
@@ -370,7 +329,7 @@ class _ChatScreenState extends State<ChatScreen> {
         },
       );
     } catch (e) {
-      finishRunning();
+      finishRunningSteps(steps);
       setState(() {
         aiMsg.text = '错误: $e';
         aiMsg.isStreaming = false;
@@ -409,22 +368,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  String _toolLabel(String name) {
-    switch (name) {
-      case 'weather': return '查询天气';
-      case 'web_search': return '搜索网页';
-      case 'web_fetch': return '获取网页';
-      case 'reminder': return '设置提醒';
-      case 'file_manager': return '文件管理';
-      case 'clipboard': return '剪贴板';
-      case 'generate_image': return '生成图片';
-      case 'generate_video': return '生成视频';
-      case 'save_memory': return '记忆';
-      case 'save_note': return '保存笔记';
-      case 'get_current_time': return '获取时间';
-      default: return name;
-    }
-  }
+  String _toolLabel(String name) => toolLabel(name);
 
   @override
   Widget build(BuildContext context) {

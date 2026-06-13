@@ -8,11 +8,21 @@ class ChatMessage extends ChangeNotifier {
   bool _isStreaming;
   List<TimelineStep>? _steps;
 
+  /// Agent 群聊场景下：发言者的 Agent id。用户发言时为 null。
+  /// 单聊场景下保持 null，向后兼容。
+  final String? speakerId;
+
+  /// Agent 群聊场景下：被 @ 提及的 Agent name 列表（精确匹配）。
+  /// 单聊场景下保持空列表。
+  final List<String> mentions;
+
   ChatMessage({
     required String text,
     required this.isUser,
     bool isStreaming = false,
     List<TimelineStep>? steps,
+    this.speakerId,
+    this.mentions = const [],
   })  : _text = text,
         _isStreaming = isStreaming,
         _steps = steps;

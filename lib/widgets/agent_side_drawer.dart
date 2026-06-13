@@ -9,6 +9,7 @@ import 'settings_page.dart';
 import 'reminders_page.dart';
 import 'media_page.dart';
 import 'search_page.dart';
+import 'agent_group/group_list_page.dart';
 
 class AgentSideDrawer extends StatefulWidget {
   final List<ChatSession> sessions;
@@ -67,7 +68,8 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                   _CardItem(icon: Icons.bookmark_border, label: '记忆', nc: nc, onTap: () => _openPage(const MemoryPage())),
                   _CardItem(icon: Icons.note_outlined, label: '笔记', nc: nc, onTap: () => _openPage(const NotesPage())),
                   _CardItem(icon: Icons.photo_library_outlined, label: '图视', nc: nc, onTap: () => _openPage(const MediaView())),
-                  _CardItem(icon: Icons.alarm_outlined, label: '定时任务', nc: nc, isLast: true, onTap: () => _openPage(const RemindersView())),
+                  _CardItem(icon: Icons.alarm_outlined, label: '定时任务', nc: nc, onTap: () => _openPage(const RemindersView())),
+                  _CardItem(icon: Icons.groups_outlined, label: 'Agent 群', nc: nc, isLast: true, onTap: () => _openPage(const GroupListPage())),
                 ]),
               ),
 
