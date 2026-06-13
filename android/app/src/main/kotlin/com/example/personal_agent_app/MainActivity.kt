@@ -172,6 +172,35 @@ class MainActivity : FlutterActivity() {
                 result.error("REMINDER_ERROR", e.message, null)
             }
         }
+
+        // ── Calendar ──
+        val CALENDAR_CHANNEL = "com.example/calendar"
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CALENDAR_CHANNEL).setMethodCallHandler { call, result ->
+            try {
+                val resolver = contentResolver
+                when (call.method) {
+                    "query" -> {
+                        val s = call.argument<Long>("startMs") ?: (System.currentTimeMillis() - 86400000)
+                        val e = call.argument<Long>("endMs") ?: (System.currentTimeMillis() + 7 * 86400000)
+                        result.success(CalendarHelper.queryEvents(resolver, s, e))
+                    }
+                    "add" -> {
+                        val t = call.argument<String>("title") ?: ""
+                        val d = call.argument<String>("description")
+                        val s = call.argument<Long>("startMs") ?: System.currentTimeMillis()
+                        val e = call.argument<Long>("endMs") ?: (s + 3600000)
+                        result.success(CalendarHelper.addEvent(resolver, t, d, s, e))
+                    }
+                    "delete" -> {
+                        val id = call.argument<Long>("id") ?: 0L
+                        result.success(CalendarHelper.deleteEvent(resolver, id))
+                    }
+                    else -> result.notImplemented()
+                }
+            } catch (ex: Exception) {
+                result.error("CALENDAR_ERROR", ex.message, null)
+            }
+        }
     }
 
     private fun saveImageToGallery(bytes: ByteArray, name: String) {

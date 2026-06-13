@@ -20,6 +20,8 @@ import '../widgets/ai_settings_sheet.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input_bar.dart';
 import '../services/connectivity_service.dart';
+import '../providers/daily_card_provider.dart';
+import '../widgets/daily_card.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sessionId;
@@ -70,6 +72,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _newSession();
       }
       setState(() => _loaded = true);
+      _checkDailyCard();
     });
   }
 
@@ -115,6 +118,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _toolRegistry.register(SaveNoteTool());
     _toolRegistry.register(TimeTool());
     _toolRegistry.register(AiDailyTool());
+    _toolRegistry.register(CalendarTool());
   }
 
   @override
@@ -166,6 +170,17 @@ class _ChatScreenState extends State<ChatScreen> {
       _loadSession(id).then((_) {
         setState(() {});
         widget.onSessionChanged?.call();
+      });
+    });
+  }
+
+  void _checkDailyCard() {
+    final card = DailyCardProvider();
+    card.shouldShowToday().then((should) {
+      if (!should || !mounted) return;
+      card.generate().then((_) {
+        if (!mounted || card.greeting == null) return;
+        showDialog(context: context, barrierDismissible: true, builder: (_) => DailyCardDialog(provider: card));
       });
     });
   }
