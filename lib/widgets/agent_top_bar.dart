@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 
 class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
@@ -34,7 +35,10 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => Scaffold.of(context).openDrawer(),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Scaffold.of(context).openDrawer();
+                    },
                     child: Container(
                       width: 40,
                       height: 40,

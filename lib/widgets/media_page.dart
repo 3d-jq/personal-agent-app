@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../models/media_item.dart';
 import '../services/media_storage.dart';
@@ -83,9 +84,14 @@ class _MediaViewState extends State<MediaView> {
     final file = File(item.filePath);
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-          context, MaterialPageRoute(builder: (_) => _MediaDetail(item: item))),
-      onLongPress: () => _confirmDelete(item),
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.push(context, MaterialPageRoute(builder: (_) => _MediaDetail(item: item)));
+      },
+      onLongPress: () {
+        HapticFeedback.lightImpact();
+        _confirmDelete(item);
+      },
       child: Container(
         decoration: BoxDecoration(
           color: nc.surface,

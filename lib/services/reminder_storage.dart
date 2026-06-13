@@ -28,9 +28,20 @@ class ReminderStorage {
         ..sort((a, b) => b.scheduledTime.compareTo(a.scheduledTime));
       return _cache!;
     } catch (_) {
+      await _backupCorruptedFile();
       _cache = [];
       return [];
     }
+  }
+
+  Future<void> _backupCorruptedFile() async {
+    try {
+      final file = await _file();
+      if (await file.exists()) {
+        final backup = File('${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}');
+        await file.rename(backup.path);
+      }
+    } catch (_) {}
   }
 
   Future<void> add(Reminder reminder) async {

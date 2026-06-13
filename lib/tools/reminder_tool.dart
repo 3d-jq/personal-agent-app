@@ -1,17 +1,11 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../models/reminder.dart';
 import '../services/reminder_storage.dart';
 import '../tools/base_tool.dart';
-
-@pragma('vm:entry-point')
-void onDidReceiveNotificationResponse(NotificationResponse response) {
-  // Handle notification tap
-}
 
 class ReminderTool extends AgentTool {
   @override
@@ -22,76 +16,62 @@ class ReminderTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {
-          'title': {
-            'type': 'string',
-            'description': '提醒标题',
-          },
-          'message': {
-            'type': 'string',
-            'description': '提醒内容',
-          },
-          'delay_seconds': {
-            'type': 'integer',
-            'description': '延迟多少秒后提醒。例如: 600=10分钟后, 3600=1小时后',
-          },
-        },
-        'required': ['title', 'message', 'delay_seconds'],
-      };
+    'type': 'object',
+    'properties': {
+      'title': {
+        'type': 'string',
+        'description': '提醒标题',
+      },
+      'message': {
+        'type': 'string',
+        'description': '提醒内容',
+      },
+      'delay_seconds': {
+        'type': 'number',
+        'description': '延迟秒数。例如: 60=1分钟, 300=5分钟, 600=10分钟, 3600=1小时',
+      },
+      'delay_minutes': {
+        'type': 'number',
+        'description': '延迟分钟数（如果delay_seconds不好算，用这个）。例如: 1, 5, 10, 30, 60',
+      },
+    },
+    'required': ['title', 'message'],
+  };
 
-  static final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
-  static bool _initialized = false;
+  static bool _channelCreated = false;
 
-  Future<void> _ensureInitialized() async {
-    if (_initialized) return;
-
-    // Initialize timezone
-    tz.initializeTimeZones();
-
-    // Set local timezone
-    try {
-      final localName = DateTime.now().timeZoneName;
-      tz.setLocalLocation(tz.getLocation(localName));
-    } catch (_) {
-      // Fallback to UTC if local timezone not found
-      tz.setLocalLocation(tz.UTC);
-    }
-
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(
-      android: androidSettings,
-    );
-    await _plugin.initialize(
-      settings: initSettings,
-      onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
-    );
-
-    // Create notification channel
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'agent_reminders',
-      'Agent 提醒',
+  Future<void> _ensureChannel() async {
+    if (_channelCreated) return;
+    final plugin = FlutterLocalNotificationsPlugin();
+    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    await plugin.initialize(settings: const InitializationSettings(android: android));
+    const channel = AndroidNotificationChannel(
+      'agent_reminders', 'Agent 提醒',
       description: 'Agent 创建的定时提醒',
       importance: Importance.max,
     );
-    await _plugin
+    await plugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
-
-    // Request notification permission (Android 13+)
-    await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
-
-    // Request exact alarms permission (Android 14+)
-    await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestExactAlarmsPermission();
-
-    _initialized = true;
+    _channelCreated = true;
   }
 
-  Future<bool> _checkAndRequestPermission() async {
+  Future<String> _checkExactAlarmPermission() async {
+    try {
+      final plugin = FlutterLocalNotificationsPlugin();
+      final android = plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      if (android == null) return 'ok';
+      final granted = await android.requestExactAlarmsPermission();
+      if (granted == false) {
+        return '精确闹钟权限未开启。请在 系统设置 → 应用 → DWeis → 权限 中开启「闹钟和提醒」权限，然后重试。';
+      }
+      return 'ok';
+    } catch (e) {
+      return '检查精确闹钟权限失败: $e';
+    }
+  }
+
+  Future<bool> _checkNotificationPermission() async {
     var status = await Permission.notification.status;
     if (status.isDenied || status.isPermanentlyDenied) {
       status = await Permission.notification.request();
@@ -100,79 +80,61 @@ class ReminderTool extends AgentTool {
   }
 
   static Future<void> cancelReminder(String id) async {
-    await _plugin.cancel(id: id.hashCode);
+    final nativeChannel = const MethodChannel('com.example/reminder');
+    await nativeChannel.invokeMethod('cancel', {'id': id.hashCode.abs()});
     await ReminderStorage().remove(id);
   }
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {
-    await _ensureInitialized();
+    await _ensureChannel();
 
-    final hasPermission = await _checkAndRequestPermission();
-    if (!hasPermission) {
+    final hasNotifPerm = await _checkNotificationPermission();
+    if (!hasNotifPerm) {
       return '通知权限未开启，无法创建提醒。请在系统设置中允许 DWeis 发送通知。';
     }
 
+    final alarmCheck = await _checkExactAlarmPermission();
+    if (alarmCheck != 'ok') return alarmCheck;
+
     final title = args['title'] as String?;
     final message = args['message'] as String?;
-    final delaySeconds = args['delay_seconds'] as num?;
+    final delaySecondsRaw = args['delay_seconds'];
+    final delayMinutesRaw = args['delay_minutes'];
 
-    if (title == null || message == null) {
-      return '错误: 请提供提醒标题和内容';
+    if (title == null || message == null) return '错误: 请提供提醒标题和内容';
+
+    int delaySeconds;
+    if (delayMinutesRaw != null && (delayMinutesRaw is num) && delayMinutesRaw > 0) {
+      delaySeconds = (delayMinutesRaw.toDouble() * 60).toInt();
+    } else if (delaySecondsRaw != null && (delaySecondsRaw is num) && delaySecondsRaw > 0) {
+      delaySeconds = delaySecondsRaw.toInt();
+    } else {
+      return '错误: 延迟时间必须大于0。请提供 delay_seconds（秒）或 delay_minutes（分钟）';
     }
-    if (delaySeconds == null || delaySeconds <= 0) {
-      return '错误: 延迟时间必须大于0';
-    }
-    if (delaySeconds > 86400) {
-      return '提醒时间不能超过24小时';
-    }
+    if (delaySeconds > 86400) return '提醒时间不能超过24小时';
 
     try {
       final id = const Uuid().v4();
-      final notificationId = id.hashCode;
-      final scheduledTime = tz.TZDateTime.now(tz.local).add(Duration(seconds: delaySeconds.toInt()));
+      final notificationId = id.hashCode.abs();
 
-      const notificationDetails = NotificationDetails(
-        android: AndroidNotificationDetails(
-          'agent_reminders',
-          'Agent 提醒',
-          channelDescription: 'Agent 创建的定时提醒',
-          importance: Importance.max,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-        ),
-      );
+      final nativeChannel = const MethodChannel('com.example/reminder');
+      await nativeChannel.invokeMethod('schedule', {
+        'id': notificationId,
+        'title': title,
+        'message': message,
+        'delaySeconds': delaySeconds,
+      });
 
-      // For very short delays (< 60 seconds), use immediate notification
-      if (delaySeconds.toInt() < 60) {
-        await _plugin.show(
-          id: notificationId,
-          title: title,
-          body: message,
-          notificationDetails: notificationDetails,
-        );
-      } else {
-        // For longer delays, use scheduled notification
-        await _plugin.zonedSchedule(
-          id: notificationId,
-          title: title,
-          body: message,
-          scheduledDate: scheduledTime,
-          notificationDetails: notificationDetails,
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        );
-      }
-
-      final reminder = Reminder(
+      await ReminderStorage().add(Reminder(
         id: id,
         title: title,
         message: message,
-        scheduledTime: scheduledTime.toLocal(),
-      );
-      await ReminderStorage().add(reminder);
+        scheduledTime: DateTime.now().add(Duration(seconds: delaySeconds)),
+      ));
 
       final minutes = delaySeconds ~/ 60;
-      final seconds = delaySeconds.toInt() % 60;
+      final seconds = delaySeconds % 60;
       return '已创建提醒: $title\n内容: $message\n将在 ${minutes > 0 ? '${minutes}分钟' : ''}${seconds > 0 ? '${seconds}秒' : ''}后推送';
     } catch (e) {
       return '创建提醒失败: $e';

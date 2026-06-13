@@ -45,7 +45,7 @@ class AIService {
   final String model;
   final ToolRegistry toolRegistry;
 
-  final Dio _dio = Dio(BaseOptions(
+  static final Dio _sharedDio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 20),
     receiveTimeout: const Duration(minutes: 2),
   ));
@@ -69,7 +69,7 @@ class AIService {
     if (_isAnthropic) throw Exception('Anthropic 不支持获取模型列表');
     final url = '${_normalizeUrl(baseUrl)}/models';
     try {
-      final response = await _dio.get(url, options: Options(headers: _authHeaders));
+      final response = await _sharedDio.get(url, options: Options(headers: _authHeaders));
       final data = response.data['data'] as List?;
       if (data == null) throw Exception('该厂商不支持获取模型列表');
       return data
@@ -129,13 +129,7 @@ class AIService {
 
       // No tool calls — yield text directly if we have it, otherwise stream
       if (response.text.isNotEmpty) {
-        // Yield in small chunks to simulate streaming feel
-        final chars = response.text.runes.toList();
-        for (var i = 0; i < chars.length; i += 3) {
-          final end = (i + 3).clamp(0, chars.length);
-          yield String.fromCharCodes(chars.sublist(i, end));
-          await Future.delayed(const Duration(milliseconds: 1));
-        }
+        yield response.text;
       } else {
         yield* _streamOpenAI(messages, tools: tools);
       }
@@ -166,8 +160,13 @@ class AIService {
     for (final tc in toolCalls) {
       yield '🔧 调用工具: ${tc.name}\n';
       final result = await toolRegistry.execute(tc);
-      yield '✅ ${tc.name} 完成\n';
-      if ((tc.name == 'generate_image' || tc.name == 'generate_video') && result.content.isNotEmpty) {
+      final failed = result.content.startsWith('执行失败') || result.content.startsWith('错误') || result.content.startsWith('创建提醒失败');
+      if (failed) {
+        yield '❌ ${tc.name} 失败: ${result.content}\n';
+      } else {
+        yield '✅ ${tc.name} 完成\n';
+      }
+      if ((tc.name == 'generate_image' || tc.name == 'generate_video') && result.content.isNotEmpty && !failed) {
         yield '${result.content}\n';
       }
       messages.add({
@@ -184,7 +183,7 @@ class AIService {
   ) async {
     final url = '${_normalizeUrl(baseUrl)}/chat/completions';
     try {
-      final response = await _dio.post(
+      final response = await _sharedDio.post(
         url,
         options: Options(headers: _authHeaders),
         data: {
@@ -215,7 +214,7 @@ class AIService {
   Stream<String> _streamOpenAI(List<Map<String, dynamic>> messages, {List<Map<String, dynamic>>? tools}) async* {
     final url = '${_normalizeUrl(baseUrl)}/chat/completions';
     try {
-      final response = await _dio.post(
+      final response = await _sharedDio.post(
         url,
         options: Options(headers: _authHeaders, responseType: ResponseType.stream),
         data: {
@@ -285,8 +284,13 @@ class AIService {
         for (final tc in result.toolCalls!) {
           yield '🔧 调用工具: ${tc.name}\n';
           final toolResult = await toolRegistry.execute(tc);
-          yield '✅ ${tc.name} 完成\n';
-          if ((tc.name == 'generate_image' || tc.name == 'generate_video') && toolResult.content.isNotEmpty) {
+          final failed = toolResult.content.startsWith('执行失败') || toolResult.content.startsWith('错误') || toolResult.content.startsWith('创建提醒失败');
+          if (failed) {
+            yield '❌ ${tc.name} 失败: ${toolResult.content}\n';
+          } else {
+            yield '✅ ${tc.name} 完成\n';
+          }
+          if ((tc.name == 'generate_image' || tc.name == 'generate_video') && toolResult.content.isNotEmpty && !failed) {
             yield '${toolResult.content}\n';
           }
           toolResults.add({
@@ -326,7 +330,7 @@ class AIService {
     final hasTools = tools != null && tools.isNotEmpty;
 
     try {
-      final response = await _dio.post(
+      final response = await _sharedDio.post(
         url,
         options: Options(headers: _authHeaders, responseType: ResponseType.stream),
         data: {
@@ -416,39 +420,4 @@ class AIService {
     }
   }
 
-  // ── Legacy streaming (for backwards compatibility) ──
-
-  Stream<String> _streamAnthropic(List<Map<String, String>> messages) async* {
-    final url = '${_normalizeUrl(baseUrl)}/messages';
-    final system = messages.where((m) => m['role'] == 'system').map((m) => m['content'] ?? '').join('\n');
-    final conversation = messages.where((m) => m['role'] != 'system').map((m) => {'role': m['role'], 'content': m['content']}).toList();
-    try {
-      final response = await _dio.post(
-        url,
-        options: Options(headers: _authHeaders, responseType: ResponseType.stream),
-        data: {'model': model, 'max_tokens': 4096, if (system.isNotEmpty) 'system': system, 'messages': conversation, 'stream': true},
-      );
-      final stream = response.data.stream as Stream<List<int>>;
-      String buffer = '';
-      await for (final chunk in stream) {
-        buffer += utf8.decode(chunk, allowMalformed: true);
-        final lines = buffer.split('\n');
-        buffer = lines.removeLast();
-        for (final line in lines) {
-          if (!line.startsWith('data: ')) continue;
-          final data = line.substring(6).trim();
-          if (data.isEmpty) continue;
-          try {
-            final json = jsonDecode(data);
-            if (json['type'] == 'content_block_delta') {
-              final text = json['delta']?['text'] as String?;
-              if (text != null && text.isNotEmpty) yield text;
-            }
-          } catch (_) {}
-        }
-      }
-    } on DioException catch (e) {
-      yield _friendlyError(e);
-    }
-  }
 }

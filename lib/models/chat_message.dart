@@ -17,10 +17,13 @@ class ChatMessage extends ChangeNotifier {
         _isStreaming = isStreaming,
         _steps = steps;
 
+  String? _cleanTextCache;
+
   String get text => _text;
   set text(String value) {
     if (_text != value) {
       _text = value;
+      _cleanTextCache = null;
       notifyListeners();
     }
   }
@@ -40,10 +43,17 @@ class ChatMessage extends ChangeNotifier {
   }
 
   /// Clean text without tool status markers (image markdown stays for inline rendering)
-  String get cleanText => _text
-      .replaceAll(RegExp(r'🔧.*\n'), '')
-      .replaceAll(RegExp(r'✅.*\n'), '')
-      .trim();
+  String get cleanText {
+    return _cleanTextCache ??= _text
+        .replaceAll(RegExp(r'🔧.*\n'), '')
+        .replaceAll(RegExp(r'✅.*\n'), '')
+        .trim();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
   /// Extract image URLs from the message text (from markdown images or plain URLs)
   List<String> get imageUrls {
@@ -66,7 +76,7 @@ class ChatMessage extends ChangeNotifier {
 
 enum TimelineStepType { thinking, tool }
 
-enum TimelineStepStatus { running, done }
+enum TimelineStepStatus { running, done, error }
 
 class TimelineStep {
   String label;

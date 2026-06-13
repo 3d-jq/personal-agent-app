@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../models/chat_session.dart';
+import '../services/export_service.dart';
 import 'memory_page.dart';
 import 'notes_page.dart';
 import 'settings_page.dart';
 import 'reminders_page.dart';
 import 'media_page.dart';
+import 'search_page.dart';
 
 class AgentSideDrawer extends StatefulWidget {
   final List<ChatSession> sessions;
@@ -30,6 +32,7 @@ class AgentSideDrawer extends StatefulWidget {
 
 class _AgentSideDrawerState extends State<AgentSideDrawer> {
   void _openPage(Widget page) {
+    HapticFeedback.lightImpact();
     Navigator.of(context).pop();
     Navigator.push(context, MaterialPageRoute(builder: (_) => page));
   }
@@ -92,7 +95,11 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                               isActive: s.id == widget.currentSessionId,
                               nc: nc,
                               isLast: i == widget.sessions.length - 1,
-                              onTap: () { Navigator.of(context).pop(); widget.onSessionTap(s.id); },
+                               onTap: () {
+                                HapticFeedback.lightImpact();
+                                Navigator.of(context).pop();
+                                widget.onSessionTap(s.id);
+                              },
                               onLongPress: () => _confirmDelete(s),
                             );
                           }),
@@ -104,15 +111,31 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
                 child: Row(children: [
-                  _Pill(icon: Icons.search_rounded, nc: nc),
+                  GestureDetector(
+                    onTap: () => _openPage(const SearchPage()),
+                    child: _Pill(icon: Icons.search_rounded, nc: nc),
+                  ),
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: () => _openPage(const SettingsPage()),
                     child: _Pill(icon: Icons.person_rounded, nc: nc),
                   ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () async {
+                      HapticFeedback.lightImpact();
+                      final text = await ExportService().exportAllChatsAsJson();
+                      await ExportService().shareText(text, 'dewis_chats.json');
+                    },
+                    child: _Pill(icon: Icons.file_download_outlined, nc: nc),
+                  ),
                   const Spacer(),
                   GestureDetector(
-                    onTap: () { Navigator.of(context).pop(); widget.onNewChat(); },
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.of(context).pop();
+                      widget.onNewChat();
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       decoration: BoxDecoration(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../services/personalization_storage.dart';
 
@@ -48,7 +49,10 @@ class _PersonalizationViewState extends State<PersonalizationView> {
               icon: Icons.person_outline,
               label: '用户昵称',
               trailing: _storage.userName,
-              onTap: () => _editName(context, nc),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _editName(context, nc);
+              },
             ),
           ],
         ),
@@ -63,6 +67,7 @@ class _PersonalizationViewState extends State<PersonalizationView> {
               isSelected: isSelected,
               nc: nc,
               onTap: () {
+                HapticFeedback.lightImpact();
                 setState(() => _storage.aiStyle = style);
                 _storage.save();
               },
@@ -78,7 +83,10 @@ class _PersonalizationViewState extends State<PersonalizationView> {
               icon: Icons.edit_note,
               label: '编辑提示词',
               trailing: _storage.customPrompt.isEmpty ? '未设置' : '已设置',
-              onTap: () => _editPrompt(context, nc),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _editPrompt(context, nc);
+              },
             ),
           ],
         ),
@@ -242,7 +250,7 @@ class _StyleItem extends StatelessWidget {
               Icon(
                 isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
                 size: 20,
-                color: isSelected ? const Color(0xFF0F7B6C) : nc.textSecondary,
+                color: isSelected ? nc.success : nc.textSecondary,
               ),
               const SizedBox(width: 14),
               Text(label, style: TextStyle(fontSize: 15, color: nc.textPrimary, fontWeight: FontWeight.w400)),

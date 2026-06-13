@@ -54,19 +54,22 @@ class _ChatInputBarState extends State<ChatInputBar> {
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
           child: Container(
-            height: 48,
+            constraints: const BoxConstraints(minHeight: 48),
             decoration: BoxDecoration(
               color: nc.surface,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: hasFile ? const Color(0xFF0F7B6C).withValues(alpha: 0.4) : nc.divider,
+                color: hasFile ? nc.success.withValues(alpha: 0.4) : nc.divider,
                 width: hasFile ? 1 : 0.5,
               ),
             ),
-            child: Row(
-              children: [
-                const SizedBox(width: 4),
-                GestureDetector(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(width: 4),
+                  GestureDetector(
                   onTap: () {
                     HapticFeedback.lightImpact();
                     if (widget.onAttachment != null) {
@@ -75,14 +78,14 @@ class _ChatInputBarState extends State<ChatInputBar> {
                   },
                   child: Container(
                     width: 40, height: 40,
-                    decoration: BoxDecoration(
-                      color: hasFile ? const Color(0xFF0F7B6C).withValues(alpha: 0.1) : nc.primarySurface,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      hasFile ? Icons.check_rounded : Icons.add_rounded,
-                      size: 20,
-                      color: hasFile ? const Color(0xFF0F7B6C) : nc.textPrimary,
+                  decoration: BoxDecoration(
+                    color: hasFile ? nc.success.withValues(alpha: 0.1) : nc.primarySurface,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    hasFile ? Icons.check_rounded : Icons.add_rounded,
+                    size: 20,
+                    color: hasFile ? nc.success : nc.textPrimary,
                     ),
                   ),
                 ),
@@ -91,7 +94,10 @@ class _ChatInputBarState extends State<ChatInputBar> {
                   child: TextField(
                     controller: widget.controller,
                     focusNode: widget.focusNode,
-                    maxLines: 1,
+                    maxLines: 5,
+                    minLines: 1,
+                    keyboardType: TextInputType.multiline,
+                    textInputAction: TextInputAction.newline,
                     style: TextStyle(fontSize: 15, color: nc.textPrimary),
                     decoration: InputDecoration(
                       hintText: hasFile ? '添加描述（可选）' : '给 DWeis 发消息',
@@ -100,13 +106,21 @@ class _ChatInputBarState extends State<ChatInputBar> {
                         fontSize: 15,
                       ),
                       border: InputBorder.none,
+                      isDense: true,
                       contentPadding: EdgeInsets.zero,
                     ),
                   ),
                 ),
                 const SizedBox(width: 4),
                 GestureDetector(
-                  onTap: widget.isLoading ? widget.onStop : widget.onSend,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    if (widget.isLoading) {
+                      widget.onStop();
+                    } else {
+                      widget.onSend();
+                    }
+                  },
                   child: Container(
                     width: 40, height: 40,
                     decoration: BoxDecoration(
@@ -128,8 +142,9 @@ class _ChatInputBarState extends State<ChatInputBar> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 4),
-              ],
+                  const SizedBox(width: 4),
+                ],
+              ),
             ),
           ),
         ),
@@ -188,7 +203,10 @@ class _ChatInputBarState extends State<ChatInputBar> {
               ),
             ),
             GestureDetector(
-              onTap: widget.onClearAttachment,
+              onTap: () {
+                HapticFeedback.lightImpact();
+                if (widget.onClearAttachment != null) widget.onClearAttachment!();
+              },
               child: Container(
                 width: 24, height: 24,
                 decoration: BoxDecoration(color: nc.surface, shape: BoxShape.circle),

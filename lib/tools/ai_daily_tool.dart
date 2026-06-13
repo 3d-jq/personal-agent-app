@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import '../tools/base_tool.dart';
 
 class AiDailyTool extends AgentTool {
@@ -16,19 +16,19 @@ class AiDailyTool extends AgentTool {
     'required': [],
   };
 
+  final Dio _dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 10),
+  ));
+
   @override
   Future<String> execute(Map<String, dynamic> args) async {
     try {
-      final url = Uri.parse('https://aihot.virxact.com/api/public/daily');
-      final response = await http.get(url);
-
-      if (response.statusCode != 200) {
-        return '获取AI信息失败 (${response.statusCode})';
-      }
-
-      final data = jsonDecode(response.body);
-      // 简单格式化返回，如果需要更复杂的处理可以调整
-      return jsonEncode(data);
+      final response = await _dio.get('https://aihot.virxact.com/api/public/daily');
+      if (response.statusCode != 200) return '获取AI信息失败 (${response.statusCode})';
+      return jsonEncode(response.data);
+    } on DioException {
+      return '获取AI信息失败';
     } catch (e) {
       return '获取AI信息错误: $e';
     }

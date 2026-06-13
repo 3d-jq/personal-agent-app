@@ -32,7 +32,7 @@ class TimelineView extends StatelessWidget {
                       margin: const EdgeInsets.only(top: 2),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isDone ? const Color(0xFF0F7B6C)
+                        color: isDone ? nc.success
                             : isRunning ? nc.textPrimary
                             : nc.textDisabled,
                         border: !isDone && !isRunning

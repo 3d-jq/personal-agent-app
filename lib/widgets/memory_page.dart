@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/memory_entry.dart';
 import '../services/memory_storage.dart';
 import '../core/agent_colors.dart';
@@ -29,6 +30,27 @@ class _MemoryPageState extends State<MemoryPage> with SingleTickerProviderStateM
 
   List<MemoryEntry> get _facts => _memories.where((e) => e.type == MemoryType.fact).toList();
   List<MemoryEntry> get _prefs => _memories.where((e) => e.type == MemoryType.preference).toList();
+
+  void _confirmDelete(MemoryEntry e) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除记忆'),
+        content: const Text('确定要删除这条记忆吗？'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _storage.remove(e.id);
+              _load();
+            },
+            child: const Text('删除', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +108,10 @@ class _MemoryPageState extends State<MemoryPage> with SingleTickerProviderStateM
                       child: Row(children: [
                         Expanded(child: Text(e.content, style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.5))),
                         GestureDetector(
-                          onTap: () async { await _storage.remove(e.id); _load(); },
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            _confirmDelete(e);
+                          },
                           child: Icon(Icons.close_rounded, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
                         ),
                       ]),

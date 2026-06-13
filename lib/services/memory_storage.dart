@@ -24,7 +24,21 @@ class MemoryStorage {
       _cache = list.map((j) => MemoryEntry.fromJson(j as Map<String, dynamic>)).toList()
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return _cache!;
-    } catch (_) { _cache = []; return []; }
+    } catch (_) {
+      await _backupCorruptedFile();
+      _cache = [];
+      return [];
+    }
+  }
+
+  Future<void> _backupCorruptedFile() async {
+    try {
+      final file = await _file();
+      if (await file.exists()) {
+        final backup = File('${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}');
+        await file.rename(backup.path);
+      }
+    } catch (_) {}
   }
 
   Future<void> add(MemoryEntry entry) async {

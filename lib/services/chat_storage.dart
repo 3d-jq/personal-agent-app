@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import '../models/chat_session.dart';
+import 'async_lock.dart';
 
 class ChatStorage {
   static final ChatStorage _instance = ChatStorage._();
   factory ChatStorage() => _instance;
   ChatStorage._();
 
+  final _lock = AsyncLock();
   List<ChatSession>? _cache;
 
   Future<File> _dir() async {
@@ -30,31 +32,46 @@ class ChatStorage {
         ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       return _cache!;
     } catch (_) {
+      await _backupCorruptedFile();
       _cache = [];
       return _cache!;
     }
   }
 
+  Future<void> _backupCorruptedFile() async {
+    try {
+      final file = await _dir();
+      if (await file.exists()) {
+        final backup = File('${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}');
+        await file.rename(backup.path);
+      }
+    } catch (_) {}
+  }
+
   Future<void> save(ChatSession session) async {
-    final all = await loadAll();
-    final idx = all.indexWhere((s) => s.id == session.id);
-    if (idx >= 0) {
-      all[idx] = session;
-    } else {
-      all.insert(0, session);
-    }
-    all.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-    _cache = all;
-    final file = await _dir();
-    await file.writeAsString(jsonEncode(all.map((s) => s.toJson()).toList()));
+    await _lock.run(() async {
+      final all = await loadAll();
+      final idx = all.indexWhere((s) => s.id == session.id);
+      if (idx >= 0) {
+        all[idx] = session;
+      } else {
+        all.insert(0, session);
+      }
+      all.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      _cache = all;
+      final file = await _dir();
+      await file.writeAsString(jsonEncode(all.map((s) => s.toJson()).toList()));
+    });
   }
 
   Future<void> delete(String id) async {
-    final all = await loadAll();
-    all.removeWhere((s) => s.id == id);
-    _cache = all;
-    final file = await _dir();
-    await file.writeAsString(jsonEncode(all.map((s) => s.toJson()).toList()));
+    await _lock.run(() async {
+      final all = await loadAll();
+      all.removeWhere((s) => s.id == id);
+      _cache = all;
+      final file = await _dir();
+      await file.writeAsString(jsonEncode(all.map((s) => s.toJson()).toList()));
+    });
   }
 
   void clearCache() => _cache = null;

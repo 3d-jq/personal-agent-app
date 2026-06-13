@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
 import '../core/agent_colors.dart';
 import '../services/ai_service.dart';
@@ -24,7 +25,7 @@ class AISettings {
   factory AISettings() => _instance;
   AISettings._();
 
-  static const _builtIn = [('DeepSeek', 'https://api.deepseek.com/v1')];
+  static List<(String, String, String)> _builtIn = [];
   List<VendorConfig> vendors = [];
   String? selectedVendorId;
   bool _loaded = false;
@@ -35,9 +36,19 @@ class AISettings {
   String get effectiveModel => selectedVendor?.model ?? '';
   bool get hasVendor => selectedVendor != null && selectedVendor!.apiKey.isNotEmpty;
 
-  void _ensureBuiltIn() { for (final b in _builtIn) { if (!vendors.any((v) => v.name == b.$1)) vendors.add(VendorConfig(id:b.$1, name:b.$1, apiKey:'', baseUrl:b.$2)); } }
+  void _ensureBuiltIn() {
+    _builtIn = [
+      ('Agnes-2.0-Flash', dotenv.env['AGNES_API_KEY'] ?? '', 'https://apihub.agnes-ai.com/v1'),
+      ('DeepSeek', '', 'https://api.deepseek.com/v1'),
+    ];
+    for (final b in _builtIn) {
+      if (!vendors.any((v) => v.name == b.$1)) {
+        vendors.add(VendorConfig(id: b.$1, name: b.$1, apiKey: b.$2, baseUrl: b.$3));
+      }
+    }
+  }
 
-  void selectVendor(String id) { selectedVendorId = id; save(); final v = vendors.where((x) => x.id == id).firstOrNull; if (v != null && v.model.isEmpty) { v.model = 'deepseek-chat'; save(); } }
+  void selectVendor(String id) { selectedVendorId = id; save(); final v = vendors.where((x) => x.id == id).firstOrNull; if (v != null && v.model.isEmpty) { v.model = id == 'Agnes-2.0-Flash' ? 'agnes-2.0-flash' : 'deepseek-chat'; save(); } }
   void setVendorModel(String vid, String m) { final v = vendors.where((x) => x.id == vid).firstOrNull; if (v != null) { v.model = m; save(); } }
   void addVendor(VendorConfig v) { vendors.add(v); selectedVendorId = v.id; save(); }
   void updateVendor(VendorConfig v) { final i = vendors.indexWhere((x) => x.id == v.id); if (i >= 0) vendors[i] = v; save(); }
@@ -57,7 +68,10 @@ void showBackendPicker(BuildContext context, AISettings s, VoidCallback cb) {
     Padding(padding:const EdgeInsets.symmetric(vertical:16), child:Text('选择 AI 厂商', style:TextStyle(fontSize:16, fontWeight:FontWeight.w600, color:nc.textPrimary))),
     ...s.vendors.map((v)=>_VendorTile(vendor:v, isSelected:s.selectedVendorId==v.id, onSelect:(){ s.selectVendor(v.id); cb(); Navigator.pop(ctx); }, onEdit:(){ Navigator.pop(ctx); _showEditVendor(context,s,v,cb); }, onDelete:()async{ Navigator.pop(ctx); final ok=await showDialog<bool>(context:context, builder:(c)=>AlertDialog(title:const Text('删除厂商'), content:Text('确定要删除「${v.name}」吗？'), actions:[TextButton(onPressed:()=>Navigator.pop(c,false), child:const Text('取消')), TextButton(onPressed:()=>Navigator.pop(c,true), child:const Text('删除'))])); if(ok==true){ s.removeVendor(v.id); cb(); } })),
     const SizedBox(height:8),
-    _AddVendorTile(onTap:(){ Navigator.pop(ctx); _showAddVendor(context,s,cb); }),
+    _AddVendorTile(onTap:(){
+      HapticFeedback.lightImpact();
+      Navigator.pop(ctx); _showAddVendor(context,s,cb);
+    }),
   ])));
 }
 
@@ -164,7 +178,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
         ])),
         if (_error != null) Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Text(_error!, style: TextStyle(fontSize: 12, color: nc.error))),
         Flexible(child: ListView(children: [
-          ..._models.map((m) { final sel = m == _current; return ListTile(title: Text(m, style: TextStyle(fontSize: 14, fontWeight: sel ? FontWeight.w600 : FontWeight.w400, color: sel ? const Color(0xFF0F7B6C) : nc.textPrimary)), trailing: sel ? Icon(Icons.check_circle, size: 20, color: const Color(0xFF0F7B6C)) : null, onTap: () { widget.settings.setVendorModel(widget.vendor.id, m); widget.onChanged(); Navigator.pop(context); }); }),
+          ..._models.map((m) { final sel = m == _current; return ListTile(title: Text(m, style: TextStyle(fontSize: 14, fontWeight: sel ? FontWeight.w600 : FontWeight.w400, color: sel ? nc.success : nc.textPrimary)), trailing: sel ? Icon(Icons.check_circle, size: 20, color: nc.success) : null, onTap: () { HapticFeedback.lightImpact(); widget.settings.setVendorModel(widget.vendor.id, m); widget.onChanged(); Navigator.pop(context); }); }),
         ])),
       ]),
     );
@@ -179,7 +193,16 @@ class _VendorTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
-    return ListTile(leading: Icon(isSelected ? Icons.check_circle : Icons.circle_outlined, color: isSelected ? const Color(0xFF0F7B6C) : nc.textSecondary, size: 22), title: Text(vendor.name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: nc.textPrimary)), subtitle: Text(vendor.model.isNotEmpty ? vendor.model : '未设置模型', style: TextStyle(fontSize: 12, color: nc.textSecondary)), trailing: Row(mainAxisSize: MainAxisSize.min, children: [IconButton(icon: Icon(Icons.edit_outlined, size: 18, color: nc.textSecondary), onPressed: onEdit), IconButton(icon: Icon(Icons.delete_outline, size: 18, color: nc.error), onPressed: onDelete)]), onTap: onSelect);
+    return ListTile(
+      leading: Icon(isSelected ? Icons.check_circle : Icons.circle_outlined, color: isSelected ? nc.success : nc.textSecondary, size: 22),
+      title: Text(vendor.name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: nc.textPrimary)),
+      subtitle: Text(vendor.model.isNotEmpty ? vendor.model : '未设置模型', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
+      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+        IconButton(icon: Icon(Icons.edit_outlined, size: 18, color: nc.textSecondary), onPressed: () { HapticFeedback.lightImpact(); onEdit(); }),
+        IconButton(icon: Icon(Icons.delete_outline, size: 18, color: nc.error), onPressed: () { HapticFeedback.lightImpact(); onDelete(); }),
+      ]),
+      onTap: () { HapticFeedback.lightImpact(); onSelect(); },
+    );
   }
 }
 

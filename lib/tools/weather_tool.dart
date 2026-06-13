@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import '../tools/base_tool.dart';
 
 class WeatherTool extends AgentTool {
@@ -25,55 +25,43 @@ class WeatherTool extends AgentTool {
     'required': ['city'],
   };
 
-  /// API Key for OpenWeatherMap (set via settings)
   String? apiKey;
+
+  final Dio _dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 15),
+    receiveTimeout: const Duration(seconds: 15),
+  ));
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {
     if (apiKey == null || apiKey!.isEmpty) {
       return '天气功能需要配置 API Key。请提供 OpenWeatherMap 的 API Key（免费申请: https://openweathermap.org/api）';
     }
-
     final city = args['city'] as String?;
-    if (city == null || city.isEmpty) {
-      return '错误: 请提供城市名称';
-    }
-
+    if (city == null || city.isEmpty) return '错误: 请提供城市名称';
     final units = args['units'] as String? ?? 'metric';
 
     try {
-      final url = Uri.parse(
-        'https://api.openweathermap.org/data/2.5/weather'
-        '?q=${Uri.encodeComponent(city)}'
-        '&appid=$apiKey'
-        '&units=$units'
-        '&lang=zh_cn',
+      final response = await _dio.get(
+        'https://api.openweathermap.org/data/2.5/weather',
+        queryParameters: {'q': city, 'appid': apiKey, 'units': units, 'lang': 'zh_cn'},
       );
-
-      final response = await http.get(url);
-      if (response.statusCode == 401) {
-        return 'API Key 无效，请检查配置';
-      }
-      if (response.statusCode == 404) {
-        return '找不到城市 "$city"，请检查拼写';
-      }
-      if (response.statusCode != 200) {
-        return '天气服务暂时不可用 (${response.statusCode})';
-      }
-
-      final data = jsonDecode(response.body);
+      final data = response.data;
       final weather = data['weather'][0];
       final main = data['main'];
       final wind = data['wind'];
-
       final tempUnit = units == 'metric' ? '°C' : units == 'imperial' ? '°F' : 'K';
-
       return '''${data['name']} - ${data['sys']?['country']}
 天气: ${weather['description']}
 温度: ${main['temp']}$tempUnit (体感 ${main['feels_like']}$tempUnit)
 范围: ${main['temp_min']}$tempUnit ~ ${main['temp_max']}$tempUnit
 湿度: ${main['humidity']}%
 风速: ${wind['speed']} m/s''';
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401) return 'API Key 无效，请检查配置';
+      if (code == 404) return '找不到城市 "$city"，请检查拼写';
+      return '天气服务暂时不可用 ($code)';
     } catch (e) {
       return '天气查询错误: $e';
     }

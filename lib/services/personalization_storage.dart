@@ -22,6 +22,7 @@ class PersonalizationStorage {
   }
 
   Future<void> load() async {
+    if (_loaded) return;
     try {
       final file = await _file();
       if (await file.exists()) {
@@ -30,8 +31,20 @@ class PersonalizationStorage {
         aiStyle = data['aiStyle'] as String? ?? '默认';
         customPrompt = data['customPrompt'] as String? ?? '';
       }
-    } catch (_) {}
+    } catch (_) {
+      await _backupCorruptedFile();
+    }
     _loaded = true;
+  }
+
+  Future<void> _backupCorruptedFile() async {
+    try {
+      final file = await _file();
+      if (await file.exists()) {
+        final backup = File('${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}');
+        await file.rename(backup.path);
+      }
+    } catch (_) {}
   }
 
   Future<void> save() async {

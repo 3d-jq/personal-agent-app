@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import 'ai_settings_sheet.dart';
 
@@ -46,13 +47,17 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
               icon: Icons.check_circle_outline,
               label: '当前厂商',
               trailing: vendor?.name ?? '未配置',
-              onTap: () => showBackendPicker(context, _aiSettings, () => setState(() {})),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                showBackendPicker(context, _aiSettings, () => setState(() {}));
+              },
             ),
             _SettingItem(
               icon: Icons.smart_toy_outlined,
               label: '当前模型',
               trailing: vendor?.model.isNotEmpty == true ? vendor!.model : '未设置',
               onTap: () {
+                HapticFeedback.lightImpact();
                 if (vendor != null) showModelPicker(context, _aiSettings, () => setState(() {}));
               },
             ),
@@ -66,7 +71,10 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
             _SettingItem(
               icon: Icons.settings_outlined,
               label: '管理厂商配置',
-              onTap: () => showBackendPicker(context, _aiSettings, () => setState(() {})),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                showBackendPicker(context, _aiSettings, () => setState(() {}));
+              },
             ),
           ],
         ),

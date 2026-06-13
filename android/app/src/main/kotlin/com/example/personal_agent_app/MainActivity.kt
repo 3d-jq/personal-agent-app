@@ -22,6 +22,7 @@ class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example/save_to_gallery"
     private val OPEN_CHANNEL = "com.example/open_file"
     private val LIVE_CHANNEL = "com.example/live_activity"
+    private val REMINDER_CHANNEL = "com.example/reminder"
     private val SHARE_CHANNEL = "com.example/share_file"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -146,6 +147,30 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 } catch (e: Exception) { result.error("SHARE_ERROR", e.message, null) }
             } else result.notImplemented()
+        }
+
+        // ── Alarm-based Reminders ──
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, REMINDER_CHANNEL).setMethodCallHandler { call, result ->
+            try {
+                when (call.method) {
+                    "schedule" -> {
+                        val id = call.argument<Int>("id") ?: 0
+                        val title = call.argument<String>("title") ?: ""
+                        val message = call.argument<String>("message") ?: ""
+                        val delaySeconds = (call.argument<Number>("delaySeconds") ?: 0).toLong()
+                        AlarmScheduler.schedule(this, id, title, message, delaySeconds)
+                        result.success(true)
+                    }
+                    "cancel" -> {
+                        val id = call.argument<Int>("id") ?: 0
+                        AlarmScheduler.cancel(this, id)
+                        result.success(true)
+                    }
+                    else -> result.notImplemented()
+                }
+            } catch (e: Exception) {
+                result.error("REMINDER_ERROR", e.message, null)
+            }
         }
     }
 

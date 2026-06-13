@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 
 class AboutView extends StatelessWidget {
@@ -64,11 +65,14 @@ class AboutView extends StatelessWidget {
             _SettingItem(
               icon: Icons.description_outlined,
               label: '查看开源许可',
-              onTap: () => showLicensePage(
-                context: context,
-                applicationName: 'DWeis',
-                applicationVersion: '1.2.0',
-              ),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                showLicensePage(
+                  context: context,
+                  applicationName: 'DWeis',
+                  applicationVersion: '1.2.0',
+                );
+              },
             ),
           ],
         ),

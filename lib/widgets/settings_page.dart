@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../services/theme_service.dart';
 import '../services/personalization_storage.dart';
@@ -50,14 +51,17 @@ class _SettingsPageState extends State<SettingsPage> {
             nc: nc,
             children: [
               _SettingItem(icon: Icons.brightness_6_outlined, label: '主题', trailing: ThemeService().label, onTap: () {
+                HapticFeedback.lightImpact();
                 final ts = ThemeService();
                 final next = ts.mode == ThemeMode.light ? ThemeMode.dark : ts.mode == ThemeMode.dark ? ThemeMode.system : ThemeMode.light;
                 ts.setMode(next);
               }),
               _SettingItem(icon: Icons.layers_outlined, label: '模型', trailing: '管理', onTap: () {
+                HapticFeedback.lightImpact();
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const ModelSettingsView()));
               }),
             _SettingItem(icon: Icons.tune_outlined, label: '个性化', trailing: _personalization.aiStyle, onTap: () async {
+              HapticFeedback.lightImpact();
               await Navigator.push(context, MaterialPageRoute(builder: (_) => const PersonalizationView()));
               await _personalization.load();
               setState(() {});
@@ -70,9 +74,11 @@ class _SettingsPageState extends State<SettingsPage> {
             nc: nc,
             children: [
               _SettingItem(label: '关于', onTap: () {
+                HapticFeedback.lightImpact();
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutView()));
               }),
               _SettingItem(label: '致谢', onTap: () {
+                HapticFeedback.lightImpact();
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AcknowledgementView()));
               }),
             ],

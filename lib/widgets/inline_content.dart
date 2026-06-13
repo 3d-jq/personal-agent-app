@@ -1,12 +1,10 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
-import 'package:path_provider/path_provider.dart';
 import '../core/agent_colors.dart';
 
 /// Build inline content: split text by markdown image patterns,
@@ -21,7 +19,7 @@ List<Widget> buildInlineContent(String text, AgentColors nc, BuildContext contex
     if (match.start > lastEnd) {
       final before = text.substring(lastEnd, match.start).trim();
       if (before.isNotEmpty) {
-        widgets.add(mdBlock(before, nc));
+        widgets.add(mdBlock(before, nc, context));
       }
     }
     final url = match.group(1)!;
@@ -33,7 +31,7 @@ List<Widget> buildInlineContent(String text, AgentColors nc, BuildContext contex
   if (lastEnd < text.length) {
     final after = text.substring(lastEnd).trim();
     if (after.isNotEmpty) {
-      widgets.add(mdBlock(after, nc));
+      widgets.add(mdBlock(after, nc, context));
     }
   }
   return widgets;
@@ -133,7 +131,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
   );
 }
 
-Widget mdBlock(String text, AgentColors nc) {
+Widget mdBlock(String text, AgentColors nc, [BuildContext? context]) {
   return MarkdownBody(
     data: text,
     selectable: true,
@@ -145,15 +143,15 @@ Widget mdBlock(String text, AgentColors nc) {
       h4: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: nc.textPrimary, height: 1.4),
       h5: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: nc.textPrimary, height: 1.4),
       h6: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: nc.textPrimary, height: 1.4),
-      a: const TextStyle(fontSize: 15, color: Color(0xFF0F7B6C), decoration: TextDecoration.underline),
+      a: TextStyle(fontSize: 15, color: nc.success, decoration: TextDecoration.underline),
       em: TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: nc.textPrimary),
       strong: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: nc.textPrimary),
       code: TextStyle(fontSize: 13, color: const Color(0xFFEB5757), backgroundColor: nc.surface, fontFamily: 'monospace'),
       codeblockDecoration: BoxDecoration(color: const Color(0xFF1E1E1E), borderRadius: BorderRadius.circular(10)),
       codeblockPadding: const EdgeInsets.all(14),
       blockquoteDecoration: BoxDecoration(
-        border: Border(left: BorderSide(color: const Color(0xFF0F7B6C), width: 3)),
-        color: const Color(0xFF0F7B6C).withValues(alpha: 0.06),
+        border: Border(left: BorderSide(color: nc.success, width: 3)),
+        color: nc.success.withValues(alpha: 0.06),
       ),
       blockquotePadding: const EdgeInsets.only(left: 14, right: 14, top: 8, bottom: 8),
       listBullet: TextStyle(fontSize: 15, color: nc.textPrimary),
@@ -164,14 +162,15 @@ Widget mdBlock(String text, AgentColors nc) {
         border: Border(top: BorderSide(color: nc.divider, width: 0.5)),
       ),
     ),
-    builders: {'code': CodeBlockBuilder(nc: nc)},
+    builders: {'code': CodeBlockBuilder(nc: nc, context: context)},
   );
 }
 
 /// Renders code blocks with a copy button.
 class CodeBlockBuilder extends MarkdownElementBuilder {
   final AgentColors nc;
-  CodeBlockBuilder({required this.nc});
+  final BuildContext? context;
+  CodeBlockBuilder({required this.nc, this.context});
 
   @override
   Widget? visitElementAfter(md.Element element, TextStyle? preferredStyle) {
@@ -206,6 +205,11 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
                 onTap: () {
                   Clipboard.setData(ClipboardData(text: code));
                   HapticFeedback.lightImpact();
+                  if (context != null) {
+                    ScaffoldMessenger.of(context!).showSnackBar(
+                      const SnackBar(content: Text('已复制到剪贴板'), duration: Duration(seconds: 1)),
+                    );
+                  }
                 },
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.copy, size: 13, color: nc.textSecondary.withValues(alpha: 0.6)),
@@ -385,7 +389,20 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
         children: [
           Expanded(
             child: Center(
-              child: Text('视频文件', style: TextStyle(color: Colors.white70, fontSize: 16)),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.videocam_outlined, size: 64, color: Colors.white38),
+                  const SizedBox(height: 16),
+                  Text('视频文件', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.filePath.split(Platform.pathSeparator).last,
+                    style: TextStyle(color: Colors.white38, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
           Padding(
@@ -395,7 +412,9 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                 try {
                   await MethodChannel('com.example/open_file').invokeMethod('openFile', {'path': widget.filePath});
                 } catch (e) {
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('无法播放: $e')));
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('无法播放: $e\n请安装视频播放器应用')),
+                  );
                 }
               },
               child: Container(

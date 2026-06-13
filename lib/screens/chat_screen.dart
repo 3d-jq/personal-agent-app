@@ -19,6 +19,7 @@ import '../widgets/agent_side_drawer.dart';
 import '../widgets/ai_settings_sheet.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input_bar.dart';
+import '../services/connectivity_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sessionId;
@@ -48,6 +49,10 @@ class _ChatScreenState extends State<ChatScreen> {
   File? _pendingAttachment;
   String _pendingAttachmentType = '';
 
+  String? _cachedSystemPrompt;
+  String? _cachedMemoryContext;
+  String? _cachedPreferencePrompt;
+
   String? get currentSessionId => _sessionId;
 
   @override
@@ -56,6 +61,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _initTools();
     _aiSettings.load().then((_) async {
       if (!mounted) return;
+      await _loadStorageCache();
       _sessions = await _storage.loadAll();
       final sid = widget.sessionId ?? (_sessions.isNotEmpty ? _sessions.first.id : null);
       if (sid != null) {
@@ -65,6 +71,30 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       setState(() => _loaded = true);
     });
+  }
+
+  Future<void> _loadStorageCache() async {
+    final storage = MemoryStorage();
+    await storage.loadAll();
+    _cachedPreferencePrompt = storage.preferencePrompt;
+    _cachedMemoryContext = storage.memoryContext;
+    final personalization = PersonalizationStorage();
+    await personalization.load();
+    final systemPrompt = StringBuffer('你是一个叫DWeis的全能agent助手，你可以使用可用的工具来帮助用户完成任务。当用户要求记录、总结、保存、记下某些内容时，调用 save_note 工具保存为笔记。当工具调用返回错误或失败时，请根据失败信息自动调整参数重试一次，不要直接告诉用户失败了。用户昵称是${personalization.userName}。');
+    final stylePrompt = personalization.stylePrompt;
+    if (stylePrompt.isNotEmpty) {
+      systemPrompt.write('\n\n## 回复风格\n$stylePrompt');
+    }
+    if (personalization.customPrompt.isNotEmpty) {
+      systemPrompt.write('\n\n## 自定义指令\n${personalization.customPrompt}');
+    }
+    if (_cachedPreferencePrompt!.isNotEmpty) {
+      systemPrompt.write('\n\n## 用户偏好\n$_cachedPreferencePrompt');
+    }
+    if (_cachedMemoryContext!.isNotEmpty) {
+      systemPrompt.write('\n\n## 用户记忆\n$_cachedMemoryContext');
+    }
+    _cachedSystemPrompt = systemPrompt.toString();
   }
 
   void _initTools() {
@@ -117,13 +147,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _saveSession() async {
     if (_sessionId == null || _messages.isEmpty) return;
-    final title = _messages
-        .where((m) => m.isUser)
-        .firstOrNull
-        ?.text
-        .replaceAll('\n', ' ')
-        .substring(0, _messages.first.text.length.clamp(0, 30))
-        .trim() ?? '新对话';
+    final userMsg = _messages.where((m) => m.isUser).firstOrNull;
+    final title = userMsg != null
+        ? userMsg.text.replaceAll('\n', ' ').substring(0, userMsg.text.length.clamp(0, 30)).trim()
+        : '新对话';
     await _storage.save(ChatSession(
       id: _sessionId!,
       title: title,
@@ -181,6 +208,14 @@ class _ChatScreenState extends State<ChatScreen> {
       _scrollDown();
       return;
     }
+    if (!await ConnectivityService().check()) {
+      setState(() => _messages.add(ChatMessage(
+          text: '当前无网络连接，请检查网络后重试', isUser: false)));
+      _inputCtrl.clear();
+      _inputFocus.unfocus();
+      _scrollDown();
+      return;
+    }
 
     String displayText = text;
     String? attachmentBase64;
@@ -208,25 +243,12 @@ class _ChatScreenState extends State<ChatScreen> {
     _pendingAttachmentType = '';
 
     final storage = MemoryStorage();
-    await storage.loadAll();
-    final prefs = storage.preferencePrompt;
-    final memories = storage.memoryContext;
+    if (_cachedMemoryContext == null) await storage.loadAll();
+    final prefs = _cachedPreferencePrompt ?? storage.preferencePrompt;
+    final memories = _cachedMemoryContext ?? storage.memoryContext;
     final personalization = PersonalizationStorage();
-    await personalization.load();
-    final systemPrompt = StringBuffer('你是一个叫DWeis的全能agent助手，你可以使用可用的工具来帮助用户完成任务。当用户要求记录、总结、保存、记下某些内容时，调用 save_note 工具保存为笔记。用户昵称是${personalization.userName}。');
-    final stylePrompt = personalization.stylePrompt;
-    if (stylePrompt.isNotEmpty) {
-      systemPrompt.write('\n\n## 回复风格\n$stylePrompt');
-    }
-    if (personalization.customPrompt.isNotEmpty) {
-      systemPrompt.write('\n\n## 自定义指令\n${personalization.customPrompt}');
-    }
-    if (prefs.isNotEmpty) {
-      systemPrompt.write('\n\n## 用户偏好\n$prefs');
-    }
-    if (memories.isNotEmpty) {
-      systemPrompt.write('\n\n## 用户记忆\n$memories');
-    }
+    if (_cachedSystemPrompt == null) await personalization.load();
+    final systemPrompt = StringBuffer(_cachedSystemPrompt ?? '你是一个叫DWeis的全能agent助手，你可以使用可用的工具来帮助用户完成任务。当用户要求记录、总结、保存、记下某些内容时，调用 save_note 工具保存为笔记。当工具调用返回错误或失败时，请根据失败信息自动调整参数重试一次，不要直接告诉用户失败了。用户昵称是${personalization.userName}。');
 
     final history = <Map<String, dynamic>>[{'role': 'system', 'content': systemPrompt.toString()}];
     for (var i = 0; i < _messages.length; i++) {
@@ -299,13 +321,18 @@ class _ChatScreenState extends State<ChatScreen> {
               if (name == 'generate_image' || name == 'generate_video') {
                 NotificationService().complete(id: name, title: _toolLabel(name), message: '已完成');
               }
+            } else if (line.startsWith('❌') && line.contains('失败')) {
+              final name = line.replaceFirst('❌', '').replaceFirst('失败', '').trim();
+              final idx = steps.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.label == _toolLabel(name) && s.status == TimelineStepStatus.running);
+              if (idx >= 0) steps[idx].status = TimelineStepStatus.error;
+              if (name == 'generate_image' || name == 'generate_video') {
+                NotificationService().complete(id: name, title: _toolLabel(name), message: '执行失败');
+              }
             }
           }
-          setState(() {
-            aiMsg.text = buf.toString();
-            aiMsg.steps = List.unmodifiable(steps);
-          });
-          _scrollDown();
+           aiMsg.text = buf.toString();
+           aiMsg.steps = List.unmodifiable(steps);
+           _scrollDown();
         },
         onDone: () {
           finishRunning();
@@ -315,20 +342,24 @@ class _ChatScreenState extends State<ChatScreen> {
             if (aiMsg.cleanText.isEmpty && !hasToolCalls) aiMsg.text = '(无响应)';
             _isLoading = false;
           });
-          _saveSession();
+          _saveSession().then((_) => _loadStorageCache());
         },
         onError: (e) {
+          finishRunning();
           setState(() {
-            aiMsg.text = '错误: $e';
+            aiMsg.text = buf.isEmpty ? '错误: $e' : '${buf.toString()}\n\n错误: $e';
             aiMsg.isStreaming = false;
+            aiMsg.steps = steps.isEmpty ? null : List.unmodifiable(steps);
             _isLoading = false;
           });
         },
       );
     } catch (e) {
+      finishRunning();
       setState(() {
         aiMsg.text = '错误: $e';
         aiMsg.isStreaming = false;
+        aiMsg.steps = steps.isEmpty ? null : List.unmodifiable(steps);
         _isLoading = false;
       });
     }
@@ -384,13 +415,14 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
     final bottomSafe = MediaQuery.of(context).padding.bottom;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarColor: nc.background,
-        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
       child: GestureDetector(
         onTap: () {

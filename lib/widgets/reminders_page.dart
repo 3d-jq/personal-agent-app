@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../models/reminder.dart';
 import '../services/reminder_storage.dart';
@@ -79,7 +80,7 @@ class _RemindersViewState extends State<RemindersView> {
         ? nc.textSecondary.withValues(alpha: 0.4)
         : isPast
             ? nc.textSecondary.withValues(alpha: 0.4)
-            : const Color(0xFF0F7B6C);
+            : nc.success;
     final statusText = r.isCompleted ? '已完成' : isPast ? '已过期' : '等待中';
 
     return Container(
@@ -125,7 +126,10 @@ class _RemindersViewState extends State<RemindersView> {
             const Spacer(),
             if (!r.isCompleted && !isPast)
               GestureDetector(
-                onTap: () => _cancelReminder(r),
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  _cancelReminder(r);
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
