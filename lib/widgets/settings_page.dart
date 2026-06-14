@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:dio/dio.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../core/agent_colors.dart';
 import '../services/theme_service.dart';
 import '../services/personalization_storage.dart';
+import '../services/update_service.dart';
 import 'model_settings_page.dart';
 import 'personalization_page.dart';
 import 'about_page.dart';
@@ -28,29 +27,22 @@ class _SettingsPageState extends State<SettingsPage> {
   void _rebuild() => setState(() {});
 
   Future<void> _checkUpdate(BuildContext context, AgentColors nc) async {
-    try {
-      final dio = Dio();
-      final resp = await dio.get(
-        'https://api.github.com/repos/YOUR_USER/DWeis/releases/latest',
-        options: Options(receiveTimeout: const Duration(seconds: 5)),
-      );
-      if (resp.statusCode != 200) {
-        _showResult(context, nc, '无法获取更新信息', '请稍后重试');
-        return;
-      }
-      final tag = resp.data['tag_name'] as String? ?? '';
-      final latest = tag.replaceFirst('v', '');
-      const current = '0.6.0';
-      final notes = resp.data['body'] as String? ?? '';
-      final url = resp.data['html_url'] as String? ?? '';
+    _showLoadingDialog(context, nc, '正在检查更新...');
 
-      if (latest == current) {
+    const current = '0.6.0';
+    final info = await UpdateService.checkUpdate(current);
+
+    if (context.mounted) Navigator.pop(context);
+
+    if (info == null) {
+      if (context.mounted) {
         _showResult(context, nc, '已是最新版本', '当前 v$current');
-      } else {
-        _showUpdateDialog(context, nc, latest, notes, url);
       }
-    } catch (_) {
-      _showResult(context, nc, '检查更新失败', '请检查网络连接');
+      return;
+    }
+
+    if (context.mounted) {
+      _showUpdateDialog(context, nc, info);
     }
   }
 
@@ -66,7 +58,28 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showUpdateDialog(BuildContext context, AgentColors nc, String latest, String notes, String url) {
+  void _showLoadingDialog(BuildContext context, AgentColors nc, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => AlertDialog(
+        backgroundColor: nc.surface,
+        content: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: nc.primary),
+            ),
+            const SizedBox(width: 16),
+            Text(message, style: TextStyle(color: nc.textPrimary, fontSize: 14)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showUpdateDialog(BuildContext context, AgentColors nc, UpdateInfo info) {
     showDialog(
       context: context,
       builder: (c) => AlertDialog(
@@ -75,7 +88,7 @@ class _SettingsPageState extends State<SettingsPage> {
           children: [
             Icon(Icons.system_update, color: nc.success, size: 24),
             const SizedBox(width: 8),
-            Text('发现新版本 v$latest', style: TextStyle(color: nc.textPrimary, fontSize: 16)),
+            Text('发现新版本 v${info.version}', style: TextStyle(color: nc.textPrimary, fontSize: 16)),
           ],
         ),
         content: SingleChildScrollView(
@@ -84,25 +97,96 @@ class _SettingsPageState extends State<SettingsPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('当前版本：v0.6.0', style: TextStyle(color: nc.textSecondary, fontSize: 13)),
-              if (notes.isNotEmpty) ...[
+              if (info.notes.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                Text(notes, style: TextStyle(color: nc.textPrimary, fontSize: 13)),
+                Text(info.notes, style: TextStyle(color: nc.textPrimary, fontSize: 13)),
               ],
             ],
           ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c), child: const Text('以后再说')),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(c);
-              if (url.isNotEmpty) launchUrl(Uri.parse(url));
-            },
-            child: Text('前往下载', style: TextStyle(color: nc.success)),
-          ),
+          if (info.apkUrl != null)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(c);
+                _downloadAndInstall(context, nc, info.apkUrl!);
+              },
+              child: Text('立即更新', style: TextStyle(color: nc.success)),
+            )
+          else
+            TextButton(
+              onPressed: () => Navigator.pop(c),
+              child: Text('暂无安装包', style: TextStyle(color: nc.textSecondary)),
+            ),
         ],
       ),
     );
+  }
+
+  Future<void> _downloadAndInstall(BuildContext context, AgentColors nc, String apkUrl) async {
+    String? downloadPath;
+    bool isDownloading = true;
+
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (c) => StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: nc.surface,
+              title: Text('正在下载更新...', style: TextStyle(color: nc.textPrimary, fontSize: 16)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  LinearProgressIndicator(
+                    value: isDownloading ? null : 1,
+                    backgroundColor: nc.divider,
+                    valueColor: AlwaysStoppedAnimation<Color>(nc.success),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    isDownloading ? '下载中，请稍候...' : '下载完成，准备安装...',
+                    style: TextStyle(color: nc.textSecondary, fontSize: 13),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    downloadPath = await UpdateService.downloadApk(
+      apkUrl,
+      onProgress: (received, total) {
+        // 可以在这里更新进度，但简单起见用 indeterminate
+      },
+    );
+
+    isDownloading = false;
+
+    if (context.mounted) Navigator.pop(context);
+
+    if (downloadPath == null) {
+      if (context.mounted) {
+        _showResult(context, nc, '下载失败', '请检查网络连接或存储权限');
+      }
+      return;
+    }
+
+    if (context.mounted) {
+      _showLoadingDialog(context, nc, '正在安装...');
+    }
+
+    final success = await UpdateService.installApk(downloadPath);
+
+    if (context.mounted) Navigator.pop(context);
+
+    if (!success && context.mounted) {
+      _showResult(context, nc, '安装失败', '请手动安装或检查权限设置');
+    }
   }
 
   @override
