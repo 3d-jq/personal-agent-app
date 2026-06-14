@@ -40,7 +40,7 @@ class _SettingsPageState extends State<SettingsPage> {
       }
       final tag = resp.data['tag_name'] as String? ?? '';
       final latest = tag.replaceFirst('v', '');
-      const current = '1.2.0';
+      const current = '0.6.0';
       final notes = resp.data['body'] as String? ?? '';
       final url = resp.data['html_url'] as String? ?? '';
 
@@ -83,7 +83,7 @@ class _SettingsPageState extends State<SettingsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('当前版本：v1.2.0', style: TextStyle(color: nc.textSecondary, fontSize: 13)),
+              Text('当前版本：v0.6.0', style: TextStyle(color: nc.textSecondary, fontSize: 13)),
               if (notes.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(notes, style: TextStyle(color: nc.textPrimary, fontSize: 13)),
@@ -153,7 +153,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _RoundedCard(
             nc: nc,
             children: [
-              _SettingItem(label: '检查更新', trailing: 'v1.2.0', onTap: () => _checkUpdate(context, nc)),
+                _SettingItem(label: '检查更新', trailing: 'v0.6.0', onTap: () => _checkUpdate(context, nc)),
               _SettingItem(label: '关于', onTap: () {
                 HapticFeedback.lightImpact();
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutView()));

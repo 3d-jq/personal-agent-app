@@ -161,7 +161,7 @@ flutter build apk --release
 
 ## 📝 更新日志
 
-### v1.6.0
+### v0.6.0
 - ✨ Agent 群功能上线：多 Agent 协作、协调者、审核机制、通信矩阵
 - ✨ Agent 相互引用同伴观点
 - ✨ 自定义 Agent（独立 prompt / 工具 / AI 后端）
