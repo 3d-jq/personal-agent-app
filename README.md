@@ -173,7 +173,7 @@ flutter build apk --release
 - ⚡ System prompt 缓存优化
 - ⚡ 消息窗口截断（最多 50 条）
 
-### v1.2.0
+### v0.2.0
 - 多 AI 后端支持
 - 工具调用系统
 - 记忆系统
