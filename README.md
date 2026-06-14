@@ -50,7 +50,7 @@ AI 可调用 13 个内置工具：
 <!-- 建议替换为实际截图 -->
 | 聊天对话 | Agent 群协作 | 设置页面 |
 |:---:|:---:|:---:|
-| ![chat](screenshots/chat.png) | ![agent-group](screenshots/agent-group.png) | ![settings](screenshots/settings.png) |
+| ![chat](screenshots/chat.jpg) | ![agent-group](screenshots/agent-group.jpg) | ![settings](screenshots/settings.jpg) |
 
 ---
 
