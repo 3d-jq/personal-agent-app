@@ -1,10 +1,9 @@
 import 'base_tool.dart';
 
-/// Registry that manages and dispatches agent tools
+/// Registry that manages and dispatches agent tools.
+/// Each instance maintains its own independent tool set — not a singleton.
 class ToolRegistry {
-  static final ToolRegistry _instance = ToolRegistry._internal();
-  factory ToolRegistry() => _instance;
-  ToolRegistry._internal();
+  ToolRegistry();
 
   final Map<String, AgentTool> _tools = {};
 
@@ -58,8 +57,4 @@ class ToolRegistry {
     }
   }
 
-  /// Register all built-in tools
-  void registerBuiltIns() {
-    // Will be populated as tools are created
-  }
 }

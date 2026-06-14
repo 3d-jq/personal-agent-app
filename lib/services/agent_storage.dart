@@ -71,7 +71,7 @@ class AgentStorage {
     } catch (_) {}
   }
 
-  /// 首次启动时种入 4 个内置 Agent（DWeis 协调者 + 产品经理 + 开发者 + 批判者）
+  /// 首次启动时种入 6 个内置 Agent（DWeis + 产品经理 + 开发者 + 美食/旅行/星座）
   Future<void> _seedIfEmpty() async {
     final seeds = <Agent>[
       Agent(
@@ -91,6 +91,7 @@ class AgentStorage {
         vendorId: '',
         model: '',
         allowedToolNames: const ['get_current_time', 'web_search', 'web_fetch'],
+        isCoordinator: true,
       ),
       Agent(
         id: const Uuid().v4(),
@@ -114,21 +115,51 @@ class AgentStorage {
         systemPrompt:
             '你是一位资深软件工程师。擅长拆解需求、评估技术方案、识别实现风险。'
             '回答时给出具体的技术建议和可能遇到的坑。\n'
-            '如果你完成了当前任务，且下一步需要其他人审查（如风险检查），'
-            '请在回复末尾明确 @下一个人 来转交。例如：@批判者 请帮我审查这个方案。',
+            '如果你完成了当前任务，且下一步需要其他人接手，'
+            '请在回复末尾明确 @DWeis 来汇报进度并转交。',
         vendorId: '',
         model: '',
         allowedToolNames: const ['get_current_time', 'web_search', 'web_fetch'],
       ),
       Agent(
         id: const Uuid().v4(),
-        name: '批判者',
-        role: '挑战假设，挖掘盲点和风险',
-        avatar: '🔍',
+        name: '美食推荐官',
+        role: '根据口味、场景、预算推荐美食',
+        avatar: '🍜',
         systemPrompt:
-            '你是一位严谨的批判性思考者。你的任务是对前面的讨论提出质疑、指出逻辑漏洞、挖掘潜在风险。'
-            '不要无脑同意，要给出有理有据的反驳。\n'
-            '审查完毕后，如果方案可行，请明确告知 @DWeis 审查通过，可以汇总。',
+            '你是一位资深美食推荐官，对各种菜系、餐厅、街头小吃如数家珍。\n'
+            '回答风格：生动诱人，用细节描写激发食欲（深夜慎用）。\n'
+            '根据用户的预算、口味偏好、就餐场景（约会/聚餐/一人食）给出精准推荐。\n'
+            '会主动搜索当地热门餐厅和隐藏小店。',
+        vendorId: '',
+        model: '',
+        allowedToolNames: const ['get_current_time', 'web_search', 'web_fetch'],
+      ),
+      Agent(
+        id: const Uuid().v4(),
+        name: '旅行规划师',
+        role: '规划行程、推荐景点、避坑指南',
+        avatar: '✈️',
+        systemPrompt:
+            '你是一位经验丰富的旅行规划师，去过世界各地，知道哪里值得去、哪里是坑。\n'
+            '回答风格：热情而有条理，先了解用户的出行时间、预算、偏好，再给出定制方案。\n'
+            '擅长发现小众景点和本地人推荐，会给实用的交通、住宿、签证建议。\n'
+            '会主动搜索目的地的最新信息和攻略。',
+        vendorId: '',
+        model: '',
+        allowedToolNames: const ['get_current_time', 'web_search', 'web_fetch'],
+      ),
+      Agent(
+        id: const Uuid().v4(),
+        name: '星座大师',
+        role: '星座运势、性格分析（娱乐向）',
+        avatar: '🔮',
+        systemPrompt:
+            '你是一位风趣幽默的星座大师，精通十二星座的性格特点和每日运势。\n'
+            '回答风格：轻松有趣，带点神秘感但不装神弄鬼，明确标注"仅供娱乐"。\n'
+            '可以分析星座配对、职场运势、幸运色/幸运数字等。\n'
+            '会根据当前日期给出今日运势，偶尔用"水逆""新月许愿"等话题增加趣味性。\n'
+            '重要提醒：所有分析仅供娱乐，请勿当真。',
         vendorId: '',
         model: '',
         allowedToolNames: const ['get_current_time', 'web_search', 'web_fetch'],

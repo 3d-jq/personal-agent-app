@@ -12,10 +12,11 @@ import '../services/ai_service.dart';
 class VendorConfig {
   final String id;
   String name, apiKey, baseUrl, model;
-  VendorConfig({required this.id, required this.name, required this.apiKey, required this.baseUrl, this.model = ''});
-  Map<String, dynamic> toJson() => {'id':id,'name':name,'apiKey':apiKey,'baseUrl':baseUrl,'model':model};
-  factory VendorConfig.fromJson(Map<String, dynamic> j) => VendorConfig(id:j['id'] as String, name:j['name'] as String, apiKey:j['apiKey'] as String? ?? '', baseUrl:j['baseUrl'] as String? ?? '', model:j['model'] as String? ?? '');
-  VendorConfig copyWith({String? name, String? apiKey, String? baseUrl, String? model}) => VendorConfig(id:id, name:name??this.name, apiKey:apiKey??this.apiKey, baseUrl:baseUrl??this.baseUrl, model:model??this.model);
+  bool isBuiltIn;
+  VendorConfig({required this.id, required this.name, required this.apiKey, required this.baseUrl, this.model = '', this.isBuiltIn = false});
+  Map<String, dynamic> toJson() => {'id':id,'name':name,'apiKey':apiKey,'baseUrl':baseUrl,'model':model,'isBuiltIn':isBuiltIn};
+  factory VendorConfig.fromJson(Map<String, dynamic> j) => VendorConfig(id:j['id'] as String, name:j['name'] as String, apiKey:j['apiKey'] as String? ?? '', baseUrl:j['baseUrl'] as String? ?? '', model:j['model'] as String? ?? '', isBuiltIn:j['isBuiltIn'] as bool? ?? false);
+  VendorConfig copyWith({String? name, String? apiKey, String? baseUrl, String? model}) => VendorConfig(id:id, name:name??this.name, apiKey:apiKey??this.apiKey, baseUrl:baseUrl??this.baseUrl, model:model??this.model, isBuiltIn:isBuiltIn);
 }
 
 // ── Settings ──
@@ -37,13 +38,13 @@ class AISettings {
   bool get hasVendor => selectedVendor != null && selectedVendor!.apiKey.isNotEmpty;
 
   void _ensureBuiltIn() {
+    final agnesKey = dotenv.env['AGNES_API_KEY'] ?? '';
     _builtIn = [
-      ('Agnes-2.0-Flash', dotenv.env['AGNES_API_KEY'] ?? '', 'https://apihub.agnes-ai.com/v1'),
-      ('DeepSeek', '', 'https://api.deepseek.com/v1'),
+      ('Agnes-2.0-Flash', agnesKey, 'https://apihub.agnes-ai.com/v1'),
     ];
     for (final b in _builtIn) {
       if (!vendors.any((v) => v.name == b.$1)) {
-        vendors.add(VendorConfig(id: b.$1, name: b.$1, apiKey: b.$2, baseUrl: b.$3));
+        vendors.add(VendorConfig(id: b.$1, name: b.$1, apiKey: b.$2, baseUrl: b.$3, isBuiltIn: true));
       }
     }
   }
@@ -118,15 +119,21 @@ class _EditVendorBodyState extends State<_EditVendorBody> {
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
+    final isBuiltIn = widget.vendor.isBuiltIn;
     return Padding(padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(context).viewInsets.bottom + 20), child: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const Text('编辑 API 厂商', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)), const SizedBox(height: 16),
-      TextField(controller: widget.nameCtrl, decoration: const InputDecoration(labelText: '厂商名称', border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))))),
+      Text(isBuiltIn ? '配置 Agnes' : '编辑 API 厂商', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: nc.textPrimary)), const SizedBox(height: 16),
+      if (isBuiltIn)
+        Text('Agnes 是内置 AI 服务，提供图片和视频生成能力。', style: TextStyle(fontSize: 13, color: nc.textSecondary)),
       const SizedBox(height: 12),
-      TextField(controller: widget.keyCtrl, decoration: const InputDecoration(labelText: 'API Key', border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))))),
-      const SizedBox(height: 12),
-      TextField(controller: widget.urlCtrl, decoration: const InputDecoration(labelText: 'Base URL（可选）', border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))))),
+      if (!isBuiltIn) ...[
+        TextField(controller: widget.nameCtrl, decoration: InputDecoration(labelText: '厂商名称', border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))), labelStyle: TextStyle(color: nc.textSecondary))),
+        const SizedBox(height: 12),
+        TextField(controller: widget.urlCtrl, decoration: InputDecoration(labelText: 'Base URL（可选）', border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))), labelStyle: TextStyle(color: nc.textSecondary))),
+        const SizedBox(height: 12),
+      ],
+      TextField(controller: widget.keyCtrl, decoration: InputDecoration(labelText: isBuiltIn ? 'Agnes API Key' : 'API Key', border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))), labelStyle: TextStyle(color: nc.textSecondary))),
       const SizedBox(height: 24),
-      FilledButton(onPressed: () { final n = widget.nameCtrl.text.trim(), k = widget.keyCtrl.text.trim(); if (n.isEmpty || k.isEmpty) return; widget.settings.updateVendor(widget.vendor.copyWith(name: n, apiKey: k, baseUrl: widget.urlCtrl.text.trim().isNotEmpty ? widget.urlCtrl.text.trim() : widget.vendor.baseUrl)); widget.onChanged(); Navigator.of(context).pop(); }, child: const Text('保存')),
+      FilledButton(onPressed: () { final k = widget.keyCtrl.text.trim(); if (k.isEmpty) return; final n = isBuiltIn ? widget.vendor.name : widget.nameCtrl.text.trim(); final u = isBuiltIn ? widget.vendor.baseUrl : (widget.urlCtrl.text.trim().isNotEmpty ? widget.urlCtrl.text.trim() : widget.vendor.baseUrl); widget.settings.updateVendor(widget.vendor.copyWith(name: n, apiKey: k, baseUrl: u)); widget.onChanged(); Navigator.of(context).pop(); }, child: const Text('保存')),
     ])));
   }
 }
@@ -195,11 +202,18 @@ class _VendorTile extends StatelessWidget {
     final nc = AgentColors.of(context);
     return ListTile(
       leading: Icon(isSelected ? Icons.check_circle : Icons.circle_outlined, color: isSelected ? nc.success : nc.textSecondary, size: 22),
-      title: Text(vendor.name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: nc.textPrimary)),
+      title: Row(children: [
+        Flexible(child: Text(vendor.name, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: nc.textPrimary))),
+        if (vendor.isBuiltIn) ...[
+          const SizedBox(width: 6),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: nc.success.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(4)), child: Text('内置', style: TextStyle(fontSize: 10, color: nc.success, fontWeight: FontWeight.w600))),
+        ],
+      ]),
       subtitle: Text(vendor.model.isNotEmpty ? vendor.model : '未设置模型', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
         IconButton(icon: Icon(Icons.edit_outlined, size: 18, color: nc.textSecondary), onPressed: () { HapticFeedback.lightImpact(); onEdit(); }),
-        IconButton(icon: Icon(Icons.delete_outline, size: 18, color: nc.error), onPressed: () { HapticFeedback.lightImpact(); onDelete(); }),
+        if (!vendor.isBuiltIn)
+          IconButton(icon: Icon(Icons.delete_outline, size: 18, color: nc.error), onPressed: () { HapticFeedback.lightImpact(); onDelete(); }),
       ]),
       onTap: () { HapticFeedback.lightImpact(); onSelect(); },
     );

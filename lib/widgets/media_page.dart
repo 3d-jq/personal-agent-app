@@ -102,11 +102,11 @@ class _MediaViewState extends State<MediaView> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (file.existsSync())
+            if (!isVideo && file.existsSync())
               Image.file(file, fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => _placeholder(nc))
             else
-              _placeholder(nc),
+              _videoThumbnail(nc),
             if (isVideo)
               Positioned(
                 bottom: 8, right: 8,
@@ -125,6 +125,15 @@ class _MediaViewState extends State<MediaView> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _videoThumbnail(AgentColors nc) {
+    return Container(
+      color: nc.primarySurface,
+      child: Center(
+        child: Icon(Icons.videocam_outlined, size: 32, color: nc.textSecondary.withValues(alpha: 0.3)),
       ),
     );
   }

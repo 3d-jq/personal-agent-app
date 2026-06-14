@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:dio/dio.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../core/agent_colors.dart';
 import '../services/theme_service.dart';
 import '../services/personalization_storage.dart';
@@ -24,6 +26,84 @@ class _SettingsPageState extends State<SettingsPage> {
   }
   @override void dispose() { ThemeService().removeListener(_rebuild); super.dispose(); }
   void _rebuild() => setState(() {});
+
+  Future<void> _checkUpdate(BuildContext context, AgentColors nc) async {
+    try {
+      final dio = Dio();
+      final resp = await dio.get(
+        'https://api.github.com/repos/YOUR_USER/DWeis/releases/latest',
+        options: Options(receiveTimeout: const Duration(seconds: 5)),
+      );
+      if (resp.statusCode != 200) {
+        _showResult(context, nc, '无法获取更新信息', '请稍后重试');
+        return;
+      }
+      final tag = resp.data['tag_name'] as String? ?? '';
+      final latest = tag.replaceFirst('v', '');
+      const current = '1.2.0';
+      final notes = resp.data['body'] as String? ?? '';
+      final url = resp.data['html_url'] as String? ?? '';
+
+      if (latest == current) {
+        _showResult(context, nc, '已是最新版本', '当前 v$current');
+      } else {
+        _showUpdateDialog(context, nc, latest, notes, url);
+      }
+    } catch (_) {
+      _showResult(context, nc, '检查更新失败', '请检查网络连接');
+    }
+  }
+
+  void _showResult(BuildContext context, AgentColors nc, String title, String msg) {
+    showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        backgroundColor: nc.surface,
+        title: Text(title, style: TextStyle(color: nc.textPrimary)),
+        content: Text(msg, style: TextStyle(color: nc.textSecondary)),
+        actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('确定'))],
+      ),
+    );
+  }
+
+  void _showUpdateDialog(BuildContext context, AgentColors nc, String latest, String notes, String url) {
+    showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        backgroundColor: nc.surface,
+        title: Row(
+          children: [
+            Icon(Icons.system_update, color: nc.success, size: 24),
+            const SizedBox(width: 8),
+            Text('发现新版本 v$latest', style: TextStyle(color: nc.textPrimary, fontSize: 16)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('当前版本：v1.2.0', style: TextStyle(color: nc.textSecondary, fontSize: 13)),
+              if (notes.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(notes, style: TextStyle(color: nc.textPrimary, fontSize: 13)),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('以后再说')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(c);
+              if (url.isNotEmpty) launchUrl(Uri.parse(url));
+            },
+            child: Text('前往下载', style: TextStyle(color: nc.success)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +153,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _RoundedCard(
             nc: nc,
             children: [
+              _SettingItem(label: '检查更新', trailing: 'v1.2.0', onTap: () => _checkUpdate(context, nc)),
               _SettingItem(label: '关于', onTap: () {
                 HapticFeedback.lightImpact();
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutView()));

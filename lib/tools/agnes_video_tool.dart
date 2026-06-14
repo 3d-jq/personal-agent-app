@@ -104,24 +104,33 @@ class AgnesVideoTool extends AgentTool {
         final progress = queryResp.data['progress'] as int? ?? 0;
 
         if (status == 'completed') {
-          final videoUrl = queryResp.data['remixed_from_video_id'] as String?;
+          // Try multiple possible URL fields from the API response
+          final videoUrl = (queryResp.data['url'] as String?) ??
+              (queryResp.data['video_url'] as String?) ??
+              (queryResp.data['output_url'] as String?) ??
+              (queryResp.data['download_url'] as String?) ??
+              (queryResp.data['remixed_from_video_id'] as String?);
           if (videoUrl == null || videoUrl.isEmpty) {
-            return '视频生成完成但未返回下载地址';
+            return '视频生成完成但未返回下载地址: ${queryResp.data.keys.join(', ')}';
           }
 
-          // Download video to permanent storage
-          final dir = await getApplicationDocumentsDirectory();
-          final file = File('${dir.path}/agnes_video_${DateTime.now().millisecondsSinceEpoch}.mp4');
-          await _dio.download(videoUrl, file.path);
+          // Download video to temp (for playback) and docs (for storage)
+          final tempDir = await getTemporaryDirectory();
+          final docsDir = await getApplicationDocumentsDirectory();
+          final fileName = 'agnes_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+          final tempFile = File('${tempDir.path}/$fileName');
+          await _dio.download(videoUrl, tempFile.path);
+          // Copy to permanent storage
+          final docsFile = await tempFile.copy('${docsDir.path}/$fileName');
           await MediaStorage().add(MediaItem(
             id: const Uuid().v4(),
             type: MediaType.video,
-            filePath: file.path,
+            filePath: docsFile.path,
             prompt: prompt,
           ));
 
           final type = imageUrl != null ? '图生视频' : '文生视频';
-          return '[$type] 视频已生成\n\n![生成的视频](file://${file.path})';
+          return '[$type] 视频已生成\n\n![生成的视频](file://${tempFile.path})';
         }
 
         if (status == 'failed') {

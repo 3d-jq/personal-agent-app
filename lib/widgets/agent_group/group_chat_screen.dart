@@ -17,7 +17,7 @@ import '../../screens/chat_helpers.dart';
 import 'agent_group_theme.dart';
 import 'group_edit_page.dart';
 
-/// 群聊主页：用户发言，@ 谁谁回复
+/// 群聊主页
 class GroupChatScreen extends StatefulWidget {
   final String groupId;
   const GroupChatScreen({super.key, required this.groupId});
@@ -32,20 +32,25 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   final AISettings _aiSettings = AISettings();
   late final ToolRegistry _baseRegistry = () {
     final r = ToolRegistry();
-    if (r.all.isEmpty) registerAllTools(r); // 全局单例，仅首次初始化
+    if (r.all.isEmpty) registerAllTools(r);
     return r;
   }();
   late final AgentRunner _runner = AgentRunner(baseRegistry: _baseRegistry);
 
   AgentGroup? _group;
-  /// 独立的消息列表 —— UI 的数据源，不依赖 AgentGroup 引用
   List<ChatMessage> _messages = [];
   List<Agent> _members = [];
   Map<String, Agent> _byId = {};
   Map<String, Agent> _byName = {};
+  Agent? _coordinator; // 群的协调者 Agent
   bool _busy = false;
-  StreamSubscription<String>? _activeSub;  // 当前活跃的 LLM 流
-  bool _stopped = false;                     // 用户点了 Stop
+  bool _stopped = false;
+
+  // ── Stop 完整取消：管理所有活跃流 ──
+  final List<StreamSubscription<String>> _activeSubs = [];
+
+  // ── 滚动节流 ──
+  Timer? _scrollTimer;
 
   @override
   void initState() {
@@ -70,17 +75,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     if (!mounted) return;
     setState(() {
       _group = g;
-      _messages = List.from(g.messages); // 拷贝到独立列表
+      _messages = List.from(g.messages);
       _members = ms;
       _byId = {for (final a in ms) a.id: a};
       _byName = {for (final a in ms) a.name: a};
+      _coordinator = ms.where((a) => a.isCoordinator).firstOrNull;
     });
   }
 
   Future<void> _saveGroup() async {
     final g = _group;
     if (g == null) return;
-    // 把独立列表同步回 _group 再保存
     g.messages = List.from(_messages);
     await AgentGroupStorage().save(g);
   }
@@ -96,7 +101,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
     if (result == null) return;
     final (updated, addedNames, removedNames) = result;
-    // 发送系统消息通知成员变更
     final sysMsgs = <String>[];
     for (final name in addedNames) {
       sysMsgs.add('🔔 $name 加入了群聊');
@@ -116,8 +120,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     await _load();
   }
 
+  /// 滚动节流：最多每 80ms 滚一次
   void _scrollDown() {
-    Timer(const Duration(milliseconds: 80), () {
+    if (_scrollTimer?.isActive ?? false) return;
+    _scrollTimer = Timer(const Duration(milliseconds: 80), () {
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.animateTo(
           _scrollCtrl.position.maxScrollExtent,
@@ -151,23 +157,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
     _scrollDown();
 
-    // 如果用户没 @ 任何人，DWeis Agent 自动响应
-    if (mentionAgents.isEmpty) {
-      final dweis = _byName['DWeis'];
-      if (dweis != null) {
-        mentionAgents.add(dweis);
-      } else {
-        await _saveGroup();
-        return;
-      }
+    // 没 @ 任何人 → 协调者自动响应
+    if (mentionAgents.isEmpty && _coordinator != null) {
+      mentionAgents.add(_coordinator!);
+    } else if (mentionAgents.isEmpty) {
+      await _saveGroup();
+      return;
     }
 
     if (!await ConnectivityService().check()) {
       setState(() {
-        _messages.add(ChatMessage(
-          text: '当前无网络连接，请检查网络后重试',
-          isUser: false,
-        ));
+        _messages.add(ChatMessage(text: '当前无网络连接，请检查网络后重试', isUser: false));
       });
       await _saveGroup();
       _scrollDown();
@@ -176,39 +176,32 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
     if (!_aiSettings.hasVendor) {
       setState(() {
-        _messages.add(ChatMessage(
-          text: '请先在侧边栏设置中配置 AI 后端',
-          isUser: false,
-        ));
+        _messages.add(ChatMessage(text: '请先在侧边栏设置中配置 AI 后端', isUser: false));
       });
       await _saveGroup();
       _scrollDown();
       return;
     }
 
-    // ── 协作引擎：支持 Agent 自动 @ 接力 ──
+    // ── 协作引擎 ──
     setState(() => _busy = true);
     _stopped = false;
     try {
-      // 记录本轮已处理过的 Agent，防止重复触发
       final handled = <String>{};
-      // 安全限制：最多 10 轮自动接力
       const maxRounds = 10;
       var rounds = 0;
 
-      // 用户直接 @ 的 Agent 并发执行（像真正的群聊讨论）
+      // 第一轮：并发
       final firstRound = <Agent>[...mentionAgents];
       for (final a in firstRound) { handled.add(a.id); }
-      final firstRoundResults = await Future.wait(firstRound.map((a) => _runOneAgent(a)));
+      final firstRoundResults = await _runBatch(firstRound);
       if (_stopped) return;
 
-      // 扫描并发回复中的 @，加入待处理队列（串行接力）
+      // 扫描 @ 接力
       final nextPending = <Agent>[];
       for (var i = 0; i < firstRoundResults.length; i++) {
         if (_stopped) break;
-        final replyText = firstRoundResults[i];
-        final speaker = firstRound[i];
-        final nextMentionNames = _filterMentions(replyText, speaker.name);
+        final nextMentionNames = parseMentions(firstRoundResults[i], _members);
         for (final name in nextMentionNames) {
           final nextAgent = _byName[name];
           if (nextAgent != null && !handled.contains(nextAgent.id)) {
@@ -217,17 +210,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         }
       }
 
-      // 接力链串行执行
+      // 串行接力
       while (nextPending.isNotEmpty && rounds < maxRounds && !_stopped) {
         rounds++;
         final agent = nextPending.removeAt(0);
         if (handled.contains(agent.id)) continue;
         handled.add(agent.id);
 
-        final replyText = await _runOneAgent(agent);
-        if (_stopped) break;
+        final results = await _runBatch([agent]);
+        if (_stopped || results.isEmpty) break;
 
-        final nextMentionNames = _filterMentions(replyText, agent.name);
+        final nextMentionNames = parseMentions(results.first, _members);
         for (final name in nextMentionNames) {
           final nextAgent = _byName[name];
           if (nextAgent != null && !handled.contains(nextAgent.id)) {
@@ -241,32 +234,28 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-  /// 通信矩阵：过滤 @ 目标。DWeis 可以 @ 任何人，其他 Agent 只能 @ DWeis。
-  List<String> _filterMentions(String text, String speakerName) {
-    final raw = parseMentions(text, _members);
-    if (speakerName == 'DWeis') return raw; // DWeis 不受限
-    // 非 DWeis Agent：只保留 @DWeis
-    return raw.where((n) => n == 'DWeis').toList();
+  /// 批量执行 Agent（串行，每个等完成后再下一个），返回回复文本列表
+  Future<List<String>> _runBatch(List<Agent> agents) async {
+    final results = <String>[];
+    for (final agent in agents) {
+      if (_stopped) break;
+      results.add(await _runOneAgent(agent));
+    }
+    return results;
   }
 
-  /// 执行一个 Agent 并返回它的回复文本（纯文本，不含工具状态标记）
+  /// 执行一个 Agent 并返回它的回复文本
   Future<String> _runOneAgent(Agent agent) async {
     VendorConfig? vendor;
     if (agent.vendorId.isNotEmpty) {
-      vendor = _aiSettings.vendors
-          .where((v) => v.id == agent.vendorId)
-          .firstOrNull;
+      vendor = _aiSettings.vendors.where((v) => v.id == agent.vendorId).firstOrNull;
     }
     vendor ??= _aiSettings.selectedVendor ??
         (_aiSettings.vendors.isNotEmpty ? _aiSettings.vendors.first : null);
     if (vendor == null || vendor.apiKey.isEmpty) {
       final errText = '${agent.name} 没有可用的 AI 后端';
       setState(() {
-        _messages.add(ChatMessage(
-          text: errText,
-          isUser: false,
-          speakerId: agent.id,
-        ));
+        _messages.add(ChatMessage(text: errText, isUser: false, speakerId: agent.id));
       });
       _scrollDown();
       return errText;
@@ -278,17 +267,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       speakerId: agent.id,
       isStreaming: true,
     );
-    setState(() {
-      _messages.add(placeholder);
-    });
+    setState(() => _messages.add(placeholder));
     _scrollDown();
 
     final buf = StringBuffer();
+    late final StreamSubscription<String> sub;
     try {
-      // 构建消息历史时不包含 placeholder
-      final history = _messages
-          .where((m) => m != placeholder)
-          .toList();
+      final history = _messages.where((m) => m != placeholder).toList();
       final stream = _runner.run(
         agent: agent,
         vendor: vendor!,
@@ -300,11 +285,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         groupDesc: _group?.description ?? '',
       );
       final completer = Completer<void>();
-      _activeSub = stream.listen(
+      sub = stream.listen(
         (chunk) {
           buf.write(chunk);
           placeholder.text = buf.toString();
-          setState(() {});  // 强制刷新 UI
+          setState(() {});
           _scrollDown();
         },
         onDone: () => completer.complete(),
@@ -315,10 +300,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         },
         cancelOnError: true,
       );
+      _activeSubs.add(sub);
       await completer.future;
     } finally {
-      await _activeSub?.cancel();
-      _activeSub = null;
+      await sub.cancel();
+      _activeSubs.remove(sub);
       placeholder.isStreaming = false;
     }
     setState(() {});
@@ -352,12 +338,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           children: [
             Container(
               margin: const EdgeInsets.only(top: 8),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: nc.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
+              width: 36, height: 4,
+              decoration: BoxDecoration(color: nc.divider, borderRadius: BorderRadius.circular(2)),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -366,22 +348,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             ),
             ..._members.map((a) => ListTile(
                   leading: Container(
-                    width: 36,
-                    height: 36,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: nc.primarySurface,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Text(
-                        a.avatar.isNotEmpty ? a.avatar : a.name.characters.first,
+                    width: 36, height: 36, alignment: Alignment.center,
+                    decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(18)),
+                    child: Text(a.avatar.isNotEmpty ? a.avatar : a.name.characters.first,
                         style: const TextStyle(fontSize: 16)),
                   ),
-                  title: Text(a.name,
-                      style: TextStyle(fontSize: 15, color: nc.textPrimary)),
+                  title: Text(a.name, style: TextStyle(fontSize: 15, color: nc.textPrimary)),
                   subtitle: a.role.isNotEmpty
-                      ? Text(a.role,
-                          style: TextStyle(fontSize: 12, color: nc.textSecondary))
+                      ? Text(a.role, style: TextStyle(fontSize: 12, color: nc.textSecondary))
                       : null,
                   onTap: () {
                     HapticFeedback.lightImpact();
@@ -397,8 +371,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   void _stop() {
     _stopped = true;
-    _activeSub?.cancel();
-    _activeSub = null;
+    for (final s in _activeSubs.toList()) {
+      s.cancel();
+    }
+    _activeSubs.clear();
     setState(() => _busy = false);
   }
 
@@ -444,16 +420,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   )
                 : ListView.builder(
                     controller: _scrollCtrl,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     itemCount: _messages.length,
                     itemBuilder: (c, i) {
                       final m = _messages[i];
                       return _GroupBubble(
                         msg: m,
-                        speaker: m.isUser
-                            ? null
-                            : _byId[m.speakerId ?? ''],
+                        speaker: m.isUser ? null : _byId[m.speakerId ?? ''],
                         nc: nc,
                       );
                     },
@@ -476,7 +449,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const SizedBox(width: 4),
-                      // @ 按钮
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
@@ -484,20 +456,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                           _showMentionSheet(nc);
                         },
                         child: Container(
-                          width: 40,
-                          height: 40,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: nc.primarySurface,
-                            shape: BoxShape.circle,
-                          ),
+                          width: 40, height: 40, alignment: Alignment.center,
+                          decoration: BoxDecoration(color: nc.primarySurface, shape: BoxShape.circle),
                           child: Text('@',
                               style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: _members.isNotEmpty
-                                      ? nc.textPrimary
-                                      : nc.textDisabled)),
+                                  fontSize: 16, fontWeight: FontWeight.w600,
+                                  color: _members.isNotEmpty ? nc.textPrimary : nc.textDisabled)),
                         ),
                       ),
                       const SizedBox(width: 4),
@@ -505,25 +469,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         child: TextField(
                           controller: _inputCtrl,
                           focusNode: _inputFocus,
-                          minLines: 1,
-                          maxLines: 5,
+                          minLines: 1, maxLines: 5,
                           keyboardType: TextInputType.multiline,
                           textInputAction: TextInputAction.newline,
                           style: TextStyle(fontSize: 15, color: nc.textPrimary),
                           onChanged: (_) => setState(() {}),
                           onSubmitted: (_) {
-                            if (_inputCtrl.text.trim().isNotEmpty && !_busy) {
-                              _send();
-                            }
+                            if (_inputCtrl.text.trim().isNotEmpty && !_busy) _send();
                           },
                           decoration: InputDecoration(
-                            hintText: _members.isEmpty
-                                ? '先把 Agent 拉进群再说'
-                                : '说点什么，@名字 来召唤 Agent',
-                            hintStyle: TextStyle(
-                              color: nc.textSecondary.withValues(alpha: 0.6),
-                              fontSize: 15,
-                            ),
+                            hintText: _members.isEmpty ? '先把 Agent 拉进群再说' : '说点什么，@名字 来召唤 Agent',
+                            hintStyle: TextStyle(color: nc.textSecondary.withValues(alpha: 0.6), fontSize: 15),
                             border: InputBorder.none,
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
@@ -531,7 +487,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      // 发送 / 停止按钮
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
@@ -543,27 +498,20 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                           }
                         },
                         child: Container(
-                          width: 40,
-                          height: 40,
-                          alignment: Alignment.center,
+                          width: 40, height: 40, alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: _busy
                                 ? Colors.red.withValues(alpha: 0.1)
                                 : _inputCtrl.text.trim().isEmpty
-                                    ? nc.primarySurface
-                                    : nc.textPrimary,
+                                    ? nc.primarySurface : nc.textPrimary,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            _busy
-                                ? Icons.stop_rounded
-                                : Icons.arrow_upward_rounded,
+                            _busy ? Icons.stop_rounded : Icons.arrow_upward_rounded,
                             size: 18,
                             color: _busy
                                 ? Colors.red
-                                : _inputCtrl.text.trim().isEmpty
-                                    ? nc.textSecondary
-                                    : nc.surface,
+                                : _inputCtrl.text.trim().isEmpty ? nc.textSecondary : nc.surface,
                           ),
                         ),
                       ),
@@ -585,20 +533,14 @@ class _GroupBubble extends StatelessWidget {
   final ChatMessage msg;
   final Agent? speaker;
   final AgentColors nc;
-  const _GroupBubble({
-    super.key,
-    required this.msg,
-    required this.speaker,
-    required this.nc,
-  });
+  const _GroupBubble({super.key, required this.msg, required this.speaker, required this.nc});
   @override
   Widget build(BuildContext context) {
     final showHeader = speaker != null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
-        crossAxisAlignment:
-            msg.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: msg.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           if (showHeader)
             Padding(
@@ -613,28 +555,15 @@ class _GroupBubble extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 24,
-                      height: 24,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: nc.surface,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      width: 24, height: 24, alignment: Alignment.center,
+                      decoration: BoxDecoration(color: nc.surface, borderRadius: BorderRadius.circular(12)),
                       child: Text(
-                          speaker!.avatar.isNotEmpty
-                              ? speaker!.avatar
-                              : speaker!.name.characters.first,
+                          speaker!.avatar.isNotEmpty ? speaker!.avatar : speaker!.name.characters.first,
                           style: const TextStyle(fontSize: 14)),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      speaker!.name,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: nc.textPrimary,
-                      ),
-                    ),
+                    Text(speaker!.name,
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: nc.textPrimary)),
                   ],
                 ),
               ),

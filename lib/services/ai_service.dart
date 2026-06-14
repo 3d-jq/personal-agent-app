@@ -50,15 +50,68 @@ class AIService {
     receiveTimeout: const Duration(minutes: 2),
   ));
 
+  /// Known tool failure prefixes — centralized to avoid scattered hardcoded checks.
+  static const _failurePrefixes = [
+    '执行失败', '错误', '创建提醒失败',
+    '视频生成失败', '视频任务创建失败', '视频生成超时',
+    '图片生成失败', '图片生成错误',
+  ];
+
+  static bool _isToolFailed(String toolName, String content) {
+    for (final prefix in _failurePrefixes) {
+      if (content.startsWith(prefix)) return true;
+    }
+    return false;
+  }
+
   AIService({
     required this.baseUrl,
     required this.apiKey,
     required this.providerName,
     required this.model,
+    this.maxTokens = 4096,
     ToolRegistry? toolRegistry,
   }) : toolRegistry = toolRegistry ?? ToolRegistry();
 
+  /// Max tokens for Anthropic requests. Can be overridden per instance.
+  final int maxTokens;
+
   bool get _isAnthropic => providerName == 'Anthropic';
+
+  /// Retries a request on 429 with exponential backoff.
+  /// [maxRetries] attempts total (including the first one).
+  /// [receiveTimeout] overrides the default for long-running streaming requests.
+  Future<Response> _retryPost(
+    String url, {
+    required Map<String, String> headers,
+    required dynamic data,
+    ResponseType? responseType,
+    Duration? receiveTimeout,
+    int maxRetries = 3,
+  }) async {
+    for (var attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        final resp = await _sharedDio.post(
+          url,
+          options: Options(
+            headers: headers,
+            responseType: responseType,
+            receiveTimeout: receiveTimeout,
+          ),
+          data: data,
+        );
+        return resp;
+      } on DioException catch (e) {
+        if (e.response?.statusCode == 429 && attempt < maxRetries - 1) {
+          final delay = Duration(seconds: (1 << attempt) + 1); // 2s, 3s, 5s
+          await Future.delayed(delay);
+          continue;
+        }
+        rethrow;
+      }
+    }
+    throw Exception('unreachable');
+  }
 
   Map<String, String> get _authHeaders => _isAnthropic
       ? {'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01'}
@@ -94,6 +147,8 @@ class AIService {
     final hasTools = toolRegistry.all.isNotEmpty;
     const safetyLimit = 20;
     var round = 0;
+    // Work on a copy to avoid mutating the caller's list
+    final conversation = List<Map<String, dynamic>>.from(messages);
 
     while (true) {
       round++;
@@ -101,7 +156,7 @@ class AIService {
 
       // For Anthropic, we do non-streaming tool calling (simpler)
       if (_isAnthropic) {
-        yield* _streamAnthropicWithTools(messages);
+        yield* _streamAnthropicWithTools(conversation);
         return;
       }
 
@@ -112,18 +167,18 @@ class AIService {
 
       // If no tools or last round, do streaming
       if (tools == null) {
-        yield* _streamOpenAI(messages);
+        yield* _streamOpenAI(conversation);
         return;
       }
 
       // Try non-streaming first to check for tool calls
-      final response = await _callOpenAINonStreaming(messages, tools);
+      final response = await _callOpenAINonStreaming(conversation, tools);
 
       if (response.toolCalls != null && response.toolCalls!.isNotEmpty) {
         // Yield any text before the tool calls
         if (response.text.isNotEmpty) yield response.text;
         // Execute tools and add results to conversation
-        yield* _processToolCalls(messages, response.toolCalls!, response.text);
+        yield* _processToolCalls(conversation, response.toolCalls!, response.text);
         continue;
       }
 
@@ -131,7 +186,7 @@ class AIService {
       if (response.text.isNotEmpty) {
         yield response.text;
       } else {
-        yield* _streamOpenAI(messages, tools: tools);
+        yield* _streamOpenAI(conversation, tools: tools);
       }
       return;
     }
@@ -144,7 +199,7 @@ class AIService {
   ) async* {
     final assistantMsg = {
       'role': 'assistant',
-      'content': assistantText.isNotEmpty ? assistantText : null,
+      'content': assistantText, // Always string — some providers reject null content
       'tool_calls': toolCalls.map((tc) => {
         'id': tc.id,
         'type': 'function',
@@ -160,7 +215,7 @@ class AIService {
     for (final tc in toolCalls) {
       yield '🔧 调用工具: ${tc.name}\n';
       final result = await toolRegistry.execute(tc);
-      final failed = result.content.startsWith('执行失败') || result.content.startsWith('错误') || result.content.startsWith('创建提醒失败');
+      final failed = _isToolFailed(tc.name, result.content);
       if (failed) {
         yield '❌ ${tc.name} 失败: ${result.content}\n';
       } else {
@@ -183,9 +238,9 @@ class AIService {
   ) async {
     final url = '${_normalizeUrl(baseUrl)}/chat/completions';
     try {
-      final response = await _sharedDio.post(
+      final response = await _retryPost(
         url,
-        options: Options(headers: _authHeaders),
+        headers: _authHeaders,
         data: {
           'model': model,
           'messages': messages,
@@ -206,6 +261,8 @@ class AIService {
       return AiResponse(text: text, toolCalls: toolCalls);
     } on DioException catch (e) {
       return AiResponse(text: _friendlyError(e));
+    } catch (e) {
+      return AiResponse(text: '请求异常: $e');
     }
   }
 
@@ -214,9 +271,11 @@ class AIService {
   Stream<String> _streamOpenAI(List<Map<String, dynamic>> messages, {List<Map<String, dynamic>>? tools}) async* {
     final url = '${_normalizeUrl(baseUrl)}/chat/completions';
     try {
-      final response = await _sharedDio.post(
+      final response = await _retryPost(
         url,
-        options: Options(headers: _authHeaders, responseType: ResponseType.stream),
+        headers: _authHeaders,
+        responseType: ResponseType.stream,
+        receiveTimeout: const Duration(minutes: 5), // Streaming needs longer timeout
         data: {
           'model': model,
           'messages': messages,
@@ -241,6 +300,16 @@ class AIService {
           } catch (_) {}
         }
       }
+      // Process any remaining buffer content
+      if (buffer.trim().isNotEmpty && !buffer.trim().startsWith('[DONE]')) {
+        try {
+          final data = buffer.trim();
+          if (data.startsWith('data: ')) {
+            final content = jsonDecode(data.substring(6))['choices']?[0]?['delta']?['content'] as String?;
+            if (content != null && content.isNotEmpty) yield content;
+          }
+        } catch (_) {}
+      }
     } on DioException catch (e) {
       yield _friendlyError(e);
     } catch (e) {
@@ -261,15 +330,13 @@ class AIService {
       round++;
       if (round > safetyLimit) return;
 
-      final result = await _streamAnthropicOnce(currentMessages);
+      final toolCalls = <ToolCall>[];
+      yield* _streamAnthropicOnce(currentMessages, outToolCalls: toolCalls);
 
-      if (result.toolCalls != null && result.toolCalls!.isNotEmpty) {
+      if (toolCalls.isNotEmpty) {
         // Build tool use message for Anthropic
         final content = <Map<String, dynamic>>[];
-        if (result.text.isNotEmpty) {
-          content.add({'type': 'text', 'text': result.text});
-        }
-        for (final tc in result.toolCalls!) {
+        for (final tc in toolCalls) {
           content.add({
             'type': 'tool_use',
             'id': tc.id,
@@ -281,10 +348,10 @@ class AIService {
 
         // Execute tools
         final toolResults = <Map<String, dynamic>>[];
-        for (final tc in result.toolCalls!) {
+        for (final tc in toolCalls) {
           yield '🔧 调用工具: ${tc.name}\n';
           final toolResult = await toolRegistry.execute(tc);
-          final failed = toolResult.content.startsWith('执行失败') || toolResult.content.startsWith('错误') || toolResult.content.startsWith('创建提醒失败');
+          final failed = _isToolFailed(tc.name, toolResult.content);
           if (failed) {
             yield '❌ ${tc.name} 失败: ${toolResult.content}\n';
           } else {
@@ -303,18 +370,19 @@ class AIService {
         continue;
       }
 
-      // No tool calls, just yield text
-      if (result.text.isNotEmpty) yield result.text;
       return;
     }
   }
 
-  Future<AiResponse> _streamAnthropicOnce(
-    List<Map<String, dynamic>> messages,
-  ) async {
+  /// Streams text chunks in real-time and collects tool calls into [outToolCalls].
+  Stream<String> _streamAnthropicOnce(
+    List<Map<String, dynamic>> messages, {
+    required List<ToolCall> outToolCalls,
+  }) async* {
     final url = '${_normalizeUrl(baseUrl)}/messages';
     final system = messages.where((m) => m['role'] == 'system').map((m) => m['content'] ?? '').join('\n');
-    final conversation = messages.where((m) => m['role'] != 'system').map((m) => m['content']).toList();
+    // Preserve role field — Anthropic API requires {role, content} in messages
+    final conversation = messages.where((m) => m['role'] != 'system').toList();
 
     final tools = toolRegistry.all.isNotEmpty
         ? toolRegistry.functionDefinitions.map((t) {
@@ -330,12 +398,14 @@ class AIService {
     final hasTools = tools != null && tools.isNotEmpty;
 
     try {
-      final response = await _sharedDio.post(
+      final response = await _retryPost(
         url,
-        options: Options(headers: _authHeaders, responseType: ResponseType.stream),
+        headers: _authHeaders,
+        responseType: ResponseType.stream,
+        receiveTimeout: const Duration(minutes: 5), // Streaming needs longer timeout
         data: {
           'model': model,
-          'max_tokens': 4096,
+          'max_tokens': maxTokens,
           if (system.isNotEmpty) 'system': system,
           'messages': conversation,
           if (hasTools) 'tools': tools,
@@ -345,8 +415,6 @@ class AIService {
 
       final stream = response.data.stream as Stream<List<int>>;
       String buffer = '';
-      String fullText = '';
-      final toolCalls = <ToolCall>[];
       String? currentToolId;
       String? currentToolName;
       final currentToolInputBuf = StringBuffer();
@@ -369,7 +437,7 @@ class AIService {
                 if (delta['type'] == 'text_delta') {
                   final text = delta['text'] as String?;
                   if (text != null && text.isNotEmpty) {
-                    fullText += text;
+                    yield text;
                   }
                 } else if (delta['type'] == 'input_json_delta') {
                   final partialJson = delta['partial_json'] as String?;
@@ -382,14 +450,12 @@ class AIService {
                 currentToolId = block['id']?.toString() ?? '';
                 currentToolName = block['name']?.toString() ?? '';
                 currentToolInputBuf.clear();
-                // Check if initial input is present
                 final initialInput = block['input'];
                 if (initialInput != null && initialInput is Map) {
                   currentToolInputBuf.write(jsonEncode(initialInput));
                 }
               }
             } else if (type == 'content_block_stop') {
-              // Finish current tool call
               if (currentToolId != null && currentToolName != null) {
                 Map<String, dynamic> args = {};
                 if (currentToolInputBuf.isNotEmpty) {
@@ -397,7 +463,7 @@ class AIService {
                     args = Map<String, dynamic>.from(jsonDecode(currentToolInputBuf.toString()));
                   } catch (_) {}
                 }
-                toolCalls.add(ToolCall(
+                outToolCalls.add(ToolCall(
                   id: currentToolId!,
                   name: currentToolName!,
                   arguments: args,
@@ -410,13 +476,10 @@ class AIService {
           } catch (_) {}
         }
       }
-
-      return AiResponse(
-        text: fullText,
-        toolCalls: toolCalls.isEmpty ? null : toolCalls,
-      );
     } on DioException catch (e) {
-      return AiResponse(text: _friendlyError(e));
+      yield _friendlyError(e);
+    } catch (e) {
+      yield '未知错误: $e';
     }
   }
 

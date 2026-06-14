@@ -4,6 +4,7 @@ import '../../core/agent_colors.dart';
 import '../../models/agent.dart';
 import '../../services/agent_storage.dart';
 import '../../widgets/ai_settings_sheet.dart';
+import '../../services/ai_service.dart';
 import 'agent_group_theme.dart';
 
 /// Agent 库页面
@@ -237,6 +238,12 @@ class _AgentEditPageState extends State<AgentEditPage> {
   late Set<String> _tools;
   List<VendorConfig> _vendors = const [];
 
+  String get _vendorDefaultModel {
+    if (_vendorId.isEmpty) return '跟随全局默认';
+    final v = _vendors.where((x) => x.id == _vendorId).firstOrNull;
+    return v?.model.isNotEmpty == true ? v!.model : '未配置';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -341,12 +348,13 @@ class _AgentEditPageState extends State<AgentEditPage> {
           ),
           if (_vendorId.isNotEmpty) ...[
             const SizedBox(height: 16),
-            _Field(
-              label: '模型名（可空，按厂商默认）',
-              ctrl: TextEditingController(text: _model),
-              nc: nc,
-              hint: '留空则用厂商默认模型',
-              onChanged: (v) => _model = v,
+            _SectionHeader(title: '模型', nc: nc),
+            const SizedBox(height: 8),
+            _AgentModelPicker(
+              vendorId: _vendorId,
+              currentModel: _model,
+              vendors: _vendors,
+              onChanged: (m) => setState(() => _model = m),
             ),
           ],
           const SizedBox(height: 16),
@@ -524,5 +532,80 @@ class _ToolOption extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Agent 编辑页的模型选择器：动态从厂商 API 获取模型列表
+class _AgentModelPicker extends StatefulWidget {
+  final String vendorId;
+  final String currentModel;
+  final List<VendorConfig> vendors;
+  final ValueChanged<String> onChanged;
+  const _AgentModelPicker({required this.vendorId, required this.currentModel, required this.vendors, required this.onChanged});
+  @override State<_AgentModelPicker> createState() => _AgentModelPickerState();
+}
+
+class _AgentModelPickerState extends State<_AgentModelPicker> {
+  List<String>? _fetched;
+  bool _loading = false;
+  String? _error;
+  VendorConfig? get _vendor => widget.vendors.where((v) => v.id == widget.vendorId).firstOrNull;
+
+  @override void initState() { super.initState(); _fetch(); }
+
+  Future<void> _fetch() async {
+    final v = _vendor; if (v == null) return;
+    setState(() { _loading = true; _error = null; _fetched = null; });
+    try {
+      final models = await AIService(baseUrl: v.baseUrl, apiKey: v.apiKey, providerName: v.name, model: '').fetchModels();
+      if (mounted) setState(() { _fetched = models; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString().replaceFirst('Exception: ', ''); _loading = false; });
+    }
+  }
+
+  List<String> get _models => _fetched ?? [];
+  String get _defaultModel => _vendor?.model.isNotEmpty == true ? _vendor!.model : '未配置';
+
+  @override
+  Widget build(BuildContext context) {
+    final nc = AgentColors.of(context);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (_loading) Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Row(children: [
+        SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(nc.textSecondary))),
+        const SizedBox(width: 8), Text('获取模型列表...', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
+      ])),
+      if (_error != null) Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [
+        Icon(Icons.error_outline, size: 14, color: nc.error), const SizedBox(width: 6),
+        Expanded(child: Text(_error!, style: TextStyle(fontSize: 11, color: nc.error))),
+        TextButton(onPressed: _fetch, child: Text('重试', style: TextStyle(fontSize: 12, color: nc.success))),
+      ])),
+      if (_models.isNotEmpty) ...[
+        Text('选择模型：', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
+        const SizedBox(height: 6),
+        _RoundedCard(nc: nc, children: List.generate(_models.length, (i) {
+          final m = _models[i]; final sel = widget.currentModel == m;
+          return _VendorOption(label: m, selected: sel, nc: nc, isFirst: i == 0, isLast: i == _models.length - 1, onTap: () => widget.onChanged(m));
+        })),
+      ],
+      const SizedBox(height: 12),
+      Text('或手动输入：', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
+      const SizedBox(height: 6),
+      TextField(
+        controller: TextEditingController(text: widget.currentModel),
+        onChanged: (v) => widget.onChanged(v.trim()),
+        style: TextStyle(fontSize: 14, color: nc.textPrimary),
+        decoration: InputDecoration(
+          filled: true, fillColor: nc.surface,
+          hintText: '例如：gpt-4o、claude-3-opus',
+          hintStyle: TextStyle(color: nc.textSecondary.withValues(alpha: 0.5), fontSize: 13),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          suffixIcon: widget.currentModel.isNotEmpty
+              ? IconButton(icon: Icon(Icons.close, size: 18, color: nc.textSecondary), onPressed: () => widget.onChanged(''))
+              : null,
+        ),
+      ),
+    ]);
   }
 }

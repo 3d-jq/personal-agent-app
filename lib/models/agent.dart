@@ -11,6 +11,7 @@ class Agent {
   String vendorId;    // 引用 AISettings.vendors 中的 vendor id
   String model;       // 模型名（vendor.model 或自定义）
   List<String> allowedToolNames; // 工具白名单（来自 base_tool.name）
+  bool isCoordinator; // 是否是协调者（常驻响应、可 @ 所有人）
 
   Agent({
     required this.id,
@@ -21,6 +22,7 @@ class Agent {
     this.vendorId = '',
     this.model = '',
     List<String>? allowedToolNames,
+    this.isCoordinator = false,
   }) : allowedToolNames = allowedToolNames ?? const [];
 
   Map<String, dynamic> toJson() => {
@@ -32,6 +34,7 @@ class Agent {
         'vendorId': vendorId,
         'model': model,
         'allowedToolNames': allowedToolNames,
+        'isCoordinator': isCoordinator,
       };
 
   factory Agent.fromJson(Map<String, dynamic> j) => Agent(
@@ -44,6 +47,7 @@ class Agent {
         model: j['model'] as String? ?? '',
         allowedToolNames:
             (j['allowedToolNames'] as List?)?.cast<String>() ?? const [],
+        isCoordinator: j['isCoordinator'] as bool? ?? false,
       );
 
   Agent copyWith({
@@ -54,6 +58,7 @@ class Agent {
     String? vendorId,
     String? model,
     List<String>? allowedToolNames,
+    bool? isCoordinator,
   }) =>
       Agent(
         id: id,
@@ -64,5 +69,6 @@ class Agent {
         vendorId: vendorId ?? this.vendorId,
         model: model ?? this.model,
         allowedToolNames: allowedToolNames ?? this.allowedToolNames,
+        isCoordinator: isCoordinator ?? this.isCoordinator,
       );
 }
