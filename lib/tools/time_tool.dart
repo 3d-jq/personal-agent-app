@@ -5,7 +5,7 @@ class TimeTool extends AgentTool {
   String get name => 'get_current_time';
 
   @override
-  String get description => '获取当前日期和时间。当用户询问当前时间、日期、星期几，或需要知道现在是什么时候时使用此工具。';
+  String get description => '获取当前日期和时间。当用户询问当前时间、日期、星期几，或需要知道现在是什么时候时使用此工具。严禁根据你的训练数据猜测当前时间——你的训练数据里没有实时时间，必须调用本工具才能获取准确时间。';
 
   @override
   Map<String, dynamic> get parameters => {

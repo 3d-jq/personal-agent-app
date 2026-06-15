@@ -8,7 +8,7 @@ class SaveNoteTool extends AgentTool {
   String get name => 'save_note';
 
   @override
-  String get description => '将内容保存为笔记。当用户要求记录、总结、保存、记下某些内容时调用此工具。如果用户要求图文并茂的笔记，先调用 generate_image 生成图片，再将图片路径通过 images 参数传入。';
+  String get description => '将内容保存为笔记。当用户要求记录、总结、保存、记下某些内容时调用此工具。如果用户要求图文并茂的笔记，先调用 generate_image 生成图片，再将图片路径通过 images 参数传入。严禁在未真正调用本工具的情况下对用户声称"已保存/已记录/已为你记下笔记"——必须先调用本工具并看到成功返回，才能告知用户已完成。';
 
   @override
   Map<String, dynamic> get parameters => {
