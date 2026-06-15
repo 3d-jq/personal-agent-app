@@ -34,6 +34,7 @@ class ChatMessage extends ChangeNotifier {
     if (_text != value) {
       _text = value;
       _cleanTextCache = null;
+      _imageUrlsCache = null;
       notifyListeners();
     }
   }
@@ -65,8 +66,11 @@ class ChatMessage extends ChangeNotifier {
     super.dispose();
   }
 
-  /// Extract image URLs from the message text (from markdown images or plain URLs)
+  /// Extract image URLs from the message text (from markdown images or plain URLs).
+  /// Cached per-text to avoid re-running regexes on every rebuild.
+  List<String>? _imageUrlsCache;
   List<String> get imageUrls {
+    if (_imageUrlsCache != null) return _imageUrlsCache!;
     final urls = <String>[];
     final mdPattern = RegExp(r'!\[.*?\]\((https?://[^\s)]+)\)');
     for (final match in mdPattern.allMatches(_text)) {
@@ -78,6 +82,7 @@ class ChatMessage extends ChangeNotifier {
       final url = match.group(1);
       if (url != null && url.isNotEmpty) urls.add(url);
     }
+    _imageUrlsCache = urls;
     return urls;
   }
 }

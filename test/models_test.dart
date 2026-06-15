@@ -7,12 +7,24 @@ import 'package:personal_agent_app/models/memory_entry.dart';
 
 void main() {
   group('ChatMessage', () {
-    test('serialization roundtrip', () {
-      final msg = ChatMessage(text: 'Hello', isUser: true);
-      final json = msg.toJson();
-      final restored = ChatMessage.fromJson(json);
-      expect(restored.text, 'Hello');
-      expect(restored.isUser, true);
+    test('text and isUser are preserved through ChatSession roundtrip', () {
+      // ChatMessage is a runtime ChangeNotifier (no direct toJson/fromJson);
+      // serialization happens inside ChatSession. Verify it survives a roundtrip.
+      final session = ChatSession(
+        id: 's1',
+        title: 'T',
+        messages: [
+          ChatMessage(text: 'Hello', isUser: true),
+          ChatMessage(text: 'Hi!', isUser: false),
+        ],
+        updatedAt: DateTime(2025, 1, 1),
+      );
+      final restored = ChatSession.fromJson(session.toJson());
+      expect(restored.messages.length, 2);
+      expect(restored.messages[0].text, 'Hello');
+      expect(restored.messages[0].isUser, true);
+      expect(restored.messages[1].text, 'Hi!');
+      expect(restored.messages[1].isUser, false);
     });
 
     test('empty text handling', () {
@@ -47,13 +59,21 @@ void main() {
         id: 'note-1',
         title: 'Test Note',
         content: 'Note content',
-        summary: 'Summary',
       );
       final json = note.toJson();
       final restored = Note.fromJson(json);
       expect(restored.id, 'note-1');
       expect(restored.title, 'Test Note');
       expect(restored.content, 'Note content');
+    });
+
+    test('summary is derived from content', () {
+      final note = Note(
+        id: 'note-2',
+        title: 'T',
+        content: '这是一段正文内容',
+      );
+      expect(note.summary, contains('正文'));
     });
   });
 
@@ -62,13 +82,14 @@ void main() {
       final reminder = Reminder(
         id: 'rem-1',
         title: 'Test Reminder',
-        description: 'Description',
+        message: 'Description',
         scheduledTime: DateTime(2025, 6, 15, 10, 0),
       );
       final json = reminder.toJson();
       final restored = Reminder.fromJson(json);
       expect(restored.id, 'rem-1');
       expect(restored.title, 'Test Reminder');
+      expect(restored.message, 'Description');
       expect(restored.isCompleted, false);
     });
   });

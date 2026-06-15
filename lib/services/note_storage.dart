@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/note.dart';
 
-class NoteStorage {
+class NoteStorage extends ChangeNotifier {
   static final NoteStorage _instance = NoteStorage._();
   factory NoteStorage() => _instance;
   NoteStorage._();
@@ -70,5 +71,6 @@ class NoteStorage {
     _cache = all;
     final file = await _file();
     await file.writeAsString(jsonEncode(all.map((e) => e.toJson()).toList()));
+    notifyListeners();
   }
 }

@@ -17,14 +17,25 @@ class _MemoryPageState extends State<MemoryPage> with SingleTickerProviderStateM
 
   @override void initState() {
     super.initState();
+    _storage.addListener(_onStorageChanged);
     _load();
     _tab.addListener(() => setState(() {}));
   }
 
-  @override void dispose() { _tab.dispose(); super.dispose(); }
+  @override void dispose() {
+    _storage.removeListener(_onStorageChanged);
+    _tab.dispose();
+    super.dispose();
+  }
+
+  void _onStorageChanged() {
+    if (!mounted) return;
+    _load();
+  }
 
   Future<void> _load() async {
     _memories = await _storage.loadAll();
+    if (!mounted) return;
     setState(() => _loaded = true);
   }
 

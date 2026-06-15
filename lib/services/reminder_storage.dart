@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/reminder.dart';
 
-class ReminderStorage {
+class ReminderStorage extends ChangeNotifier {
   static final ReminderStorage _instance = ReminderStorage._();
   factory ReminderStorage() => _instance;
   ReminderStorage._();
@@ -69,5 +70,6 @@ class ReminderStorage {
     _cache = all;
     final file = await _file();
     await file.writeAsString(jsonEncode(all.map((e) => e.toJson()).toList()));
+    notifyListeners();
   }
 }

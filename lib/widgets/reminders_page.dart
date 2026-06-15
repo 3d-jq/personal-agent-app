@@ -19,11 +19,24 @@ class _RemindersViewState extends State<RemindersView> {
   @override
   void initState() {
     super.initState();
+    _storage.addListener(_onStorageChanged);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _storage.removeListener(_onStorageChanged);
+    super.dispose();
+  }
+
+  void _onStorageChanged() {
+    if (!mounted) return;
     _load();
   }
 
   Future<void> _load() async {
     _reminders = await _storage.loadAll();
+    if (!mounted) return;
     setState(() => _loaded = true);
   }
 

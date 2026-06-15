@@ -21,11 +21,24 @@ class _NotesPageState extends State<NotesPage> {
   @override
   void initState() {
     super.initState();
+    _storage.addListener(_onStorageChanged);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _storage.removeListener(_onStorageChanged);
+    super.dispose();
+  }
+
+  void _onStorageChanged() {
+    if (!mounted) return;
     _load();
   }
 
   Future<void> _load() async {
     _notes = await _storage.loadAll();
+    if (!mounted) return;
     setState(() => _loaded = true);
   }
 

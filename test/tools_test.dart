@@ -36,8 +36,8 @@ void main() {
     test('returns current time', () async {
       final tool = TimeTool();
       final result = await tool.execute({});
-      expect(result.content, isNotEmpty);
-      expect(result.content, contains(':'));
+      expect(result, isNotEmpty);
+      expect(result, contains(':'));
     });
   });
 }

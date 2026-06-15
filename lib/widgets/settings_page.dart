@@ -69,7 +69,7 @@ class _SettingsPageState extends State<SettingsPage> {
             SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: nc.primary),
+              child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(nc.textSecondary)),
             ),
             const SizedBox(width: 16),
             Text(message, style: TextStyle(color: nc.textPrimary, fontSize: 14)),

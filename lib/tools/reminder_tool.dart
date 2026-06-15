@@ -12,7 +12,7 @@ class ReminderTool extends AgentTool {
   String get name => 'reminder';
 
   @override
-  String get description => '创建定时提醒。当用户需要在特定时间收到通知时使用。支持相对时间(如"10分钟后")和绝对时间(如"明天早上9点")。提醒会作为系统通知推送。';
+  String get description => '创建定时提醒。当用户需要在特定时间收到通知时使用。支持相对时间(如"10分钟后")和绝对时间(如"明天早上9点")。提醒会作为系统通知推送。严禁在未真正调用本工具的情况下对用户声称"已设置提醒/已为你定好闹钟/提醒已创建"——必须先调用本工具并看到成功返回，才能告知用户已完成。计算绝对时间对应的延迟秒数时，应先调用 get_current_time 获取准确当前时间，避免时间计算错误。';
 
   @override
   Map<String, dynamic> get parameters => {
