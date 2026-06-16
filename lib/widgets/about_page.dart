@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import '../core/app_config.dart';
 
 class AboutView extends StatelessWidget {
   const AboutView({super.key});
@@ -39,7 +40,7 @@ class AboutView extends StatelessWidget {
         _RoundedCard(
           nc: nc,
           children: [
-            _InfoRow(label: '版本', value: '0.6.0', nc: nc),
+            _InfoRow(label: '版本', value: AppConfig.version, nc: nc),
             _InfoRow(label: '构建', value: '2024.01', nc: nc),
             _InfoRow(label: '框架', value: 'Flutter', nc: nc),
           ],
@@ -70,7 +71,7 @@ class AboutView extends StatelessWidget {
                 showLicensePage(
                   context: context,
                   applicationName: 'DWeis',
-                  applicationVersion: '0.6.0',
+                  applicationVersion: AppConfig.version,
                 );
               },
             ),
