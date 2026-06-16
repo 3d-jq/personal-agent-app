@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:open_filex/open_filex.dart';
 
 class UpdateService {
   static const String _repoOwner = '3d-jq';
@@ -31,14 +32,16 @@ class UpdateService {
       final notes = resp.data['body'] as String? ?? '';
       final htmlUrl = resp.data['html_url'] as String? ?? '';
 
-      // 解析 APK 下载链接
-      String? apkUrl;
-      final assets = resp.data['assets'] as List<dynamic>? ?? [];
-      for (final asset in assets) {
-        final name = asset['name'] as String? ?? '';
-        if (name.endsWith('.apk')) {
-          apkUrl = asset['browser_download_url'] as String?;
-          break;
+      // 解析 APK 下载链接：优先用 .env 里配置的 UPDATE_APK_URL
+      String? apkUrl = dotenv.env['UPDATE_APK_URL'];
+      if (apkUrl == null || apkUrl.isEmpty) {
+        final assets = resp.data['assets'] as List<dynamic>? ?? [];
+        for (final asset in assets) {
+          final name = asset['name'] as String? ?? '';
+          if (name.endsWith('.apk')) {
+            apkUrl = asset['browser_download_url'] as String?;
+            break;
+          }
         }
       }
 
@@ -68,7 +71,6 @@ class UpdateService {
       if (Platform.isAndroid) {
         final status = await Permission.storage.request();
         if (!status.isGranted) {
-          // Android 11+ 尝试请求管理外部存储权限
           final manageStatus = await Permission.manageExternalStorage.request();
           if (!manageStatus.isGranted) {
             return null;
