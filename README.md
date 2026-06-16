@@ -161,6 +161,17 @@ flutter build apk --release
 
 ## 📝 更新日志
 
+### v0.6.2
+- ✨ 集成 SearXNG 自托管搜索（免费替代 Tavily），优先使用 / 失败回退
+- 🎨 版本号统一到 AppConfig 常量，设置页 & 关于页自动同步
+
+### v0.6.1
+- 🧠 强化工具调用铁律，system prompt + 4 个工具描述禁 AI 幻觉
+- 🐛 修复 connectivity_service 适配 connectivity_plus 6.x，恢复断网检测
+- ⚡ ListView 加 cacheExtent，imageUrls 正则缓存，去掉每轮重跑系统提示词
+- ✨ NoteStorage / MemoryStorage / ReminderStorage 加通知机制，UI 自动刷新
+- ✅ 修复 models_test / tools_test，恢复 12 个测试
+
 ### v0.6.0
 - ✨ Agent 群功能上线：多 Agent 协作、协调者、审核机制、通信矩阵
 - ✨ Agent 相互引用同伴观点
