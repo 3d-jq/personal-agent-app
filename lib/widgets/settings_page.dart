@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import '../core/app_config.dart';
 import '../services/theme_service.dart';
 import '../services/personalization_storage.dart';
 import '../services/update_service.dart';
@@ -29,7 +30,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _checkUpdate(BuildContext context, AgentColors nc) async {
     _showLoadingDialog(context, nc, '正在检查更新...');
 
-    const current = '0.6.0';
+    const current = AppConfig.version;
     final info = await UpdateService.checkUpdate(current);
 
     if (context.mounted) Navigator.pop(context);
@@ -96,7 +97,7 @@ class _SettingsPageState extends State<SettingsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('当前版本：v0.6.0', style: TextStyle(color: nc.textSecondary, fontSize: 13)),
+              Text('当前版本：${AppConfig.displayVersion}', style: TextStyle(color: nc.textSecondary, fontSize: 13)),
               if (info.notes.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(info.notes, style: TextStyle(color: nc.textPrimary, fontSize: 13)),
@@ -237,7 +238,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _RoundedCard(
             nc: nc,
             children: [
-                _SettingItem(label: '检查更新', trailing: 'v0.6.0', onTap: () => _checkUpdate(context, nc)),
+                _SettingItem(label: '检查更新', trailing: AppConfig.displayVersion, onTap: () => _checkUpdate(context, nc)),
               _SettingItem(label: '关于', onTap: () {
                 HapticFeedback.lightImpact();
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutView()));
