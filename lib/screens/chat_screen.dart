@@ -44,6 +44,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Timer? _scrollTimer;
   bool _isLoading = false;
   bool _loaded = false;
+  bool _showScrollBottom = false;
   List<TimelineStep>? _currentSteps;
 
   String? _sessionId;
@@ -62,6 +63,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _initTools();
+    _scrollCtrl.addListener(_onScroll);
     _aiSettings.load().then((_) async {
       if (!mounted) return;
       await _loadStorageCache();
@@ -109,10 +111,22 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _inputCtrl.dispose();
     _inputFocus.dispose();
+    _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
     _scrollTimer?.cancel();
     _aiStream?.cancel();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollCtrl.hasClients) return;
+    final max = _scrollCtrl.position.maxScrollExtent;
+    final current = _scrollCtrl.position.pixels;
+    // 距离底部超过 120px 时显示按钮
+    final shouldShow = (max - current) > 120;
+    if (shouldShow != _showScrollBottom) {
+      setState(() => _showScrollBottom = shouldShow);
+    }
   }
 
   void _newSession() {
@@ -430,13 +444,40 @@ class _ChatScreenState extends State<ChatScreen> {
           resizeToAvoidBottomInset: true,
           body: Column(children: [
             Expanded(
-              child: ListView.builder(
-                controller: _scrollCtrl,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                itemCount: _messages.length,
-                cacheExtent: 1500,
-                itemBuilder: (c, i) => ChatBubble(msg: _messages[i], nc: nc),
-              ),
+              child: Stack(children: [
+                ListView.builder(
+                  controller: _scrollCtrl,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  itemCount: _messages.length,
+                  cacheExtent: 1500,
+                  itemBuilder: (c, i) => ChatBubble(msg: _messages[i], nc: nc),
+                ),
+                if (_showScrollBottom)
+                  Positioned(
+                    right: 16,
+                    bottom: 12,
+                    child: GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        _scrollCtrl.animateTo(
+                          _scrollCtrl.position.maxScrollExtent,
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOut,
+                        );
+                      },
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: nc.surface,
+                          shape: BoxShape.circle,
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 8, offset: const Offset(0, 2))],
+                        ),
+                        child: Icon(Icons.keyboard_double_arrow_down_rounded, size: 22, color: nc.textPrimary),
+                      ),
+                    ),
+                  ),
+              ]),
             ),
             ChatInputBar(
               bottomSafe: bottomSafe,
