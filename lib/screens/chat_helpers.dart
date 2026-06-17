@@ -14,7 +14,9 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(AgnesImageTool()..apiKey = agnesKey);
   registry.register(AgnesVideoTool()..apiKey = agnesKey);
   registry.register(SaveMemoryTool());
+  registry.register(ManageMemoryTool());
   registry.register(SaveNoteTool());
+  registry.register(ManageNoteTool());
   registry.register(TimeTool());
   registry.register(AiDailyTool());
   registry.register(CalendarTool());
@@ -32,7 +34,9 @@ String toolLabel(String name) {
     case 'generate_image': return '生成图片';
     case 'generate_video': return '生成视频';
     case 'save_memory': return '记忆';
+    case 'manage_memory': return '管理记忆';
     case 'save_note': return '保存笔记';
+    case 'manage_notes': return '管理笔记';
     case 'get_current_time': return '获取时间';
     case 'calendar': return '日历';
     default: return name;
