@@ -437,87 +437,86 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
               child: Container(
-                constraints: const BoxConstraints(minHeight: 48),
                 decoration: BoxDecoration(
                   color: nc.surface,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: nc.divider, width: 0.5),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          _showMentionSheet(nc);
-                        },
-                        child: Container(
-                          width: 40, height: 40, alignment: Alignment.center,
-                          decoration: BoxDecoration(color: nc.primarySurface, shape: BoxShape.circle),
-                          child: Text('@',
-                              style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.w600,
-                                  color: _members.isNotEmpty ? nc.textPrimary : nc.textDisabled)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                      child: TextField(
+                        controller: _inputCtrl,
+                        focusNode: _inputFocus,
+                        minLines: 1, maxLines: 6,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
+                        style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.5),
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          hintText: _members.isEmpty ? '先把 Agent 拉进群再说' : '说点什么，@名字 来召唤 Agent',
+                          hintStyle: TextStyle(color: nc.textSecondary.withValues(alpha: 0.6), fontSize: 15, height: 1.5),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: TextField(
-                          controller: _inputCtrl,
-                          focusNode: _inputFocus,
-                          minLines: 1, maxLines: 5,
-                          keyboardType: TextInputType.multiline,
-                          textInputAction: TextInputAction.newline,
-                          style: TextStyle(fontSize: 15, color: nc.textPrimary),
-                          onChanged: (_) => setState(() {}),
-                          onSubmitted: (_) {
-                            if (_inputCtrl.text.trim().isNotEmpty && !_busy) _send();
-                          },
-                          decoration: InputDecoration(
-                            hintText: _members.isEmpty ? '先把 Agent 拉进群再说' : '说点什么，@名字 来召唤 Agent',
-                            hintStyle: TextStyle(color: nc.textSecondary.withValues(alpha: 0.6), fontSize: 15),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              _showMentionSheet(nc);
+                            },
+                            child: Container(
+                              width: 40, height: 40, alignment: Alignment.center,
+                              decoration: BoxDecoration(color: nc.primarySurface, shape: BoxShape.circle),
+                              child: Text('@',
+                                  style: TextStyle(
+                                      fontSize: 16, fontWeight: FontWeight.w600,
+                                      color: _members.isNotEmpty ? nc.textPrimary : nc.textDisabled)),
+                            ),
                           ),
-                        ),
+                          const Spacer(),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              if (_busy) {
+                                _stop();
+                              } else if (_inputCtrl.text.trim().isNotEmpty) {
+                                _send();
+                              }
+                            },
+                            child: Container(
+                              width: 40, height: 40, alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: _busy
+                                    ? Colors.red.withValues(alpha: 0.1)
+                                    : _inputCtrl.text.trim().isEmpty
+                                        ? nc.primarySurface : nc.textPrimary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                _busy ? Icons.stop_rounded : Icons.arrow_upward_rounded,
+                                size: 18,
+                                color: _busy
+                                    ? Colors.red
+                                    : _inputCtrl.text.trim().isEmpty ? nc.textSecondary : nc.surface,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          if (_busy) {
-                            _stop();
-                          } else if (_inputCtrl.text.trim().isNotEmpty) {
-                            _send();
-                          }
-                        },
-                        child: Container(
-                          width: 40, height: 40, alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: _busy
-                                ? Colors.red.withValues(alpha: 0.1)
-                                : _inputCtrl.text.trim().isEmpty
-                                    ? nc.primarySurface : nc.textPrimary,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            _busy ? Icons.stop_rounded : Icons.arrow_upward_rounded,
-                            size: 18,
-                            color: _busy
-                                ? Colors.red
-                                : _inputCtrl.text.trim().isEmpty ? nc.textSecondary : nc.surface,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
