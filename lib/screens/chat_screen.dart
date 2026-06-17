@@ -44,6 +44,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Timer? _scrollTimer;
   bool _isLoading = false;
   bool _loaded = false;
+  List<TimelineStep>? _currentSteps;
 
   String? _sessionId;
   List<ChatMessage> _messages = [];
@@ -184,13 +185,18 @@ class _ChatScreenState extends State<ChatScreen> {
   void _stopStream() {
     _aiStream?.cancel();
     _aiStream = null;
+    if (_currentSteps != null) {
+      finishRunningSteps(_currentSteps!);
+    }
     final aiMsg = _messages.isNotEmpty && !_messages.last.isUser
         ? _messages.last
         : null;
     if (aiMsg != null) {
       aiMsg.isStreaming = false;
+      aiMsg.steps = _currentSteps != null ? List.unmodifiable(_currentSteps!) : null;
       if (aiMsg.text.isEmpty) aiMsg.text = '(已停止)';
     }
+    _currentSteps = null;
     setState(() => _isLoading = false);
   }
 
@@ -266,6 +272,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final aiMsg = _messages.last;
     final buf = StringBuffer();
     final steps = <TimelineStep>[];
+    _currentSteps = steps;
     var firstChunk = true;
     var hasToolCalls = false;
 
@@ -310,6 +317,7 @@ class _ChatScreenState extends State<ChatScreen> {
         },
         onDone: () {
           finishRunningSteps(steps);
+          _currentSteps = null;
           setState(() {
             aiMsg.isStreaming = false;
             aiMsg.steps = steps.isEmpty ? null : List.unmodifiable(steps);
@@ -320,6 +328,7 @@ class _ChatScreenState extends State<ChatScreen> {
         },
         onError: (e) {
           finishRunningSteps(steps);
+          _currentSteps = null;
           setState(() {
             aiMsg.text = buf.isEmpty ? '错误: $e' : '${buf.toString()}\n\n错误: $e';
             aiMsg.isStreaming = false;
@@ -397,6 +406,7 @@ class _ChatScreenState extends State<ChatScreen> {
           drawer: AgentSideDrawer(
             sessions: _sessions,
             currentSessionId: _sessionId,
+            isLoading: _isLoading,
             onSessionTap: (id) {
               if (id != _sessionId) _switchSession(id);
             },
