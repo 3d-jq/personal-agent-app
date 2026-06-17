@@ -41,13 +41,12 @@ AI 可调用 13 个内置工具：
 - 亮色/暗色主题，400ms 颜色补间动画
 - 每日 AI 问候卡片（聚合天气+日程+记忆）
 - 笔记管理、媒体库
-- 全平台支持（Android/iOS/Web/Desktop）
+- 仅 Android 平台
 
 ---
 
 ## 📸 截图
 
-<!-- 建议替换为实际截图 -->
 | 聊天对话 | Agent 群协作 | 设置页面 |
 |:---:|:---:|:---:|
 | ![chat](screenshots/chat.jpg) | ![agent-group](screenshots/agent-group.jpg) | ![settings](screenshots/settings.jpg) |
@@ -147,6 +146,8 @@ lib/
 | 通知 | flutter_local_notifications |
 | 文件选择 | file_picker |
 | 网络状态 | connectivity_plus |
+| 安装 APK | open_filex |
+| 权限管理 | permission_handler |
 
 ---
 
