@@ -14,6 +14,7 @@ import 'agent_group/group_list_page.dart';
 class AgentSideDrawer extends StatefulWidget {
   final List<ChatSession> sessions;
   final String? currentSessionId;
+  final bool isLoading;
   final ValueChanged<String> onSessionTap;
   final VoidCallback onNewChat;
   final ValueChanged<String> onSessionDeleted;
@@ -22,6 +23,7 @@ class AgentSideDrawer extends StatefulWidget {
     super.key,
     this.sessions = const [],
     this.currentSessionId,
+    this.isLoading = false,
     required this.onSessionTap,
     required this.onNewChat,
     required this.onSessionDeleted,
@@ -95,6 +97,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                             return _CardItem(
                               label: s.title,
                               isActive: s.id == widget.currentSessionId,
+                              isCurrentLoading: widget.isLoading && s.id == widget.currentSessionId,
                               nc: nc,
                               isLast: i == widget.sessions.length - 1,
                                onTap: () {
@@ -202,6 +205,7 @@ class _CardItem extends StatelessWidget {
   final IconData? icon;
   final String label;
   final bool isActive;
+  final bool isCurrentLoading;
   final bool isLast;
   final AgentColors nc;
   final VoidCallback? onTap;
@@ -211,6 +215,7 @@ class _CardItem extends StatelessWidget {
     this.icon,
     required this.label,
     this.isActive = false,
+    this.isCurrentLoading = false,
     this.isLast = false,
     required this.nc,
     this.onTap,
@@ -233,16 +238,28 @@ class _CardItem extends StatelessWidget {
               const SizedBox(width: 14),
             ],
             Expanded(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: nc.textPrimary,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+              child: Row(children: [
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: nc.textPrimary,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                    ),
+                  ),
                 ),
-              ),
+                if (isCurrentLoading)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: nc.textSecondary),
+                    ),
+                  ),
+              ]),
             ),
             Icon(Icons.chevron_right, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
           ]),

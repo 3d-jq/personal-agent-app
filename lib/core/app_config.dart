@@ -3,7 +3,7 @@ class AppConfig {
   AppConfig._();
 
   /// 当前应用版本号，与 pubspec.yaml version 字段保持一致。
-  static const String version = '0.6.3';
+  static const String version = '0.6.4';
 
   /// 显示用版本号（带 v 前缀）。
   static const String displayVersion = 'v$version';
