@@ -48,6 +48,15 @@ class MemoryStorage extends ChangeNotifier {
     await _save(all);
   }
 
+  Future<void> update(MemoryEntry entry) async {
+    final all = await loadAll();
+    final idx = all.indexWhere((e) => e.id == entry.id);
+    if (idx >= 0) {
+      all[idx] = entry;
+      await _save(all);
+    }
+  }
+
   Future<void> remove(String id) async {
     final all = await loadAll();
     all.removeWhere((e) => e.id == id);

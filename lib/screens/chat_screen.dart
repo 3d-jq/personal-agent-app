@@ -83,7 +83,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _cachedMemoryContext = storage.memoryContext;
     final personalization = PersonalizationStorage();
     await personalization.load();
-    final systemPrompt = StringBuffer('你是一个叫DWeis的全能agent助手，你可以使用可用的工具来帮助用户完成任务。用户昵称是${personalization.userName}。\n\n## 工具调用铁律（必须严格遵守）\n1. 下列信息你必须调用对应工具获取，严禁根据训练数据或常识猜测：\n   - 当前时间/日期/星期 → 必须调用 get_current_time\n   - 保存笔记/记录内容 → 必须调用 save_note\n   - 记住用户事实或偏好 → 必须调用 save_memory\n   - 设置定时提醒 → 必须调用 reminder\n   - 天气、网页搜索、生成图片视频等同理\n2. 禁止幻觉：在你的回复中声称"已保存/已记录/已设置提醒/现在是X点"等执行性表述之前，必须先真正调用对应工具并看到成功结果。未调用工具时，不得宣称已完成该操作。\n3. 当工具调用返回错误或失败时，请根据失败信息自动调整参数重试一次，不要直接告诉用户失败了。');
+    final systemPrompt = StringBuffer('你是一个叫DWeis的全能agent助手，你可以使用可用的工具来帮助用户完成任务。用户昵称是${personalization.userName}。\n\n## 工具调用铁律（必须严格遵守）\n1. 下列信息你必须调用对应工具获取，严禁根据训练数据或常识猜测：\n   - 当前时间/日期/星期 → 必须调用 get_current_time\n   - 保存笔记/记录内容 → 必须调用 save_note\n   - 记住用户事实或偏好 → 必须调用 save_memory\n   - 设置定时提醒 → 必须调用 reminder\n   - 天气、网页搜索、生成图片视频等同理\n2. 禁止幻觉：在你的回复中声称"已保存/已记录/已设置提醒/现在是X点"等执行性表述之前，必须先真正调用对应工具并看到成功结果。未调用工具时，不得宣称已完成该操作。\n3. 当工具调用返回错误或失败时，请根据失败信息自动调整参数重试一次，不要直接告诉用户失败了。\n\n## 笔记与记忆的增删改查\n- 新建笔记 → save_note；新建记忆 → save_memory\n- 列出/查看/修改/删除笔记 → manage_notes（action: list/update/delete）\n- 列出/查看/修改/删除记忆 → manage_memory（action: list/update/delete）\n- 用户要求查看、修改、删除已有内容时，必须先调 list 拿到对应 id，再执行 update/delete。不要凭空假设内容。');
     final stylePrompt = personalization.stylePrompt;
     if (stylePrompt.isNotEmpty) {
       systemPrompt.write('\n\n## 回复风格\n$stylePrompt');
@@ -244,7 +244,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_cachedMemoryContext == null) await storage.loadAll();
     final personalization = PersonalizationStorage();
     if (_cachedSystemPrompt == null) await personalization.load();
-    final systemPrompt = StringBuffer(_cachedSystemPrompt ?? '你是一个叫DWeis的全能agent助手，你可以使用可用的工具来帮助用户完成任务。用户昵称是${personalization.userName}。\n\n## 工具调用铁律（必须严格遵守）\n1. 下列信息你必须调用对应工具获取，严禁根据训练数据或常识猜测：\n   - 当前时间/日期/星期 → 必须调用 get_current_time\n   - 保存笔记/记录内容 → 必须调用 save_note\n   - 记住用户事实或偏好 → 必须调用 save_memory\n   - 设置定时提醒 → 必须调用 reminder\n   - 天气、网页搜索、生成图片视频等同理\n2. 禁止幻觉：在你的回复中声称"已保存/已记录/已设置提醒/现在是X点"等执行性表述之前，必须先真正调用对应工具并看到成功结果。未调用工具时，不得宣称已完成该操作。\n3. 当工具调用返回错误或失败时，请根据失败信息自动调整参数重试一次，不要直接告诉用户失败了。');
+    final systemPrompt = StringBuffer(_cachedSystemPrompt ?? '你是一个叫DWeis的全能agent助手，你可以使用可用的工具来帮助用户完成任务。用户昵称是${personalization.userName}。\n\n## 工具调用铁律（必须严格遵守）\n1. 下列信息你必须调用对应工具获取，严禁根据训练数据或常识猜测：\n   - 当前时间/日期/星期 → 必须调用 get_current_time\n   - 保存笔记/记录内容 → 必须调用 save_note\n   - 记住用户事实或偏好 → 必须调用 save_memory\n   - 设置定时提醒 → 必须调用 reminder\n   - 天气、网页搜索、生成图片视频等同理\n2. 禁止幻觉：在你的回复中声称"已保存/已记录/已设置提醒/现在是X点"等执行性表述之前，必须先真正调用对应工具并看到成功结果。未调用工具时，不得宣称已完成该操作。\n3. 当工具调用返回错误或失败时，请根据失败信息自动调整参数重试一次，不要直接告诉用户失败了。\n\n## 笔记与记忆的增删改查\n- 新建笔记 → save_note；新建记忆 → save_memory\n- 列出/查看/修改/删除笔记 → manage_notes（action: list/update/delete）\n- 列出/查看/修改/删除记忆 → manage_memory（action: list/update/delete）\n- 用户要求查看、修改、删除已有内容时，必须先调 list 拿到对应 id，再执行 update/delete。不要凭空假设内容。');
 
     final history = buildMessageHistory(
       systemPrompt: systemPrompt.toString(),

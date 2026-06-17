@@ -161,6 +161,11 @@ flutter build apk --release
 
 ## 📝 更新日志
 
+### v0.6.3
+- ✨ 新增 `manage_notes` 工具：AI 可列出 / 修改 / 删除已有笔记
+- ✨ 新增 `manage_memory` 工具：AI 可列出 / 修改 / 删除已有记忆
+- 🧠 system prompt 补充增删改查指引，避免 AI 凭空假设内容
+
 ### v0.6.2
 - ✨ 集成 SearXNG 自托管搜索（免费替代 Tavily），优先使用 / 失败回退
 - 🎨 版本号统一到 AppConfig 常量，设置页 & 关于页自动同步
