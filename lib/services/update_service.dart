@@ -32,9 +32,13 @@ class UpdateService {
       final notes = resp.data['body'] as String? ?? '';
       final htmlUrl = resp.data['html_url'] as String? ?? '';
 
-      // 解析 APK 下载链接：优先用 .env 里配置的 UPDATE_APK_URL
-      String? apkUrl = dotenv.env['UPDATE_APK_URL'];
-      if (apkUrl == null || apkUrl.isEmpty) {
+      // 解析 APK 下载链接
+      String? apkUrl = dotenv.env['UPDATE_APK_URL'] ?? '';
+      if (apkUrl.isNotEmpty) {
+        // 用最新版本号替换链接中的版本占位符
+        apkUrl = apkUrl.replaceAll('{version}', latestVersion);
+      } else {
+        // 从 GitHub asset 获取
         final assets = resp.data['assets'] as List<dynamic>? ?? [];
         for (final asset in assets) {
           final name = asset['name'] as String? ?? '';
@@ -103,13 +107,11 @@ class UpdateService {
     try {
       final result = await OpenFilex.open(filePath);
       return result.type == ResultType.done;
-    } catch (e) {
+    } catch (_) {
       return false;
     }
   }
 
-  /// 比较版本号
-  /// 返回: 1 表示 v1 > v2, 0 表示相等, -1 表示 v1 < v2
   static int _compareVersion(String v1, String v2) {
     final parts1 = v1.split('.').map(int.tryParse).whereType<int>().toList();
     final parts2 = v2.split('.').map(int.tryParse).whereType<int>().toList();
@@ -130,7 +132,7 @@ class UpdateInfo {
   final String htmlUrl;
   final String? apkUrl;
 
-  UpdateInfo({
+  const UpdateInfo({
     required this.version,
     required this.notes,
     required this.htmlUrl,
