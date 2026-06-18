@@ -81,4 +81,37 @@ class MemoryStorage extends ChangeNotifier {
     if (facts.isEmpty) return '';
     return facts.map((e) => '- ${e.content}').join('\n');
   }
+
+  /// 暴露缓存的记忆列表（已加载后可用）
+  List<MemoryEntry> get cachedEntries => _cache ?? [];
+
+  /// 筛选与用户消息相关的事实记忆
+  List<MemoryEntry> relevantFacts(String userMessage) {
+    final facts = (_cache ?? []).where((e) => e.type == MemoryType.fact).toList();
+    if (facts.isEmpty) return [];
+    if (userMessage.isEmpty) return facts.take(3).toList();
+
+    final msgLower = userMessage.toLowerCase();
+    final scored = <MapEntry<int, MemoryEntry>>[];
+
+    for (final fact in facts) {
+      final content = fact.content.toLowerCase();
+      int score = 0;
+      final words = content.split(RegExp(r'[\s,，。.、；;：:!?！？]+'));
+      for (final word in words) {
+        if (word.length >= 2 && msgLower.contains(word)) {
+          score += word.length;
+        }
+      }
+      if (score > 0) scored.add(MapEntry(score, fact));
+    }
+
+    scored.sort((a, b) => b.key.compareTo(a.key));
+    final result = scored.take(5).map((e) => e.value).toList();
+    return result.isEmpty ? facts.take(3).toList() : result;
+  }
+
+  /// 所有偏好记忆
+  List<MemoryEntry> get cachedPreferences =>
+      (_cache ?? []).where((e) => e.type == MemoryType.preference).toList();
 }

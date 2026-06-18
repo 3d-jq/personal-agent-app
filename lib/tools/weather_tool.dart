@@ -7,7 +7,7 @@ class WeatherTool extends AgentTool {
   String get name => 'weather';
 
   @override
-  String get description => '查询实时天气信息。当用户询问天气时使用。需要提供 API Key（OpenWeatherMap），用户可在设置中配置。';
+  String get description => '查询实时天气信息。需要配置 OpenWeatherMap API Key。';
 
   @override
   Map<String, dynamic> get parameters => {

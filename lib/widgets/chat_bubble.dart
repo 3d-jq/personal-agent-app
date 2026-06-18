@@ -98,11 +98,21 @@ class _AIBubbleState extends State<_AIBubble> with SingleTickerProviderStateMixi
     final hasSteps = steps != null && steps.isNotEmpty;
     final textContent = msg.cleanText;
 
+    // 找当前进行中的步骤 + 最后一个已完成的步骤
     TimelineStep? running;
+    TimelineStep? lastDone;
     if (hasSteps) {
       for (final s in steps!) {
         if (s.status == TimelineStepStatus.running) {
           running = s;
+          break;
+        }
+      }
+      // 最后一个非 running 的步骤（作为完成的展示）
+      for (var i = steps!.length - 1; i >= 0; i--) {
+        final s = steps[i];
+        if (s.status != TimelineStepStatus.running && s != running) {
+          lastDone = s;
           break;
         }
       }
@@ -123,11 +133,7 @@ class _AIBubbleState extends State<_AIBubble> with SingleTickerProviderStateMixi
           if (showProcessLine)
             Padding(
               padding: EdgeInsets.only(bottom: textContent.isNotEmpty ? 8 : 0),
-              child: Row(children: [
-                SizedBox(width: 20, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, valueColor: AlwaysStoppedAnimation(nc.textSecondary))),
-                const SizedBox(width: 10),
-                Expanded(child: Text(running?.label ?? '思考中…', style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500))),
-              ]),
+              child: _buildProcessLine(running, lastDone, nc),
             ),
           if (textContent.isNotEmpty)
             FadeTransition(
@@ -137,5 +143,48 @@ class _AIBubbleState extends State<_AIBubble> with SingleTickerProviderStateMixi
         ],
       ),
     );
+  }
+
+  /// 单行步骤指示器：已完成步骤 ✓ + 进行中步骤 ⟳
+  Widget _buildProcessLine(TimelineStep? running, TimelineStep? lastDone, AgentColors nc) {
+    final widgets = <Widget>[];
+
+    // 已完成步骤
+    if (lastDone != null) {
+      final isError = lastDone.status == TimelineStepStatus.error;
+      widgets.add(
+        Icon(
+          isError ? Icons.close : Icons.check_circle,
+          size: 16,
+          color: isError ? Colors.red.shade400 : nc.success,
+        ),
+      );
+      widgets.add(const SizedBox(width: 6));
+      widgets.add(Text(
+        isError ? '${lastDone.label}（失败）' : lastDone.label,
+        style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w400),
+      ));
+      widgets.add(const SizedBox(width: 6));
+    }
+
+    // 进行中步骤
+    widgets.add(SizedBox(
+      width: 16, height: 16,
+      child: CircularProgressIndicator(
+        strokeWidth: 1.5,
+        valueColor: AlwaysStoppedAnimation(nc.textSecondary),
+      ),
+    ));
+    widgets.add(const SizedBox(width: 6));
+    widgets.add(Flexible(
+      child: Text(
+        running?.label ?? '思考中…',
+        style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500),
+        overflow: TextOverflow.ellipsis,
+      ),
+    ));
+
+    return Row(children: widgets);
+  }
   }
 }

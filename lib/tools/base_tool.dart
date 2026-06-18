@@ -12,6 +12,9 @@ abstract class AgentTool {
   /// JSON Schema of tool parameters (OpenAI function calling format)
   Map<String, dynamic> get parameters;
 
+  /// 是否只读工具（不修改用户数据）。Agent 群中非协调者 Agent 只能使用只读工具。
+  bool get readOnly => true;
+
   /// Execute the tool with parsed arguments
   Future<String> execute(Map<String, dynamic> args);
 

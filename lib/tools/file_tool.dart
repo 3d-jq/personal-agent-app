@@ -3,11 +3,11 @@ import 'package:path_provider/path_provider.dart';
 import '../tools/base_tool.dart';
 
 class FileTool extends AgentTool {
-  @override
-  String get name => 'file_manager';
+  @override String get name => 'file_manager';
+  @override bool get readOnly => false;
 
   @override
-  String get description => '管理本地文件：列出目录内容、读取文件内容、写入/追加文件、创建文件夹、删除文件。当用户需要操作手机上的文件时使用。文件存储在应用文档目录下。';
+  String get description => '管理应用本地文件：列目录、读写文件、创建文件夹、删除。';
 
   @override
   Map<String, dynamic> get parameters => {

@@ -8,7 +8,7 @@ class WebSearchTool extends AgentTool {
   String get name => 'web_search';
 
   @override
-  String get description => '搜索互联网获取实时信息。当需要查询当前事件、新闻、百科知识、或任何不在训练数据中的信息时使用此工具。';
+  String get description => '搜索互联网获取实时信息。';
 
   @override
   Map<String, dynamic> get parameters => {
