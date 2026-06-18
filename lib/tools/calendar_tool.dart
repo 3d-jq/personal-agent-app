@@ -3,11 +3,11 @@ import 'package:permission_handler/permission_handler.dart';
 import '../tools/base_tool.dart';
 
 class CalendarTool extends AgentTool {
-  @override
-  String get name => 'calendar';
+  @override String get name => 'calendar';
+  @override bool get readOnly => false;
 
   @override
-  String get description => '读写系统日历。用于查看日程、安排会议、创建事件。添加事件前先调用 get_current_time 获取今天日期，用 YYYY-MM-DD 格式设置 date 参数。';
+  String get description => '读写系统日历：查看日程、创建事件、删除事件。';
 
   @override
   Map<String, dynamic> get parameters => {

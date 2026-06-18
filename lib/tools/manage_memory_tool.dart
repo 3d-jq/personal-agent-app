@@ -4,8 +4,8 @@ import 'base_tool.dart';
 
 /// 管理（列出/修改/删除）已有记忆。save_memory 工具负责新增，本工具负责后续管理。
 class ManageMemoryTool extends AgentTool {
-  @override
-  String get name => 'manage_memory';
+  @override String get name => 'manage_memory';
+  @override bool get readOnly => false;
 
   @override
   String get description => '管理已有记忆：列出列表、修改内容、删除记忆。'

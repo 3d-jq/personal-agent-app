@@ -52,19 +52,26 @@ List<Map<String, dynamic>> buildMessageHistory({
   String? pendingType,
   String? text,
   int? pendingFileSize,
+  int? maxMessages, // 滑动窗口，保留最近 N 条
 }) {
   final history = <Map<String, dynamic>>[
     {'role': 'system', 'content': systemPrompt}
   ];
 
-  for (var i = 0; i < messages.length; i++) {
-    final m = messages[i];
+  // 滑动窗口截断
+  var msgs = messages;
+  if (maxMessages != null && messages.length > maxMessages) {
+    msgs = messages.sublist(messages.length - maxMessages);
+  }
+
+  for (var i = 0; i < msgs.length; i++) {
+    final m = msgs[i];
     if (m.isStreaming) continue;
     final msg = <String, dynamic>{
       'role': m.isUser ? 'user' : 'assistant',
       'content': m.text,
     };
-    if (i == messages.length - 2 && attachmentBase64 != null) {
+    if (i == msgs.length - 2 && attachmentBase64 != null) {
       if (pendingType == 'image') {
         msg['content'] = [
           {'type': 'text', 'text': (text?.isEmpty ?? true) ? '请基于这张图片帮我生成图片或视频' : text},

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../core/agent_colors.dart';
+import '../core/prompt_builder.dart';
 import '../models/chat_message.dart';
 import '../models/chat_session.dart';
 import '../services/ai_service.dart';
@@ -53,9 +54,8 @@ class _ChatScreenState extends State<ChatScreen> {
   File? _pendingAttachment;
   String _pendingAttachmentType = '';
 
-  String? _cachedSystemPrompt;
-  String? _cachedMemoryContext;
   String? _cachedPreferencePrompt;
+  String? _cachedMemoryContext;
 
   String? get currentSessionId => _sessionId;
 
@@ -82,25 +82,11 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _loadStorageCache() async {
     final storage = MemoryStorage();
     await storage.loadAll();
-    _cachedPreferencePrompt = storage.preferencePrompt;
-    _cachedMemoryContext = storage.memoryContext;
     final personalization = PersonalizationStorage();
     await personalization.load();
-    final systemPrompt = StringBuffer('你是一个叫DWeis的全能agent助手，你可以使用可用的工具来帮助用户完成任务。用户昵称是${personalization.userName}。\n\n## 工具调用铁律（必须严格遵守）\n1. 下列信息你必须调用对应工具获取，严禁根据训练数据或常识猜测：\n   - 当前时间/日期/星期 → 必须调用 get_current_time\n   - 保存笔记/记录内容 → 必须调用 save_note\n   - 记住用户事实或偏好 → 必须调用 save_memory\n   - 设置定时提醒 → 必须调用 reminder\n   - 天气、网页搜索、生成图片视频等同理\n2. 禁止幻觉：在你的回复中声称"已保存/已记录/已设置提醒/现在是X点"等执行性表述之前，必须先真正调用对应工具并看到成功结果。未调用工具时，不得宣称已完成该操作。\n3. 当工具调用返回错误或失败时，请根据失败信息自动调整参数重试一次，不要直接告诉用户失败了。\n\n## 笔记与记忆的增删改查\n- 新建笔记 → save_note；新建记忆 → save_memory\n- 列出/查看/修改/删除笔记 → manage_notes（action: list/update/delete）\n- 列出/查看/修改/删除记忆 → manage_memory（action: list/update/delete）\n- 用户要求查看、修改、删除已有内容时，必须先调 list 拿到对应 id，再执行 update/delete。不要凭空假设内容。');
-    final stylePrompt = personalization.stylePrompt;
-    if (stylePrompt.isNotEmpty) {
-      systemPrompt.write('\n\n## 回复风格\n$stylePrompt');
-    }
-    if (personalization.customPrompt.isNotEmpty) {
-      systemPrompt.write('\n\n## 自定义指令\n${personalization.customPrompt}');
-    }
-    if (_cachedPreferencePrompt!.isNotEmpty) {
-      systemPrompt.write('\n\n## 用户偏好\n$_cachedPreferencePrompt');
-    }
-    if (_cachedMemoryContext!.isNotEmpty) {
-      systemPrompt.write('\n\n## 用户记忆\n$_cachedMemoryContext');
-    }
-    _cachedSystemPrompt = systemPrompt.toString();
+    // 缓存 personalization 供每次发消息时动态构建 prompt
+    _cachedPreferencePrompt = personalization.stylePrompt;
+    _cachedMemoryContext = personalization.customPrompt;
   }
 
   void _initTools() {
@@ -218,6 +204,8 @@ class _ChatScreenState extends State<ChatScreen> {
     final text = _inputCtrl.text.trim();
     if ((text.isEmpty && _pendingAttachment == null) || _isLoading) return;
     if (_sessionId == null) _newSession();
+    // 重置工具调用计数
+    _toolRegistry.resetCallCounts();
     if (!_aiSettings.hasVendor) {
       setState(() => _messages.add(ChatMessage(
           text: '请先配置 AI 后端（点击输入框内存图标）', isUser: false)));
@@ -261,19 +249,27 @@ class _ChatScreenState extends State<ChatScreen> {
     _pendingAttachmentType = '';
 
     final storage = MemoryStorage();
-    if (_cachedMemoryContext == null) await storage.loadAll();
+    await storage.loadAll();
     final personalization = PersonalizationStorage();
-    if (_cachedSystemPrompt == null) await personalization.load();
-    final systemPrompt = StringBuffer(_cachedSystemPrompt ?? '你是一个叫DWeis的全能agent助手，你可以使用可用的工具来帮助用户完成任务。用户昵称是${personalization.userName}。\n\n## 工具调用铁律（必须严格遵守）\n1. 下列信息你必须调用对应工具获取，严禁根据训练数据或常识猜测：\n   - 当前时间/日期/星期 → 必须调用 get_current_time\n   - 保存笔记/记录内容 → 必须调用 save_note\n   - 记住用户事实或偏好 → 必须调用 save_memory\n   - 设置定时提醒 → 必须调用 reminder\n   - 天气、网页搜索、生成图片视频等同理\n2. 禁止幻觉：在你的回复中声称"已保存/已记录/已设置提醒/现在是X点"等执行性表述之前，必须先真正调用对应工具并看到成功结果。未调用工具时，不得宣称已完成该操作。\n3. 当工具调用返回错误或失败时，请根据失败信息自动调整参数重试一次，不要直接告诉用户失败了。\n\n## 笔记与记忆的增删改查\n- 新建笔记 → save_note；新建记忆 → save_memory\n- 列出/查看/修改/删除笔记 → manage_notes（action: list/update/delete）\n- 列出/查看/修改/删除记忆 → manage_memory（action: list/update/delete）\n- 用户要求查看、修改、删除已有内容时，必须先调 list 拿到对应 id，再执行 update/delete。不要凭空假设内容。');
+    await personalization.load();
+
+    // 动态构建 system prompt（含记忆筛选）
+    final systemPrompt = PromptBuilder.buildMainPrompt(
+      userName: personalization.userName,
+      stylePrompt: personalization.stylePrompt,
+      customPrompt: personalization.customPrompt,
+      userMessage: text,
+    );
 
     final history = buildMessageHistory(
-      systemPrompt: systemPrompt.toString(),
+      systemPrompt: systemPrompt,
       messages: _messages,
       attachmentBase64: attachmentBase64,
       attachmentName: attachmentName,
       pendingType: pendingType,
       text: text,
       pendingFileSize: pendingFile?.lengthSync(),
+      maxMessages: 20, // 滑动窗口截断
     );
 
     final ai = AIService(

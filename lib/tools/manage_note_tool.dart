@@ -4,8 +4,8 @@ import 'base_tool.dart';
 
 /// 管理（列出/修改/删除）已有笔记。save_note 工具负责新建，本工具负责后续管理。
 class ManageNoteTool extends AgentTool {
-  @override
-  String get name => 'manage_notes';
+  @override String get name => 'manage_notes';
+  @override bool get readOnly => false;
 
   @override
   String get description => '管理已有笔记：列出列表、修改内容、删除笔记。'
