@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
 import '../core/agent_colors.dart';
 import '../services/ai_service.dart';
+import '../services/crypto_util.dart';
 
 // ── Vendor ──
 
@@ -38,7 +39,7 @@ class AISettings {
   bool get hasVendor => selectedVendor != null && selectedVendor!.apiKey.isNotEmpty;
 
   void _ensureBuiltIn() {
-    final agnesKey = dotenv.env['AGNES_API_KEY'] ?? '';
+    final agnesKey = CryptoUtil.decrypt(dotenv.env['AGNES_API_KEY'] ?? '');
     _builtIn = [
       ('Agnes-2.0-Flash', agnesKey, 'https://apihub.agnes-ai.com/v1'),
     ];

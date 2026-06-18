@@ -1,5 +1,6 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/chat_message.dart';
+import '../services/crypto_util.dart';
 import '../tools/tools.dart';
 
 /// 注册所有内置工具到 ToolRegistry
@@ -8,9 +9,9 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(ClipboardTool());
   registry.register(ReminderTool());
   registry.register(WebFetchTool());
-  registry.register(WeatherTool());
+  registry.register(WeatherTool()..apiKey = CryptoUtil.decrypt(dotenv.env['GAODE_API_KEY'] ?? ''));
   registry.register(WebSearchTool());
-  final agnesKey = dotenv.env['AGNES_API_KEY'] ?? '';
+  final agnesKey = CryptoUtil.decrypt(dotenv.env['AGNES_API_KEY'] ?? '');
   registry.register(AgnesImageTool()..apiKey = agnesKey);
   registry.register(AgnesVideoTool()..apiKey = agnesKey);
   registry.register(SaveMemoryTool());

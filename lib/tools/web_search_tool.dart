@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../services/crypto_util.dart';
 import '../tools/base_tool.dart';
 
 class WebSearchTool extends AgentTool {
@@ -27,7 +28,7 @@ class WebSearchTool extends AgentTool {
       };
 
   String get _searxngBaseUrl => dotenv.env['SEARXNG_BASE_URL'] ?? '';
-  String get _tavilyApiKey => dotenv.env['TAVILY_API_KEY'] ?? '';
+  String get _tavilyApiKey => CryptoUtil.decrypt(dotenv.env['TAVILY_API_KEY'] ?? '');
 
   final Dio _dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 15),
