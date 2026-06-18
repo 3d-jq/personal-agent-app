@@ -31,7 +31,16 @@ class _SettingsPageState extends State<SettingsPage> {
     _showLoadingDialog(context, nc, '正在检查更新...');
 
     const current = AppConfig.version;
-    final info = await UpdateService.checkUpdate(current);
+    UpdateInfo? info;
+    try {
+      info = await UpdateService.checkUpdate(current);
+    } on UpdateException catch (e) {
+      if (context.mounted) Navigator.pop(context);
+      if (context.mounted) {
+        _showResult(context, nc, '检查更新失败', e.reason.isEmpty ? '请稍后重试' : e.reason);
+      }
+      return;
+    }
 
     if (context.mounted) Navigator.pop(context);
 
@@ -127,6 +136,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _downloadAndInstall(BuildContext context, AgentColors nc, String apkUrl) async {
     String? downloadPath;
+    String downloadFailReason = '请检查网络后重试';
     bool isDownloading = true;
 
     if (context.mounted) {
@@ -159,12 +169,16 @@ class _SettingsPageState extends State<SettingsPage> {
       );
     }
 
-    downloadPath = await UpdateService.downloadApk(
-      apkUrl,
-      onProgress: (received, total) {
-        // 可以在这里更新进度，但简单起见用 indeterminate
-      },
-    );
+    try {
+      downloadPath = await UpdateService.downloadApk(
+        apkUrl,
+        onProgress: (received, total) {
+          // 可以在这里更新进度，但简单起见用 indeterminate
+        },
+      );
+    } on UpdateException catch (e) {
+      downloadFailReason = e.reason.isEmpty ? '请检查网络后重试' : e.reason;
+    }
 
     isDownloading = false;
 
@@ -172,16 +186,18 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (downloadPath == null) {
       if (context.mounted) {
-        _showResult(context, nc, '下载失败', '请检查网络连接或存储权限');
+        _showResult(context, nc, '下载失败', downloadFailReason);
       }
       return;
     }
+
+    final apkPath = downloadPath; // 此处已确认非空，用于类型提升
 
     if (context.mounted) {
       _showLoadingDialog(context, nc, '正在安装...');
     }
 
-    final success = await UpdateService.installApk(downloadPath);
+    final success = await UpdateService.installApk(apkPath);
 
     if (context.mounted) Navigator.pop(context);
 
