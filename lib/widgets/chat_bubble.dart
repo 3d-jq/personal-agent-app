@@ -186,5 +186,4 @@ class _AIBubbleState extends State<_AIBubble> with SingleTickerProviderStateMixi
 
     return Row(children: widgets);
   }
-  }
 }
