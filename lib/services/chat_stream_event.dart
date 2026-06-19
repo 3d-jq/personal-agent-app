@@ -1,0 +1,47 @@
+/// AI 响应流的事件类型。
+///
+/// 设计目的：把「AI 正文」和「工具状态」从源头分离，正文 [TextChunkEvent] 永远纯净，
+/// 不再依赖字符串标记 + 正则过滤。所有工具相关状态走独立事件，消费方按事件类型分发。
+///
+/// 用法：`AIService.sendMessageStream` 返回 `Stream<ChatStreamEvent>`，
+/// 消费方用 switch 表达式 / 模式匹配处理各事件。
+sealed class ChatStreamEvent {
+  const ChatStreamEvent();
+}
+
+/// AI 正文的增量文本。消费方应累积到消息文本里。
+class TextChunkEvent extends ChatStreamEvent {
+  final String text;
+  const TextChunkEvent(this.text);
+}
+
+/// 工具调用开始。
+class ToolStartEvent extends ChatStreamEvent {
+  final String name;
+  const ToolStartEvent(this.name);
+}
+
+/// 工具调用成功完成。
+class ToolDoneEvent extends ChatStreamEvent {
+  final String name;
+  const ToolDoneEvent(this.name);
+}
+
+/// 工具调用失败。
+class ToolErrorEvent extends ChatStreamEvent {
+  final String name;
+  final String message;
+  const ToolErrorEvent(this.name, this.message);
+}
+
+/// 图片/视频生成结果（媒体 URL，需追加到正文靠 markdown 渲染）。
+class ToolMediaEvent extends ChatStreamEvent {
+  final String url;
+  const ToolMediaEvent(this.url);
+}
+
+/// 流式过程中的错误（网络异常、API 错误等）。
+class ErrorEvent extends ChatStreamEvent {
+  final String message;
+  const ErrorEvent(this.message);
+}

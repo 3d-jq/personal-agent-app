@@ -10,6 +10,7 @@ class NoteStorage extends ChangeNotifier {
   NoteStorage._();
 
   List<Note>? _cache;
+  Future<List<Note>>? _loading;
 
   Future<File> _file() async {
     final dir = await getApplicationDocumentsDirectory();
@@ -17,22 +18,30 @@ class NoteStorage extends ChangeNotifier {
   }
 
   Future<List<Note>> loadAll() async {
-    if (_cache != null) return _cache!;
+    if (_cache != null) return List<Note>.from(_cache!);
+    if (_loading != null) return await _loading!;
+    _loading = _doLoad();
+    try {
+      return await _loading!;
+    } finally {
+      _loading = null;
+    }
+  }
+
+  Future<List<Note>> _doLoad() async {
+    List<Note>? loaded;
     try {
       final file = await _file();
-      if (!await file.exists()) {
-        _cache = [];
-        return [];
+      if (await file.exists()) {
+        final list = jsonDecode(await file.readAsString()) as List;
+        loaded = list.map((j) => Note.fromJson(j as Map<String, dynamic>)).toList()
+          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       }
-      final list = jsonDecode(await file.readAsString()) as List;
-      _cache = list.map((j) => Note.fromJson(j as Map<String, dynamic>)).toList()
-        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      return _cache!;
     } catch (_) {
       await _backupCorruptedFile();
-      _cache = [];
-      return [];
     }
+    if (_cache == null) _cache = loaded ?? [];
+    return List<Note>.from(_cache!);
   }
 
   Future<void> _backupCorruptedFile() async {
@@ -45,8 +54,19 @@ class NoteStorage extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<void> add(Note note) async {
+  /// 生成下一个简洁数字 ID。
+  Future<String> nextId() async {
     final all = await loadAll();
+    int max = 0;
+    for (final n in all) {
+      final v = int.tryParse(n.id);
+      if (v != null && v > max) max = v;
+    }
+    return (max + 1).toString();
+  }
+
+  Future<void> add(Note note) async {
+    final all = List<Note>.from(await loadAll());
     all.insert(0, note);
     await _save(all);
   }

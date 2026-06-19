@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
 import '../services/ai_service.dart';
+import '../services/chat_stream_event.dart';
 import '../services/crypto_util.dart';
 import '../services/memory_storage.dart';
 import '../tools/calendar_tool.dart';
@@ -64,7 +65,10 @@ class DailyCardProvider extends ChangeNotifier {
       try {
         final ai = AIService(baseUrl: 'https://apihub.agnes-ai.com/v1', apiKey: CryptoUtil.decrypt(dotenv.env['AGNES_API_KEY'] ?? ''), providerName: '', model: 'agnes-2.0-flash');
         final stream = ai.sendMessageStream([{'role': 'user', 'content': '根据以下信息，生成一段温暖自然的问候（不超过60字），像朋友聊天一样，自然融入信息，不要罗列。\n$ctx\n输出:'}]);
-        final r = StringBuffer(); await for (final c in stream) { r.write(c); }
+        final r = StringBuffer();
+        await for (final event in stream) {
+          if (event is TextChunkEvent) r.write(event.text);
+        }
         _greeting = r.toString().trim();
       } catch (_) {}
       _greeting ??= '${t}好！新的一天 ✨';

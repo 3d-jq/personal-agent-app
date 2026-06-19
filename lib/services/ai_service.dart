@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../tools/tools.dart';
+import 'chat_stream_event.dart';
 
 String _normalizeUrl(String url) => url.trim().replaceAll(RegExp(r'/+$'), '');
 
@@ -137,13 +138,13 @@ class AIService {
 
   /// Send messages with tool support.
   /// Returns a stream of AI responses. Tool calls are handled internally.
-  Stream<String> sendMessageStream(List<Map<String, dynamic>> messages) {
+  Stream<ChatStreamEvent> sendMessageStream(List<Map<String, dynamic>> messages) {
     return _sendMessageWithTools(messages);
   }
 
   // ── Tool-calling aware streaming ──
 
-  Stream<String> _sendMessageWithTools(List<Map<String, dynamic>> messages) async* {
+  Stream<ChatStreamEvent> _sendMessageWithTools(List<Map<String, dynamic>> messages) async* {
     final hasTools = toolRegistry.all.isNotEmpty;
     const safetyLimit = 20;
     var round = 0;
@@ -176,7 +177,7 @@ class AIService {
 
       if (response.toolCalls != null && response.toolCalls!.isNotEmpty) {
         // Yield any text before the tool calls
-        if (response.text.isNotEmpty) yield response.text;
+        if (response.text.isNotEmpty) yield TextChunkEvent(response.text);
         // Execute tools and add results to conversation
         yield* _processToolCalls(conversation, response.toolCalls!, response.text);
         continue;
@@ -184,7 +185,7 @@ class AIService {
 
       // No tool calls — yield text directly if we have it, otherwise stream
       if (response.text.isNotEmpty) {
-        yield response.text;
+        yield TextChunkEvent(response.text);
       } else {
         yield* _streamOpenAI(conversation, tools: tools);
       }
@@ -192,7 +193,7 @@ class AIService {
     }
   }
 
-  Stream<String> _processToolCalls(
+  Stream<ChatStreamEvent> _processToolCalls(
     List<Map<String, dynamic>> messages,
     List<ToolCall> toolCalls,
     String assistantText,
@@ -211,18 +212,18 @@ class AIService {
     };
     messages.add(assistantMsg);
 
-    // Execute tools and yield status updates
+    // Execute tools and yield status events
     for (final tc in toolCalls) {
-      yield '🔧 调用工具: ${tc.name}\n';
+      yield ToolStartEvent(tc.name);
       final result = await toolRegistry.execute(tc);
       final failed = _isToolFailed(tc.name, result.content);
       if (failed) {
-        yield '❌ ${tc.name} 失败: ${result.content}\n';
+        yield ToolErrorEvent(tc.name, result.content);
       } else {
-        yield '✅ ${tc.name} 完成\n';
+        yield ToolDoneEvent(tc.name);
       }
       if ((tc.name == 'generate_image' || tc.name == 'generate_video') && result.content.isNotEmpty && !failed) {
-        yield '${result.content}\n';
+        yield ToolMediaEvent(result.content);
       }
       messages.add({
         'role': 'tool',
@@ -268,7 +269,7 @@ class AIService {
 
   // ── OpenAI-compatible streaming ──
 
-  Stream<String> _streamOpenAI(List<Map<String, dynamic>> messages, {List<Map<String, dynamic>>? tools}) async* {
+  Stream<ChatStreamEvent> _streamOpenAI(List<Map<String, dynamic>> messages, {List<Map<String, dynamic>>? tools}) async* {
     final url = '${_normalizeUrl(baseUrl)}/chat/completions';
     try {
       final response = await _retryPost(
@@ -296,7 +297,7 @@ class AIService {
           if (data.isEmpty || data == '[DONE]') continue;
           try {
             final content = jsonDecode(data)['choices']?[0]?['delta']?['content'] as String?;
-            if (content != null && content.isNotEmpty) yield content;
+            if (content != null && content.isNotEmpty) yield TextChunkEvent(content);
           } catch (_) {}
         }
       }
@@ -306,20 +307,20 @@ class AIService {
           final data = buffer.trim();
           if (data.startsWith('data: ')) {
             final content = jsonDecode(data.substring(6))['choices']?[0]?['delta']?['content'] as String?;
-            if (content != null && content.isNotEmpty) yield content;
+            if (content != null && content.isNotEmpty) yield TextChunkEvent(content);
           }
         } catch (_) {}
       }
     } on DioException catch (e) {
-      yield _friendlyError(e);
+      yield ErrorEvent(_friendlyError(e));
     } catch (e) {
-      yield '未知错误: $e';
+      yield ErrorEvent('未知错误: $e');
     }
   }
 
   // ── Anthropic streaming with tools ──
 
-  Stream<String> _streamAnthropicWithTools(
+  Stream<ChatStreamEvent> _streamAnthropicWithTools(
     List<Map<String, dynamic>> messages,
   ) async* {
     const safetyLimit = 20;
@@ -349,16 +350,16 @@ class AIService {
         // Execute tools
         final toolResults = <Map<String, dynamic>>[];
         for (final tc in toolCalls) {
-          yield '🔧 调用工具: ${tc.name}\n';
+          yield ToolStartEvent(tc.name);
           final toolResult = await toolRegistry.execute(tc);
           final failed = _isToolFailed(tc.name, toolResult.content);
           if (failed) {
-            yield '❌ ${tc.name} 失败: ${toolResult.content}\n';
+            yield ToolErrorEvent(tc.name, toolResult.content);
           } else {
-            yield '✅ ${tc.name} 完成\n';
+            yield ToolDoneEvent(tc.name);
           }
           if ((tc.name == 'generate_image' || tc.name == 'generate_video') && toolResult.content.isNotEmpty && !failed) {
-            yield '${toolResult.content}\n';
+            yield ToolMediaEvent(toolResult.content);
           }
           toolResults.add({
             'type': 'tool_result',
@@ -375,7 +376,7 @@ class AIService {
   }
 
   /// Streams text chunks in real-time and collects tool calls into [outToolCalls].
-  Stream<String> _streamAnthropicOnce(
+  Stream<ChatStreamEvent> _streamAnthropicOnce(
     List<Map<String, dynamic>> messages, {
     required List<ToolCall> outToolCalls,
   }) async* {
@@ -437,7 +438,7 @@ class AIService {
                 if (delta['type'] == 'text_delta') {
                   final text = delta['text'] as String?;
                   if (text != null && text.isNotEmpty) {
-                    yield text;
+                    yield TextChunkEvent(text);
                   }
                 } else if (delta['type'] == 'input_json_delta') {
                   final partialJson = delta['partial_json'] as String?;
@@ -477,9 +478,9 @@ class AIService {
         }
       }
     } on DioException catch (e) {
-      yield _friendlyError(e);
+      yield ErrorEvent(_friendlyError(e));
     } catch (e) {
-      yield '未知错误: $e';
+      yield ErrorEvent('未知错误: $e');
     }
   }
 

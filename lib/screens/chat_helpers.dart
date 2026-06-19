@@ -94,43 +94,6 @@ List<Map<String, dynamic>> buildMessageHistory({
   return history;
 }
 
-/// 解析工具调用状态行，更新 steps 列表
-void parseToolStatusLine({
-  required String line,
-  required List<TimelineStep> steps,
-  required void Function(String name) onToolStart,
-  required void Function(String name) onToolDone,
-  required void Function(String name) onToolError,
-}) {
-  if (line.startsWith('🔧 调用工具:')) {
-    final name = line.replaceFirst('🔧 调用工具:', '').trim();
-    for (var i = 0; i < steps.length; i++) {
-      if (steps[i].status == TimelineStepStatus.running) {
-        steps[i].status = TimelineStepStatus.done;
-      }
-    }
-    steps.add(TimelineStep(label: toolLabel(name), type: TimelineStepType.tool, status: TimelineStepStatus.running));
-    onToolStart(name);
-  } else if (line.startsWith('✅') && line.contains('完成')) {
-    final name = line.replaceFirst('✅', '').replaceFirst('完成', '').trim();
-    final idx = steps.lastIndexWhere((s) =>
-        s.type == TimelineStepType.tool &&
-        s.label == toolLabel(name) &&
-        s.status == TimelineStepStatus.running);
-    if (idx >= 0) steps[idx].status = TimelineStepStatus.done;
-    steps.add(TimelineStep(label: '思考中', type: TimelineStepType.thinking, status: TimelineStepStatus.running));
-    onToolDone(name);
-  } else if (line.startsWith('❌') && line.contains('失败')) {
-    final name = line.replaceFirst('❌', '').replaceFirst('失败', '').trim();
-    final idx = steps.lastIndexWhere((s) =>
-        s.type == TimelineStepType.tool &&
-        s.label == toolLabel(name) &&
-        s.status == TimelineStepStatus.running);
-    if (idx >= 0) steps[idx].status = TimelineStepStatus.error;
-    onToolError(name);
-  }
-}
-
 /// 标记所有 running 步骤为 done
 void finishRunningSteps(List<TimelineStep> steps) {
   for (var i = 0; i < steps.length; i++) {

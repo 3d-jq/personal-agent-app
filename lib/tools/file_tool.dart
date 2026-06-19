@@ -7,7 +7,7 @@ class FileTool extends AgentTool {
   @override bool get readOnly => false;
 
   @override
-  String get description => '管理应用本地文件：列目录、读写文件、创建文件夹、删除。';
+  String get description => '管理应用本地文件：列目录、读写文件、创建文件夹、删除。当用户明确提到"文件"、"文档"、"保存到本地"或给你文件路径时使用。';
 
   @override
   Map<String, dynamic> get parameters => {

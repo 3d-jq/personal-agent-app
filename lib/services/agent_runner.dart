@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import '../models/agent.dart';
-import '../models/chat_message.dart';
+import '../tools/tool_registry.dart';
 import '../widgets/ai_settings_sheet.dart' show VendorConfig;
 import 'ai_service.dart';
+import 'chat_stream_event.dart';
 import 'memory_storage.dart';
-import '../tools/tool_registry.dart';
 
 /// 群聊消息的最小视图
 class _GroupMsg {
@@ -55,6 +55,9 @@ class AgentRunner {
       buf.writeln('你只能回复被 @ 提及的消息。如果消息中没有 @${agent.name}，不要发言。');
     }
     buf.writeln('用户是群主，拥有最终决策权。重要决策必须由群主确认。');
+    buf.writeln('【禁止幻觉】回答时事、数据、地点、人物、版本等你不能 100% 确定的事实时，必须调用 web_search 工具确认，禁止凭训练数据猜测。');
+    buf.writeln('【先工具后回答】工具返回前不要给出最终结论，只能基于工具返回的内容回答。');
+    buf.writeln('【保存记忆】当用户让你记住某事时，必须调用 save_memory 工具，禁止只回复"我记住了"而不调用工具。');
     buf.writeln('</rules>');
     buf.writeln();
 
@@ -162,7 +165,7 @@ class AgentRunner {
     });
   }
 
-  Stream<String> run({
+  Stream<ChatStreamEvent> run({
     required Agent agent,
     required VendorConfig vendor,
     required List<ChatMessage> groupMessages,
@@ -217,7 +220,7 @@ class AgentRunner {
       );
       yield* ai.sendMessageStream(messages);
     } catch (e) {
-      yield '\n\n[系统错误: $e]';
+      yield ErrorEvent('[系统错误: $e]');
     }
   }
 }

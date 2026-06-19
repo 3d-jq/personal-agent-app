@@ -27,14 +27,10 @@ class ChatMessage extends ChangeNotifier {
         _isStreaming = isStreaming,
         _steps = steps;
 
-  String? _cleanTextCache;
-
   String get text => _text;
   set text(String value) {
     if (_text != value) {
       _text = value;
-      _cleanTextCache = null;
-      _imageUrlsCache = null;
       notifyListeners();
     }
   }
@@ -53,37 +49,12 @@ class ChatMessage extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Clean text without tool status markers (image markdown stays for inline rendering)
-  String get cleanText {
-    return _cleanTextCache ??= _text
-        .replaceAll(RegExp(r'🔧.*\n'), '')
-        .replaceAll(RegExp(r'✅.*\n'), '')
-        .trim();
-  }
+  /// 正文已天然干净（工具状态走独立事件），无需再剥离标记。
+  String get cleanText => _text;
 
   @override
   void dispose() {
     super.dispose();
-  }
-
-  /// Extract image URLs from the message text (from markdown images or plain URLs).
-  /// Cached per-text to avoid re-running regexes on every rebuild.
-  List<String>? _imageUrlsCache;
-  List<String> get imageUrls {
-    if (_imageUrlsCache != null) return _imageUrlsCache!;
-    final urls = <String>[];
-    final mdPattern = RegExp(r'!\[.*?\]\((https?://[^\s)]+)\)');
-    for (final match in mdPattern.allMatches(_text)) {
-      final url = match.group(1);
-      if (url != null && url.isNotEmpty) urls.add(url);
-    }
-    final urlPattern = RegExp(r'(?:图片\s*URL[：:]\s*)(https?://\S+)');
-    for (final match in urlPattern.allMatches(_text)) {
-      final url = match.group(1);
-      if (url != null && url.isNotEmpty) urls.add(url);
-    }
-    _imageUrlsCache = urls;
-    return urls;
   }
 }
 
