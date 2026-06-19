@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../models/agent.dart';
+import '../models/chat_message.dart';
 import '../tools/tool_registry.dart';
 import '../widgets/ai_settings_sheet.dart' show VendorConfig;
 import 'ai_service.dart';

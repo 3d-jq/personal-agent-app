@@ -305,7 +305,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 currentSteps!.add(TimelineStep(label: '思考中', type: TimelineStepType.thinking, status: TimelineStepStatus.running));
               }
               break;
-            case ToolErrorEvent(:final name, :final message):
+            case ToolErrorEvent(:final name):
               if (currentSteps != null) {
                 final idx = currentSteps!.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.label == toolLabel(name) && s.status == TimelineStepStatus.running);
                 if (idx >= 0) currentSteps![idx].status = TimelineStepStatus.error;
