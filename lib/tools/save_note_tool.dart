@@ -1,4 +1,3 @@
-import 'package:uuid/uuid.dart';
 import '../models/note.dart';
 import '../services/note_storage.dart';
 import 'base_tool.dart';
@@ -47,7 +46,7 @@ class SaveNoteTool extends AgentTool {
     }
 
     final note = Note(
-      id: const Uuid().v4(),
+      id: await NoteStorage().nextId(),
       title: title,
       content: content,
     );

@@ -12,7 +12,7 @@ class ReminderTool extends AgentTool {
   @override bool get readOnly => false;
 
   @override
-  String get description => '创建定时提醒，到时间会推送系统通知。支持相对时间和绝对时间。';
+  String get description => '创建定时提醒，到时间会推送系统通知。当用户说"提醒我..."、"N分钟后叫我"、"定时提醒"时使用。';
 
   @override
   Map<String, dynamic> get parameters => {

@@ -7,7 +7,7 @@ class CalendarTool extends AgentTool {
   @override bool get readOnly => false;
 
   @override
-  String get description => '读写系统日历：查看日程、创建事件、删除事件。';
+  String get description => '读写系统日历：查看日程、创建事件、删除事件。当用户提到"日程"、"会议"、"约会"、"提醒我明天..."或需要添加到日历时使用。';
 
   @override
   Map<String, dynamic> get parameters => {

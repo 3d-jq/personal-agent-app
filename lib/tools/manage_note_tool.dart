@@ -37,6 +37,19 @@ class ManageNoteTool extends AgentTool {
         'required': ['action'],
       };
 
+  /// 格式化笔记列表为紧凑文本，方便 AI 在 update/delete 失败时快速定位 id。
+  static String _formatList(List<Note> notes) {
+    if (notes.isEmpty) return '(空)';
+    final buf = StringBuffer('共 ${notes.length} 条笔记：\n\n');
+    for (final n in notes) {
+      buf.writeln('- [id: ${n.id}] ${n.title}');
+      final s = n.summary.replaceAll('\n', ' ');
+      if (s.isNotEmpty) buf.writeln('  摘要: $s');
+      buf.writeln('  创建: ${n.createdAt.toIso8601String()}');
+    }
+    return buf.toString().trim();
+  }
+
   @override
   Future<String> execute(Map<String, dynamic> args) async {
     final action = args['action'] as String? ?? '';
@@ -46,20 +59,21 @@ class ManageNoteTool extends AgentTool {
     switch (action) {
       case 'list':
         if (notes.isEmpty) return '当前没有任何笔记。';
-        final buf = StringBuffer('共 ${notes.length} 条笔记：\n\n');
-        for (final n in notes) {
-          buf.writeln('- [id: ${n.id}] ${n.title}');
-          final s = n.summary.replaceAll('\n', ' ');
-          if (s.isNotEmpty) buf.writeln('  摘要: $s');
-          buf.writeln('  创建: ${n.createdAt.toIso8601String()}');
-        }
-        return buf.toString().trim();
+        return _formatList(notes);
 
       case 'update':
         final id = args['note_id'] as String?;
-        if (id == null) return '错误: 修改笔记需要提供 note_id';
-        final idx = notes.indexWhere((n) => n.id == id);
-        if (idx < 0) return '错误: 找不到 id 为 $id 的笔记';
+        final idx = id != null ? notes.indexWhere((n) => n.id == id) : -1;
+
+        // 没给 id 或 id 无效 → 自动 list，让 AI 在同轮看到可用 id 后重试
+        if (id == null || idx < 0) {
+          final hint = id == null
+              ? '未提供 note_id'
+              : '找不到 id 为 "$id" 的笔记';
+          final list = _formatList(notes);
+          return '$hint。当前笔记列表如下，请选择正确的 id 重新调用 update：\n\n$list';
+        }
+
         final note = notes[idx];
         await storage.update(Note(
           id: note.id,
@@ -67,15 +81,23 @@ class ManageNoteTool extends AgentTool {
           content: (args['content'] as String?) ?? note.content,
           createdAt: note.createdAt,
         ));
-        return '笔记「${(args['title'] as String?) ?? note.title}」已更新';
+        return '笔记「${(args['title'] as String?) ?? note.title}」已更新\n\n当前笔记列表（更新后）：\n${_formatList(await storage.loadAll())}';
 
       case 'delete':
         final id = args['note_id'] as String?;
-        if (id == null) return '错误: 删除笔记需要提供 note_id';
-        final note = notes.where((n) => n.id == id).firstOrNull;
-        if (note == null) return '错误: 找不到 id 为 $id 的笔记';
-        await storage.remove(id);
-        return '笔记「${note.title}」已删除';
+        final note = id != null ? notes.where((n) => n.id == id).firstOrNull : null;
+
+        // 没给 id 或 id 无效 → 自动 list
+        if (note == null) {
+          final hint = id == null
+              ? '未提供 note_id'
+              : '找不到 id 为 "$id" 的笔记';
+          final list = _formatList(notes);
+          return '$hint。当前笔记列表如下，请选择正确的 id 重新调用 delete：\n\n$list';
+        }
+
+        await storage.remove(id!);
+        return '笔记「${note.title}」已删除\n\n当前笔记列表（删除后）：\n${_formatList(await storage.loadAll())}';
 
       default:
         return '错误: 未知操作 "$action"，支持的操作: list / update / delete';

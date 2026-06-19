@@ -9,6 +9,7 @@ import '../../models/chat_message.dart';
 import '../../services/agent_group_storage.dart';
 import '../../services/agent_runner.dart';
 import '../../services/agent_storage.dart';
+import '../../services/chat_stream_event.dart';
 import '../../services/connectivity_service.dart';
 import '../../tools/tools.dart';
 import '../../widgets/ai_settings_sheet.dart';
@@ -47,7 +48,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   bool _stopped = false;
 
   // ── Stop 完整取消：管理所有活跃流 ──
-  final List<StreamSubscription<String>> _activeSubs = [];
+  final List<StreamSubscription<ChatStreamEvent>> _activeSubs = [];
 
   // ── 滚动节流 ──
   Timer? _scrollTimer;
@@ -271,7 +272,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _scrollDown();
 
     final buf = StringBuffer();
-    late final StreamSubscription<String> sub;
+    List<TimelineStep>? currentSteps;
+    late final StreamSubscription<ChatStreamEvent> sub;
     try {
       final history = _messages.where((m) => m != placeholder).toList();
       final stream = _runner.run(
@@ -286,9 +288,38 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       );
       final completer = Completer<void>();
       sub = stream.listen(
-        (chunk) {
-          buf.write(chunk);
+        (event) {
+          switch (event) {
+            case TextChunkEvent(:final text):
+              buf.write(text);
+              break;
+            case ToolStartEvent(:final name):
+              currentSteps ??= [];
+              finishRunningSteps(currentSteps!);
+              currentSteps!.add(TimelineStep(label: toolLabel(name), type: TimelineStepType.tool, status: TimelineStepStatus.running));
+              break;
+            case ToolDoneEvent(:final name):
+              if (currentSteps != null) {
+                final idx = currentSteps!.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.label == toolLabel(name) && s.status == TimelineStepStatus.running);
+                if (idx >= 0) currentSteps![idx].status = TimelineStepStatus.done;
+                currentSteps!.add(TimelineStep(label: '思考中', type: TimelineStepType.thinking, status: TimelineStepStatus.running));
+              }
+              break;
+            case ToolErrorEvent(:final name, :final message):
+              if (currentSteps != null) {
+                final idx = currentSteps!.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.label == toolLabel(name) && s.status == TimelineStepStatus.running);
+                if (idx >= 0) currentSteps![idx].status = TimelineStepStatus.error;
+              }
+              break;
+            case ToolMediaEvent(:final url):
+              buf.write('\n$url\n');
+              break;
+            case ErrorEvent(:final message):
+              buf.write('\n\n[错误: $message]');
+              break;
+          }
           placeholder.text = buf.toString();
+          placeholder.steps = currentSteps;
           setState(() {});
           _scrollDown();
         },

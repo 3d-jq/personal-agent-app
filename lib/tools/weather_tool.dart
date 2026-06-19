@@ -6,7 +6,7 @@ class WeatherTool extends AgentTool {
   String get name => 'weather';
 
   @override
-  String get description => '查询天气信息。支持当前天气和未来 3 天预报。需要配置高德地图 Web 服务 API Key。';
+  String get description => '【必须】当用户询问任何城市的当前天气、气温、下雨、未来天气预报时调用此工具。禁止凭经验或训练数据猜测天气。';
 
   @override
   Map<String, dynamic> get parameters => {

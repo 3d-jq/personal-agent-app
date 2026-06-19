@@ -10,6 +10,7 @@ class MemoryStorage extends ChangeNotifier {
   MemoryStorage._();
 
   List<MemoryEntry>? _cache;
+  Future<List<MemoryEntry>>? _loading;
 
   Future<File> _file() async {
     final dir = await getApplicationDocumentsDirectory();
@@ -17,19 +18,30 @@ class MemoryStorage extends ChangeNotifier {
   }
 
   Future<List<MemoryEntry>> loadAll() async {
-    if (_cache != null) return _cache!;
+    if (_cache != null) return List<MemoryEntry>.from(_cache!);
+    if (_loading != null) return await _loading!;
+    _loading = _doLoad();
+    try {
+      return await _loading!;
+    } finally {
+      _loading = null;
+    }
+  }
+
+  Future<List<MemoryEntry>> _doLoad() async {
+    List<MemoryEntry>? loaded;
     try {
       final file = await _file();
-      if (!await file.exists()) { _cache = []; return []; }
-      final list = jsonDecode(await file.readAsString()) as List;
-      _cache = list.map((j) => MemoryEntry.fromJson(j as Map<String, dynamic>)).toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return _cache!;
+      if (await file.exists()) {
+        final list = jsonDecode(await file.readAsString()) as List;
+        loaded = list.map((j) => MemoryEntry.fromJson(j as Map<String, dynamic>)).toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      }
     } catch (_) {
       await _backupCorruptedFile();
-      _cache = [];
-      return [];
     }
+    if (_cache == null) _cache = loaded ?? [];
+    return List<MemoryEntry>.from(_cache!);
   }
 
   Future<void> _backupCorruptedFile() async {
@@ -42,14 +54,28 @@ class MemoryStorage extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<void> add(MemoryEntry entry) async {
+  /// 生成下一个简洁数字 ID。
+  Future<String> nextId() async {
     final all = await loadAll();
+    int max = 0;
+    for (final e in all) {
+      final n = int.tryParse(e.id);
+      if (n != null && n > max) max = n;
+    }
+    return (max + 1).toString();
+  }
+
+  Future<void> add(MemoryEntry entry) async {
+    final all = List<MemoryEntry>.from(await loadAll());
     all.insert(0, entry);
     await _save(all);
+    if (kDebugMode) {
+      debugPrint('[MemoryStorage] add: total=${all.length}, file=${(await _file()).path}');
+    }
   }
 
   Future<void> update(MemoryEntry entry) async {
-    final all = await loadAll();
+    final all = List<MemoryEntry>.from(await loadAll());
     final idx = all.indexWhere((e) => e.id == entry.id);
     if (idx >= 0) {
       all[idx] = entry;
@@ -58,7 +84,7 @@ class MemoryStorage extends ChangeNotifier {
   }
 
   Future<void> remove(String id) async {
-    final all = await loadAll();
+    final all = List<MemoryEntry>.from(await loadAll());
     all.removeWhere((e) => e.id == id);
     await _save(all);
   }

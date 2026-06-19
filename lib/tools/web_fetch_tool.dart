@@ -21,7 +21,7 @@ class WebFetchTool extends AgentTool {
   String get name => 'web_fetch';
 
   @override
-  String get description => '抓取网页内容并提取正文。当用户提供URL并要求读取、总结或分析网页内容时使用。支持大多数公开网页，能自动处理重定向和压缩。';
+  String get description => '抓取网页内容并提取正文。当用户给出 URL 并要求读取、总结、分析该网页时使用。不要对未抓取的网页内容做猜测。';
 
   @override
   Map<String, dynamic> get parameters => {

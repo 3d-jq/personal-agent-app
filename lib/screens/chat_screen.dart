@@ -10,6 +10,7 @@ import '../models/chat_message.dart';
 import '../models/chat_session.dart';
 import '../services/ai_service.dart';
 import '../services/chat_storage.dart';
+import '../services/chat_stream_event.dart';
 import '../services/memory_storage.dart';
 import '../services/notification_service.dart';
 import '../services/personalization_storage.dart';
@@ -41,7 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final AISettings _aiSettings = AISettings();
   final ToolRegistry _toolRegistry = ToolRegistry();
   final ChatStorage _storage = ChatStorage();
-  StreamSubscription<String>? _aiStream;
+  StreamSubscription<ChatStreamEvent>? _aiStream;
   Timer? _scrollTimer;
   bool _isLoading = false;
   bool _loaded = false;
@@ -288,42 +289,48 @@ class _ChatScreenState extends State<ChatScreen> {
 
     try {
       _aiStream = ai.sendMessageStream(history).listen(
-        (chunk) {
-          buf.write(chunk);
-          if (firstChunk) {
-            firstChunk = false;
-            steps.add(TimelineStep(label: '思考中', type: TimelineStepType.thinking, status: TimelineStepStatus.running));
-          }
-          final lines = chunk.split('\n');
-          for (final line in lines) {
-            if (line.startsWith('🔧 调用工具:')) {
+        (event) {
+          switch (event) {
+            case TextChunkEvent(:final text):
+              buf.write(text);
+              if (firstChunk) {
+                firstChunk = false;
+                steps.add(TimelineStep(label: '思考中', type: TimelineStepType.thinking, status: TimelineStepStatus.running));
+              }
+              break;
+            case ToolStartEvent(:final name):
               hasToolCalls = true;
               finishRunningSteps(steps);
-              final name = line.replaceFirst('🔧 调用工具:', '').trim();
               steps.add(TimelineStep(label: _toolLabel(name), type: TimelineStepType.tool, status: TimelineStepStatus.running));
               if (name == 'generate_image' || name == 'generate_video') {
                 NotificationService().startTask(id: name, title: _toolLabel(name), message: '准备中…');
               }
-            } else if (line.startsWith('✅') && line.contains('完成')) {
-              final name = line.replaceFirst('✅', '').replaceFirst('完成', '').trim();
+              break;
+            case ToolDoneEvent(:final name):
               final idx = steps.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.label == _toolLabel(name) && s.status == TimelineStepStatus.running);
               if (idx >= 0) steps[idx].status = TimelineStepStatus.done;
               steps.add(TimelineStep(label: '思考中', type: TimelineStepType.thinking, status: TimelineStepStatus.running));
               if (name == 'generate_image' || name == 'generate_video') {
                 NotificationService().complete(id: name, title: _toolLabel(name), message: '已完成');
               }
-            } else if (line.startsWith('❌') && line.contains('失败')) {
-              final name = line.replaceFirst('❌', '').replaceFirst('失败', '').trim();
+              break;
+            case ToolErrorEvent(:final name, :final message):
               final idx = steps.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.label == _toolLabel(name) && s.status == TimelineStepStatus.running);
               if (idx >= 0) steps[idx].status = TimelineStepStatus.error;
               if (name == 'generate_image' || name == 'generate_video') {
                 NotificationService().complete(id: name, title: _toolLabel(name), message: '执行失败');
               }
-            }
+              break;
+            case ToolMediaEvent(:final url):
+              buf.write('\n$url\n');
+              break;
+            case ErrorEvent(:final message):
+              buf.write('\n\n$message');
+              break;
           }
-           aiMsg.text = buf.toString();
-           aiMsg.steps = List.unmodifiable(steps);
-           _scrollDown();
+          aiMsg.text = buf.toString();
+          aiMsg.steps = List.unmodifiable(steps);
+          _scrollDown();
         },
         onDone: () {
           finishRunningSteps(steps);
@@ -331,7 +338,7 @@ class _ChatScreenState extends State<ChatScreen> {
           setState(() {
             aiMsg.isStreaming = false;
             aiMsg.steps = steps.isEmpty ? null : List.unmodifiable(steps);
-            if (aiMsg.cleanText.isEmpty && !hasToolCalls) aiMsg.text = '(无响应)';
+            if (aiMsg.text.isEmpty && !hasToolCalls) aiMsg.text = '(无响应)';
             _isLoading = false;
           });
           _saveSession();
