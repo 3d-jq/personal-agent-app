@@ -49,13 +49,8 @@ class ChatMessage extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 正文已天然干净（工具状态走独立事件），无需再剥离标记。
+ /// 正文已天然干净（工具状态走独立事件），无需再剥离标记。
   String get cleanText => _text;
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }
 
 // ── Timeline ──

@@ -1,29 +1,15 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:uuid/uuid.dart';
+import '../controllers/chat_controller.dart';
 import '../core/agent_colors.dart';
-import '../core/prompt_builder.dart';
-import '../models/chat_message.dart';
-import '../models/chat_session.dart';
-import '../services/ai_service.dart';
-import '../services/chat_storage.dart';
-import '../services/chat_stream_event.dart';
-import '../services/memory_storage.dart';
-import '../services/notification_service.dart';
-import '../services/personalization_storage.dart';
-import '../tools/tools.dart';
-import '../widgets/agent_top_bar.dart';
+import '../providers/daily_card_provider.dart';
 import '../widgets/agent_side_drawer.dart';
+import '../widgets/agent_top_bar.dart';
 import '../widgets/ai_settings_sheet.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input_bar.dart';
-import '../services/connectivity_service.dart';
-import '../providers/daily_card_provider.dart';
 import '../widgets/daily_card.dart';
-import 'chat_helpers.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sessionId;
@@ -39,135 +25,47 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   final ScrollController _scrollCtrl = ScrollController();
-  final AISettings _aiSettings = AISettings();
-  final ToolRegistry _toolRegistry = ToolRegistry();
-  final ChatStorage _storage = ChatStorage();
-  StreamSubscription<ChatStreamEvent>? _aiStream;
+  late final ChatController _controller;
   Timer? _scrollTimer;
-  bool _isLoading = false;
-  bool _loaded = false;
   bool _showScrollBottom = false;
-  List<TimelineStep>? _currentSteps;
-
-  String? _sessionId;
-  List<ChatMessage> _messages = [];
-  List<ChatSession> _sessions = [];
-  File? _pendingAttachment;
-  String _pendingAttachmentType = '';
-
-  String? _cachedPreferencePrompt;
-  String? _cachedMemoryContext;
-
-  String? get currentSessionId => _sessionId;
 
   @override
   void initState() {
     super.initState();
-    _initTools();
-    _scrollCtrl.addListener(_onScroll);
-    _aiSettings.load().then((_) async {
+    _controller = ChatController(
+      initialSessionId: widget.sessionId,
+      onNeedScroll: _scrollDown,
+    );
+    _controller.addListener(_onControllerChanged);
+    _controller.initialize().then((_) {
       if (!mounted) return;
-      await _loadStorageCache();
-      _sessions = await _storage.loadAll();
-      final sid = widget.sessionId ?? (_sessions.isNotEmpty ? _sessions.first.id : null);
-      if (sid != null) {
-        await _loadSession(sid);
-      } else {
-        _newSession();
-      }
-      setState(() => _loaded = true);
       _checkDailyCard();
     });
-  }
-
-  Future<void> _loadStorageCache() async {
-    final storage = MemoryStorage();
-    await storage.loadAll();
-    final personalization = PersonalizationStorage();
-    await personalization.load();
-    // 缓存 personalization 供每次发消息时动态构建 prompt
-    _cachedPreferencePrompt = personalization.stylePrompt;
-    _cachedMemoryContext = personalization.customPrompt;
-  }
-
-  void _initTools() {
-    registerAllTools(_toolRegistry);
+    _scrollCtrl.addListener(_onScroll);
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_onControllerChanged);
+    _controller.dispose();
     _inputCtrl.dispose();
     _inputFocus.dispose();
     _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
     _scrollTimer?.cancel();
-    _aiStream?.cancel();
     super.dispose();
   }
+
+  void _onControllerChanged() => setState(() {});
 
   void _onScroll() {
     if (!_scrollCtrl.hasClients) return;
     final max = _scrollCtrl.position.maxScrollExtent;
     final current = _scrollCtrl.position.pixels;
-    // 距离底部超过 120px 时显示按钮
     final shouldShow = (max - current) > 120;
     if (shouldShow != _showScrollBottom) {
       setState(() => _showScrollBottom = shouldShow);
     }
-  }
-
-  void _newSession() {
-    _sessionId = const Uuid().v4();
-    _messages = [];
-    _inputCtrl.clear();
-    setState(() {});
-  }
-
-  Future<void> _loadSession(String id) async {
-    _sessionId = id;
-    final sessions = await _storage.loadAll();
-    final session = sessions.where((s) => s.id == id).firstOrNull;
-    _messages = session?.messages.map((m) => ChatMessage(
-      text: m.text,
-      isUser: m.isUser,
-    )).toList() ?? [];
-    _inputCtrl.clear();
-  }
-
-  Future<void> _saveSession() async {
-    if (_sessionId == null || _messages.isEmpty) return;
-    final userMsg = _messages.where((m) => m.isUser).firstOrNull;
-    final title = userMsg != null
-        ? userMsg.text.replaceAll('\n', ' ').substring(0, userMsg.text.length.clamp(0, 30)).trim()
-        : '新对话';
-    await _storage.save(ChatSession(
-      id: _sessionId!,
-      title: title,
-      messages: _messages.map((m) => ChatMessage(text: m.text, isUser: m.isUser)).toList(),
-      updatedAt: DateTime.now(),
-    ));
-    _storage.clearCache();
-    _sessions = await _storage.loadAll();
-  }
-
-  void _switchSession(String id) {
-    _saveSession().then((_) {
-      _loadSession(id).then((_) {
-        setState(() {});
-        widget.onSessionChanged?.call();
-      });
-    });
-  }
-
-  void _checkDailyCard() {
-    final card = DailyCardProvider();
-    card.shouldShowToday().then((should) {
-      if (!should || !mounted) return;
-      card.generate().then((_) {
-        if (!mounted || card.greeting == null) return;
-        showDialog(context: context, barrierDismissible: true, builder: (_) => DailyCardDialog(provider: card));
-      });
-    });
   }
 
   void _scrollDown() {
@@ -183,195 +81,35 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  void _stopStream() {
-    _aiStream?.cancel();
-    _aiStream = null;
-    if (_currentSteps != null) {
-      finishRunningSteps(_currentSteps!);
-    }
-    final aiMsg = _messages.isNotEmpty && !_messages.last.isUser
-        ? _messages.last
-        : null;
-    if (aiMsg != null) {
-      aiMsg.isStreaming = false;
-      aiMsg.steps = _currentSteps != null ? List.unmodifiable(_currentSteps!) : null;
-      if (aiMsg.text.isEmpty) aiMsg.text = '(已停止)';
-    }
-    _currentSteps = null;
-    setState(() => _isLoading = false);
+  void _checkDailyCard() {
+    final card = DailyCardProvider();
+    card.shouldShowToday().then((should) {
+      if (!should || !mounted) return;
+      card.generate().then((_) {
+        if (!mounted || card.greeting == null) return;
+        showDialog(context: context, barrierDismissible: true, builder: (_) => DailyCardDialog(provider: card));
+      });
+    });
   }
 
-  Future<void> _sendMessage() async {
-    final text = _inputCtrl.text.trim();
-    if ((text.isEmpty && _pendingAttachment == null) || _isLoading) return;
-    if (_sessionId == null) _newSession();
-    // 重置工具调用计数
-    _toolRegistry.resetCallCounts();
-    if (!_aiSettings.hasVendor) {
-      setState(() => _messages.add(ChatMessage(
-          text: '请先配置 AI 后端（点击输入框内存图标）', isUser: false)));
-      _inputCtrl.clear();
-      _inputFocus.unfocus();
-      _scrollDown();
-      return;
-    }
-    if (!await ConnectivityService().check()) {
-      setState(() => _messages.add(ChatMessage(
-          text: '当前无网络连接，请检查网络后重试', isUser: false)));
-      _inputCtrl.clear();
-      _inputFocus.unfocus();
-      _scrollDown();
-      return;
-    }
+  void _handleSend() {
+    final text = _inputCtrl.text;
+    _resetInput();
+    _controller.sendMessage(text);
+  }
 
-    String displayText = text;
-    String? attachmentBase64;
-    String? attachmentName;
-    if (_pendingAttachment != null) {
-      final bytes = await _pendingAttachment!.readAsBytes();
-      attachmentBase64 = base64Encode(bytes);
-      attachmentName = _pendingAttachment!.path.split(Platform.pathSeparator).last;
-      final typeLabel = _pendingAttachmentType == 'image' ? '图片' : '文档';
-      displayText = text.isEmpty ? '[附件: $typeLabel $attachmentName]' : '$text\n[附件: $typeLabel $attachmentName]';
-    }
-
-    setState(() {
-      _messages.add(ChatMessage(text: displayText, isUser: true));
-      _messages.add(ChatMessage(text: '', isUser: false, isStreaming: true));
-      _isLoading = true;
-    });
+  void _resetInput() {
     _inputCtrl.clear();
     _inputFocus.unfocus();
-    _scrollDown();
-
-    final pendingFile = _pendingAttachment;
-    final pendingType = _pendingAttachmentType;
-    _pendingAttachment = null;
-    _pendingAttachmentType = '';
-
-    final storage = MemoryStorage();
-    await storage.loadAll();
-    final personalization = PersonalizationStorage();
-    await personalization.load();
-
-    // 动态构建 system prompt（含记忆筛选）
-    final systemPrompt = PromptBuilder.buildMainPrompt(
-      userName: personalization.userName,
-      stylePrompt: personalization.stylePrompt,
-      customPrompt: personalization.customPrompt,
-      userMessage: text,
-    );
-
-    final history = buildMessageHistory(
-      systemPrompt: systemPrompt,
-      messages: _messages,
-      attachmentBase64: attachmentBase64,
-      attachmentName: attachmentName,
-      pendingType: pendingType,
-      text: text,
-      pendingFileSize: pendingFile?.lengthSync(),
-      maxMessages: 20, // 滑动窗口截断
-    );
-
-    final ai = AIService(
-      baseUrl: _aiSettings.baseUrl,
-      apiKey: _aiSettings.apiKey,
-      providerName: _aiSettings.selectedVendor?.name ?? '',
-      model: _aiSettings.effectiveModel,
-      toolRegistry: _toolRegistry,
-    );
-    final aiMsg = _messages.last;
-    final buf = StringBuffer();
-    final steps = <TimelineStep>[];
-    _currentSteps = steps;
-    var firstChunk = true;
-    var hasToolCalls = false;
-
-    try {
-      _aiStream = ai.sendMessageStream(history).listen(
-        (event) {
-          switch (event) {
-            case TextChunkEvent(:final text):
-              buf.write(text);
-              if (firstChunk) {
-                firstChunk = false;
-                steps.add(TimelineStep(label: '思考中', type: TimelineStepType.thinking, status: TimelineStepStatus.running));
-              }
-              break;
-            case ToolStartEvent(:final name):
-              hasToolCalls = true;
-              finishRunningSteps(steps);
-              steps.add(TimelineStep(label: _toolLabel(name), type: TimelineStepType.tool, status: TimelineStepStatus.running));
-              if (name == 'generate_image' || name == 'generate_video') {
-                NotificationService().startTask(id: name, title: _toolLabel(name), message: '准备中…');
-              }
-              break;
-            case ToolDoneEvent(:final name):
-              final idx = steps.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.label == _toolLabel(name) && s.status == TimelineStepStatus.running);
-              if (idx >= 0) steps[idx].status = TimelineStepStatus.done;
-              steps.add(TimelineStep(label: '思考中', type: TimelineStepType.thinking, status: TimelineStepStatus.running));
-              if (name == 'generate_image' || name == 'generate_video') {
-                NotificationService().complete(id: name, title: _toolLabel(name), message: '已完成');
-              }
-              break;
-            case ToolErrorEvent(:final name, :final message):
-              final idx = steps.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.label == _toolLabel(name) && s.status == TimelineStepStatus.running);
-              if (idx >= 0) steps[idx].status = TimelineStepStatus.error;
-              if (name == 'generate_image' || name == 'generate_video') {
-                NotificationService().complete(id: name, title: _toolLabel(name), message: '执行失败');
-              }
-              break;
-            case ToolMediaEvent(:final url):
-              buf.write('\n$url\n');
-              break;
-            case ErrorEvent(:final message):
-              buf.write('\n\n$message');
-              break;
-          }
-          aiMsg.text = buf.toString();
-          aiMsg.steps = List.unmodifiable(steps);
-          _scrollDown();
-        },
-        onDone: () {
-          finishRunningSteps(steps);
-          _currentSteps = null;
-          setState(() {
-            aiMsg.isStreaming = false;
-            aiMsg.steps = steps.isEmpty ? null : List.unmodifiable(steps);
-            if (aiMsg.text.isEmpty && !hasToolCalls) aiMsg.text = '(无响应)';
-            _isLoading = false;
-          });
-          _saveSession();
-        },
-        onError: (e) {
-          finishRunningSteps(steps);
-          _currentSteps = null;
-          setState(() {
-            aiMsg.text = buf.isEmpty ? '错误: $e' : '${buf.toString()}\n\n错误: $e';
-            aiMsg.isStreaming = false;
-            aiMsg.steps = steps.isEmpty ? null : List.unmodifiable(steps);
-            _isLoading = false;
-          });
-        },
-      );
-    } catch (e) {
-      finishRunningSteps(steps);
-      setState(() {
-        aiMsg.text = '错误: $e';
-        aiMsg.isStreaming = false;
-        aiMsg.steps = steps.isEmpty ? null : List.unmodifiable(steps);
-        _isLoading = false;
-      });
-    }
   }
 
   Widget _buildModelChip(AgentColors nc) {
-    final vendor = _aiSettings.selectedVendor;
+    final vendor = _controller.aiSettings.selectedVendor;
     if (vendor == null || vendor.model.isEmpty) return const SizedBox.shrink();
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
-        showModelPicker(context, _aiSettings, () => setState(() {}));
+        showModelPicker(context, _controller.aiSettings, () => setState(() {}));
       },
       child: Container(
         height: 40,
@@ -393,8 +131,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-
-  String _toolLabel(String name) => toolLabel(name);
 
   @override
   Widget build(BuildContext context) {
@@ -421,26 +157,26 @@ class _ChatScreenState extends State<ChatScreen> {
           drawerEnableOpenDragGesture: false,
           drawerScrimColor: Colors.black38,
           drawer: AgentSideDrawer(
-            sessions: _sessions,
-            currentSessionId: _sessionId,
-            isLoading: _isLoading,
+            sessions: _controller.sessions,
+            currentSessionId: _controller.currentSessionId,
+            isLoading: _controller.isLoading,
             onSessionTap: (id) {
-              if (id != _sessionId) _switchSession(id);
+              if (id != _controller.currentSessionId) {
+                _resetInput();
+                _controller.switchSession(id).then((_) {
+                  widget.onSessionChanged?.call();
+                });
+              }
             },
-            onNewChat: () {
-              _saveSession().then((_) {
-                _newSession();
-                setState(() => _sessions = []);
-                _storage.loadAll().then((s) => setState(() => _sessions = s));
-              });
+            onNewChat: () async {
+              _resetInput();
+              await _controller.saveSession();
+              _controller.newSession();
+              _controller.clearSessions();
+              await _controller.refreshSessions();
             },
             onSessionDeleted: (id) async {
-              await _storage.delete(id);
-              _sessions = await _storage.loadAll();
-              if (id == _sessionId) {
-                _newSession();
-              }
-              setState(() {});
+              await _controller.deleteSession(id);
             },
           ),
           appBar: AgentTopBar(afterMenu: _buildModelChip(nc)),
@@ -451,9 +187,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 ListView.builder(
                   controller: _scrollCtrl,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  itemCount: _messages.length,
+                  itemCount: _controller.messages.length,
                   cacheExtent: 1500,
-                  itemBuilder: (c, i) => ChatBubble(msg: _messages[i], nc: nc),
+                  itemBuilder: (c, i) => ChatBubble(msg: _controller.messages[i], nc: nc),
                 ),
                 if (_showScrollBottom)
                   Positioned(
@@ -486,25 +222,15 @@ class _ChatScreenState extends State<ChatScreen> {
               bottomSafe: bottomSafe,
               controller: _inputCtrl,
               focusNode: _inputFocus,
-              onSend: _sendMessage,
-              onStop: _stopStream,
-              isLoading: _isLoading,
-              settings: _aiSettings,
+              onSend: _handleSend,
+              onStop: _controller.stopStream,
+              isLoading: _controller.isLoading,
+              settings: _controller.aiSettings,
               onChanged: () => setState(() {}),
-              pendingFile: _pendingAttachment,
-              pendingFileType: _pendingAttachmentType,
-              onAttachment: (file, type) {
-                setState(() {
-                  _pendingAttachment = file;
-                  _pendingAttachmentType = type;
-                });
-              },
-              onClearAttachment: () {
-                setState(() {
-                  _pendingAttachment = null;
-                  _pendingAttachmentType = '';
-                });
-              },
+              pendingFile: _controller.pendingAttachment,
+              pendingFileType: _controller.pendingAttachmentType,
+              onAttachment: (file, type) => _controller.setAttachment(file, type),
+              onClearAttachment: _controller.clearAttachment,
             ),
           ]),
         ),
