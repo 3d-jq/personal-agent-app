@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../models/chat_session.dart';
 import '../services/export_service.dart';
-import 'memory_page.dart';
 import 'notes_page.dart';
 import 'settings_page.dart';
 import 'reminders_page.dart';
@@ -67,7 +66,6 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: _Card(nc: nc, children: [
-                  _CardItem(icon: Icons.bookmark_border, label: '记忆', nc: nc, onTap: () => _openPage(const MemoryPage())),
                   _CardItem(icon: Icons.note_outlined, label: '笔记', nc: nc, onTap: () => _openPage(const NotesPage())),
                   _CardItem(icon: Icons.photo_library_outlined, label: '图视', nc: nc, onTap: () => _openPage(const MediaView())),
                   _CardItem(icon: Icons.alarm_outlined, label: '定时任务', nc: nc, onTap: () => _openPage(const RemindersView())),

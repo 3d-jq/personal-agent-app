@@ -12,6 +12,7 @@ class ChatInputBar extends StatefulWidget {
   final VoidCallback onSend;
   final VoidCallback onStop;
   final bool isLoading;
+  final bool isAwaitingReply;
   final AISettings settings;
   final VoidCallback onChanged;
   final File? pendingFile;
@@ -27,6 +28,7 @@ class ChatInputBar extends StatefulWidget {
     required this.onSend,
     required this.onStop,
     required this.isLoading,
+    this.isAwaitingReply = false,
     required this.settings,
     required this.onChanged,
     this.pendingFile,
@@ -81,7 +83,9 @@ class _ChatInputBarState extends State<ChatInputBar> {
                       textInputAction: TextInputAction.newline,
                       style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.5),
                       decoration: InputDecoration(
-                        hintText: hasFile ? '添加描述（可选）' : '给 DWeis 发消息',
+                        hintText: widget.isAwaitingReply
+                            ? '回复以继续…'
+                            : (hasFile ? '添加描述（可选）' : '给 DWeis 发消息'),
                         hintStyle: TextStyle(
                           color: nc.textSecondary.withValues(alpha: 0.6),
                           fontSize: 15,
@@ -121,6 +125,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
   }
 
   Widget _buildAttachmentButton(AgentColors nc, bool hasFile) {
+    if (widget.isAwaitingReply) return const SizedBox.shrink();
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
@@ -201,7 +206,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.file(file, width: 32, height: 32, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (_, _, _) => Container(
                     width: 32, height: 32,
                     decoration: BoxDecoration(color: nc.surface, borderRadius: BorderRadius.circular(8)),
                     child: Icon(Icons.image_outlined, size: 18, color: nc.textSecondary),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/chat_message.dart';
 import '../core/agent_colors.dart';
 import 'inline_content.dart';
+import 'timeline_view.dart';
+import 'shimmer_text.dart';
 
 class ChatBubble extends StatelessWidget {
   final ChatMessage msg;
@@ -127,45 +129,61 @@ class _AIBubbleState extends State<_AIBubble> with SingleTickerProviderStateMixi
 
   /// 单行状态指示器：只显示当前最新的一个步骤
   Widget _buildProcessLine(List<TimelineStep> steps, AgentColors nc) {
+    final shimmerHighlight = Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withValues(alpha: 0.35)
+        : Colors.white.withValues(alpha: 0.65);
+
     if (steps.isEmpty) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 16, height: 16,
-            child: CircularProgressIndicator(
-              strokeWidth: 1.5,
-              valueColor: AlwaysStoppedAnimation(nc.textSecondary),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            '思考中…',
-            style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500),
-          ),
-        ],
+      return ShimmerText(
+        text: '思考中…',
+        style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500),
+        baseColor: nc.textSecondary,
+        highlightColor: shimmerHighlight,
       );
     }
 
     final step = steps.last;
     final isRunning = step.status == TimelineStepStatus.running;
     final isError = step.status == TimelineStepStatus.error;
+    final isAllDone = !isRunning && !isError && steps.every((s) => s.status == TimelineStepStatus.done);
+
+    if (isAllDone) {
+      return InkWell(
+        onTap: () => _showTimelineDetail(steps, nc),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                step.label,
+                style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w400),
+              ),
+              const SizedBox(width: 2),
+              Icon(Icons.chevron_right, size: 16, color: nc.textSecondary.withValues(alpha: 0.5)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (isRunning) {
+      return ShimmerText(
+        text: step.label,
+        style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500),
+        baseColor: nc.textSecondary,
+        highlightColor: shimmerHighlight,
+      );
+    }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          width: 16, height: 16,
-          child: isRunning
-              ? CircularProgressIndicator(
-                  strokeWidth: 1.5,
-                  valueColor: AlwaysStoppedAnimation(nc.textSecondary),
-                )
-              : Icon(
-                  isError ? Icons.close : Icons.check_circle,
-                  size: 16,
-                  color: isError ? Colors.red.shade400 : nc.success,
-                ),
+        Icon(
+          isError ? Icons.close : Icons.check_circle,
+          size: 16,
+          color: isError ? Colors.red.shade400 : nc.success,
         ),
         const SizedBox(width: 6),
         Flexible(
@@ -174,12 +192,47 @@ class _AIBubbleState extends State<_AIBubble> with SingleTickerProviderStateMixi
             style: TextStyle(
               fontSize: 13,
               color: nc.textSecondary,
-              fontWeight: isRunning ? FontWeight.w500 : FontWeight.w400,
+              fontWeight: FontWeight.w400,
             ),
             overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
+    );
+  }
+
+  void _showTimelineDetail(List<TimelineStep> steps, AgentColors nc) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: nc.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36, height: 4,
+                  decoration: BoxDecoration(color: nc.divider, borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('思考与工具调用', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+              const SizedBox(height: 16),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: TimelineView(steps: steps, nc: nc),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -7,7 +7,6 @@ import '../tools/tool_registry.dart';
 import '../widgets/ai_settings_sheet.dart' show VendorConfig;
 import 'ai_service.dart';
 import 'chat_stream_event.dart';
-import 'memory_storage.dart';
 
 /// 群聊消息的最小视图
 class _GroupMsg {
@@ -29,7 +28,6 @@ class AgentRunner {
     required Map<String, String> memberRoles,
     String groupName = '',
     String groupDesc = '',
-    String userMessage = '',
     required DateTime now,
   }) async {
     final buf = StringBuffer();
@@ -61,7 +59,6 @@ class AgentRunner {
     buf.writeln('【禁止幻觉】回答时事、数据、地点、人物、版本等你不能 100% 确定的事实时，必须调用 searxng_search 或 tavily_search 确认，禁止凭训练数据猜测；tavily_search 效果通常更好，当 searxng_search 结果不理想时请换用 tavily_search。');
     buf.writeln('【低频工具发现】对于不常用、场景化或你不确定名称的工具（如 AI日报、企业 MCP 等），先使用 tool_search 搜索，确认名称和参数后，再用 defer_execute_tool 调用。');
     buf.writeln('【先工具后回答】工具返回前不要给出最终结论，只能基于工具返回的内容回答。');
-    buf.writeln('【保存记忆】当用户让你记住某事时，必须调用 save_memory 工具，禁止只回复"我记住了"而不调用工具。');
     buf.writeln('</rules>');
     buf.writeln();
 
@@ -105,27 +102,7 @@ class AgentRunner {
       buf.writeln();
     }
 
-    // 用户偏好 + 相关记忆（按需注入）
-    final mem = MemoryStorage();
-    await mem.loadAll();
-    final prefs = mem.cachedPreferences;
-    if (prefs.isNotEmpty) {
-      buf.writeln('<preferences>');
-      for (final p in prefs) {
-        buf.writeln('- ${p.content}');
-      }
-      buf.writeln('</preferences>');
-      buf.writeln();
-    }
 
-    final relevantFacts = mem.relevantFacts(userMessage);
-    if (relevantFacts.isNotEmpty) {
-      buf.writeln('<memory>');
-      for (final f in relevantFacts) {
-        buf.writeln('- ${f.content}');
-      }
-      buf.writeln('</memory>');
-    }
 
     return buf.toString();
   }
@@ -197,21 +174,11 @@ class AgentRunner {
     String groupDesc = '',
   }) async* {
     try {
-      // 提取最近的用户消息，用于记忆筛选
-      String lastUserMsg = '';
-      for (final m in groupMessages.reversed) {
-        if (m.isUser && !m.isStreaming) {
-          lastUserMsg = m.text;
-          break;
-        }
-      }
-
       final systemPrompt = await _buildSystemPrompt(agent,
           memberNames: memberNames,
           memberRoles: memberRoles,
           groupName: groupName,
           groupDesc: groupDesc,
-          userMessage: lastUserMsg,
           now: DateTime.now());
 
       final mapped = <_GroupMsg>[];

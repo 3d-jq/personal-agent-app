@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/chat_controller.dart';
 import '../core/agent_colors.dart';
-import '../providers/daily_card_provider.dart';
+import '../services/context_doc_service.dart';
 import '../widgets/agent_side_drawer.dart';
 import '../widgets/agent_top_bar.dart';
 import '../widgets/ai_settings_sheet.dart';
+import '../widgets/context_docs_panel.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input_bar.dart';
-import '../widgets/daily_card.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sessionId;
@@ -37,10 +37,7 @@ class _ChatScreenState extends State<ChatScreen> {
       onNeedScroll: _scrollDown,
     );
     _controller.addListener(_onControllerChanged);
-    _controller.initialize().then((_) {
-      if (!mounted) return;
-      _checkDailyCard();
-    });
+    _controller.initialize();
     _scrollCtrl.addListener(_onScroll);
   }
 
@@ -81,26 +78,74 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  void _checkDailyCard() {
-    final card = DailyCardProvider();
-    card.shouldShowToday().then((should) {
-      if (!should || !mounted) return;
-      card.generate().then((_) {
-        if (!mounted || card.greeting == null) return;
-        showDialog(context: context, barrierDismissible: true, builder: (_) => DailyCardDialog(provider: card));
-      });
-    });
-  }
-
   void _handleSend() {
     final text = _inputCtrl.text;
-    _resetInput();
-    _controller.sendMessage(text);
+    if (_controller.isWaitingUserPrompt) {
+      _resetInput();
+      _controller.submitUserPromptResponse(text);
+    } else {
+      _resetInput();
+      _controller.sendMessage(text);
+    }
   }
 
   void _resetInput() {
     _inputCtrl.clear();
     _inputFocus.unfocus();
+  }
+
+  Widget _buildIdentityButton(AgentColors nc) {
+    return Theme(
+      data: Theme.of(context).copyWith(
+        popupMenuTheme: PopupMenuThemeData(
+          color: nc.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 4,
+          shadowColor: Colors.black.withValues(alpha: 0.04),
+          surfaceTintColor: Colors.transparent,
+        ),
+      ),
+      child: PopupMenuButton<ContextDoc>(
+        offset: const Offset(0, 44),
+        color: nc.surface,
+        onSelected: (doc) {
+          HapticFeedback.lightImpact();
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => ContextDocViewerPage(doc: doc)),
+          );
+        },
+        itemBuilder: (_) => ContextDoc.values
+            .map((doc) => PopupMenuItem<ContextDoc>(
+                  value: doc,
+                  padding: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    child: Row(children: [
+                      Icon(ContextDocViewerPage.iconFor(doc), size: 20, color: nc.textPrimary),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          ContextDocViewerPage.titleFor(doc),
+                          style: TextStyle(fontSize: 15, color: nc.textPrimary, fontWeight: FontWeight.w400),
+                        ),
+                      ),
+                      Icon(Icons.chevron_right, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
+                    ]),
+                  ),
+                ))
+            .toList(),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: nc.surface,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 1))],
+          ),
+          child: Icon(Icons.badge_outlined, size: 18, color: nc.textPrimary),
+        ),
+      ),
+    );
   }
 
   Widget _buildModelChip(AgentColors nc) {
@@ -179,7 +224,10 @@ class _ChatScreenState extends State<ChatScreen> {
               await _controller.deleteSession(id);
             },
           ),
-          appBar: AgentTopBar(afterMenu: _buildModelChip(nc)),
+          appBar: AgentTopBar(
+            afterMenu: _buildModelChip(nc),
+            trailing: _buildIdentityButton(nc),
+          ),
           resizeToAvoidBottomInset: true,
           body: Column(children: [
             Expanded(
@@ -225,6 +273,7 @@ class _ChatScreenState extends State<ChatScreen> {
               onSend: _handleSend,
               onStop: _controller.stopStream,
               isLoading: _controller.isLoading,
+              isAwaitingReply: _controller.isWaitingUserPrompt,
               settings: _controller.aiSettings,
               onChanged: () => setState(() {}),
               pendingFile: _controller.pendingAttachment,

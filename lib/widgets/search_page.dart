@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
-import '../models/memory_entry.dart';
 import '../services/chat_storage.dart';
 import '../services/note_storage.dart';
-import '../services/memory_storage.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -53,13 +51,6 @@ class _SearchPageState extends State<SearchPage> {
       }
     }
 
-    final memories = await MemoryStorage().loadAll();
-    for (final m in memories) {
-      if (m.content.toLowerCase().contains(q)) {
-        results.add(_SearchResult(type: '记忆', title: m.content, subtitle: m.type == MemoryType.fact ? '事实' : '偏好', icon: Icons.bookmark_outline));
-      }
-    }
-
     setState(() {
       _results = results;
       _loaded = true;
@@ -84,7 +75,7 @@ class _SearchPageState extends State<SearchPage> {
           focusNode: _focus,
           style: TextStyle(fontSize: 16, color: nc.textPrimary),
           decoration: InputDecoration(
-            hintText: '搜索对话、笔记、记忆...',
+            hintText: '搜索对话、笔记...',
             hintStyle: TextStyle(color: nc.textSecondary.withValues(alpha: 0.5)),
             border: InputBorder.none,
           ),

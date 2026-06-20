@@ -38,7 +38,6 @@ const List<ToolOption> kAgentToolOptions = [
 /// Agent 编辑页不让勾选这些；旧数据迁移时也用这个过滤
 const Set<String> kAgentWriteStateTools = {
   'save_note',
-  'save_memory',
   'reminder',
   'file_manager',
   'clipboard',
@@ -49,6 +48,8 @@ const Set<String> kAgentWriteStateTools = {
 const Set<String> kDeprecatedTools = {
   'get_current_time',
   'web_search',
+  'save_memory',
+  'manage_memory',
 };
 
 /// 把"已选工具名"映射成中文 label，便于在卡片上展示
