@@ -1,58 +1,29 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
+
 import '../models/memory_entry.dart';
+import 'storage/cached_repository.dart';
+import 'storage/json_file_data_source.dart';
 
 class MemoryStorage extends ChangeNotifier {
   static final MemoryStorage _instance = MemoryStorage._();
   factory MemoryStorage() => _instance;
-  MemoryStorage._();
-
-  List<MemoryEntry>? _cache;
-  Future<List<MemoryEntry>>? _loading;
-
-  Future<File> _file() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return File('${dir.path}/memories.json');
+  MemoryStorage._()
+      : _repo = CachedRepository<MemoryEntry>(
+          dataSource: JsonFileDataSource<MemoryEntry>(
+            relativePath: 'memories.json',
+            fromJson: (list) => list
+                .map((j) => MemoryEntry.fromJson(j as Map<String, dynamic>))
+                .toList()
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+            toJson: (items) => items.map((e) => e.toJson()).toList(),
+          ),
+        ) {
+    _repo.addListener(notifyListeners);
   }
 
-  Future<List<MemoryEntry>> loadAll() async {
-    if (_cache != null) return List<MemoryEntry>.from(_cache!);
-    if (_loading != null) return await _loading!;
-    _loading = _doLoad();
-    try {
-      return await _loading!;
-    } finally {
-      _loading = null;
-    }
-  }
+  final CachedRepository<MemoryEntry> _repo;
 
-  Future<List<MemoryEntry>> _doLoad() async {
-    List<MemoryEntry>? loaded;
-    try {
-      final file = await _file();
-      if (await file.exists()) {
-        final list = jsonDecode(await file.readAsString()) as List;
-        loaded = list.map((j) => MemoryEntry.fromJson(j as Map<String, dynamic>)).toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      }
-    } catch (_) {
-      await _backupCorruptedFile();
-    }
-    if (_cache == null) _cache = loaded ?? [];
-    return List<MemoryEntry>.from(_cache!);
-  }
-
-  Future<void> _backupCorruptedFile() async {
-    try {
-      final file = await _file();
-      if (await file.exists()) {
-        final backup = File('${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}');
-        await file.rename(backup.path);
-      }
-    } catch (_) {}
-  }
+  Future<List<MemoryEntry>> loadAll() => _repo.loadAll();
 
   /// 生成下一个简洁数字 ID。
   Future<String> nextId() async {
@@ -66,54 +37,41 @@ class MemoryStorage extends ChangeNotifier {
   }
 
   Future<void> add(MemoryEntry entry) async {
-    final all = List<MemoryEntry>.from(await loadAll());
-    all.insert(0, entry);
-    await _save(all);
+    await _repo.mutate((all) => all.insert(0, entry));
     if (kDebugMode) {
-      debugPrint('[MemoryStorage] add: total=${all.length}, file=${(await _file()).path}');
+      debugPrint('[MemoryStorage] add: total=${_repo.current.length}');
     }
   }
 
   Future<void> update(MemoryEntry entry) async {
-    final all = List<MemoryEntry>.from(await loadAll());
-    final idx = all.indexWhere((e) => e.id == entry.id);
-    if (idx >= 0) {
-      all[idx] = entry;
-      await _save(all);
-    }
+    await _repo.mutate((all) {
+      final idx = all.indexWhere((e) => e.id == entry.id);
+      if (idx >= 0) all[idx] = entry;
+    });
   }
 
   Future<void> remove(String id) async {
-    final all = List<MemoryEntry>.from(await loadAll());
-    all.removeWhere((e) => e.id == id);
-    await _save(all);
-  }
-
-  Future<void> _save(List<MemoryEntry> all) async {
-    _cache = all;
-    final file = await _file();
-    await file.writeAsString(jsonEncode(all.map((e) => e.toJson()).toList()));
-    notifyListeners();
+    await _repo.mutate((all) => all.removeWhere((e) => e.id == id));
   }
 
   String get preferencePrompt {
-    final prefs = _cache?.where((e) => e.type == MemoryType.preference).toList() ?? [];
+    final prefs = _repo.current.where((e) => e.type == MemoryType.preference).toList();
     if (prefs.isEmpty) return '';
     return prefs.map((e) => '- ${e.content}').join('\n');
   }
 
   String get memoryContext {
-    final facts = _cache?.where((e) => e.type == MemoryType.fact).take(10).toList() ?? [];
+    final facts = _repo.current.where((e) => e.type == MemoryType.fact).take(10).toList();
     if (facts.isEmpty) return '';
     return facts.map((e) => '- ${e.content}').join('\n');
   }
 
   /// 暴露缓存的记忆列表（已加载后可用）
-  List<MemoryEntry> get cachedEntries => _cache ?? [];
+  List<MemoryEntry> get cachedEntries => _repo.current;
 
   /// 筛选与用户消息相关的事实记忆
   List<MemoryEntry> relevantFacts(String userMessage) {
-    final facts = (_cache ?? []).where((e) => e.type == MemoryType.fact).toList();
+    final facts = _repo.current.where((e) => e.type == MemoryType.fact).toList();
     if (facts.isEmpty) return [];
     if (userMessage.isEmpty) return facts.take(3).toList();
 
@@ -139,5 +97,5 @@ class MemoryStorage extends ChangeNotifier {
 
   /// 所有偏好记忆
   List<MemoryEntry> get cachedPreferences =>
-      (_cache ?? []).where((e) => e.type == MemoryType.preference).toList();
+      _repo.current.where((e) => e.type == MemoryType.preference).toList();
 }

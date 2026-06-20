@@ -235,6 +235,7 @@ class ChatController extends ChangeNotifier {
       stylePrompt: personalization.stylePrompt,
       customPrompt: personalization.customPrompt,
       userMessage: trimmed,
+      now: DateTime.now(),
     );
 
     final history = buildMessageHistory(
@@ -351,6 +352,9 @@ class ChatController extends ChangeNotifier {
 
   void _onStreamDone(_StreamState state, ChatMessage aiMsg) {
     finishRunningSteps(state.steps);
+    if (state.steps.isNotEmpty && state.steps.last.type == TimelineStepType.thinking) {
+      state.steps.last.label = '任务完成';
+    }
     _currentSteps = null;
     aiMsg.isStreaming = false;
     aiMsg.steps = state.steps.isEmpty ? null : List.unmodifiable(state.steps);

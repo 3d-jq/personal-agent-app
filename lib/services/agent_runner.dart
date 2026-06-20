@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import '../core/prompt_builder.dart';
 import '../models/agent.dart';
 import '../models/chat_message.dart';
 import '../tools/tool_registry.dart';
@@ -29,6 +30,7 @@ class AgentRunner {
     String groupName = '',
     String groupDesc = '',
     String userMessage = '',
+    required DateTime now,
   }) async {
     final buf = StringBuffer();
 
@@ -56,10 +58,17 @@ class AgentRunner {
       buf.writeln('你只能回复被 @ 提及的消息。如果消息中没有 @${agent.name}，不要发言。');
     }
     buf.writeln('用户是群主，拥有最终决策权。重要决策必须由群主确认。');
-    buf.writeln('【禁止幻觉】回答时事、数据、地点、人物、版本等你不能 100% 确定的事实时，必须调用 web_search 工具确认，禁止凭训练数据猜测。');
+    buf.writeln('【禁止幻觉】回答时事、数据、地点、人物、版本等你不能 100% 确定的事实时，必须调用 searxng_search 或 tavily_search 确认，禁止凭训练数据猜测；tavily_search 效果通常更好，当 searxng_search 结果不理想时请换用 tavily_search。');
+    buf.writeln('【低频工具发现】对于不常用、场景化或你不确定名称的工具（如 AI日报、企业 MCP 等），先使用 tool_search 搜索，确认名称和参数后，再用 defer_execute_tool 调用。');
     buf.writeln('【先工具后回答】工具返回前不要给出最终结论，只能基于工具返回的内容回答。');
     buf.writeln('【保存记忆】当用户让你记住某事时，必须调用 save_memory 工具，禁止只回复"我记住了"而不调用工具。');
     buf.writeln('</rules>');
+    buf.writeln();
+
+    // ═══ 实时上下文 ═══
+    buf.writeln('<context>');
+    buf.writeln('当前时间：${PromptBuilder.currentTimeContext(now)}');
+    buf.writeln('</context>');
     buf.writeln();
 
     // 团队成员能力（排除自己）
@@ -156,12 +165,23 @@ class AgentRunner {
     return _scopedCache.putIfAbsent(key, () {
       final scoped = ToolRegistry();
       final allowed = agent.allowedToolNames.toSet();
+      final canDiscover = allowed.contains('tool_search') || allowed.contains('defer_execute_tool');
+
       for (final tool in baseRegistry.all) {
         if (!allowed.contains(tool.name)) continue;
         // Agent 群中非协调者 Agent 只能使用只读工具
         if (!agent.isCoordinator && !tool.readOnly) continue;
         scoped.register(tool);
       }
+
+      // 如果 Agent 允许 tool_search / defer_execute_tool，
+      // 把 discoverable 工具也注入，让 AI 能按需发现。
+      for (final tool in baseRegistry.discoverable) {
+        if (!canDiscover && !allowed.contains(tool.name)) continue;
+        if (!agent.isCoordinator && !tool.readOnly) continue;
+        scoped.registerDiscoverable(tool);
+      }
+
       return scoped;
     });
   }
@@ -191,7 +211,8 @@ class AgentRunner {
           memberRoles: memberRoles,
           groupName: groupName,
           groupDesc: groupDesc,
-          userMessage: lastUserMsg);
+          userMessage: lastUserMsg,
+          now: DateTime.now());
 
       final mapped = <_GroupMsg>[];
       for (final m in groupMessages) {

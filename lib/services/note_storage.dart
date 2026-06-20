@@ -1,58 +1,29 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
+
 import '../models/note.dart';
+import 'storage/cached_repository.dart';
+import 'storage/json_file_data_source.dart';
 
 class NoteStorage extends ChangeNotifier {
   static final NoteStorage _instance = NoteStorage._();
   factory NoteStorage() => _instance;
-  NoteStorage._();
-
-  List<Note>? _cache;
-  Future<List<Note>>? _loading;
-
-  Future<File> _file() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return File('${dir.path}/notes.json');
+  NoteStorage._()
+      : _repo = CachedRepository<Note>(
+          dataSource: JsonFileDataSource<Note>(
+            relativePath: 'notes.json',
+            fromJson: (list) => list
+                .map((j) => Note.fromJson(j as Map<String, dynamic>))
+                .toList()
+              ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)),
+            toJson: (items) => items.map((e) => e.toJson()).toList(),
+          ),
+        ) {
+    _repo.addListener(notifyListeners);
   }
 
-  Future<List<Note>> loadAll() async {
-    if (_cache != null) return List<Note>.from(_cache!);
-    if (_loading != null) return await _loading!;
-    _loading = _doLoad();
-    try {
-      return await _loading!;
-    } finally {
-      _loading = null;
-    }
-  }
+  final CachedRepository<Note> _repo;
 
-  Future<List<Note>> _doLoad() async {
-    List<Note>? loaded;
-    try {
-      final file = await _file();
-      if (await file.exists()) {
-        final list = jsonDecode(await file.readAsString()) as List;
-        loaded = list.map((j) => Note.fromJson(j as Map<String, dynamic>)).toList()
-          ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-      }
-    } catch (_) {
-      await _backupCorruptedFile();
-    }
-    if (_cache == null) _cache = loaded ?? [];
-    return List<Note>.from(_cache!);
-  }
-
-  Future<void> _backupCorruptedFile() async {
-    try {
-      final file = await _file();
-      if (await file.exists()) {
-        final backup = File('${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}');
-        await file.rename(backup.path);
-      }
-    } catch (_) {}
-  }
+  Future<List<Note>> loadAll() => _repo.loadAll();
 
   /// 生成下一个简洁数字 ID。
   Future<String> nextId() async {
@@ -66,31 +37,20 @@ class NoteStorage extends ChangeNotifier {
   }
 
   Future<void> add(Note note) async {
-    final all = List<Note>.from(await loadAll());
-    all.insert(0, note);
-    await _save(all);
+    await _repo.mutate((all) => all.insert(0, note));
   }
 
   Future<void> update(Note note) async {
-    final all = await loadAll();
-    final idx = all.indexWhere((n) => n.id == note.id);
-    if (idx >= 0) {
-      note.updatedAt = DateTime.now();
-      all[idx] = note;
-      await _save(all);
-    }
+    await _repo.mutate((all) {
+      final idx = all.indexWhere((n) => n.id == note.id);
+      if (idx >= 0) {
+        note.updatedAt = DateTime.now();
+        all[idx] = note;
+      }
+    });
   }
 
   Future<void> remove(String id) async {
-    final all = await loadAll();
-    all.removeWhere((n) => n.id == id);
-    await _save(all);
-  }
-
-  Future<void> _save(List<Note> all) async {
-    _cache = all;
-    final file = await _file();
-    await file.writeAsString(jsonEncode(all.map((e) => e.toJson()).toList()));
-    notifyListeners();
+    await _repo.mutate((all) => all.removeWhere((n) => n.id == id));
   }
 }

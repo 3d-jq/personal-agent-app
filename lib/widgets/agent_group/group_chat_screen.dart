@@ -337,6 +337,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       await sub.cancel();
       _activeSubs.remove(sub);
       placeholder.isStreaming = false;
+      final steps = currentSteps;
+      if (steps != null && steps.isNotEmpty) {
+        finishRunningSteps(steps);
+        if (steps.last.type == TimelineStepType.thinking) {
+          steps.last.label = '任务完成';
+        }
+        placeholder.steps = steps;
+      }
     }
     setState(() {});
     _scrollDown();
