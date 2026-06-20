@@ -7,7 +7,7 @@ class AiDailyTool extends AgentTool {
   String get name => 'ai_daily';
 
   @override
-  String get description => '获取今日AI信息。当用户询问今天的AI新闻、热点或趋势时使用。';
+  String get description => '获取今日AI信息（AI日报、AI新闻与热点）。当用户询问今天的AI信息、AI日报、AI新闻、AI热点或趋势时使用。';
 
   @override
   Map<String, dynamic> get parameters => {

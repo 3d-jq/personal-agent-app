@@ -24,10 +24,12 @@ class ToolOption {
 }
 
 const List<ToolOption> kAgentToolOptions = [
-  ToolOption('get_current_time', '获取时间'),
   ToolOption('weather', '查询天气'),
-  ToolOption('web_search', '搜索网页'),
+  ToolOption('searxng_search', 'SearXNG搜索'),
+  ToolOption('tavily_search', 'Tavily搜索'),
   ToolOption('web_fetch', '获取网页'),
+  ToolOption('tool_search', '发现工具'),
+  ToolOption('defer_execute_tool', '调用延迟工具'),
   ToolOption('generate_image', '生成图片'),
   ToolOption('generate_video', '生成视频'),
 ];
@@ -43,6 +45,12 @@ const Set<String> kAgentWriteStateTools = {
   'calendar',
 };
 
+/// 已下线的工具：旧 Agent 数据迁移时自动剔除
+const Set<String> kDeprecatedTools = {
+  'get_current_time',
+  'web_search',
+};
+
 /// 把"已选工具名"映射成中文 label，便于在卡片上展示
 String toolOptionsLabel(List<String> names) {
   if (names.isEmpty) return '无可用工具';
@@ -52,7 +60,7 @@ String toolOptionsLabel(List<String> names) {
   }).join(' · ');
 }
 
-/// 从工具列表中剔除写操作类工具（数据迁移/历史 Agent 清理用）
+/// 从工具列表中剔除写操作类及已下线工具（数据迁移/历史 Agent 清理用）
 List<String> filterAgentTools(List<String> tools) {
-  return tools.where((n) => !kAgentWriteStateTools.contains(n)).toList();
+  return tools.where((n) => !kAgentWriteStateTools.contains(n) && !kDeprecatedTools.contains(n)).toList();
 }

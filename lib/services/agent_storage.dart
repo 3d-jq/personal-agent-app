@@ -90,7 +90,7 @@ class AgentStorage {
             '你不需要亲自做具体工作，你的价值在于规划和协调。当团队完成任务后，用简洁的总结收尾。',
         vendorId: '',
         model: '',
-        allowedToolNames: const ['get_current_time', 'web_search', 'web_fetch'],
+        allowedToolNames: const ['searxng_search', 'tavily_search', 'web_fetch', 'tool_search', 'defer_execute_tool'],
         isCoordinator: true,
       ),
       Agent(
@@ -105,7 +105,7 @@ class AgentStorage {
             '请在回复末尾明确 @下一个人 来转交。例如：@开发者 接下来技术方案交给你了。',
         vendorId: '',
         model: '',
-        allowedToolNames: const ['get_current_time', 'web_search', 'web_fetch'],
+        allowedToolNames: const ['searxng_search', 'tavily_search', 'web_fetch', 'tool_search', 'defer_execute_tool'],
       ),
       Agent(
         id: const Uuid().v4(),
@@ -119,7 +119,7 @@ class AgentStorage {
             '请在回复末尾明确 @DWeis 来汇报进度并转交。',
         vendorId: '',
         model: '',
-        allowedToolNames: const ['get_current_time', 'web_search', 'web_fetch'],
+        allowedToolNames: const ['searxng_search', 'tavily_search', 'web_fetch', 'tool_search', 'defer_execute_tool'],
       ),
       Agent(
         id: const Uuid().v4(),
@@ -133,7 +133,7 @@ class AgentStorage {
             '会主动搜索当地热门餐厅和隐藏小店。',
         vendorId: '',
         model: '',
-        allowedToolNames: const ['get_current_time', 'web_search', 'web_fetch'],
+        allowedToolNames: const ['searxng_search', 'tavily_search', 'web_fetch', 'tool_search', 'defer_execute_tool'],
       ),
       Agent(
         id: const Uuid().v4(),
@@ -147,7 +147,7 @@ class AgentStorage {
             '会主动搜索目的地的最新信息和攻略。',
         vendorId: '',
         model: '',
-        allowedToolNames: const ['get_current_time', 'web_search', 'web_fetch'],
+        allowedToolNames: const ['searxng_search', 'tavily_search', 'web_fetch', 'tool_search', 'defer_execute_tool'],
       ),
       Agent(
         id: const Uuid().v4(),
@@ -162,7 +162,7 @@ class AgentStorage {
             '重要提醒：所有分析仅供娱乐，请勿当真。',
         vendorId: '',
         model: '',
-        allowedToolNames: const ['get_current_time', 'web_search', 'web_fetch'],
+        allowedToolNames: const ['searxng_search', 'tavily_search', 'web_fetch', 'tool_search', 'defer_execute_tool'],
       ),
     ];
     _cache = seeds;

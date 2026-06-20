@@ -4,13 +4,19 @@ import '../services/crypto_util.dart';
 import '../tools/tools.dart';
 
 /// 注册所有内置工具到 ToolRegistry
+///
+/// - 高频/基础工具：直接进入默认 function definitions，对话前预加载。
+/// - 低频/场景化工具：注册为 discoverable，不占用默认上下文；
+///   需要时由模型先调用 tool_search 查找，再用 defer_execute_tool 执行。
 void registerAllTools(ToolRegistry registry) {
+  // 高频基础工具（预加载）
   registry.register(FileTool());
   registry.register(ClipboardTool());
   registry.register(ReminderTool());
   registry.register(WebFetchTool());
   registry.register(WeatherTool()..apiKey = CryptoUtil.decrypt(dotenv.env['GAODE_API_KEY'] ?? ''));
-  registry.register(WebSearchTool());
+  registry.register(SearxngSearchTool());
+  registry.register(TavilySearchTool());
   final agnesKey = CryptoUtil.decrypt(dotenv.env['AGNES_API_KEY'] ?? '');
   registry.register(AgnesImageTool()..apiKey = agnesKey);
   registry.register(AgnesVideoTool()..apiKey = agnesKey);
@@ -18,16 +24,22 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(ManageMemoryTool());
   registry.register(SaveNoteTool());
   registry.register(ManageNoteTool());
-  registry.register(TimeTool());
-  registry.register(AiDailyTool());
   registry.register(CalendarTool());
+
+  // 工具发现层（本身也是预加载工具）
+  registry.register(ToolSearchTool(registry: registry));
+  registry.register(DeferExecuteTool(registry: registry));
+
+  // 低频/场景化工具（按需发现）
+  registry.registerDiscoverable(AiDailyTool());
 }
 
 /// 工具名称 → 中文标签
 String toolLabel(String name) {
   switch (name) {
     case 'weather': return '查询天气';
-    case 'web_search': return '搜索网页';
+    case 'searxng_search': return 'SearXNG搜索';
+    case 'tavily_search': return 'Tavily搜索';
     case 'web_fetch': return '获取网页';
     case 'reminder': return '设置提醒';
     case 'file_manager': return '文件管理';
@@ -38,8 +50,11 @@ String toolLabel(String name) {
     case 'manage_memory': return '管理记忆';
     case 'save_note': return '保存笔记';
     case 'manage_notes': return '管理笔记';
-    case 'get_current_time': return '获取时间';
     case 'calendar': return '日历';
+    case 'ai_daily': return 'AI日报';
+    case 'tool_search': return '发现工具';
+    case 'defer_execute_tool': return '调用延迟工具';
+    case 'get_current_time': return '获取时间';
     default: return name;
   }
 }
