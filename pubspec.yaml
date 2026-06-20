@@ -36,3 +36,7 @@ flutter:
   uses-material-design: true
   assets:
     - .env
+    - assets/context/SOUL.md
+    - assets/context/USER.md
+    - assets/context/AGENT.md
+    - assets/context/MEMORY.md

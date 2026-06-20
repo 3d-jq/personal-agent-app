@@ -13,9 +13,8 @@ import '../services/ai_service.dart';
 import '../services/chat_storage.dart';
 import '../services/chat_stream_event.dart';
 import '../services/connectivity_service.dart';
-import '../services/memory_storage.dart';
+import '../services/context_doc_service.dart';
 import '../services/notification_service.dart';
-import '../services/personalization_storage.dart';
 import '../tools/tools.dart';
 import '../widgets/ai_settings_sheet.dart';
 
@@ -34,6 +33,7 @@ class ChatController extends ChangeNotifier {
         _toolRegistry = toolRegistry ?? ToolRegistry(),
         _chatStorage = chatStorage ?? ChatStorage() {
     registerAllTools(_toolRegistry);
+    _toolRegistry.register(AskUserTool(onAsk: _onAskUser));
   }
 
   final String? initialSessionId;
@@ -54,6 +54,7 @@ class ChatController extends ChangeNotifier {
 
   StreamSubscription<ChatStreamEvent>? _aiStream;
   List<TimelineStep>? _currentSteps;
+  _StreamState? _streamState;
 
   bool _disposed = false;
 
@@ -63,6 +64,7 @@ class ChatController extends ChangeNotifier {
   List<ChatMessage> get messages => List.unmodifiable(_messages);
   List<ChatSession> get sessions => List.unmodifiable(_sessions);
   bool get isLoading => _isLoading;
+  bool get isWaitingUserPrompt => _streamState?.isWaitingUserInput ?? false;
   File? get pendingAttachment => _pendingAttachment;
   String get pendingAttachmentType => _pendingAttachmentType;
   AISettings get aiSettings => _aiSettings;
@@ -82,16 +84,17 @@ class ChatController extends ChangeNotifier {
     if (!_disposed) _notify();
   }
 
-  /// 预热记忆与个人化缓存，避免首次发消息时再加载。
+  /// 预热上下文文档缓存，避免首次发消息时再加载。
   Future<void> _warmUpCaches() async {
-    await MemoryStorage().loadAll();
-    await PersonalizationStorage().load();
+    await ContextDocService().ensureDefaults();
+    await ContextDocService().loadAll();
   }
 
   @override
   void dispose() {
     _disposed = true;
     _aiStream?.cancel();
+    _completeUserPrompt('对话已中断');
     super.dispose();
   }
 
@@ -179,6 +182,7 @@ class ChatController extends ChangeNotifier {
 
   Future<void> sendMessage(String text) async {
     final trimmed = text.trim();
+    if (isWaitingUserPrompt) return;
     if ((trimmed.isEmpty && _pendingAttachment == null) || _isLoading) return;
     if (_sessionId == null) newSession();
 
@@ -213,6 +217,8 @@ class ChatController extends ChangeNotifier {
           : '$trimmed\n[附件: $typeLabel $attachmentName]';
     }
 
+    final isFirstMeeting = _sessions.isEmpty && _messages.isEmpty;
+
     _messages.add(ChatMessage(text: displayText, isUser: true));
     _messages.add(ChatMessage(text: '', isUser: false, isStreaming: true));
     _isLoading = true;
@@ -225,17 +231,14 @@ class ChatController extends ChangeNotifier {
     _notify();
     onNeedScroll?.call();
 
-    final storage = MemoryStorage();
-    await storage.loadAll();
-    final personalization = PersonalizationStorage();
-    await personalization.load();
+    final contextDocs = ContextDocService();
+    await contextDocs.loadAll();
 
     final systemPrompt = PromptBuilder.buildMainPrompt(
-      userName: personalization.userName,
-      stylePrompt: personalization.stylePrompt,
-      customPrompt: personalization.customPrompt,
-      userMessage: trimmed,
       now: DateTime.now(),
+      soulContext: contextDocs.cached(ContextDoc.soul),
+      userContext: contextDocs.cached(ContextDoc.user),
+      isFirstMeeting: isFirstMeeting,
     );
 
     final history = buildMessageHistory(
@@ -259,6 +262,7 @@ class ChatController extends ChangeNotifier {
 
     final aiMsg = _messages.last;
     final state = _StreamState();
+    _streamState = state;
     _currentSteps = state.steps;
 
     try {
@@ -275,6 +279,7 @@ class ChatController extends ChangeNotifier {
   void stopStream() {
     _aiStream?.cancel();
     _aiStream = null;
+    _completeUserPrompt('用户取消了当前操作');
     if (_currentSteps != null) {
       finishRunningSteps(_currentSteps!);
     }
@@ -316,9 +321,11 @@ class ChatController extends ChangeNotifier {
       case ToolDoneEvent(:final name):
         final idx = state.steps.lastIndexWhere((s) =>
             s.type == TimelineStepType.tool &&
-            s.label == _toolLabel(name) &&
             s.status == TimelineStepStatus.running);
-        if (idx >= 0) state.steps[idx].status = TimelineStepStatus.done;
+        if (idx >= 0) {
+          state.steps[idx].status = TimelineStepStatus.done;
+          state.steps[idx].label = _toolLabel(name);
+        }
         state.steps.add(TimelineStep(
             label: '思考中', type: TimelineStepType.thinking, status: TimelineStepStatus.running));
         if (name == 'generate_image' || name == 'generate_video') {
@@ -329,9 +336,11 @@ class ChatController extends ChangeNotifier {
       case ToolErrorEvent(:final name):
         final idx = state.steps.lastIndexWhere((s) =>
             s.type == TimelineStepType.tool &&
-            s.label == _toolLabel(name) &&
             s.status == TimelineStepStatus.running);
-        if (idx >= 0) state.steps[idx].status = TimelineStepStatus.error;
+        if (idx >= 0) {
+          state.steps[idx].status = TimelineStepStatus.error;
+          state.steps[idx].label = _toolLabel(name);
+        }
         if (name == 'generate_image' || name == 'generate_video') {
           NotificationService().complete(
               id: name, title: _toolLabel(name), message: '执行失败');
@@ -350,12 +359,67 @@ class ChatController extends ChangeNotifier {
     onNeedScroll?.call();
   }
 
+  // ═══ Ask user handling ═══
+
+  Future<String> _onAskUser(String prompt) async {
+    final state = _streamState;
+    final aiMsg = _messages.isNotEmpty && !_messages.last.isUser ? _messages.last : null;
+    if (state == null || aiMsg == null) {
+      return '无法询问用户：当前不在有效的 AI 响应流程中';
+    }
+
+    state.isWaitingUserInput = true;
+    // 将当前正在运行的工具步骤改写为“等待用户输入”，用户可直接看到阻塞原因
+    final stepIdx = state.steps.lastIndexWhere(
+      (s) => s.type == TimelineStepType.tool && s.status == TimelineStepStatus.running,
+    );
+    if (stepIdx >= 0) {
+      state.steps[stepIdx].label = '等待用户输入';
+    }
+
+    state.buf.write('\n\n---\n💬 $prompt\n\n');
+    aiMsg.text = state.buf.toString();
+    _isLoading = false;
+    _notify();
+    onNeedScroll?.call();
+
+    final completer = Completer<String>();
+    state.userPromptCompleter = completer;
+    return completer.future;
+  }
+
+  void submitUserPromptResponse(String response) {
+    final state = _streamState;
+    if (state == null || state.userPromptCompleter == null) return;
+
+    final trimmed = response.trim();
+    if (trimmed.isEmpty) return;
+
+    _isLoading = true;
+    _completeUserPrompt(trimmed);
+    _notify();
+  }
+
+  void _completeUserPrompt(String response) {
+    final state = _streamState;
+    final completer = state?.userPromptCompleter;
+    if (completer == null || completer.isCompleted) return;
+
+    state!.userPromptCompleter = null;
+    state.isWaitingUserInput = false;
+    completer.complete(response);
+  }
+
   void _onStreamDone(_StreamState state, ChatMessage aiMsg) {
+    // 如果 ask_user 正在等待用户输入，流不能算结束
+    if (state.isWaitingUserInput) return;
+
     finishRunningSteps(state.steps);
     if (state.steps.isNotEmpty && state.steps.last.type == TimelineStepType.thinking) {
       state.steps.last.label = '任务完成';
     }
     _currentSteps = null;
+    _streamState = null;
     aiMsg.isStreaming = false;
     aiMsg.steps = state.steps.isEmpty ? null : List.unmodifiable(state.steps);
     if (aiMsg.text.isEmpty && !state.hasToolCalls) aiMsg.text = '(无响应)';
@@ -367,6 +431,7 @@ class ChatController extends ChangeNotifier {
   void _onStreamError(Object e, _StreamState state, ChatMessage aiMsg) {
     finishRunningSteps(state.steps);
     _currentSteps = null;
+    _streamState = null;
     aiMsg.text = state.buf.isEmpty ? '错误: $e' : '${state.buf.toString()}\n\n错误: $e';
     aiMsg.isStreaming = false;
     aiMsg.steps = state.steps.isEmpty ? null : List.unmodifiable(state.steps);
@@ -383,4 +448,6 @@ class _StreamState {
   final List<TimelineStep> steps = [];
   bool firstChunk = true;
   bool hasToolCalls = false;
+  bool isWaitingUserInput = false;
+  Completer<String>? userPromptCompleter;
 }

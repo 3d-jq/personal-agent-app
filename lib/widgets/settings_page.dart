@@ -3,10 +3,8 @@ import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../core/app_config.dart';
 import '../services/theme_service.dart';
-import '../services/personalization_storage.dart';
 import '../services/update_service.dart';
 import 'model_settings_page.dart';
-import 'personalization_page.dart';
 import 'about_page.dart';
 import 'acknowledgement_view.dart';
 
@@ -16,13 +14,10 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  final _personalization = PersonalizationStorage();
-
   @override
   void initState() {
     super.initState();
     ThemeService().addListener(_rebuild);
-    _personalization.load().then((_) => setState(() {}));
   }
   @override void dispose() { ThemeService().removeListener(_rebuild); super.dispose(); }
   void _rebuild() => setState(() {});
@@ -225,8 +220,7 @@ class _SettingsPageState extends State<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
-          _UserCard(name: _personalization.userName, nc: nc),
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
           _SectionHeader(title: '应用程序', nc: nc),
           _RoundedCard(
             nc: nc,
@@ -241,12 +235,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 HapticFeedback.lightImpact();
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const ModelSettingsView()));
               }),
-            _SettingItem(icon: Icons.tune_outlined, label: '个性化', trailing: _personalization.aiStyle, onTap: () async {
-              HapticFeedback.lightImpact();
-              await Navigator.push(context, MaterialPageRoute(builder: (_) => const PersonalizationView()));
-              await _personalization.load();
-              setState(() {});
-            }),
             ],
           ),
           const SizedBox(height: 20),
@@ -266,31 +254,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ),
           const SizedBox(height: 40),
-        ],
-      ),
-    );
-  }
-}
-
-class _UserCard extends StatelessWidget {
-  final String name;
-  final AgentColors nc;
-  const _UserCard({required this.name, required this.nc});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: nc.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 1))],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: nc.textPrimary)),
-          ),
         ],
       ),
     );

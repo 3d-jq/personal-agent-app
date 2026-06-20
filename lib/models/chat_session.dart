@@ -1,4 +1,3 @@
-import 'dart:convert';
 import '../models/chat_message.dart';
 
 class ChatSession {
@@ -21,10 +20,7 @@ class ChatSession {
   Map<String, dynamic> toJson() => {
     'id': id,
     'title': title,
-    'messages': messages.map((m) => {
-      'text': m.text,
-      'isUser': m.isUser,
-    }).toList(),
+    'messages': messages.map((m) => m.toJson()).toList(),
     'createdAt': createdAt.millisecondsSinceEpoch,
     'updatedAt': updatedAt.millisecondsSinceEpoch,
   };
@@ -34,10 +30,7 @@ class ChatSession {
       id: json['id'] as String,
       title: json['title'] as String? ?? '新对话',
       messages: (json['messages'] as List?)
-          ?.map((m) => ChatMessage(
-                text: (m as Map)['text'] as String? ?? '',
-                isUser: m['isUser'] as bool? ?? false,
-              ))
+          ?.map((m) => ChatMessage.fromJson(m as Map<String, dynamic>))
           .toList() ?? [],
       createdAt: DateTime.fromMillisecondsSinceEpoch(json['createdAt'] as int? ?? 0),
       updatedAt: DateTime.fromMillisecondsSinceEpoch(json['updatedAt'] as int? ?? 0),

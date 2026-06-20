@@ -51,6 +51,28 @@ class ChatMessage extends ChangeNotifier {
 
  /// 正文已天然干净（工具状态走独立事件），无需再剥离标记。
   String get cleanText => _text;
+
+  Map<String, dynamic> toJson() => {
+    'text': _text,
+    'isUser': isUser,
+    'isStreaming': _isStreaming,
+    'steps': _steps?.map((s) => s.toJson()).toList(),
+    'speakerId': speakerId,
+    'mentions': mentions,
+  };
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      text: json['text'] as String? ?? '',
+      isUser: json['isUser'] as bool? ?? false,
+      isStreaming: json['isStreaming'] as bool? ?? false,
+      steps: (json['steps'] as List?)
+          ?.map((s) => TimelineStep.fromJson(s as Map<String, dynamic>))
+          .toList(),
+      speakerId: json['speakerId'] as String?,
+      mentions: (json['mentions'] as List?)?.cast<String>() ?? const [],
+    );
+  }
 }
 
 // ── Timeline ──
@@ -69,4 +91,18 @@ class TimelineStep {
     required this.type,
     required this.status,
   });
+
+  Map<String, dynamic> toJson() => {
+    'label': label,
+    'type': type.name,
+    'status': status.name,
+  };
+
+  factory TimelineStep.fromJson(Map<String, dynamic> json) {
+    return TimelineStep(
+      label: json['label'] as String? ?? '',
+      type: TimelineStepType.values.byName(json['type'] as String? ?? 'thinking'),
+      status: TimelineStepStatus.values.byName(json['status'] as String? ?? 'running'),
+    );
+  }
 }

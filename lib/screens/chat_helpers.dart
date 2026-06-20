@@ -20,11 +20,10 @@ void registerAllTools(ToolRegistry registry) {
   final agnesKey = CryptoUtil.decrypt(dotenv.env['AGNES_API_KEY'] ?? '');
   registry.register(AgnesImageTool()..apiKey = agnesKey);
   registry.register(AgnesVideoTool()..apiKey = agnesKey);
-  registry.register(SaveMemoryTool());
-  registry.register(ManageMemoryTool());
   registry.register(SaveNoteTool());
   registry.register(ManageNoteTool());
   registry.register(CalendarTool());
+  registry.register(ContextDocTool());
 
   // 工具发现层（本身也是预加载工具）
   registry.register(ToolSearchTool(registry: registry));
@@ -46,15 +45,15 @@ String toolLabel(String name) {
     case 'clipboard': return '剪贴板';
     case 'generate_image': return '生成图片';
     case 'generate_video': return '生成视频';
-    case 'save_memory': return '记忆';
-    case 'manage_memory': return '管理记忆';
     case 'save_note': return '保存笔记';
     case 'manage_notes': return '管理笔记';
     case 'calendar': return '日历';
     case 'ai_daily': return 'AI日报';
+    case 'context_doc': return '上下文文档';
     case 'tool_search': return '发现工具';
     case 'defer_execute_tool': return '调用延迟工具';
     case 'get_current_time': return '获取时间';
+    case 'ask_user': return '询问用户';
     default: return name;
   }
 }
