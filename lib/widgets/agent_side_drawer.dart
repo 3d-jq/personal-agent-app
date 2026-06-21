@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import '../core/app_animations.dart';
 import '../models/chat_session.dart';
 import '../services/export_service.dart';
 import 'notes_page.dart';
@@ -36,7 +37,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
   void _openPage(Widget page) {
     HapticFeedback.lightImpact();
     Navigator.of(context).pop();
-    Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+    Navigator.push(context, SlideFadeRoute(page: page));
   }
 
   @override

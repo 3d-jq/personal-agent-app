@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/agent_colors.dart';
+import '../../core/app_animations.dart';
 import '../../models/agent.dart';
 import '../../models/agent_group.dart';
 import '../../models/chat_message.dart';
@@ -109,9 +110,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final g = _group;
     if (g == null) return;
     final result = await Navigator.of(context).push<(AgentGroup, List<String>, List<String>)>(
-      MaterialPageRoute(
-        builder: (_) => GroupEditPage(existing: g),
-        fullscreenDialog: true,
+      SlideFadeRoute(
+        page: GroupEditPage(existing: g),
       ),
     );
     if (result == null) return;

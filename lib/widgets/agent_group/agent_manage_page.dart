@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/agent_colors.dart';
+import '../../core/app_animations.dart';
 import '../../models/agent.dart';
 import '../../services/agent_group_storage.dart';
 import '../../services/agent_storage.dart';
@@ -32,9 +33,8 @@ class _AgentManagePageState extends State<AgentManagePage> {
 
   Future<void> _editOrCreate({Agent? existing}) async {
     final result = await Navigator.of(context).push<Agent>(
-      MaterialPageRoute(
-        builder: (_) => AgentEditPage(existing: existing),
-        fullscreenDialog: true,
+      SlideFadeRoute(
+        page: AgentEditPage(existing: existing),
       ),
     );
     if (result != null) {

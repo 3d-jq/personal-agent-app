@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/agent_colors.dart';
+import 'core/app_animations.dart';
 import 'screens/chat_screen.dart';
 import 'services/theme_service.dart';
 import 'widgets/ai_settings_sheet.dart';
@@ -23,9 +24,9 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _themeAnimCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+    _themeAnimCtrl = AnimationController(vsync: this, duration: AppDurations.slow);
     _bgColorAnim = ColorTween(begin: animatedBgNotifier.value, end: animatedBgNotifier.value).animate(
-      CurvedAnimation(parent: _themeAnimCtrl, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _themeAnimCtrl, curve: AppCurves.color),
     );
     _themeAnimCtrl.addListener(() {
       animatedBgNotifier.value = _bgColorAnim.value ?? animatedBgNotifier.value;
@@ -60,7 +61,7 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
     final newColor = _targetBgColor;
     final oldColor = animatedBgNotifier.value;
     _bgColorAnim = ColorTween(begin: oldColor, end: newColor).animate(
-      CurvedAnimation(parent: _themeAnimCtrl, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _themeAnimCtrl, curve: AppCurves.color),
     );
     _themeAnimCtrl.forward(from: 0.0);
     setState(() {});
