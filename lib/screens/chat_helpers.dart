@@ -26,6 +26,7 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(CreateRichNoteTool());
   registry.register(AiDailyTool());
   registry.register(ContextDocTool());
+  registry.register(VirtualFSTool());
 
   // 工具发现层（本身也是预加载工具）
   registry.register(ToolSearchTool(registry: registry));
@@ -52,6 +53,7 @@ String toolLabel(String name) {
     case 'calendar': return '日历';
     case 'ai_daily': return 'AI日报';
     case 'context_doc': return '上下文文档';
+    case 'virtual_fs': return '文件系统';
     case 'task_plan': return '任务计划';
     case 'tool_search': return '发现工具';
     case 'defer_execute_tool': return '调用延迟工具';

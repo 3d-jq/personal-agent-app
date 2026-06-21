@@ -18,3 +18,4 @@ export 'save_note_tool.dart';
 export 'manage_note_tool.dart';
 export 'ai_daily_tool.dart';
 export 'calendar_tool.dart';
+export 'virtual_fs_tool.dart';
