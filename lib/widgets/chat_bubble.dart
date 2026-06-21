@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/chat_message.dart';
 import '../core/agent_colors.dart';
+import '../core/app_animations.dart';
 import 'inline_content.dart';
 import 'timeline_view.dart';
 import 'shimmer_text.dart';
@@ -60,31 +61,35 @@ class ChatBubble extends StatelessWidget {
 
   Widget _buildImagePreview(BuildContext context, String path, Color bgColor, AgentColors nc) {
     final file = File(path);
-    return GestureDetector(
+    final heroTag = 'user_image_${path.hashCode}';
+    return PressableScale(
       onTap: () {
         HapticFeedback.lightImpact();
-        Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => _UserImagePreview(path: path)),
-        );
+        Navigator.of(context).push(SlideFadeRoute(
+          page: _UserImagePreview(path: path, heroTag: heroTag),
+        ));
       },
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 240),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Image.file(file, fit: BoxFit.cover,
-          width: 240,
-          errorBuilder: (_, _, _) => Container(
-            width: 240, height: 120,
-            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(16)),
-            child: Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.broken_image_outlined, size: 32, color: nc.textSecondary.withValues(alpha: 0.4)),
-                const SizedBox(height: 4),
-                Text('图片加载失败', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
-              ]),
+      child: Hero(
+        tag: heroTag,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 240),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Image.file(file, fit: BoxFit.cover,
+            width: 240,
+            errorBuilder: (_, _, _) => Container(
+              width: 240, height: 120,
+              decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(16)),
+              child: Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.broken_image_outlined, size: 32, color: nc.textSecondary.withValues(alpha: 0.4)),
+                  const SizedBox(height: 4),
+                  Text('图片加载失败', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
+                ]),
+              ),
             ),
           ),
         ),
@@ -351,7 +356,8 @@ class _AIBubbleState extends State<_AIBubble> with SingleTickerProviderStateMixi
 
 class _UserImagePreview extends StatelessWidget {
   final String path;
-  const _UserImagePreview({required this.path});
+  final String heroTag;
+  const _UserImagePreview({required this.path, required this.heroTag});
 
   @override
   Widget build(BuildContext context) {
@@ -366,7 +372,10 @@ class _UserImagePreview extends StatelessWidget {
         minScale: 0.5,
         maxScale: 4.0,
         child: Center(
-          child: Image.file(File(path), fit: BoxFit.contain),
+          child: Hero(
+            tag: heroTag,
+            child: Image.file(File(path), fit: BoxFit.contain),
+          ),
         ),
       ),
     );

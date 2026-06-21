@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/agent_colors.dart';
+import '../../core/app_animations.dart';
 import '../../models/agent.dart';
 import '../../models/agent_group.dart';
 import '../../services/agent_group_storage.dart';
@@ -36,17 +37,16 @@ class _GroupListPageState extends State<GroupListPage> {
   }
 
   Future<void> _openGroup(AgentGroup g) async {
-    await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => GroupChatScreen(groupId: g.id),
+    await Navigator.of(context).push(SlideFadeRoute(
+      page: GroupChatScreen(groupId: g.id),
     ));
     _load();
   }
 
   Future<void> _createGroup() async {
     final result = await Navigator.of(context).push<(AgentGroup, List<String>, List<String>)>(
-      MaterialPageRoute(
-        builder: (_) => const GroupEditPage(),
-        fullscreenDialog: true,
+      SlideFadeRoute(
+        page: const GroupEditPage(),
       ),
     );
     if (result != null) {
@@ -93,7 +93,7 @@ class _GroupListPageState extends State<GroupListPage> {
             tooltip: 'Agent 库',
             icon: Icon(Icons.smart_toy_outlined, color: nc.textPrimary),
             onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AgentManagePage())),
+                SlideFadeRoute(page: const AgentManagePage())),
           ),
           IconButton(
             icon: Icon(Icons.add, color: nc.textPrimary),

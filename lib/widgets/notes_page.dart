@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../core/agent_colors.dart';
+import '../core/app_animations.dart';
 import '../models/note.dart';
 import '../services/export_service.dart';
 import '../services/note_export_service.dart';
@@ -80,10 +81,13 @@ class _NotesPageState extends State<NotesPage> {
                   itemCount: _notes.length,
                   itemBuilder: (_, i) => _noteCard(_notes[i], nc),
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openEditor(null),
-        backgroundColor: nc.success,
-        child: Icon(Icons.add, color: Colors.white),
+      floatingActionButton: PressableScale(
+        onTap: () => _openEditor(null),
+        child: FloatingActionButton(
+          onPressed: null,
+          backgroundColor: nc.success,
+          child: Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }
@@ -106,10 +110,12 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   Widget _noteCard(Note note, AgentColors nc) {
-    return GestureDetector(
+    return PressableScale(
       onTap: () {
         HapticFeedback.lightImpact();
-        Navigator.push(context, MaterialPageRoute(builder: (_) => _NoteDetail(note: note, onEdit: () => _openEditor(note))));
+        Navigator.push(context, SlideFadeRoute(
+          page: _NoteDetail(note: note, onEdit: () => _openEditor(note)),
+        ));
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
@@ -198,8 +204,8 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   void _openEditor(Note? existing) {
-    Navigator.push(context, MaterialPageRoute(
-      builder: (_) => _NoteEditor(
+    Navigator.push(context, SlideFadeRoute(
+      page: _NoteEditor(
         note: existing,
         onSaved: (note) async {
           if (existing != null) {

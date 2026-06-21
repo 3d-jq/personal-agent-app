@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
 import '../core/agent_colors.dart';
+import '../core/app_animations.dart';
 
 /// Build inline content: split text by markdown image patterns,
 /// render text as MarkdownBody, and images as Image.network inline.
@@ -41,38 +42,42 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
   final isLocal = url.startsWith('file://');
   final filePath = isLocal ? url.replaceFirst('file://', '') : url;
   final isVideo = filePath.endsWith('.mp4') || filePath.endsWith('.mov') || filePath.endsWith('.webm');
+  final heroTag = 'ai_media_${url.hashCode}';
 
   if (isVideo) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: GestureDetector(
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => _FullscreenVideo(filePath: filePath)),
-        ),
-        child: AspectRatio(
-          aspectRatio: 16 / 9,
-          child: Container(
-            decoration: BoxDecoration(
-              color: nc.primarySurface,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 56, height: 56,
-                  decoration: const BoxDecoration(color: Color(0xAA000000), shape: BoxShape.circle),
-                  child: const Icon(Icons.play_arrow_rounded, size: 30, color: Colors.white),
-                ),
-                Positioned(
-                  bottom: 8, right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0xAA000000), borderRadius: BorderRadius.circular(6)),
-                    child: const Text('视频', style: TextStyle(fontSize: 11, color: Colors.white70)),
+      child: PressableScale(
+        onTap: () => Navigator.of(context).push(SlideFadeRoute(
+          page: _FullscreenVideo(filePath: filePath, heroTag: heroTag),
+        )),
+        child: Hero(
+          tag: heroTag,
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Container(
+              decoration: BoxDecoration(
+                color: nc.primarySurface,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 56, height: 56,
+                    decoration: const BoxDecoration(color: Color(0xAA000000), shape: BoxShape.circle),
+                    child: const Icon(Icons.play_arrow_rounded, size: 30, color: Colors.white),
                   ),
-                ),
-              ],
+                  Positioned(
+                    bottom: 8, right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: const Color(0xAA000000), borderRadius: BorderRadius.circular(6)),
+                      child: const Text('视频', style: TextStyle(fontSize: 11, color: Colors.white70)),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -82,50 +87,53 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
 
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
-    child: GestureDetector(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => _FullscreenImage(url: url)),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: isLocal
-            ? Image.file(File(filePath), fit: BoxFit.contain, width: double.infinity,
-                errorBuilder: (ctx, err, stack) => Container(
-                  height: 160, decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(12)),
-                  child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.broken_image_outlined, size: 32, color: nc.textSecondary.withValues(alpha: 0.3)),
-                    const SizedBox(height: 8),
-                    Text('加载失败', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
-                  ])),
-                ),
-              )
-            : CachedNetworkImage(
-                imageUrl: url,
-                fit: BoxFit.contain,
-                width: double.infinity,
-                memCacheWidth: 1080,
-                placeholder: (ctx, url) => Container(
-                  height: 200,
-                  decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(12)),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+    child: PressableScale(
+      onTap: () => Navigator.of(context).push(SlideFadeRoute(
+        page: _FullscreenImage(url: url, heroTag: heroTag),
+      )),
+      child: Hero(
+        tag: heroTag,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: isLocal
+              ? Image.file(File(filePath), fit: BoxFit.contain, width: double.infinity,
+                  errorBuilder: (ctx, err, stack) => Container(
+                    height: 160, decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(12)),
                     child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.image_outlined, size: 28, color: nc.textSecondary.withValues(alpha: 0.25)),
-                      const SizedBox(height: 6),
-                      Text('加载中…', style: TextStyle(fontSize: 13, color: nc.textSecondary.withValues(alpha: 0.4), fontWeight: FontWeight.w500)),
+                      Icon(Icons.broken_image_outlined, size: 32, color: nc.textSecondary.withValues(alpha: 0.3)),
+                      const SizedBox(height: 8),
+                      Text('加载失败', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
+                    ])),
+                  ),
+                )
+              : CachedNetworkImage(
+                  imageUrl: url,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  memCacheWidth: 1080,
+                  placeholder: (ctx, url) => Container(
+                    height: 200,
+                    decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(12)),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.image_outlined, size: 28, color: nc.textSecondary.withValues(alpha: 0.25)),
+                        const SizedBox(height: 6),
+                        Text('加载中…', style: TextStyle(fontSize: 13, color: nc.textSecondary.withValues(alpha: 0.4), fontWeight: FontWeight.w500)),
+                      ])),
+                    ),
+                  ),
+                  errorWidget: (ctx, url, error) => Container(
+                    height: 160,
+                    decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(12)),
+                    child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.broken_image_outlined, size: 32, color: nc.textSecondary.withValues(alpha: 0.3)),
+                      const SizedBox(height: 8),
+                      Text('加载失败', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
                     ])),
                   ),
                 ),
-                errorWidget: (ctx, url, error) => Container(
-                  height: 160,
-                  decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(12)),
-                  child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.broken_image_outlined, size: 32, color: nc.textSecondary.withValues(alpha: 0.3)),
-                    const SizedBox(height: 8),
-                    Text('加载失败', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
-                  ])),
-                ),
-              ),
+        ),
       ),
     ),
   );
@@ -234,7 +242,8 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
 
 class _FullscreenImage extends StatefulWidget {
   final String url;
-  const _FullscreenImage({required this.url});
+  final String heroTag;
+  const _FullscreenImage({required this.url, required this.heroTag});
 
   @override
   State<_FullscreenImage> createState() => _FullscreenImageState();
@@ -324,7 +333,7 @@ class _FullscreenImageState extends State<_FullscreenImage> {
       body: InteractiveViewer(
         minScale: 0.5,
         maxScale: 4.0,
-        child: Center(child: _buildImage()),
+        child: Center(child: Hero(tag: widget.heroTag, child: _buildImage())),
       ),
     );
   }
@@ -334,7 +343,8 @@ class _FullscreenImageState extends State<_FullscreenImage> {
 
 class _FullscreenVideo extends StatefulWidget {
   final String filePath;
-  const _FullscreenVideo({required this.filePath});
+  final String heroTag;
+  const _FullscreenVideo({required this.filePath, required this.heroTag});
 
   @override
   State<_FullscreenVideo> createState() => _FullscreenVideoState();
@@ -385,53 +395,56 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.videocam_outlined, size: 64, color: Colors.white38),
-                  const SizedBox(height: 16),
-                  Text('视频文件', style: TextStyle(color: Colors.white70, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.filePath.split(Platform.pathSeparator).last,
-                    style: TextStyle(color: Colors.white38, fontSize: 13),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(32),
-            child: GestureDetector(
-              onTap: () async {
-                try {
-                  await MethodChannel('com.example/open_file').invokeMethod('openFile', {'path': widget.filePath});
-                } catch (e) {
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('无法播放: $e\n请安装视频播放器应用')),
-                  );
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(24),
+      body: Hero(
+        tag: widget.heroTag,
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.videocam_outlined, size: 64, color: Colors.white38),
+                    const SizedBox(height: 16),
+                    Text('视频文件', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.filePath.split(Platform.pathSeparator).last,
+                      style: TextStyle(color: Colors.white38, fontSize: 13),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: const [
-                  Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
-                  SizedBox(width: 8),
-                  Text('用播放器打开', style: TextStyle(color: Colors.white, fontSize: 15)),
-                ]),
               ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(32),
+              child: GestureDetector(
+                onTap: () async {
+                  try {
+                    await MethodChannel('com.example/open_file').invokeMethod('openFile', {'path': widget.filePath});
+                  } catch (e) {
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('无法播放: $e\n请安装视频播放器应用')),
+                    );
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: const [
+                    Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                    SizedBox(width: 8),
+                    Text('用播放器打开', style: TextStyle(color: Colors.white, fontSize: 15)),
+                  ]),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

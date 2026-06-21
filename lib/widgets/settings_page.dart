@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import '../core/app_animations.dart';
 import '../core/app_config.dart';
 import '../services/theme_service.dart';
 import '../services/update_service.dart';
@@ -243,7 +244,7 @@ class _SettingsPageState extends State<SettingsPage> {
               }),
               _SettingItem(icon: Icons.layers_outlined, label: '模型', trailing: '管理', onTap: () {
                 HapticFeedback.lightImpact();
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const ModelSettingsView()));
+                Navigator.push(context, SlideFadeRoute(page: const ModelSettingsView()));
               }),
             ],
           ),
@@ -255,11 +256,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 _SettingItem(label: '检查更新', trailing: AppConfig.displayVersion, onTap: () => _checkUpdate(context, nc)),
               _SettingItem(label: '关于', onTap: () {
                 HapticFeedback.lightImpact();
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutView()));
+                Navigator.push(context, SlideFadeRoute(page: const AboutView()));
               }),
               _SettingItem(label: '致谢', onTap: () {
                 HapticFeedback.lightImpact();
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const AcknowledgementView()));
+                Navigator.push(context, SlideFadeRoute(page: const AcknowledgementView()));
               }),
             ],
           ),
