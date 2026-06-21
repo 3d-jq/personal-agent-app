@@ -10,11 +10,11 @@ import '../tools/tools.dart';
 ///   需要时由模型先调用 tool_search 查找，再用 defer_execute_tool 执行。
 void registerAllTools(ToolRegistry registry) {
   // 高频基础工具（预加载）
-  registry.register(FileTool());
-  registry.register(ClipboardTool());
+  registry.register(TaskPlanTool());
   registry.register(ReminderTool());
   registry.register(WebFetchTool());
   registry.register(WeatherTool()..apiKey = CryptoUtil.decrypt(dotenv.env['GAODE_API_KEY'] ?? ''));
+  registry.register(LocationTool());
   registry.register(SearxngSearchTool());
   registry.register(TavilySearchTool());
   final agnesKey = CryptoUtil.decrypt(dotenv.env['AGNES_API_KEY'] ?? '');
@@ -22,7 +22,8 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(AgnesVideoTool()..apiKey = agnesKey);
   registry.register(SaveNoteTool());
   registry.register(ManageNoteTool());
-  registry.register(CalendarTool());
+  registry.register(CreateRichNoteTool());
+  registry.register(AiDailyTool());
   registry.register(ContextDocTool());
 
   // 工具发现层（本身也是预加载工具）
@@ -30,26 +31,27 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(DeferExecuteTool(registry: registry));
 
   // 低频/场景化工具（按需发现）
-  registry.registerDiscoverable(AiDailyTool());
+  registry.registerDiscoverable(CalendarTool());
 }
 
 /// 工具名称 → 中文标签
 String toolLabel(String name) {
   switch (name) {
     case 'weather': return '查询天气';
+    case 'location': return '获取位置';
     case 'searxng_search': return 'SearXNG搜索';
     case 'tavily_search': return 'Tavily搜索';
     case 'web_fetch': return '获取网页';
     case 'reminder': return '设置提醒';
-    case 'file_manager': return '文件管理';
-    case 'clipboard': return '剪贴板';
     case 'generate_image': return '生成图片';
     case 'generate_video': return '生成视频';
     case 'save_note': return '保存笔记';
     case 'manage_notes': return '管理笔记';
+    case 'create_rich_note': return '图文笔记';
     case 'calendar': return '日历';
     case 'ai_daily': return 'AI日报';
     case 'context_doc': return '上下文文档';
+    case 'task_plan': return '任务计划';
     case 'tool_search': return '发现工具';
     case 'defer_execute_tool': return '调用延迟工具';
     case 'get_current_time': return '获取时间';

@@ -15,10 +15,19 @@ class TextChunkEvent extends ChatStreamEvent {
   const TextChunkEvent(this.text);
 }
 
+/// 大模型内部推理内容（如 DeepSeek-R1 的 reasoning_content）。
+/// 不显示在正文中，仅作为思考步的 detail 展示在时间线面板里。
+class ThinkingChunkEvent extends ChatStreamEvent {
+  final String text;
+  const ThinkingChunkEvent(this.text);
+}
+
 /// 工具调用开始。
 class ToolStartEvent extends ChatStreamEvent {
   final String name;
-  const ToolStartEvent(this.name);
+  /// 本轮并发执行的工具总数（>1 时表示并行执行）。
+  final int concurrentCount;
+  const ToolStartEvent(this.name, {this.concurrentCount = 1});
 }
 
 /// 工具调用成功完成。

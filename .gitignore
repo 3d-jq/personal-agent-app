@@ -88,3 +88,7 @@ app.*.map.json
 /linux/build/
 /macos/build/
 /windows/build/
+
+# Windows artifacts
+nul
+Dprogrampersonal_agent_appassetsagentscounselor.md

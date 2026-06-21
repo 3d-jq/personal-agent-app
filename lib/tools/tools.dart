@@ -1,6 +1,9 @@
 export 'base_tool.dart';
 export 'ask_user_tool.dart';
 export 'context_doc_tool.dart';
+export 'create_rich_note_tool.dart';
+export 'location_tool.dart';
+export 'task_plan_tool.dart';
 export 'tool_registry.dart';
 export 'tool_search_tool.dart';
 export 'defer_execute_tool.dart';
@@ -9,8 +12,6 @@ export 'searxng_search_tool.dart';
 export 'tavily_search_tool.dart';
 export 'web_fetch_tool.dart';
 export 'reminder_tool.dart';
-export 'file_tool.dart';
-export 'clipboard_tool.dart';
 export 'agnes_image_tool.dart';
 export 'agnes_video_tool.dart';
 export 'save_note_tool.dart';

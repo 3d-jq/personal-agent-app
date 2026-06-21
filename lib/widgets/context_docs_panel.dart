@@ -16,6 +16,7 @@ class ContextDocViewerPage extends StatelessWidget {
       ContextDoc.user => '用户资料',
       ContextDoc.agent => '任务经验',
       ContextDoc.memory => '长期记忆',
+      ContextDoc.knowledge => '知识库',
     };
   }
 
@@ -25,6 +26,7 @@ class ContextDocViewerPage extends StatelessWidget {
       ContextDoc.user => Icons.person_outline,
       ContextDoc.agent => Icons.lightbulb_outline,
       ContextDoc.memory => Icons.bookmark_outline,
+      ContextDoc.knowledge => Icons.menu_book_outlined,
     };
   }
 
@@ -34,6 +36,7 @@ class ContextDocViewerPage extends StatelessWidget {
       ContextDoc.user => '你的信息与偏好',
       ContextDoc.agent => '任务经验与技巧',
       ContextDoc.memory => '跨场景长期记忆',
+      ContextDoc.knowledge => '高考志愿知识库',
     };
   }
 

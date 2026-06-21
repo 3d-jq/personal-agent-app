@@ -9,6 +9,7 @@ import '../../models/chat_message.dart';
 import '../../services/agent_group_storage.dart';
 import '../../services/agent_runner.dart';
 import '../../services/agent_storage.dart';
+import '../../services/ai_service.dart';
 import '../../services/chat_stream_event.dart';
 import '../../services/connectivity_service.dart';
 import '../../tools/tools.dart';
@@ -57,6 +58,19 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _inputCtrl.dispose();
+    _inputFocus.dispose();
+    _scrollCtrl.dispose();
+    _scrollTimer?.cancel();
+    for (final sub in _activeSubs) {
+      sub.cancel();
+    }
+    _activeSubs.clear();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -123,15 +137,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   /// 滚动节流：最多每 80ms 滚一次
   void _scrollDown() {
-    if (_scrollTimer?.isActive ?? false) return;
+    _scrollTimer?.cancel();
     _scrollTimer = Timer(const Duration(milliseconds: 80), () {
-      if (_scrollCtrl.hasClients) {
-        _scrollCtrl.animateTo(
-          _scrollCtrl.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
-        );
-      }
+      if (!mounted || !_scrollCtrl.hasClients) return;
+      _scrollCtrl.animateTo(
+        _scrollCtrl.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+      );
     });
   }
 
@@ -158,13 +171,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
     _scrollDown();
 
-    // 没 @ 任何人 → 协调者自动响应
-    if (mentionAgents.isEmpty && _coordinator != null) {
-      mentionAgents.add(_coordinator!);
-    } else if (mentionAgents.isEmpty) {
-      await _saveGroup();
-      return;
-    }
+    // 是否直接 @ 了某个 Agent
+    final hasDirectMentions = mentionAgents.isNotEmpty;
 
     if (!await ConnectivityService().check()) {
       setState(() {
@@ -184,54 +192,107 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       return;
     }
 
-    // ── 协作引擎 ──
+    // ── 协作引擎（Manager 模式）──
     setState(() => _busy = true);
     _stopped = false;
     try {
       final handled = <String>{};
-      const maxRounds = 10;
-      var rounds = 0;
+      const maxRounds = 3;
 
-      // 第一轮：并发
-      final firstRound = <Agent>[...mentionAgents];
-      for (final a in firstRound) { handled.add(a.id); }
-      final firstRoundResults = await _runBatch(firstRound);
-      if (_stopped) return;
-
-      // 扫描 @ 接力
-      final nextPending = <Agent>[];
-      for (var i = 0; i < firstRoundResults.length; i++) {
-        if (_stopped) break;
-        final nextMentionNames = parseMentions(firstRoundResults[i], _members);
-        for (final name in nextMentionNames) {
-          final nextAgent = _byName[name];
-          if (nextAgent != null && !handled.contains(nextAgent.id)) {
-            nextPending.add(nextAgent);
-          }
+      if (hasDirectMentions) {
+        // 有 @ 点名 → 直接让被点的 Agent 回复（不接力）
+        for (final a in mentionAgents) {
+          if (_stopped) break;
+          handled.add(a.id);
+          await _runOneAndAppend(a);
         }
-      }
+      } else {
+        // 没 @ 点名 → Manager 选人
+        final managerAgent = _coordinator ?? mentionAgents.firstOrNull;
+        if (managerAgent == null) return;
 
-      // 串行接力
-      while (nextPending.isNotEmpty && rounds < maxRounds && !_stopped) {
-        rounds++;
-        final agent = nextPending.removeAt(0);
-        if (handled.contains(agent.id)) continue;
-        handled.add(agent.id);
+        final mentionNames = <String>[];
+        for (var round = 0; round < maxRounds && !_stopped; round++) {
+          // Manager 判断谁该发言
+          final nextName = await _managerPickSpeaker(managerAgent, mentionNames);
+          if (nextName == null || nextName == 'STOP') break;
 
-        final results = await _runBatch([agent]);
-        if (_stopped || results.isEmpty) break;
+          final nextAgent = _byName[nextName];
+          if (nextAgent == null || handled.contains(nextAgent.id)) continue;
+          handled.add(nextAgent.id);
+          mentionNames.add(nextName);
 
-        final nextMentionNames = parseMentions(results.first, _members);
-        for (final name in nextMentionNames) {
-          final nextAgent = _byName[name];
-          if (nextAgent != null && !handled.contains(nextAgent.id)) {
-            nextPending.add(nextAgent);
-          }
+          await _runOneAndAppend(nextAgent);
         }
       }
     } finally {
       setState(() => _busy = false);
       await _saveGroup();
+    }
+  }
+
+  /// 执行一个 Agent（_runOneAgent 已负责消息的创建与渲染）
+  Future<void> _runOneAndAppend(Agent agent) async {
+    await _runOneAgent(agent);
+  }
+
+  /// Manager 判断下一位发言的 Agent 名字，返回 null / 'STOP' 表示无需再发言。
+  ///
+  /// 用一个轻量 LLM 调用，根据用户消息 + 已有对话 + 各 Agent 的角色描述，
+  /// 选出最适合接下来回复的 Agent。
+  Future<String?> _managerPickSpeaker(Agent manager, List<String> alreadySpoken) async {
+    final vendor = _aiSettings.selectedVendor ??
+        (_aiSettings.vendors.isNotEmpty ? _aiSettings.vendors.first : null);
+    if (vendor == null || vendor.apiKey.isEmpty) return null;
+
+    // 排除已发言和 Manager 自己
+    final candidates = _members
+        .where((a) => a.id != manager.id && !alreadySpoken.contains(a.name))
+        .toList();
+    if (candidates.isEmpty) return 'STOP';
+
+    final roleList = candidates
+        .map((a) => '- ${a.name}：${a.role.isNotEmpty ? a.role : '通用助手'}')
+        .join('\n');
+
+    final prompt = '''你是「${manager.name}」，群的协调者。
+根据用户的消息和已有对话，判断哪位成员最适合回复。
+只能从下面列表中选择一人，或回复 STOP 表示不需要更多回复。
+
+【可选成员】
+$roleList
+
+【已有回复的成员】
+${alreadySpoken.isEmpty ? '(暂无)' : alreadySpoken.join('、')}
+
+【用户的消息 + 对话】
+${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}').join('\n')}
+
+请只回复一个名字或 STOP：''';
+
+    try {
+      final ai = AIService(
+        baseUrl: vendor.baseUrl,
+        apiKey: vendor.apiKey,
+        providerName: vendor.name,
+        model: vendor.model,
+        maxTokens: 50,
+      );
+      final buf = StringBuffer();
+      await for (final event in ai.sendMessageStream([
+        {'role': 'user', 'content': prompt},
+      ])) {
+        if (event is TextChunkEvent) buf.write(event.text);
+      }
+      final choice = buf.toString().trim();
+      // 匹配候选名字
+      for (final c in candidates) {
+        if (choice.contains(c.name)) return c.name;
+      }
+      if (choice.toUpperCase().contains('STOP')) return 'STOP';
+      return null;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -273,7 +334,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
     final buf = StringBuffer();
     List<TimelineStep>? currentSteps;
-    late final StreamSubscription<ChatStreamEvent> sub;
+    StreamSubscription<ChatStreamEvent>? sub;
     try {
       final history = _messages.where((m) => m != placeholder).toList();
       final stream = _runner.run(
@@ -285,30 +346,49 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         memberRoles: {for (final a in _members) a.name: a.role},
         groupName: _group?.name ?? '',
         groupDesc: _group?.description ?? '',
+        thinkingEffort: _aiSettings.thinkingEffort,
       );
       final completer = Completer<void>();
       sub = stream.listen(
         (event) {
           switch (event) {
+            case ThinkingChunkEvent(:final text):
+              // 大模型内部推理，群聊中暂不展示细节
+              break;
             case TextChunkEvent(:final text):
               buf.write(text);
               break;
-            case ToolStartEvent(:final name):
+            case ToolStartEvent(:final name, :final concurrentCount):
               currentSteps ??= [];
-              finishRunningSteps(currentSteps!);
-              currentSteps!.add(TimelineStep(label: toolLabel(name), type: TimelineStepType.tool, status: TimelineStepStatus.running));
+              // 只结束思考步骤，不影响正在并行执行的工具步骤
+              for (final s in currentSteps!) {
+                if (s.type == TimelineStepType.thinking && s.status == TimelineStepStatus.running) {
+                  s.status = TimelineStepStatus.done;
+                }
+              }
+              final suffix = concurrentCount > 1 ? ' ×$concurrentCount' : '';
+              currentSteps!.add(TimelineStep(
+                  label: '${toolLabel(name)}$suffix',
+                  type: TimelineStepType.tool,
+                  status: TimelineStepStatus.running,
+                  detail: '工具: $name'));
               break;
             case ToolDoneEvent(:final name):
               if (currentSteps != null) {
-                final idx = currentSteps!.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.label == toolLabel(name) && s.status == TimelineStepStatus.running);
-                if (idx >= 0) currentSteps![idx].status = TimelineStepStatus.done;
-                currentSteps!.add(TimelineStep(label: '思考中', type: TimelineStepType.thinking, status: TimelineStepStatus.running));
+                final idx = currentSteps!.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.detail == '工具: $name' && s.status == TimelineStepStatus.running);
+                if (idx >= 0) {
+                  currentSteps![idx].status = TimelineStepStatus.done;
+                  currentSteps![idx].detail = '执行成功';
+                }
               }
               break;
-            case ToolErrorEvent(:final name):
+            case ToolErrorEvent(:final name, :final message):
               if (currentSteps != null) {
-                final idx = currentSteps!.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.label == toolLabel(name) && s.status == TimelineStepStatus.running);
-                if (idx >= 0) currentSteps![idx].status = TimelineStepStatus.error;
+                final idx = currentSteps!.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.detail == '工具: $name' && s.status == TimelineStepStatus.running);
+                if (idx >= 0) {
+                  currentSteps![idx].status = TimelineStepStatus.error;
+                  currentSteps![idx].detail = message;
+                }
               }
               break;
             case ToolMediaEvent(:final url):
@@ -320,7 +400,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           }
           placeholder.text = buf.toString();
           placeholder.steps = currentSteps;
-          setState(() {});
+          if (mounted) setState(() {});
           _scrollDown();
         },
         onDone: () => completer.complete(),
@@ -331,11 +411,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         },
         cancelOnError: true,
       );
-      _activeSubs.add(sub);
+      _activeSubs.add(sub!);
       await completer.future;
     } finally {
-      await sub.cancel();
-      _activeSubs.remove(sub);
+      await sub?.cancel();
+      if (sub != null) _activeSubs.remove(sub);
       placeholder.isStreaming = false;
       final steps = currentSteps;
       if (steps != null && steps.isNotEmpty) {
@@ -346,7 +426,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         placeholder.steps = steps;
       }
     }
-    setState(() {});
+    if (mounted) setState(() {});
     _scrollDown();
     return buf.toString();
   }

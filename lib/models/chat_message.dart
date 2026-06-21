@@ -85,17 +85,22 @@ class TimelineStep {
   String label;
   final TimelineStepType type;
   TimelineStepStatus status;
+  /// 步骤详情：思考阶段可放简要描述，工具阶段可放参数摘要或错误信息。
+  /// 在 [TimelineView] 中展示在 label 下面单独一行。
+  String? detail;
 
   TimelineStep({
     required this.label,
     required this.type,
     required this.status,
+    this.detail,
   });
 
   Map<String, dynamic> toJson() => {
     'label': label,
     'type': type.name,
     'status': status.name,
+    if (detail != null) 'detail': detail,
   };
 
   factory TimelineStep.fromJson(Map<String, dynamic> json) {
@@ -103,6 +108,7 @@ class TimelineStep {
       label: json['label'] as String? ?? '',
       type: TimelineStepType.values.byName(json['type'] as String? ?? 'thinking'),
       status: TimelineStepStatus.values.byName(json['status'] as String? ?? 'running'),
+      detail: json['detail'] as String?,
     );
   }
 }

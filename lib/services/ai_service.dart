@@ -71,11 +71,16 @@ class AIService {
     required this.providerName,
     required this.model,
     this.maxTokens = 4096,
+    this.thinkingEffort = 'medium',
     ToolRegistry? toolRegistry,
   }) : toolRegistry = toolRegistry ?? ToolRegistry();
 
   /// Max tokens for Anthropic requests. Can be overridden per instance.
   final int maxTokens;
+
+  /// 思考强度: low / medium / high。对应 OpenAI 的 reasoning_effort 参数。
+  /// 仅对支持推理的模型（如 o1/o3 系列）生效。
+  final String thinkingEffort;
 
   bool get _isAnthropic => providerName == 'Anthropic';
 
@@ -183,12 +188,8 @@ class AIService {
         continue;
       }
 
-      // No tool calls — yield text directly if we have it, otherwise stream
-      if (response.text.isNotEmpty) {
-        yield TextChunkEvent(response.text);
-      } else {
-        yield* _streamOpenAI(conversation, tools: tools);
-      }
+      // No tool calls — always stream the final response
+      yield* _streamOpenAI(conversation, tools: tools);
       return;
     }
   }
@@ -212,10 +213,20 @@ class AIService {
     };
     messages.add(assistantMsg);
 
-    // Execute tools and yield status events
-    for (final tc in toolCalls) {
-      yield ToolStartEvent(tc.name);
-      final result = await toolRegistry.execute(tc);
+    // Execute all tools in parallel (independent calls can run concurrently)
+    final results = await Future.wait(
+      toolCalls.map((tc) async {
+        final result = await toolRegistry.execute(tc);
+        return {'tc': tc, 'result': result};
+      }),
+    );
+
+    // Yield events and add results to messages in original order
+    final count = results.length;
+    for (final entry in results) {
+      final tc = entry['tc'] as ToolCall;
+      final result = entry['result'] as ToolResult;
+      yield ToolStartEvent(tc.name, concurrentCount: count);
       final failed = _isToolFailed(tc.name, result.content);
       if (failed) {
         yield ToolErrorEvent(tc.name, result.content);
@@ -246,6 +257,8 @@ class AIService {
           'model': model,
           'messages': messages,
           'tools': tools,
+          if (thinkingEffort != 'low') 'chat_template_kwargs': {'enable_thinking': true},
+          if (thinkingEffort.isNotEmpty) 'reasoning_effort': thinkingEffort,
         },
       );
 
@@ -282,6 +295,8 @@ class AIService {
           'messages': messages,
           'stream': true,
           if (tools != null && tools.isNotEmpty) 'tools': tools,
+          if (thinkingEffort != 'low') 'chat_template_kwargs': {'enable_thinking': true},
+          if (thinkingEffort.isNotEmpty) 'reasoning_effort': thinkingEffort,
         },
       );
 
@@ -296,7 +311,11 @@ class AIService {
           final data = line.substring(6).trim();
           if (data.isEmpty || data == '[DONE]') continue;
           try {
-            final content = jsonDecode(data)['choices']?[0]?['delta']?['content'] as String?;
+            final delta = jsonDecode(data)['choices']?[0]?['delta'];
+            if (delta == null) continue;
+            final reasoning = delta['reasoning_content'] as String?;
+            if (reasoning != null && reasoning.isNotEmpty) yield ThinkingChunkEvent(reasoning);
+            final content = delta['content'] as String?;
             if (content != null && content.isNotEmpty) yield TextChunkEvent(content);
           } catch (_) {}
         }
@@ -306,8 +325,13 @@ class AIService {
         try {
           final data = buffer.trim();
           if (data.startsWith('data: ')) {
-            final content = jsonDecode(data.substring(6))['choices']?[0]?['delta']?['content'] as String?;
-            if (content != null && content.isNotEmpty) yield TextChunkEvent(content);
+            final delta = jsonDecode(data.substring(6))['choices']?[0]?['delta'];
+            if (delta != null) {
+              final reasoning = delta['reasoning_content'] as String?;
+              if (reasoning != null && reasoning.isNotEmpty) yield ThinkingChunkEvent(reasoning);
+              final content = delta['content'] as String?;
+              if (content != null && content.isNotEmpty) yield TextChunkEvent(content);
+            }
           }
         } catch (_) {}
       }
@@ -347,11 +371,21 @@ class AIService {
         }
         currentMessages.add({'role': 'assistant', 'content': content});
 
-        // Execute tools
+        // Execute tools in parallel (independent calls can run concurrently)
+        final results = await Future.wait(
+          toolCalls.map((tc) async {
+            final toolResult = await toolRegistry.execute(tc);
+            return {'tc': tc, 'result': toolResult};
+          }),
+        );
+
+        // Yield events and collect results in original order
         final toolResults = <Map<String, dynamic>>[];
-        for (final tc in toolCalls) {
-          yield ToolStartEvent(tc.name);
-          final toolResult = await toolRegistry.execute(tc);
+        final count = results.length;
+        for (final entry in results) {
+          final tc = entry['tc'] as ToolCall;
+          final toolResult = entry['result'] as ToolResult;
+          yield ToolStartEvent(tc.name, concurrentCount: count);
           final failed = _isToolFailed(tc.name, toolResult.content);
           if (failed) {
             yield ToolErrorEvent(tc.name, toolResult.content);

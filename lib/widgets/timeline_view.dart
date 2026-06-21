@@ -63,15 +63,30 @@ class TimelineView extends StatelessWidget {
               Expanded(
                 child: Padding(
                   padding: EdgeInsets.only(bottom: isLast ? 0 : 8),
-                  child: Text(
-                    step.label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: isDone ? nc.textPrimary
-                          : isRunning ? nc.textPrimary
-                          : nc.textSecondary,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        step.label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: isDone ? nc.textPrimary
+                              : isRunning ? nc.textPrimary
+                              : nc.textSecondary,
+                        ),
+                      ),
+                      if (step.detail != null && step.detail!.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          step.detail!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: nc.textSecondary.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),

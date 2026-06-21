@@ -1,4 +1,5 @@
 import 'base_tool.dart';
+import 'task_plan_tool.dart';
 
 /// Registry that manages and dispatches agent tools.
 /// Each instance maintains its own independent tool set — not a singleton.
@@ -15,7 +16,7 @@ class ToolRegistry {
   final Map<String, int> _callCounts = {};
 
   /// 同一工具连续调用超过此次数时触发提醒
-  static const int maxConsecutiveCalls = 3;
+  static const int maxConsecutiveCalls = 5;
 
   /// Register a tool.
   /// [discoverable] 为 true 时，该工具不会直接进入默认工具列表，
@@ -83,6 +84,10 @@ class ToolRegistry {
   /// 重置调用计数（新对话开始时调用）
   void resetCallCounts() {
     _callCounts.clear();
+    // 重置有状态的工具（如 task_plan）
+    for (final tool in [..._tools.values, ..._discoverable.values]) {
+      if (tool is TaskPlanTool) tool.reset();
+    }
   }
 
   /// 检查是否需要频率限制提醒

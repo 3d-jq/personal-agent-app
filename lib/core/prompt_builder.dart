@@ -42,13 +42,13 @@ class PromptBuilder {
 
     if (isFirstMeeting) {
       buf.writeln('<first_meeting>');
-      buf.writeln('这是你和用户的首次见面，当前 USER.md / SOUL.md 中还没有有效的用户资料与人格偏好。');
+      buf.writeln('这是你和用户的首次见面，当前 USER.md 中还没有有效的用户资料与偏好。');
       buf.writeln('你必须在本次回复中完成以下两件事：');
       buf.writeln('1. 简单自我介绍（你是 DWeis，用户的个人 AI 助手）；');
       buf.writeln('2. 主动询问用户两个必填信息：');
       buf.writeln('   - 希望你怎么称呼 ta（名字或昵称）；');
       buf.writeln('   - 偏好的对话语气风格（可爱温柔、简洁直接、专业严谨、轻松幽默等）。');
-      buf.writeln('在用户明确回复后，使用 context_doc 工具写入 USER.md / SOUL.md。');
+      buf.writeln('在用户明确回复后，使用 context_doc 工具写入 USER.md。');
       buf.writeln('注意：不要只回复问候，必须同时提出上述两个问题。');
       buf.writeln('</first_meeting>');
       buf.writeln();

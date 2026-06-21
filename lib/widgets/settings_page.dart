@@ -25,7 +25,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _checkUpdate(BuildContext context, AgentColors nc) async {
     _showLoadingDialog(context, nc, '正在检查更新...');
 
-    const current = AppConfig.version;
+    final current = AppConfig.version;
     UpdateInfo? info;
     try {
       info = await UpdateService.checkUpdate(current);
@@ -132,28 +132,37 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _downloadAndInstall(BuildContext context, AgentColors nc, String apkUrl) async {
     String? downloadPath;
     String downloadFailReason = '请检查网络后重试';
-    bool isDownloading = true;
+
+    // 下载进度（0.0 ~ 1.0）
+    final progressNotifier = ValueNotifier<double?>(null); // null = 不确定模式
 
     if (context.mounted) {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (c) => StatefulBuilder(
-          builder: (context, setState) {
+        builder: (c) => ValueListenableBuilder<double?>(
+          valueListenable: progressNotifier,
+          builder: (context, progress, _) {
+            final done = progress != null && progress >= 1.0;
             return AlertDialog(
               backgroundColor: nc.surface,
-              title: Text('正在下载更新...', style: TextStyle(color: nc.textPrimary, fontSize: 16)),
+              title: Text(done ? '下载完成' : '正在下载更新...',
+                  style: TextStyle(color: nc.textPrimary, fontSize: 16)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   LinearProgressIndicator(
-                    value: isDownloading ? null : 1,
+                    value: done ? 1 : progress,
                     backgroundColor: nc.divider,
                     valueColor: AlwaysStoppedAnimation<Color>(nc.success),
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    isDownloading ? '下载中，请稍候...' : '下载完成，准备安装...',
+                    done
+                        ? '准备安装...'
+                        : progress != null
+                            ? '${(progress * 100).toStringAsFixed(0)}%'
+                            : '正在连接...',
                     style: TextStyle(color: nc.textSecondary, fontSize: 13),
                   ),
                 ],
@@ -168,14 +177,15 @@ class _SettingsPageState extends State<SettingsPage> {
       downloadPath = await UpdateService.downloadApk(
         apkUrl,
         onProgress: (received, total) {
-          // 可以在这里更新进度，但简单起见用 indeterminate
+          progressNotifier.value = total > 0 ? received / total : null;
         },
       );
     } on UpdateException catch (e) {
       downloadFailReason = e.reason.isEmpty ? '请检查网络后重试' : e.reason;
     }
 
-    isDownloading = false;
+    progressNotifier.value = 1.0;
+    progressNotifier.dispose();
 
     if (context.mounted) Navigator.pop(context);
 
