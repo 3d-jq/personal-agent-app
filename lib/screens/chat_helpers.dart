@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/chat_message.dart';
 import '../services/crypto_util.dart';
@@ -60,12 +61,50 @@ String toolLabel(String name) {
   }
 }
 
+/// 根据文件扩展名推断 MIME 类型
+String _guessMimeType(String path) {
+  final ext = path.split('.').last.toLowerCase();
+  return switch (ext) {
+    'png' => 'image/png',
+    'jpg' || 'jpeg' => 'image/jpeg',
+    'gif' => 'image/gif',
+    'webp' => 'image/webp',
+    'bmp' => 'image/bmp',
+    'svg' => 'image/svg+xml',
+    'pdf' => 'application/pdf',
+    'json' => 'application/json',
+    'csv' => 'text/csv',
+    'xml' => 'application/xml',
+    'yaml' || 'yml' => 'text/yaml',
+    'txt' || 'md' || 'log' || 'ini' || 'cfg' || 'conf' => 'text/plain',
+    'py' || 'js' || 'ts' || 'dart' || 'java' || 'c' || 'cpp' || 'h' || 'cs' ||
+    'go' || 'rs' || 'rb' || 'php' || 'swift' || 'kt' || 'scala' || 'r' ||
+    'm' || 'mm' || 'swift' => 'text/x-source',
+    'html' || 'htm' => 'text/html',
+    'css' => 'text/css',
+    'sql' => 'application/sql',
+    'sh' || 'bat' || 'cmd' || 'ps1' => 'text/x-shell',
+    _ => 'application/octet-stream',
+  };
+}
+
+/// 判断是否为文本类文件（可以直接读取内容发给 AI）
+bool _isTextFile(String path) {
+  final mime = _guessMimeType(path);
+  return mime.startsWith('text/') ||
+      mime == 'application/json' ||
+      mime == 'application/xml' ||
+      mime == 'application/sql' ||
+      mime == 'application/javascript';
+}
+
 /// 构建 AI 消息历史（含系统提示词）
 List<Map<String, dynamic>> buildMessageHistory({
   required String systemPrompt,
   required List<ChatMessage> messages,
   String? attachmentBase64,
   String? attachmentName,
+  String? attachmentPath,
   String? pendingType,
   String? text,
   int? pendingFileSize,
@@ -89,14 +128,34 @@ List<Map<String, dynamic>> buildMessageHistory({
       'content': m.text,
     };
     if (i == msgs.length - 2 && attachmentBase64 != null) {
+      final userText = (text?.isEmpty ?? true) ? '' : text!;
       if (pendingType == 'image') {
+        final mimeType = attachmentName != null ? _guessMimeType(attachmentName) : 'image/png';
         msg['content'] = [
-          {'type': 'text', 'text': (text?.isEmpty ?? true) ? '请基于这张图片帮我生成图片或视频' : text},
-          {'type': 'image_url', 'image_url': {'url': 'data:image/png;base64,$attachmentBase64'}},
+          {'type': 'text', 'text': userText.isEmpty ? '请基于这张图片帮我生成图片或视频' : userText},
+          {'type': 'image_url', 'image_url': {'url': 'data:$mimeType;base64,$attachmentBase64'}},
         ];
+      } else if (attachmentName != null && _isTextFile(attachmentName) && attachmentPath != null) {
+        try {
+          final fileContent = File(attachmentPath).readAsStringSync();
+          final truncated = fileContent.length > 8000
+              ? '${fileContent.substring(0, 8000)}\n\n...(内容过长，已截断)'
+              : fileContent;
+          msg['content'] = [
+            {'type': 'text', 'text': '${userText.isEmpty ? '请分析这个文档' : userText}\n\n文档文件名: $attachmentName\n文件大小: $pendingFileSize bytes\n\n--- 文档内容 ---\n$truncated'},
+          ];
+        } catch (_) {
+          final mimeType = _guessMimeType(attachmentName);
+          msg['content'] = [
+            {'type': 'text', 'text': '${userText.isEmpty ? '请分析这个文档' : userText}\n\n文档文件名: $attachmentName\n文件大小: $pendingFileSize bytes'},
+            {'type': 'image_url', 'image_url': {'url': 'data:$mimeType;base64,$attachmentBase64'}},
+          ];
+        }
       } else {
+        final mimeType = attachmentName != null ? _guessMimeType(attachmentName) : 'application/octet-stream';
         msg['content'] = [
-          {'type': 'text', 'text': '${(text?.isEmpty ?? true) ? '请分析这个文档' : text}\n\n文档文件名: $attachmentName\n文件大小: $pendingFileSize bytes'},
+          {'type': 'text', 'text': '${userText.isEmpty ? '请分析这个文档' : userText}\n\n文档文件名: $attachmentName\n文件大小: $pendingFileSize bytes'},
+          {'type': 'image_url', 'image_url': {'url': 'data:$mimeType;base64,$attachmentBase64'}},
         ];
       }
     }

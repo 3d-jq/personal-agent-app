@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/chat_message.dart';
 import '../core/agent_colors.dart';
 import 'inline_content.dart';
@@ -18,19 +20,117 @@ class ChatBubble extends StatelessWidget {
 
   Widget _userBubble(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF2A4A42) : const Color(0xFFD4EDE5);
+    final hasImage = msg.attachmentType == 'image' && msg.attachmentPath != null;
+    final hasDoc = msg.attachmentType == 'document' && msg.attachmentPath != null;
+
+    // Strip [附件: xxx] from display text
+    final cleanText = msg.text.replaceAll(RegExp(r'\n?\[附件: [^\]]+\]'), '').trim();
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Align(
         alignment: Alignment.centerRight,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 300),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF2A4A42) : const Color(0xFFD4EDE5),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Text(msg.text, style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.47)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Image preview
+            if (hasImage)
+              _buildImagePreview(context, msg.attachmentPath!, bgColor, nc),
+            // Document card
+            if (hasDoc)
+              _buildDocumentCard(msg.attachmentPath!, bgColor, nc),
+            // Text message (if any)
+            if (cleanText.isNotEmpty)
+              Container(
+                constraints: const BoxConstraints(maxWidth: 300),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Text(cleanText, style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.47)),
+              ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildImagePreview(BuildContext context, String path, Color bgColor, AgentColors nc) {
+    final file = File(path);
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => _UserImagePreview(path: path)),
+        );
+      },
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 240),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Image.file(file, fit: BoxFit.cover,
+          width: 240,
+          errorBuilder: (_, _, _) => Container(
+            width: 240, height: 120,
+            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(16)),
+            child: Center(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.broken_image_outlined, size: 32, color: nc.textSecondary.withValues(alpha: 0.4)),
+                const SizedBox(height: 4),
+                Text('图片加载失败', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDocumentCard(String path, Color bgColor, AgentColors nc) {
+    final file = File(path);
+    final name = file.path.split(Platform.pathSeparator).last;
+    final shortName = name.length > 24 ? '${name.substring(0, 21)}...' : name;
+    final exists = file.existsSync();
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 240),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.insert_drive_file_outlined, size: 22, color: nc.textSecondary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(shortName, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 13, color: nc.textPrimary, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 2),
+                Text(exists ? '文档附件' : '文件不存在',
+                  style: TextStyle(fontSize: 11, color: nc.textSecondary)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -237,10 +337,36 @@ class _AIBubbleState extends State<_AIBubble> with SingleTickerProviderStateMixi
               Flexible(
                 child: SingleChildScrollView(
                   child: TimelineView(steps: steps, nc: nc),
-                ),
-              ),
-            ],
-          ),
+                 ),
+               ),
+             ],
+           ),
+         ),
+       ),
+     );
+   }
+}
+
+// ── User image full-screen preview ──
+
+class _UserImagePreview extends StatelessWidget {
+  final String path;
+  const _UserImagePreview({required this.path});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: InteractiveViewer(
+        minScale: 0.5,
+        maxScale: 4.0,
+        child: Center(
+          child: Image.file(File(path), fit: BoxFit.contain),
         ),
       ),
     );

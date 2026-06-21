@@ -215,7 +215,12 @@ class ChatController extends ChangeNotifier {
 
     final isFirstMeeting = _sessions.isEmpty && _messages.isEmpty;
 
-    _messages.add(ChatMessage(text: displayText, isUser: true));
+    _messages.add(ChatMessage(
+      text: displayText,
+      isUser: true,
+      attachmentPath: _pendingAttachment?.path,
+      attachmentType: _pendingAttachmentType.isNotEmpty ? _pendingAttachmentType : null,
+    ));
     _messages.add(ChatMessage(text: '', isUser: false, isStreaming: true));
     _isLoading = true;
 
@@ -242,6 +247,7 @@ class ChatController extends ChangeNotifier {
       messages: _messages,
       attachmentBase64: attachmentBase64,
       attachmentName: attachmentName,
+      attachmentPath: pendingFile?.path,
       pendingType: pendingType,
       text: trimmed,
       pendingFileSize: pendingFile?.lengthSync(),
@@ -464,7 +470,11 @@ class ChatController extends ChangeNotifier {
     _streamState = null;
     aiMsg.isStreaming = false;
     aiMsg.steps = state.steps.isEmpty ? null : List.unmodifiable(state.steps);
-    if (aiMsg.text.isEmpty && !state.hasToolCalls) aiMsg.text = '(无响应)';
+    if (aiMsg.text.isEmpty && !state.hasToolCalls) {
+      aiMsg.text = state.reasoningBuf.isNotEmpty
+          ? '模型思考时间过长，连接已断开，请重试'
+          : '(无响应)';
+    }
     _isLoading = false;
     _notify();
     saveSession();

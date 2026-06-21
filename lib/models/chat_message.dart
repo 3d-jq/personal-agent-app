@@ -16,6 +16,12 @@ class ChatMessage extends ChangeNotifier {
   /// 单聊场景下保持空列表。
   final List<String> mentions;
 
+  /// 用户附件的本地文件路径（图片/文档），用于在气泡中渲染预览。
+  String? attachmentPath;
+
+  /// 附件类型：'image' 或 'document'。
+  String? attachmentType;
+
   ChatMessage({
     required String text,
     required this.isUser,
@@ -23,6 +29,8 @@ class ChatMessage extends ChangeNotifier {
     List<TimelineStep>? steps,
     this.speakerId,
     this.mentions = const [],
+    this.attachmentPath,
+    this.attachmentType,
   })  : _text = text,
         _isStreaming = isStreaming,
         _steps = steps;
@@ -59,6 +67,8 @@ class ChatMessage extends ChangeNotifier {
     'steps': _steps?.map((s) => s.toJson()).toList(),
     'speakerId': speakerId,
     'mentions': mentions,
+    if (attachmentPath != null) 'attachmentPath': attachmentPath,
+    if (attachmentType != null) 'attachmentType': attachmentType,
   };
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
@@ -71,6 +81,8 @@ class ChatMessage extends ChangeNotifier {
           .toList(),
       speakerId: json['speakerId'] as String?,
       mentions: (json['mentions'] as List?)?.cast<String>() ?? const [],
+      attachmentPath: json['attachmentPath'] as String?,
+      attachmentType: json['attachmentType'] as String?,
     );
   }
 }
