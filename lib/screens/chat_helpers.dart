@@ -27,6 +27,12 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(AiDailyTool());
   registry.register(ContextDocTool());
   registry.register(VirtualFSTool());
+  registry.register(SkillManageTool());
+
+  // 注册内置技能
+  for (final skill in BuiltInSkills.all) {
+    SkillRegistry().register(skill);
+  }
 
   // 工具发现层（本身也是预加载工具）
   registry.register(ToolSearchTool(registry: registry));
@@ -54,6 +60,7 @@ String toolLabel(String name) {
     case 'ai_daily': return 'AI日报';
     case 'context_doc': return '上下文文档';
     case 'virtual_fs': return '文件系统';
+    case 'skill_manage': return '技能管理';
     case 'task_plan': return '任务计划';
     case 'tool_search': return '发现工具';
     case 'defer_execute_tool': return '调用延迟工具';

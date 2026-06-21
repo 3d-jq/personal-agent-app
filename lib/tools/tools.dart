@@ -19,3 +19,5 @@ export 'manage_note_tool.dart';
 export 'ai_daily_tool.dart';
 export 'calendar_tool.dart';
 export 'virtual_fs_tool.dart';
+export 'skill_registry.dart';
+export 'skill_manage_tool.dart';
