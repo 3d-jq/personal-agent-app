@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:uuid/uuid.dart';
 import '../core/agent_colors.dart';
 import '../models/note.dart';
 import '../services/export_service.dart';
@@ -79,6 +80,11 @@ class _NotesPageState extends State<NotesPage> {
                   itemCount: _notes.length,
                   itemBuilder: (_, i) => _noteCard(_notes[i], nc),
                 ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _openEditor(null),
+        backgroundColor: nc.success,
+        child: Icon(Icons.add, color: Colors.white),
+      ),
     );
   }
 
@@ -92,7 +98,7 @@ class _NotesPageState extends State<NotesPage> {
           Text('还没有笔记',
               style: TextStyle(fontSize: 15, color: nc.textSecondary.withValues(alpha: 0.6))),
           const SizedBox(height: 6),
-          Text('在聊天中让 DWeis 帮你记录',
+          Text('点击右下角 + 创建，或在聊天中让 DWeis 帮你记录',
               style: TextStyle(fontSize: 13, color: nc.textSecondary.withValues(alpha: 0.4))),
         ],
       ),
@@ -103,7 +109,7 @@ class _NotesPageState extends State<NotesPage> {
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
-        Navigator.push(context, MaterialPageRoute(builder: (_) => _NoteDetail(note: note)));
+        Navigator.push(context, MaterialPageRoute(builder: (_) => _NoteDetail(note: note, onEdit: () => _openEditor(note))));
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
@@ -190,11 +196,28 @@ class _NotesPageState extends State<NotesPage> {
     if (diff.inDays < 7) return '${diff.inDays}天前';
     return '${dt.month}/${dt.day} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
   }
+
+  void _openEditor(Note? existing) {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => _NoteEditor(
+        note: existing,
+        onSaved: (note) async {
+          if (existing != null) {
+            await _storage.update(note);
+          } else {
+            await _storage.add(note);
+          }
+          _load();
+        },
+      ),
+    ));
+  }
 }
 
 class _NoteDetail extends StatelessWidget {
   final Note note;
-  const _NoteDetail({required this.note});
+  final VoidCallback? onEdit;
+  const _NoteDetail({required this.note, this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -213,6 +236,15 @@ class _NoteDetail extends StatelessWidget {
                 fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
         centerTitle: true,
         actions: [
+          if (onEdit != null)
+            IconButton(
+              icon: Icon(Icons.edit_outlined, color: nc.textPrimary),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.pop(context);
+                onEdit!();
+              },
+            ),
           IconButton(
             icon: Icon(Icons.share_outlined, color: nc.textPrimary),
             onPressed: () async {
@@ -245,6 +277,150 @@ class _NoteDetail extends StatelessWidget {
             ...buildInlineContent(note.content, nc, context),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Note Editor ──
+
+class _NoteEditor extends StatefulWidget {
+  final Note? note;
+  final Function(Note) onSaved;
+
+  const _NoteEditor({this.note, required this.onSaved});
+
+  @override
+  State<_NoteEditor> createState() => _NoteEditorState();
+}
+
+class _NoteEditorState extends State<_NoteEditor> {
+  late final TextEditingController _titleCtrl;
+  late final TextEditingController _contentCtrl;
+  final _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _titleCtrl = TextEditingController(text: widget.note?.title ?? '');
+    _contentCtrl = TextEditingController(text: widget.note?.content ?? '');
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _contentCtrl.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final nc = AgentColors.of(context);
+    final isEditing = widget.note != null;
+
+    return Scaffold(
+      backgroundColor: nc.background,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          onPressed: () => _confirmDiscard(nc),
+        ),
+        title: Text(isEditing ? '编辑笔记' : '新建笔记',
+            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        centerTitle: true,
+        actions: [
+          TextButton(
+            onPressed: _save,
+            child: Text('保存', style: TextStyle(fontSize: 15, color: nc.success, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _titleCtrl,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: nc.textPrimary),
+              decoration: InputDecoration(
+                hintText: '标题',
+                hintStyle: TextStyle(color: nc.textSecondary.withValues(alpha: 0.4), fontSize: 20),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _contentCtrl,
+              focusNode: _focusNode,
+              maxLines: null,
+              minLines: 10,
+              style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.6),
+              decoration: InputDecoration(
+                hintText: '开始写笔记…\n\n支持 Markdown 格式',
+                hintStyle: TextStyle(color: nc.textSecondary.withValues(alpha: 0.4), fontSize: 15),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _save() {
+    final title = _titleCtrl.text.trim();
+    final content = _contentCtrl.text.trim();
+
+    if (title.isEmpty && content.isEmpty) {
+      Navigator.pop(context);
+      return;
+    }
+
+    final now = DateTime.now();
+    final note = widget.note != null
+        ? (widget.note!
+            ..title = title.isEmpty ? '无标题' : title
+            ..content = content
+            ..updatedAt = now)
+        : Note(
+            id: const Uuid().v4(),
+            title: title.isEmpty ? '无标题' : title,
+            content: content,
+            createdAt: now,
+            updatedAt: now,
+          );
+
+    widget.onSaved(note);
+    Navigator.pop(context);
+  }
+
+  void _confirmDiscard(AgentColors nc) {
+    final hasChanges = _titleCtrl.text.isNotEmpty || _contentCtrl.text.isNotEmpty;
+    if (!hasChanges || widget.note == null) {
+      Navigator.pop(context);
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('放弃修改？'),
+        content: const Text('未保存的更改将丢失'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+            },
+            child: const Text('放弃', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
   }

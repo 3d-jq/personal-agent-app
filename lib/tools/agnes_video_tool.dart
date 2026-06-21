@@ -130,7 +130,7 @@ class AgnesVideoTool extends AgentTool {
           ));
 
           final type = imageUrl != null ? '图生视频' : '文生视频';
-          return '[$type] 视频已生成\n\n![生成的视频](file://${tempFile.path})';
+          return '[$type] 视频已生成\n\n![生成的视频](file://${docsFile.path})';
         }
 
         if (status == 'failed') {
