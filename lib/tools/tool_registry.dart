@@ -84,10 +84,6 @@ class ToolRegistry {
   /// 重置调用计数（新对话开始时调用）
   void resetCallCounts() {
     _callCounts.clear();
-    // 重置有状态的工具（如 task_plan）
-    for (final tool in [..._tools.values, ..._discoverable.values]) {
-      if (tool is TaskPlanTool) tool.reset();
-    }
   }
 
   /// 检查是否需要频率限制提醒
