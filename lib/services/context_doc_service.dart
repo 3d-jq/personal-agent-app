@@ -8,7 +8,8 @@ enum ContextDoc {
   soul('SOUL.md'),
   user('USER.md'),
   agent('AGENT.md'),
-  memory('MEMORY.md');
+  memory('MEMORY.md'),
+  knowledge(''); // 特殊类型，文件名通过参数传入
 
   final String fileName;
   const ContextDoc(this.fileName);
@@ -45,6 +46,7 @@ class ContextDocService {
   /// 若 assets 不可用，则写入代码内置的兜底内容。
   Future<void> ensureDefaults() async {
     for (final doc in ContextDoc.values) {
+      if (doc == ContextDoc.knowledge) continue; // 知识库文件单独处理
       final file = await _file(doc);
       if (await file.exists()) continue;
 
@@ -62,12 +64,18 @@ class ContextDocService {
   /// 加载全部文档到内存缓存。
   Future<void> loadAll() async {
     for (final doc in ContextDoc.values) {
+      if (doc == ContextDoc.knowledge) continue;
       await read(doc);
     }
   }
 
   /// 读取指定文档内容。优先读内存缓存，未缓存则从文件读取。
   Future<String> read(ContextDoc doc) async {
+    // knowledge 不是单个文件，由 readKnowledge 按需读取
+    if (doc == ContextDoc.knowledge) {
+      return '知识库包含 8 个文件（00_ai_era_correction.md ~ 07_new_gaokao_subject_selection.md），'
+          '请通过 Agent 对话中的 context_doc 工具按需查阅，或直接查看 assets/knowledge/ 目录。';
+    }
     final cached = _cache[doc];
     if (cached != null) return cached;
 
@@ -84,6 +92,19 @@ class ContextDocService {
 
   /// 获取已缓存的文档内容；未加载时返回空字符串。
   String cached(ContextDoc doc) => _cache[doc] ?? '';
+
+  /// 读取指定知识库文件。返回完整 Markdown 内容。
+  Future<String> readKnowledge(String filename) async {
+    // 清理文件名防注入
+    final safe = filename.replaceAll(RegExp(r'[^a-zA-Z0-9_\-\.]'), '');
+    if (safe.isEmpty) throw ArgumentError('无效的文件名: $filename');
+
+    try {
+      return await rootBundle.loadString('assets/knowledge/$safe');
+    } catch (_) {
+      throw ArgumentError('知识库文件不存在: $safe。可用列表见 prompt。');
+    }
+  }
 
   /// 写入文档内容。
   ///
@@ -137,6 +158,8 @@ class ContextDocService {
         return '# MEMORY\n\n跨场景长期记忆。\n\n'
             '> 写入原则：只能记录用户明确说出来的事实，禁止推断、脑补，禁止写入用户未确认的分析或建议。\n'
             '> 以下均为空模板，内容由模型在对话中逐步记录，禁止预填默认值。\n';
+      case ContextDoc.knowledge:
+        return ''; // 知识库文件不通过 _fallbackContent 兜底
     }
   }
 }

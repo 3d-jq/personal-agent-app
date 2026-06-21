@@ -1,12 +1,27 @@
-/// 应用级配置常量。修改版本号时请同步更新 pubspec.yaml 的 version 字段。
+import 'package:package_info_plus/package_info_plus.dart';
+
+/// 应用级配置。版本号从 pubspec.yaml 运行时读取，无需手动同步。
 class AppConfig {
   AppConfig._();
 
-  /// 当前应用版本号，与 pubspec.yaml version 字段保持一致。
-  static const String version = '0.6.6';
+  static String _version = '0.7.0';
+  static String _buildNumber = '1';
+
+  /// 当前应用版本号（来自 pubspec.yaml 的 version 字段）。
+  static String get version => _version;
 
   /// 显示用版本号（带 v 前缀）。
-  static const String displayVersion = 'v$version';
+  static String get displayVersion => 'v$_version';
+
+  /// 构建号。
+  static String get buildNumber => _buildNumber;
 
   static const String appName = 'DWeis';
+
+  /// 应用启动时调用，从平台读取真实版本号。
+  static Future<void> init() async {
+    final info = await PackageInfo.fromPlatform();
+    _version = info.version;
+    _buildNumber = info.buildNumber;
+  }
 }

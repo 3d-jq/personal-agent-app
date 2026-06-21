@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/agent_colors.dart';
 import '../../models/agent.dart';
+import '../../services/agent_group_storage.dart';
 import '../../services/agent_storage.dart';
 import '../../widgets/ai_settings_sheet.dart';
 import '../../services/ai_service.dart';
@@ -51,7 +52,7 @@ class _AgentManagePageState extends State<AgentManagePage> {
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('删除 Agent'),
-        content: Text('确定删除「${a.name}」？已在群里的成员不会自动移除。'),
+        content: Text('确定删除「${a.name}」？将从所有群组中移除。'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('取消')),
           TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('删除')),
@@ -59,6 +60,15 @@ class _AgentManagePageState extends State<AgentManagePage> {
       ),
     );
     if (ok == true) {
+      // 从所有群组中移除该 agent
+      final groupStorage = AgentGroupStorage();
+      final groups = await groupStorage.loadAll();
+      for (final g in groups) {
+        if (g.agentIds.remove(a.id)) {
+          g.updatedAt = DateTime.now();
+          await groupStorage.save(g);
+        }
+      }
       await AgentStorage().remove(a.id);
       await _load();
     }
@@ -549,9 +559,29 @@ class _AgentModelPickerState extends State<_AgentModelPicker> {
   List<String>? _fetched;
   bool _loading = false;
   String? _error;
+  late final TextEditingController _modelCtrl;
   VendorConfig? get _vendor => widget.vendors.where((v) => v.id == widget.vendorId).firstOrNull;
 
-  @override void initState() { super.initState(); _fetch(); }
+  @override
+  void initState() {
+    super.initState();
+    _modelCtrl = TextEditingController(text: widget.currentModel);
+    _fetch();
+  }
+
+  @override
+  void didUpdateWidget(_AgentModelPicker old) {
+    super.didUpdateWidget(old);
+    if (widget.currentModel != old.currentModel && widget.currentModel != _modelCtrl.text) {
+      _modelCtrl.text = widget.currentModel;
+    }
+  }
+
+  @override
+  void dispose() {
+    _modelCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _fetch() async {
     final v = _vendor; if (v == null) return;
@@ -592,7 +622,7 @@ class _AgentModelPickerState extends State<_AgentModelPicker> {
       Text('或手动输入：', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
       const SizedBox(height: 6),
       TextField(
-        controller: TextEditingController(text: widget.currentModel),
+        controller: _modelCtrl,
         onChanged: (v) => widget.onChanged(v.trim()),
         style: TextStyle(fontSize: 14, color: nc.textPrimary),
         decoration: InputDecoration(

@@ -49,9 +49,11 @@ class AgentRunner {
 
     // 发言规则
     buf.writeln('<rules>');
+    buf.writeln('你是「${agent.name}」，你的角色定位是：${agent.role}。请始终以此身份发言，不要冒充他人。');
     if (agent.isCoordinator) {
       buf.writeln('你是团队的常驻协调者。用户发送任何消息你都可以主动回复。');
-      buf.writeln('你的职责：理解用户意图、拆解任务、按需求 @ 其他 Agent 来分工协作。');
+      buf.writeln('你的职责：理解用户意图、分析任务需求，直接回复用户或给出建议。');
+      buf.writeln('群聊系统会自动选择其他合适的成员参与讨论，你不需要 @ 其他成员来派活。');
     } else {
       buf.writeln('你只能回复被 @ 提及的消息。如果消息中没有 @${agent.name}，不要发言。');
     }
@@ -77,7 +79,7 @@ class AgentRunner {
         buf.writeln('- @$name${role.isNotEmpty ? "：$role" : ""}');
       }
       if (agent.isCoordinator) {
-        buf.writeln('你可以通过 @名字 将任务分派给任何成员。只 @ 真正需要参与的成员。');
+        buf.writeln('你了解每位成员的能力。但系统会自动调度合适的成员参与，你只需专注分析和回复用户。');
       } else {
         buf.writeln('完成自己的任务后，优先 @DWeis 汇报进度。');
       }
@@ -87,8 +89,11 @@ class AgentRunner {
 
     // 对话历史格式说明
     buf.writeln('<history_format>');
-    buf.writeln('每条消息带 name 字段标注发言人：name="群主"=用户，name="你的名字"=你，name="其他Agent名字"=那个Agent。');
-    buf.writeln('你可以引用同伴观点，如"我同意产品经理的分析"。请严格根据 name 字段区分发言人。');
+    buf.writeln('每条消息带 name 字段标注发言人：');
+    buf.writeln('- name="${agent.name}" → 这是你本人发出的消息');
+    buf.writeln('- name="群主" → 这是用户说的话');
+    buf.writeln('- name="其他名字" → 那是其他 Agent 说的话');
+    buf.writeln('你只能以 ${agent.name} 的身份发言。看到其他 Agent 的名字不要冒充他们。');
     buf.writeln('</history_format>');
     buf.writeln();
 
@@ -172,6 +177,7 @@ class AgentRunner {
     Map<String, String> memberRoles = const {},
     String groupName = '',
     String groupDesc = '',
+    String thinkingEffort = 'medium',
   }) async* {
     try {
       final systemPrompt = await _buildSystemPrompt(agent,
@@ -205,6 +211,7 @@ class AgentRunner {
         apiKey: vendor.apiKey,
         providerName: vendor.name,
         model: agent.model.isNotEmpty ? agent.model : vendor.model,
+        thinkingEffort: thinkingEffort,
         toolRegistry: _scopedRegistry(agent),
       );
       yield* ai.sendMessageStream(messages);

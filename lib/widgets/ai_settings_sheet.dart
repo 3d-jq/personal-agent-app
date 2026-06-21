@@ -32,6 +32,9 @@ class AISettings {
   String? selectedVendorId;
   bool _loaded = false;
 
+  /// 思考强度: low / medium / high，默认 medium
+  String thinkingEffort = 'medium';
+
   VendorConfig? get selectedVendor => vendors.where((v) => v.id == selectedVendorId).firstOrNull;
   String get apiKey => selectedVendor?.apiKey ?? '';
   String get baseUrl => selectedVendor?.baseUrl ?? '';
@@ -57,8 +60,8 @@ class AISettings {
   void removeVendor(String id) { vendors.removeWhere((x) => x.id == id); if (selectedVendorId == id) selectedVendorId = vendors.isNotEmpty ? vendors.first.id : null; save(); }
 
   Future<File> _file() async { final d = await getApplicationDocumentsDirectory(); return File('${d.path}/ai_settings.json'); }
-  Future<void> load() async { if (_loaded) return; try { final f = await _file(); if (await f.exists()) { final d = jsonDecode(await f.readAsString()) as Map<String, dynamic>; selectedVendorId = d['vendor'] as String?; vendors = (d['vendors'] as List?)?.map((x) => VendorConfig.fromJson(x as Map<String, dynamic>)).toList() ?? []; } } catch (_) {} _ensureBuiltIn(); if (selectedVendorId == null && vendors.isNotEmpty) { selectVendor(vendors.first.id); } _loaded = true; }
-  Future<void> save() async { await _file().then((f) => f.writeAsString(jsonEncode({'vendor':selectedVendorId, 'vendors':vendors.map((v) => v.toJson()).toList()}))); }
+  Future<void> load() async { if (_loaded) return; try { final f = await _file(); if (await f.exists()) { final d = jsonDecode(await f.readAsString()) as Map<String, dynamic>; selectedVendorId = d['vendor'] as String?; vendors = (d['vendors'] as List?)?.map((x) => VendorConfig.fromJson(x as Map<String, dynamic>)).toList() ?? []; thinkingEffort = d['thinkingEffort'] as String? ?? 'medium'; } } catch (_) {} _ensureBuiltIn(); if (selectedVendorId == null && vendors.isNotEmpty) { selectVendor(vendors.first.id); } _loaded = true; }
+  Future<void> save() async { await _file().then((f) => f.writeAsString(jsonEncode({'vendor':selectedVendorId, 'vendors':vendors.map((v) => v.toJson()).toList(), 'thinkingEffort':thinkingEffort}))); }
 }
 
 // ── Backend picker ──

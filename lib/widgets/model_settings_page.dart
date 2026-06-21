@@ -13,6 +13,56 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
   final _aiSettings = AISettings();
   bool _loaded = false;
 
+  static const _thinkingOptions = [
+    ('low', '低'),
+    ('medium', '中'),
+    ('high', '高'),
+  ];
+
+  String _thinkingLabel(String v) {
+    return _thinkingOptions.firstWhere((o) => o.$1 == v, orElse: () => ('medium', '中')).$2;
+  }
+
+  void _showThinkingPicker() {
+    final nc = AgentColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.only(bottom: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(margin: const EdgeInsets.only(top: 8), width: 36, height: 4,
+                decoration: BoxDecoration(color: nc.divider, borderRadius: BorderRadius.circular(2))),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Text('思考强度', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+            ),
+            Text('控制模型推理深度，仅对支持推理的模型生效',
+                style: TextStyle(fontSize: 13, color: nc.textSecondary)),
+            const SizedBox(height: 12),
+            ..._thinkingOptions.map((o) => ListTile(
+                  title: Text(o.$2, style: TextStyle(fontSize: 15, color: nc.textPrimary)),
+                  subtitle: Text(
+                    o.$1 == 'low' ? '快速响应，适合简单任务' : o.$1 == 'medium' ? '平衡速度和深度（推荐）' : '深度思考，适合复杂推理',
+                    style: TextStyle(fontSize: 12, color: nc.textSecondary),
+                  ),
+                  trailing: _aiSettings.thinkingEffort == o.$1
+                      ? Icon(Icons.check, color: nc.success)
+                      : null,
+                  onTap: () {
+                    setState(() => _aiSettings.thinkingEffort = o.$1);
+                    _aiSettings.save();
+                    Navigator.pop(ctx);
+                  },
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -59,6 +109,15 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
               onTap: () {
                 HapticFeedback.lightImpact();
                 if (vendor != null) showModelPicker(context, _aiSettings, () => setState(() {}));
+              },
+            ),
+            _SettingItem(
+              icon: Icons.psychology_outlined,
+              label: '思考强度',
+              trailing: _thinkingLabel(_aiSettings.thinkingEffort),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                _showThinkingPicker();
               },
             ),
           ],

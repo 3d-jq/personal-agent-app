@@ -115,7 +115,7 @@ class _AIBubbleState extends State<_AIBubble> with SingleTickerProviderStateMixi
           if (showProcessLine)
             Padding(
               padding: EdgeInsets.only(bottom: textContent.isNotEmpty ? 8 : 0),
-              child: _buildProcessLine(steps ?? const [], nc),
+              child: _buildProcessLine(steps ?? const [], nc, msg.isStreaming),
             ),
           if (textContent.isNotEmpty)
             FadeTransition(
@@ -128,14 +128,14 @@ class _AIBubbleState extends State<_AIBubble> with SingleTickerProviderStateMixi
   }
 
   /// 单行状态指示器：只显示当前最新的一个步骤
-  Widget _buildProcessLine(List<TimelineStep> steps, AgentColors nc) {
+  Widget _buildProcessLine(List<TimelineStep> steps, AgentColors nc, bool isStreaming) {
     final shimmerHighlight = Theme.of(context).brightness == Brightness.dark
         ? Colors.white.withValues(alpha: 0.35)
         : Colors.white.withValues(alpha: 0.65);
 
     if (steps.isEmpty) {
       return ShimmerText(
-        text: '思考中…',
+        text: '思考中',
         style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500),
         baseColor: nc.textSecondary,
         highlightColor: shimmerHighlight,
@@ -146,6 +146,16 @@ class _AIBubbleState extends State<_AIBubble> with SingleTickerProviderStateMixi
     final isRunning = step.status == TimelineStepStatus.running;
     final isError = step.status == TimelineStepStatus.error;
     final isAllDone = !isRunning && !isError && steps.every((s) => s.status == TimelineStepStatus.done);
+
+    // 流尚未结束且最后一步是工具 → 保持扫光效果，表示流程仍在进行
+    if (isAllDone && isStreaming && step.type == TimelineStepType.tool) {
+      return ShimmerText(
+        text: step.label,
+        style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500),
+        baseColor: nc.textSecondary,
+        highlightColor: shimmerHighlight,
+      );
+    }
 
     if (isAllDone) {
       return InkWell(
