@@ -7,12 +7,48 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
 import '../core/agent_colors.dart';
 import '../core/app_animations.dart';
+import 'task_plan_card.dart';
 
-/// Build inline content: split text by markdown image patterns,
+/// Build inline content: split text by markdown image patterns and task plan markers,
 /// render text as MarkdownBody, and images as Image.network inline.
 List<Widget> buildInlineContent(String text, AgentColors nc, BuildContext context) {
   final widgets = <Widget>[];
   final seenUrls = <String>{};
+
+  // 先处理任务计划卡片标记
+  final planPattern = RegExp(r'::TASK_PLAN::\n(.*?)\n::END_TASK_PLAN::', dotAll: true);
+  final planMatches = planPattern.allMatches(text).toList();
+
+  if (planMatches.isNotEmpty) {
+    // 有任务计划标记，分段处理
+    var lastEnd = 0;
+    for (final planMatch in planMatches) {
+      // 处理标记前的文本
+      if (planMatch.start > lastEnd) {
+        final before = text.substring(lastEnd, planMatch.start);
+        _addContent(before, widgets, seenUrls, nc, context);
+      }
+      // 渲染任务计划卡片
+      final planText = planMatch.group(1) ?? '';
+      if (planText.trim().isNotEmpty) {
+        widgets.add(TaskPlanCard(planText: planText.trim(), nc: nc));
+      }
+      lastEnd = planMatch.end;
+    }
+    // 处理最后一个标记后的文本
+    if (lastEnd < text.length) {
+      final after = text.substring(lastEnd);
+      _addContent(after, widgets, seenUrls, nc, context);
+    }
+  } else {
+    // 没有任务计划标记，走原来的逻辑
+    _addContent(text, widgets, seenUrls, nc, context);
+  }
+
+  return widgets;
+}
+
+void _addContent(String text, List<Widget> widgets, Set<String> seenUrls, AgentColors nc, BuildContext context) {
   final pattern = RegExp(r'!\[.*?\]\((https?://[^\s)]+|file://[^\s)]+)\)');
   var lastEnd = 0;
 
@@ -35,7 +71,6 @@ List<Widget> buildInlineContent(String text, AgentColors nc, BuildContext contex
       widgets.add(mdBlock(after, nc, context));
     }
   }
-  return widgets;
 }
 
 Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
