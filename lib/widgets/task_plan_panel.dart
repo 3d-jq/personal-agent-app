@@ -46,94 +46,19 @@ class TaskPlanPanelState extends State<TaskPlanPanel> {
   @override
   Widget build(BuildContext context) {
     final planText = widget.controller.currentPlanText;
-    if (planText == null || planText.isEmpty) return const SizedBox.shrink();
     final nc = AgentColors.of(context);
-    final parsed = _parsePlan(planText);
-    if (parsed == null) return const SizedBox.shrink();
 
-    final doneCount = parsed.tasks.where((t) => t.done).length;
-    final total = parsed.tasks.length;
-    final allDone = doneCount == total;
-
+    // 调试：始终显示当前状态
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
         color: nc.surface,
         border: Border(top: BorderSide(color: nc.divider, width: 0.5)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header - 可点击折叠
-          GestureDetector(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              setState(() => _expanded = !_expanded);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  Icon(
-                    allDone ? Icons.check_circle : Icons.task_alt,
-                    size: 18,
-                    color: allDone ? nc.success : nc.textSecondary,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      parsed.title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: nc.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  // Progress badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: allDone
-                          ? nc.success.withValues(alpha: 0.1)
-                          : nc.primarySurface,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$doneCount/$total',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: allDone ? nc.success : nc.textSecondary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    _expanded ? Icons.expand_less : Icons.expand_more,
-                    size: 20,
-                    color: nc.textSecondary,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Task list - 可折叠
-          if (_expanded)
-            Container(
-              constraints: const BoxConstraints(maxHeight: 200),
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: parsed.tasks.map((task) => _buildTaskItem(task, nc)).toList(),
-                ),
-              ),
-            ),
-        ],
-      ),
+      child: planText == null || planText.isEmpty
+          ? Text('DEBUG: planText=null', style: TextStyle(fontSize: 11, color: nc.textSecondary))
+          : Text('DEBUG: planText=${planText.length} chars, first 50: ${planText.substring(0, planText.length > 50 ? 50 : planText.length)}',
+              style: TextStyle(fontSize: 11, color: nc.textSecondary)),
     );
   }
 
