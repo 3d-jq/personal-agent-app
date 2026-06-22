@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import '../controllers/chat_controller.dart';
 
 /// 输入框上方的任务计划悬浮面板
 ///
 /// 当 Agent 调用 task_plan 时自动出现，显示当前计划的 checklist
 /// 可折叠/展开，实时更新任务状态
 class TaskPlanPanel extends StatefulWidget {
-  final ValueNotifier<String?>? planNotifier;
-  const TaskPlanPanel({super.key, this.planNotifier});
+  final ChatController controller;
+  const TaskPlanPanel({super.key, required this.controller});
 
   @override
   TaskPlanPanelState createState() => TaskPlanPanelState();
@@ -16,44 +17,38 @@ class TaskPlanPanel extends StatefulWidget {
 
 class TaskPlanPanelState extends State<TaskPlanPanel> {
   bool _expanded = true;
-  String? _planText;
 
   @override
   void initState() {
     super.initState();
-    widget.planNotifier?.addListener(_onPlanChanged);
+    widget.controller.addListener(_onControllerChanged);
   }
 
   @override
   void didUpdateWidget(TaskPlanPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.planNotifier != widget.planNotifier) {
-      oldWidget.planNotifier?.removeListener(_onPlanChanged);
-      widget.planNotifier?.addListener(_onPlanChanged);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onControllerChanged);
+      widget.controller.addListener(_onControllerChanged);
     }
   }
 
   @override
   void dispose() {
-    widget.planNotifier?.removeListener(_onPlanChanged);
+    widget.controller.removeListener(_onControllerChanged);
     super.dispose();
   }
 
-  void _onPlanChanged() {
-    final text = widget.planNotifier?.value;
-    if (text != null && text.isNotEmpty) {
-      setState(() {
-        _planText = text;
-        _expanded = true;
-      });
-    }
+  void _onControllerChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_planText == null) return const SizedBox.shrink();
+    final planText = widget.controller.currentPlanText;
+    if (planText == null || planText.isEmpty) return const SizedBox.shrink();
     final nc = AgentColors.of(context);
-    final parsed = _parsePlan(_planText!);
+    final parsed = _parsePlan(planText);
     if (parsed == null) return const SizedBox.shrink();
 
     final doneCount = parsed.tasks.where((t) => t.done).length;
@@ -148,7 +143,6 @@ class TaskPlanPanelState extends State<TaskPlanPanel> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Checkbox
           Padding(
             padding: const EdgeInsets.only(top: 3),
             child: Icon(
@@ -166,7 +160,6 @@ class TaskPlanPanelState extends State<TaskPlanPanel> {
             ),
           ),
           const SizedBox(width: 8),
-          // Task title
           Expanded(
             child: Text(
               task.title,
@@ -198,7 +191,6 @@ class TaskPlanPanelState extends State<TaskPlanPanel> {
       final title = match.group(4)?.trim() ?? '';
       final done = icon == '✅';
       final inProgress = icon == '🔄';
-
       tasks.add(_TaskEntry(id: id, title: title, done: done, inProgress: inProgress));
     }
 

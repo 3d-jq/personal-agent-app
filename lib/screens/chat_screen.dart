@@ -269,7 +269,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
               ]),
             ),
-            TaskPlanPanel(key: _planPanelKey, planNotifier: _controller.planTextNotifier),
+            TaskPlanPanel(key: _planPanelKey, controller: _controller),
             ChatInputBar(
               bottomSafe: bottomSafe,
               controller: _inputCtrl,
