@@ -15,6 +15,7 @@ import '../services/chat_stream_event.dart';
 import '../services/connectivity_service.dart';
 import '../services/context_doc_service.dart';
 import '../services/notification_service.dart';
+import '../tools/task_plan_tool.dart';
 import '../tools/tools.dart';
 import '../widgets/ai_settings_sheet.dart';
 

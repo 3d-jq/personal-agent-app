@@ -10,11 +10,11 @@ import '../services/virtual_fs.dart';
 /// - 任务持久化到虚拟文件系统
 /// - 查看当前进度摘要
 class TaskPlanTool extends AgentTool {
-  /// 当前活跃计划
-  TaskPlan? _plan;
+  /// 当前活跃计划（静态，所有实例共享）
+  static TaskPlan? _currentPlan;
 
   /// 当前计划（供 UI 读取结构化数据）
-  TaskPlan? get currentPlan => _plan;
+  static TaskPlan? get currentPlan => _currentPlan;
 
   /// 最后一次操作的状态文本（供 UI 面板读取）
   String? lastStatusText;
@@ -24,8 +24,11 @@ class TaskPlanTool extends AgentTool {
 
   @override
   String get description =>
-      '管理当前任务的执行计划。当你要完成一个多步骤的复杂任务时，'
-      '先创建计划列出所有步骤，然后逐步更新完成状态。'
+      '管理当前任务的执行计划。当你要完成一个多步骤的复杂任务时使用，'
+      '例如：搜索+整理+保存、多轮搜索对比、创建多个文件、多步骤分析等。'
+      '先调用 create 创建计划并列出所有步骤；每完成一个步骤后，'
+      '立即用 update 将对应 task_id 标记为 done，再继续下一步。'
+      '在输出最终答案之前，必须确保所有 in_progress 的任务都已标记为 done。'
       '支持子任务：一个步骤可以拆分为多个子步骤。'
       '计划会自动保存到虚拟文件系统 /scratch/plan.json，跨轮次保持进度。';
 
@@ -77,7 +80,7 @@ class TaskPlanTool extends AgentTool {
     final action = args['action'] as String? ?? '';
 
     // 尝试从虚拟文件系统恢复计划
-    if (_plan == null) {
+    if (_currentPlan == null) {
       await _loadPlan();
     }
 
@@ -95,7 +98,7 @@ class TaskPlanTool extends AgentTool {
         lastStatusText = result;
         return result;
       case 'clear':
-        _plan = null;
+        _currentPlan = null;
         await _savePlan();
         return '计划已清除。';
       default:
@@ -122,18 +125,18 @@ class TaskPlanTool extends AgentTool {
 
     if (tasks.isEmpty) return '错误: 没有有效的任务项';
 
-    _plan = TaskPlan(title: title, tasks: tasks);
+    _currentPlan = TaskPlan(title: title, tasks: tasks);
     _savePlan();
     return _formatProgress('计划已创建');
   }
 
   String _update(Map<String, dynamic> args) {
-    if (_plan == null) return '当前没有活跃计划，请先用 create 创建';
+    if (_currentPlan == null) return '当前没有活跃计划，请先用 create 创建';
 
     final taskId = args['task_id'] as String?;
     if (taskId == null || taskId.isEmpty) return '错误: update 需要提供 task_id';
 
-    final task = _plan!.findTask(taskId);
+    final task = _currentPlan!.findTask(taskId);
     if (task == null) return '错误: 找不到任务 $taskId';
 
     final newStatus = args['status'] as String?;
@@ -166,16 +169,16 @@ class TaskPlanTool extends AgentTool {
   }
 
   String _status() {
-    if (_plan == null) return '当前没有活跃计划';
+    if (_currentPlan == null) return '当前没有活跃计划';
     return _formatProgress('当前进度');
   }
 
   void _autoUpdateParent(TaskNode task) {
-    if (task.parentId == null || _plan == null) return;
-    final parent = _plan!.findTask(task.parentId!);
+    if (task.parentId == null || _currentPlan == null) return;
+    final parent = _currentPlan!.findTask(task.parentId!);
     if (parent == null) return;
 
-    final children = _plan!.tasks.where((t) => t.parentId == parent.id).toList();
+    final children = _currentPlan!.tasks.where((t) => t.parentId == parent.id).toList();
     if (children.isEmpty) return;
 
     // 如果所有子任务都 done，父任务也 done
@@ -193,8 +196,8 @@ class TaskPlanTool extends AgentTool {
   }
 
   String _formatProgress(String header) {
-    if (_plan == null) return '当前没有活跃计划';
-    final plan = _plan!;
+    if (_currentPlan == null) return '当前没有活跃计划';
+    final plan = _currentPlan!;
 
     final allTasks = plan.tasks;
     final done = allTasks.where((t) => t.status == TaskStatus.done).length;
@@ -243,10 +246,10 @@ class TaskPlanTool extends AgentTool {
   }
 
   Future<void> _savePlan() async {
-    if (_plan == null) return;
+    if (_currentPlan == null) return;
     try {
       final fs = VirtualFileSystem();
-      final json = jsonEncode(_plan!.toJson());
+      final json = jsonEncode(_currentPlan!.toJson());
       await fs.mkdir('/scratch');
       await fs.write('/scratch/plan.json', json);
     } catch (_) {}
@@ -258,7 +261,7 @@ class TaskPlanTool extends AgentTool {
       if (await fs.exists('/scratch/plan.json')) {
         final json = await fs.read('/scratch/plan.json');
         final data = jsonDecode(json) as Map<String, dynamic>;
-        _plan = TaskPlan.fromJson(data);
+        _currentPlan = TaskPlan.fromJson(data);
       }
     } catch (_) {}
   }

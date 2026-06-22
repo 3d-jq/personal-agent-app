@@ -18,6 +18,8 @@ class CreateRichNoteTool extends AgentTool {
   @override
   String get description => '创建一篇图文并茂的笔记。'
       '提供标题、正文（Markdown）、以及需要配图的描述列表，工具会自动生图并嵌入笔记中保存。'
+      '若想让图片出现在正文指定位置，请在 content 中插入占位符 {{IMAGE_0}}、{{IMAGE_1}} 等，'
+      '它们会按顺序被替换为生成的配图。未使用的图片将追加到笔记末尾。'
       '适用于用户要求"写一篇文章/攻略/报告并配图"的场景。';
 
   @override
@@ -30,7 +32,9 @@ class CreateRichNoteTool extends AgentTool {
           },
           'content': {
             'type': 'string',
-            'description': '笔记正文，支持 Markdown 格式',
+            'description': '笔记正文，支持 Markdown 格式。'
+                '如需指定配图位置，可插入占位符 {{IMAGE_0}}、{{IMAGE_1}} 等，'
+                '工具会按 image_descriptions 顺序将图片替换到对应位置。',
           },
           'image_descriptions': {
             'type': 'array',
@@ -76,10 +80,21 @@ class CreateRichNoteTool extends AgentTool {
       }
     }
 
-    // 拼接 Markdown
-    final buf = StringBuffer(content);
-    if (imageUrls.isNotEmpty) {
-      for (final url in imageUrls) {
+    // 拼接 Markdown：先按占位符替换，剩余图片追加末尾
+    var finalContent = content;
+    final unusedUrls = <String>[];
+    for (var i = 0; i < imageUrls.length; i++) {
+      final placeholder = '{{IMAGE_$i}}';
+      if (finalContent.contains(placeholder)) {
+        finalContent = finalContent.replaceFirst(placeholder, '\n\n![配图](${imageUrls[i]})\n\n');
+      } else {
+        unusedUrls.add(imageUrls[i]);
+      }
+    }
+
+    final buf = StringBuffer(finalContent);
+    if (unusedUrls.isNotEmpty) {
+      for (final url in unusedUrls) {
         buf.writeln('\n\n![配图]($url)');
       }
     }
