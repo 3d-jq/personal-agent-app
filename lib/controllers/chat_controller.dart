@@ -44,6 +44,9 @@ class ChatController extends ChangeNotifier {
   /// UI 层传入的滚屏回调，控制器不关心 ScrollController。
   final VoidCallback? onNeedScroll;
 
+  /// 任务计划状态变更通知（供 UI 面板监听）
+  final ValueNotifier<String?> planTextNotifier = ValueNotifier<String?>(null);
+
   String? _sessionId;
   List<ChatMessage> _messages = [];
   List<ChatSession> _sessions = [];
@@ -368,7 +371,7 @@ class ChatController extends ChangeNotifier {
         state.buf.write('\n$url\n');
         break;
       case TaskPlanEvent(:final planText):
-        state.buf.write('\n::TASK_PLAN::\n$planText\n::END_TASK_PLAN::\n');
+        planTextNotifier.value = planText;
         break;
       case ErrorEvent(:final message):
         state.buf.write('\n\n$message');

@@ -11,6 +11,7 @@ import '../widgets/ai_settings_sheet.dart';
 import '../widgets/context_docs_panel.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input_bar.dart';
+import '../widgets/task_plan_panel.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sessionId;
@@ -26,6 +27,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   final ScrollController _scrollCtrl = ScrollController();
+  final GlobalKey<TaskPlanPanelState> _planPanelKey = GlobalKey<TaskPlanPanelState>();
   late final ChatController _controller;
   Timer? _scrollTimer;
   bool _showScrollBottom = false;
@@ -267,6 +269,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
               ]),
             ),
+            TaskPlanPanel(key: _planPanelKey, planNotifier: _controller.planTextNotifier),
             ChatInputBar(
               bottomSafe: bottomSafe,
               controller: _inputCtrl,
