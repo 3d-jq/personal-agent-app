@@ -237,7 +237,18 @@ class AIService {
         yield ToolMediaEvent(result.content);
       }
       if (tc.name == 'task_plan' && result.content.isNotEmpty && !failed) {
-        yield TaskPlanEvent(result.content);
+        final plan = TaskPlanTool().currentPlan;
+        if (plan != null) {
+          yield TaskPlanEvent(
+            title: plan.title,
+            tasks: plan.tasks.map((t) => TaskPlanItem(
+              id: t.id,
+              title: t.title,
+              done: t.status == TaskStatus.done,
+              inProgress: t.status == TaskStatus.inProgress,
+            )).toList(),
+          );
+        }
       }
       messages.add({
         'role': 'tool',
@@ -399,7 +410,18 @@ class AIService {
             yield ToolMediaEvent(toolResult.content);
           }
           if (tc.name == 'task_plan' && toolResult.content.isNotEmpty && !failed) {
-            yield TaskPlanEvent(toolResult.content);
+            final plan = TaskPlanTool().currentPlan;
+            if (plan != null) {
+              yield TaskPlanEvent(
+                title: plan.title,
+                tasks: plan.tasks.map((t) => TaskPlanItem(
+                  id: t.id,
+                  title: t.title,
+                  done: t.status == TaskStatus.done,
+                  inProgress: t.status == TaskStatus.inProgress,
+                )).toList(),
+              );
+            }
           }
           toolResults.add({
             'type': 'tool_result',
