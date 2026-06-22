@@ -45,7 +45,7 @@ class ChatController extends ChangeNotifier {
   final VoidCallback? onNeedScroll;
 
   /// 任务计划状态变更通知（供 UI 面板监听）
-  final ValueNotifier<String?> planTextNotifier = ValueNotifier<String?>(null);
+  String? currentPlanText;
 
   String? _sessionId;
   List<ChatMessage> _messages = [];
@@ -371,7 +371,7 @@ class ChatController extends ChangeNotifier {
         state.buf.write('\n$url\n');
         break;
       case TaskPlanEvent(:final planText):
-        planTextNotifier.value = planText;
+        currentPlanText = planText;
         break;
       case ErrorEvent(:final message):
         state.buf.write('\n\n$message');
