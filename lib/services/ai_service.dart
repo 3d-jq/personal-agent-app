@@ -236,6 +236,9 @@ class AIService {
       if ((tc.name == 'generate_image' || tc.name == 'generate_video') && result.content.isNotEmpty && !failed) {
         yield ToolMediaEvent(result.content);
       }
+      if (tc.name == 'task_plan' && result.content.isNotEmpty && !failed) {
+        yield TaskPlanEvent(result.content);
+      }
       messages.add({
         'role': 'tool',
         'tool_call_id': tc.id,
@@ -394,6 +397,9 @@ class AIService {
           }
           if ((tc.name == 'generate_image' || tc.name == 'generate_video') && toolResult.content.isNotEmpty && !failed) {
             yield ToolMediaEvent(toolResult.content);
+          }
+          if (tc.name == 'task_plan' && toolResult.content.isNotEmpty && !failed) {
+            yield TaskPlanEvent(toolResult.content);
           }
           toolResults.add({
             'type': 'tool_result',

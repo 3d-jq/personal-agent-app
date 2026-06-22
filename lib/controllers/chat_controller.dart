@@ -349,13 +349,6 @@ class ChatController extends ChangeNotifier {
           NotificationService().complete(
               id: name, title: _toolLabel(name), message: '已完成');
         }
-        // 任务计划工具完成后，插入卡片标记
-        if (name == 'task_plan') {
-          final planText = TaskPlanTool.lastPlanText;
-          if (planText != null && planText.isNotEmpty) {
-            state.buf.write('\n\n::TASK_PLAN::\n$planText\n::END_TASK_PLAN::\n\n');
-          }
-        }
         break;
       case ToolErrorEvent(:final name, :final message):
         final idx = state.steps.lastIndexWhere((s) =>
@@ -373,6 +366,9 @@ class ChatController extends ChangeNotifier {
         break;
       case ToolMediaEvent(:final url):
         state.buf.write('\n$url\n');
+        break;
+      case TaskPlanEvent(:final planText):
+        state.buf.write('\n::TASK_PLAN::\n$planText\n::END_TASK_PLAN::\n');
         break;
       case ErrorEvent(:final message):
         state.buf.write('\n\n$message');
