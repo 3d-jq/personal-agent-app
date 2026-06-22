@@ -394,8 +394,8 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
             case ToolMediaEvent(:final url):
               buf.write('\n$url\n');
               break;
-            case TaskPlanEvent(:final planText):
-              buf.write('\n::TASK_PLAN::\n$planText\n::END_TASK_PLAN::\n');
+            case TaskPlanEvent():
+              // 群聊中暂不展示任务计划面板
               break;
             case ErrorEvent(:final message):
               buf.write('\n\n[错误: $message]');

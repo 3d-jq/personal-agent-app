@@ -11,7 +11,10 @@ import '../services/virtual_fs.dart';
 /// - 查看当前进度摘要
 class TaskPlanTool extends AgentTool {
   /// 当前活跃计划
-  _TaskPlan? _plan;
+  TaskPlan? _plan;
+
+  /// 当前计划（供 UI 读取结构化数据）
+  TaskPlan? get currentPlan => _plan;
 
   /// 最后一次操作的状态文本（供 UI 面板读取）
   String? lastStatusText;
@@ -119,7 +122,7 @@ class TaskPlanTool extends AgentTool {
 
     if (tasks.isEmpty) return '错误: 没有有效的任务项';
 
-    _plan = _TaskPlan(title: title, tasks: tasks);
+    _plan = TaskPlan(title: title, tasks: tasks);
     _savePlan();
     return _formatProgress('计划已创建');
   }
@@ -255,7 +258,7 @@ class TaskPlanTool extends AgentTool {
       if (await fs.exists('/scratch/plan.json')) {
         final json = await fs.read('/scratch/plan.json');
         final data = jsonDecode(json) as Map<String, dynamic>;
-        _plan = _TaskPlan.fromJson(data);
+        _plan = TaskPlan.fromJson(data);
       }
     } catch (_) {}
   }
@@ -295,11 +298,11 @@ class TaskNode {
       );
 }
 
-class _TaskPlan {
+class TaskPlan {
   final String title;
   final List<TaskNode> tasks;
 
-  _TaskPlan({required this.title, required this.tasks});
+  TaskPlan({required this.title, required this.tasks});
 
   TaskNode? findTask(String id) {
     try {
@@ -314,7 +317,7 @@ class _TaskPlan {
         'tasks': tasks.map((t) => t.toJson()).toList(),
       };
 
-  factory _TaskPlan.fromJson(Map<String, dynamic> json) => _TaskPlan(
+  factory TaskPlan.fromJson(Map<String, dynamic> json) => TaskPlan(
         title: json['title'] as String,
         tasks: (json['tasks'] as List)
             .map((t) => TaskNode.fromJson(t as Map<String, dynamic>))

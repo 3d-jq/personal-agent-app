@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../controllers/chat_controller.dart';
+import '../services/chat_stream_event.dart';
+import '../tools/task_plan_tool.dart';
 
 /// 输入框上方的任务计划悬浮面板
 ///
@@ -45,109 +47,107 @@ class TaskPlanPanelState extends State<TaskPlanPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final planText = widget.controller.currentPlanText;
+    final plan = widget.controller.currentPlan;
+    if (plan == null) return const SizedBox.shrink();
     final nc = AgentColors.of(context);
-    if (planText == null || planText.isEmpty) return const SizedBox.shrink();
-    final parsed = _parsePlan(planText);
-    if (parsed == null) {
-      // 解析失败，显示原始文本
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-          color: nc.surface,
-          border: Border(top: BorderSide(color: nc.divider, width: 0.5)),
-        ),
-        child: Text(planText, style: TextStyle(fontSize: 11, color: nc.textSecondary), maxLines: 2, overflow: TextOverflow.ellipsis),
-      );
-    }
 
-    final doneCount = parsed.tasks.where((t) => t.done).length;
-    final total = parsed.tasks.length;
+    final doneCount = plan.tasks.where((t) => t.status == TaskStatus.done).length;
+    final total = plan.tasks.length;
     final allDone = doneCount == total;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: nc.surface,
-        border: Border(top: BorderSide(color: nc.divider, width: 0.5)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header - 可点击折叠
-          GestureDetector(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              setState(() => _expanded = !_expanded);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  Icon(
-                    allDone ? Icons.check_circle : Icons.task_alt,
-                    size: 18,
-                    color: allDone ? nc.success : nc.textSecondary,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      parsed.title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: nc.textPrimary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: nc.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: nc.divider, width: 0.5),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header - 可点击折叠
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                setState(() => _expanded = !_expanded);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                child: Row(
+                  children: [
+                    Icon(
+                      allDone ? Icons.check_circle : Icons.task_alt,
+                      size: 18,
+                      color: allDone ? nc.success : nc.textSecondary,
                     ),
-                  ),
-                  // Progress badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: allDone
-                          ? nc.success.withValues(alpha: 0.1)
-                          : nc.primarySurface,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$doneCount/$total',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: allDone ? nc.success : nc.textSecondary,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        plan.title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: nc.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    _expanded ? Icons.expand_less : Icons.expand_more,
-                    size: 20,
-                    color: nc.textSecondary,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Task list - 可折叠
-          if (_expanded)
-            Container(
-              constraints: const BoxConstraints(maxHeight: 200),
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: parsed.tasks.map((task) => _buildTaskItem(task, nc)).toList(),
+                    // Progress badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: allDone
+                            ? nc.success.withValues(alpha: 0.1)
+                            : nc.primarySurface,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '$doneCount/$total',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: allDone ? nc.success : nc.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      size: 20,
+                      color: nc.textSecondary,
+                    ),
+                  ],
                 ),
               ),
             ),
-        ],
+            // Task list - 可折叠
+            if (_expanded)
+              Container(
+                constraints: const BoxConstraints(maxHeight: 200),
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: plan.tasks.map((task) => _buildTaskItem(task, nc)).toList(),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTaskItem(_TaskEntry task, AgentColors nc) {
+  Widget _buildTaskItem(TaskNode task, AgentColors nc) {
+    final isDone = task.status == TaskStatus.done;
+    final isInProgress = task.status == TaskStatus.inProgress;
+    final isFailed = task.status == TaskStatus.failed;
+    final isBlocked = task.status == TaskStatus.blocked;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
@@ -156,17 +156,23 @@ class TaskPlanPanelState extends State<TaskPlanPanel> {
           Padding(
             padding: const EdgeInsets.only(top: 3),
             child: Icon(
-              task.done
+              isDone
                   ? Icons.check_circle
-                  : task.inProgress
+                  : isInProgress
                       ? Icons.radio_button_checked
-                      : Icons.radio_button_unchecked,
+                      : isFailed
+                          ? Icons.error
+                          : isBlocked
+                              ? Icons.block
+                              : Icons.radio_button_unchecked,
               size: 14,
-              color: task.done
+              color: isDone
                   ? nc.success
-                  : task.inProgress
+                  : isInProgress
                       ? nc.warning
-                      : nc.textSecondary.withValues(alpha: 0.4),
+                      : isFailed
+                          ? nc.error
+                          : nc.textSecondary.withValues(alpha: 0.4),
             ),
           ),
           const SizedBox(width: 8),
@@ -175,8 +181,8 @@ class TaskPlanPanelState extends State<TaskPlanPanel> {
               task.title,
               style: TextStyle(
                 fontSize: 13,
-                color: task.done ? nc.textSecondary : nc.textPrimary,
-                decoration: task.done ? TextDecoration.lineThrough : null,
+                color: isDone ? nc.textSecondary : nc.textPrimary,
+                decoration: isDone ? TextDecoration.lineThrough : null,
                 decorationColor: nc.textSecondary,
                 height: 1.4,
               ),
@@ -186,51 +192,4 @@ class TaskPlanPanelState extends State<TaskPlanPanel> {
       ),
     );
   }
-
-  _ParsedPlan? _parsePlan(String text) {
-    // 兼容多种标题格式：
-    // "计划已创建: xxx (0/5 已完成)"
-    // "当前进度: xxx (2/5 已完成)"
-    // "任务T3已更新为done: xxx(3/4 已完成)"
-    // "下一步: xxx"
-    final headerMatch = RegExp(r'[:：]\s*(.+?)\s*[\(（](\d+)/(\d+)\s*已完成').firstMatch(text);
-    if (headerMatch == null) return null;
-
-    final title = headerMatch.group(1)?.trim() ?? '';
-    final tasks = <_TaskEntry>[];
-
-    // 兼容多种任务格式：
-    // "1. ⬜ 搜索xxx"
-    // "T1. ⬜ 搜索xxx"
-    // "1.1. ✅ 子任务"
-    final taskPattern = RegExp(r'^(\s*)(T?\d+(?:\.\d+)*)\.\s*([⬜🔄✅❌🚫])?\s*(.+)$', multiLine: true);
-
-    for (final match in taskPattern.allMatches(text)) {
-      final id = match.group(2) ?? '';
-      final icon = match.group(3);
-      final title = match.group(4)?.trim() ?? '';
-      if (title.isEmpty) continue;
-
-      final done = icon == '✅';
-      final inProgress = icon == '🔄';
-      tasks.add(_TaskEntry(id: id, title: title, done: done, inProgress: inProgress));
-    }
-
-    if (tasks.isEmpty) return null;
-    return _ParsedPlan(title: title, tasks: tasks);
-  }
-}
-
-class _ParsedPlan {
-  final String title;
-  final List<_TaskEntry> tasks;
-  _ParsedPlan({required this.title, required this.tasks});
-}
-
-class _TaskEntry {
-  final String id;
-  final String title;
-  final bool done;
-  final bool inProgress;
-  _TaskEntry({required this.id, required this.title, this.done = false, this.inProgress = false});
 }
