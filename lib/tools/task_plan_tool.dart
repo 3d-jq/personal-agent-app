@@ -13,6 +13,9 @@ class TaskPlanTool extends AgentTool {
   /// 当前活跃计划
   _TaskPlan? _plan;
 
+  /// 最后一次操作的状态文本（供 UI 面板读取）
+  String? lastStatusText;
+
   @override
   String get name => 'task_plan';
 
@@ -77,11 +80,17 @@ class TaskPlanTool extends AgentTool {
 
     switch (action) {
       case 'create':
-        return _create(args);
+        final result = _create(args);
+        lastStatusText = result;
+        return result;
       case 'update':
-        return _update(args);
+        final result = _update(args);
+        lastStatusText = result;
+        return result;
       case 'status':
-        return _status();
+        final result = _status();
+        lastStatusText = result;
+        return result;
       case 'clear':
         _plan = null;
         await _savePlan();
