@@ -22,6 +22,10 @@ class ChatMessage extends ChangeNotifier {
   /// 附件类型：'image' 或 'document'。
   String? attachmentType;
 
+  /// 工具调用交互记录，用于跨轮次保持上下文。
+  /// 每个元素代表一轮工具调用：{toolCalls: [...], toolResults: [...]}
+  List<Map<String, dynamic>>? toolInteractions;
+
   ChatMessage({
     required String text,
     required this.isUser,
@@ -31,6 +35,7 @@ class ChatMessage extends ChangeNotifier {
     this.mentions = const [],
     this.attachmentPath,
     this.attachmentType,
+    this.toolInteractions,
   })  : _text = text,
         _isStreaming = isStreaming,
         _steps = steps;
@@ -69,6 +74,7 @@ class ChatMessage extends ChangeNotifier {
     'mentions': mentions,
     if (attachmentPath != null) 'attachmentPath': attachmentPath,
     if (attachmentType != null) 'attachmentType': attachmentType,
+    if (toolInteractions != null) 'toolInteractions': toolInteractions,
   };
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
@@ -83,6 +89,7 @@ class ChatMessage extends ChangeNotifier {
       mentions: (json['mentions'] as List?)?.cast<String>() ?? const [],
       attachmentPath: json['attachmentPath'] as String?,
       attachmentType: json['attachmentType'] as String?,
+      toolInteractions: (json['toolInteractions'] as List?)?.cast<Map<String, dynamic>>(),
     );
   }
 }

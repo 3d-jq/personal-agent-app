@@ -371,6 +371,12 @@ class ChatController extends ChangeNotifier {
       case ToolMediaEvent(:final url):
         state.buf.write('\n$url\n');
         break;
+      case ToolInteractionEvent(:final toolCalls, :final toolResults):
+        state.toolInteractions.add({
+          'toolCalls': toolCalls,
+          'toolResults': toolResults,
+        });
+        break;
       case TaskPlanEvent(:final title, :final tasks):
         currentPlan = TaskPlan(title: title, tasks: tasks.map((t) => TaskNode(
           id: t.id,
@@ -481,6 +487,10 @@ class ChatController extends ChangeNotifier {
     _streamState = null;
     aiMsg.isStreaming = false;
     aiMsg.steps = state.steps.isEmpty ? null : List.unmodifiable(state.steps);
+    // 持久化工具交互记录到消息历史
+    if (state.toolInteractions.isNotEmpty) {
+      aiMsg.toolInteractions = state.toolInteractions;
+    }
     if (aiMsg.text.isEmpty && !state.hasToolCalls) {
       aiMsg.text = state.reasoningBuf.isNotEmpty
           ? '模型思考时间过长，连接已断开，请重试'
@@ -529,4 +539,7 @@ class _StreamState {
 
   /// 当前思考步创建时 buf 的长度，用于结束思考步时截取增量文本作为 detail。
   int thinkingStepBufStart = 0;
+
+  /// 收集所有轮次的工具交互记录，用于持久化到消息历史。
+  final List<Map<String, dynamic>> toolInteractions = [];
 }
