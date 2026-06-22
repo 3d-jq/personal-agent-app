@@ -17,6 +17,9 @@ class AgentColors extends ThemeExtension<AgentColors> {
   final Color primarySurface;
   final Color cardBackground;
 
+  // ── Brand ──
+  final Color primary;
+
   // ── Functional ──
   final Color success;
   final Color warning;
@@ -40,6 +43,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
     required this.surface,
     required this.primarySurface,
     required this.cardBackground,
+    required this.primary,
     required this.success,
     required this.warning,
     required this.error,
@@ -60,6 +64,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
         surface: Color(0xFFFFFFFF),
         primarySurface: Color(0xFFF7F6F3),
         cardBackground: Color(0xFFFFFFFF),
+        primary: Color(0xFF2383E2),
         success: Color(0xFF0F7B6C),
         warning: Color(0xFFDFAB01),
         error: Color(0xFFEB5757),
@@ -74,6 +79,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
         surface: Color(0xFF2C2C2A),
         primarySurface: Color(0xFF37352F),
         cardBackground: Color(0xFF2C2C2A),
+        primary: Color(0xFF529CCA),
         success: Color(0xFF2DD4BF),
         warning: Color(0xFFFBBF24),
         error: Color(0xFFF87171),
@@ -92,6 +98,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
     Color? surface,
     Color? primarySurface,
     Color? cardBackground,
+    Color? primary,
     Color? success,
     Color? warning,
     Color? error,
@@ -105,6 +112,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
       surface: surface ?? this.surface,
       primarySurface: primarySurface ?? this.primarySurface,
       cardBackground: cardBackground ?? this.cardBackground,
+      primary: primary ?? this.primary,
       success: success ?? this.success,
       warning: warning ?? this.warning,
       error: error ?? this.error,
@@ -123,6 +131,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
       surface: Color.lerp(surface, other.surface, t)!,
       primarySurface: Color.lerp(primarySurface, other.primarySurface, t)!,
       cardBackground: Color.lerp(cardBackground, other.cardBackground, t)!,
+      primary: Color.lerp(primary, other.primary, t)!,
       success: Color.lerp(success, other.success, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       error: Color.lerp(error, other.error, t)!,

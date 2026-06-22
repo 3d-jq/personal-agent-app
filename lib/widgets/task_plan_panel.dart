@@ -49,8 +49,35 @@ class TaskPlanPanelState extends State<TaskPlanPanel> {
   Widget build(BuildContext context) {
     final plan = widget.controller.currentPlan;
     if (plan == null) return const SizedBox.shrink();
-    final nc = AgentColors.of(context);
+    return TaskPlanView(
+      plan: plan,
+      expanded: _expanded,
+      onToggle: () {
+        HapticFeedback.lightImpact();
+        setState(() => _expanded = !_expanded);
+      },
+    );
+  }
+}
 
+/// 可复用的任务计划视图
+///
+/// [plan] 任务计划数据；[expanded] 是否展开；[onToggle] 折叠/展开回调。
+class TaskPlanView extends StatelessWidget {
+  final TaskPlan plan;
+  final bool expanded;
+  final VoidCallback? onToggle;
+
+  const TaskPlanView({
+    super.key,
+    required this.plan,
+    this.expanded = true,
+    this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final nc = AgentColors.of(context);
     final doneCount = plan.tasks.where((t) => t.status == TaskStatus.done).length;
     final total = plan.tasks.length;
     final allDone = doneCount == total;
@@ -70,10 +97,7 @@ class TaskPlanPanelState extends State<TaskPlanPanel> {
           children: [
             // Header - 可点击折叠
             GestureDetector(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                setState(() => _expanded = !_expanded);
-              },
+              onTap: onToggle,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Row(
@@ -114,18 +138,20 @@ class TaskPlanPanelState extends State<TaskPlanPanel> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      _expanded ? Icons.expand_less : Icons.expand_more,
-                      size: 20,
-                      color: nc.textSecondary,
-                    ),
+                    if (onToggle != null) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        expanded ? Icons.expand_less : Icons.expand_more,
+                        size: 20,
+                        color: nc.textSecondary,
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
             // Task list - 可折叠
-            if (_expanded)
+            if (expanded)
               Container(
                 constraints: const BoxConstraints(maxHeight: 200),
                 padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),

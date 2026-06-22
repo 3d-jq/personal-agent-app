@@ -70,7 +70,7 @@ class AIService {
     required this.apiKey,
     required this.providerName,
     required this.model,
-    this.maxTokens = 4096,
+    this.maxTokens = 16384,
     this.thinkingEffort = 'medium',
     ToolRegistry? toolRegistry,
   }) : toolRegistry = toolRegistry ?? ToolRegistry();
@@ -83,6 +83,10 @@ class AIService {
   final String thinkingEffort;
 
   bool get _isAnthropic => providerName == 'Anthropic';
+
+  /// 按厂商返回合适的 max_tokens。
+  /// Claude 当前输出上限已支持 32K，与其他厂商统一使用外部配置值。
+  int get _effectiveMaxTokens => maxTokens;
 
   /// Retries a request on 429 with exponential backoff.
   /// [maxRetries] attempts total (including the first one).
@@ -213,6 +217,12 @@ class AIService {
     };
     messages.add(assistantMsg);
 
+    // 先发出所有 ToolStartEvent（确保 ask_user 等阻塞性工具能在 UI 显示）
+    final count = toolCalls.length;
+    for (final tc in toolCalls) {
+      yield ToolStartEvent(tc.name, concurrentCount: count);
+    }
+
     // Execute all tools in parallel (independent calls can run concurrently)
     final results = await Future.wait(
       toolCalls.map((tc) async {
@@ -221,12 +231,10 @@ class AIService {
       }),
     );
 
-    // Yield events and add results to messages in original order
-    final count = results.length;
+    // Yield done/error events and add results to messages in original order
     for (final entry in results) {
       final tc = entry['tc'] as ToolCall;
       final result = entry['result'] as ToolResult;
-      yield ToolStartEvent(tc.name, concurrentCount: count);
       final failed = _isToolFailed(tc.name, result.content);
       if (failed) {
         yield ToolErrorEvent(tc.name, result.content);
@@ -237,7 +245,7 @@ class AIService {
         yield ToolMediaEvent(result.content);
       }
       if (tc.name == 'task_plan' && result.content.isNotEmpty && !failed) {
-        final plan = TaskPlanTool().currentPlan;
+        final plan = TaskPlanTool.currentPlan;
         if (plan != null) {
           yield TaskPlanEvent(
             title: plan.title,
@@ -271,19 +279,22 @@ class AIService {
           'model': model,
           'messages': messages,
           'tools': tools,
+          'max_tokens': _effectiveMaxTokens,
           if (thinkingEffort != 'low') 'chat_template_kwargs': {'enable_thinking': true},
           if (thinkingEffort.isNotEmpty) 'reasoning_effort': thinkingEffort,
         },
       );
 
       final data = response.data;
-      final choice = data['choices']?[0]?['message'];
-      if (choice == null) {
+      final choice = data['choices']?[0];
+      if (choice == null || choice['message'] == null) {
         return const AiResponse(text: '');
       }
 
-      final text = choice['content'] as String? ?? '';
-      final toolCallsRaw = choice['tool_calls'] as List?;
+      final message = choice['message'];
+      final text = (message['content'] as String? ?? '') +
+          (choice['finish_reason'] == 'length' ? '\n\n[回复被长度限制截断，请简化问题或分多次询问]' : '');
+      final toolCallsRaw = message['tool_calls'] as List?;
       final toolCalls = toolCallsRaw?.map((tc) => ToolCall.fromJson(tc)).toList();
 
       return AiResponse(text: text, toolCalls: toolCalls);
@@ -308,6 +319,7 @@ class AIService {
           'model': model,
           'messages': messages,
           'stream': true,
+          'max_tokens': _effectiveMaxTokens,
           if (tools != null && tools.isNotEmpty) 'tools': tools,
           if (thinkingEffort != 'low') 'chat_template_kwargs': {'enable_thinking': true},
           if (thinkingEffort.isNotEmpty) 'reasoning_effort': thinkingEffort,
@@ -325,7 +337,12 @@ class AIService {
           final data = line.substring(6).trim();
           if (data.isEmpty || data == '[DONE]') continue;
           try {
-            final delta = jsonDecode(data)['choices']?[0]?['delta'];
+            final choice = jsonDecode(data)['choices']?[0];
+            final finishReason = choice?['finish_reason'] as String?;
+            if (finishReason == 'length') {
+              yield ErrorEvent('回复被长度限制截断，请简化问题或分多次询问');
+            }
+            final delta = choice?['delta'];
             if (delta == null) continue;
             final reasoning = delta['reasoning_content'] as String?;
             if (reasoning != null && reasoning.isNotEmpty) yield ThinkingChunkEvent(reasoning);
@@ -339,7 +356,12 @@ class AIService {
         try {
           final data = buffer.trim();
           if (data.startsWith('data: ')) {
-            final delta = jsonDecode(data.substring(6))['choices']?[0]?['delta'];
+            final choice = jsonDecode(data.substring(6))['choices']?[0];
+            final finishReason = choice?['finish_reason'] as String?;
+            if (finishReason == 'length') {
+              yield ErrorEvent('回复被长度限制截断，请简化问题或分多次询问');
+            }
+            final delta = choice?['delta'];
             if (delta != null) {
               final reasoning = delta['reasoning_content'] as String?;
               if (reasoning != null && reasoning.isNotEmpty) yield ThinkingChunkEvent(reasoning);
@@ -410,7 +432,7 @@ class AIService {
             yield ToolMediaEvent(toolResult.content);
           }
           if (tc.name == 'task_plan' && toolResult.content.isNotEmpty && !failed) {
-            final plan = TaskPlanTool().currentPlan;
+            final plan = TaskPlanTool.currentPlan;
             if (plan != null) {
               yield TaskPlanEvent(
                 title: plan.title,
@@ -468,7 +490,7 @@ class AIService {
         receiveTimeout: const Duration(minutes: 5), // Streaming needs longer timeout
         data: {
           'model': model,
-          'max_tokens': maxTokens,
+          'max_tokens': _effectiveMaxTokens,
           if (system.isNotEmpty) 'system': system,
           'messages': conversation,
           if (hasTools) 'tools': tools,

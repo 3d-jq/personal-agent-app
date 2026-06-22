@@ -15,7 +15,7 @@ class ContextDocTool extends AgentTool {
   @override
   String get description => '''
 读取或更新上下文文档（SOUL.md / USER.md / AGENT.md / MEMORY.md）或知识库文件。
-- read：查看指定文档的当前内容。对于 knowledge 类型需额外传 filename 参数。
+- read：查看指定文档的当前内容。AGENT.md / MEMORY.md 不会自动加载，需要时必须先 read。
 - update：覆盖写入指定文档的完整内容。
 注意：
 - SOUL.md / USER.md / MEMORY.md 可直接更新，但 update 只能写入用户明确陈述的内容。

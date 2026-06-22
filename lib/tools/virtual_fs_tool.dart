@@ -21,7 +21,7 @@ class VirtualFSTool extends AgentTool {
   @override
   String get description => '''
 管理虚拟文件系统，用于组织和管理上下文信息。
-路径以 / 开头表示从根目录开始，如 /memory/notes.md、/scratch/idea.md
+路径以 / 开头表示从根目录开始，如 /memory/notes.md、/scratch/idea.md。
 目录结构：
 - /soul/     人格设定（只读，由用户配置）
 - /user/     用户信息
@@ -30,6 +30,11 @@ class VirtualFSTool extends AgentTool {
 - /scratch/  临时草稿
 - /notes/    用户笔记
 - /knowledge/ 知识库（只读）
+
+使用建议：
+- 用 ls / 查看文件系统结构；用 read 按需加载需要的上下文。
+- 复杂任务的中间结果、思考过程、草稿 → 写入 /scratch/ 临时保存。
+- 需要跨会话保留的信息 → 写入 /memory/；单次任务草稿 → /scratch/，完成后可清理。
 
 操作：
 - ls: 列出目录内容
