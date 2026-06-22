@@ -49,6 +49,12 @@ class ToolMediaEvent extends ChatStreamEvent {
   const ToolMediaEvent(this.url);
 }
 
+/// 任务计划状态更新（需渲染为 checklist 卡片）。
+class TaskPlanEvent extends ChatStreamEvent {
+  final String planText;
+  const TaskPlanEvent(this.planText);
+}
+
 /// 流式过程中的错误（网络异常、API 错误等）。
 class ErrorEvent extends ChatStreamEvent {
   final String message;
