@@ -334,6 +334,7 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
 
     final buf = StringBuffer();
     List<TimelineStep>? currentSteps;
+    final toolInteractions = <Map<String, dynamic>>[];
     StreamSubscription<ChatStreamEvent>? sub;
     try {
       final history = _messages.where((m) => m != placeholder).toList();
@@ -394,6 +395,12 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
             case ToolMediaEvent(:final url):
               buf.write('\n$url\n');
               break;
+            case ToolInteractionEvent(:final toolCalls, :final toolResults):
+              toolInteractions.add({
+                'toolCalls': toolCalls,
+                'toolResults': toolResults,
+              });
+              break;
             case TaskPlanEvent():
               // 群聊中暂不展示任务计划面板
               break;
@@ -427,6 +434,9 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
           steps.last.label = '任务完成';
         }
         placeholder.steps = steps;
+      }
+      if (toolInteractions.isNotEmpty) {
+        placeholder.toolInteractions = toolInteractions;
       }
     }
     if (mounted) setState(() {});

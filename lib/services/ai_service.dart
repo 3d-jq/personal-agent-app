@@ -264,6 +264,16 @@ class AIService {
         'content': result.content,
       });
     }
+
+    // 持久化事件：输出本轮完整的工具交互记录
+    yield ToolInteractionEvent(
+      toolCalls: (assistantMsg['tool_calls'] as List).cast<Map<String, dynamic>>(),
+      toolResults: results.map((e) {
+        final tc = e['tc'] as ToolCall;
+        final result = e['result'] as ToolResult;
+        return {'id': tc.id, 'name': tc.name, 'content': result.content};
+      }).toList(),
+    );
   }
 
   Future<AiResponse> _callOpenAINonStreaming(

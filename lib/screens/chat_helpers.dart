@@ -132,6 +132,36 @@ List<Map<String, dynamic>> buildMessageHistory({
   for (var i = 0; i < msgs.length; i++) {
     final m = msgs[i];
     if (m.isStreaming) continue;
+
+    // 如果 assistant 消息有工具交互记录，重建完整的工具调用链
+    if (!m.isUser && m.toolInteractions != null && m.toolInteractions!.isNotEmpty) {
+      for (final interaction in m.toolInteractions!) {
+        final toolCalls = interaction['toolCalls'] as List?;
+        final toolResults = interaction['toolResults'] as List?;
+        // assistant 消息（带 tool_calls）
+        history.add({
+          'role': 'assistant',
+          'content': '',
+          if (toolCalls != null) 'tool_calls': toolCalls,
+        });
+        // tool 结果消息
+        if (toolResults != null) {
+          for (final tr in toolResults) {
+            history.add({
+              'role': 'tool',
+              'tool_call_id': tr['id'],
+              'content': tr['content'] ?? '',
+            });
+          }
+        }
+      }
+      // 最终文本回复
+      if (m.text.isNotEmpty) {
+        history.add({'role': 'assistant', 'content': m.text});
+      }
+      continue;
+    }
+
     final msg = <String, dynamic>{
       'role': m.isUser ? 'user' : 'assistant',
       'content': m.text,
@@ -171,9 +201,13 @@ List<Map<String, dynamic>> buildMessageHistory({
     history.add(msg);
   }
 
-  history.removeWhere((m) =>
-      (m['content'] ?? '').isEmpty ||
-      (m['content'] is List && (m['content'] as List).isEmpty));
+  history.removeWhere((m) {
+    final role = m['role'];
+    // 保留 tool_calls 和 tool 消息，即使 content 为空
+    if (role == 'tool' || m.containsKey('tool_calls')) return false;
+    return (m['content'] ?? '').isEmpty ||
+        (m['content'] is List && (m['content'] as List).isEmpty);
+  });
 
   return history;
 }

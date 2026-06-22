@@ -76,3 +76,13 @@ class ErrorEvent extends ChatStreamEvent {
   final String message;
   const ErrorEvent(this.message);
 }
+
+/// 一轮工具调用的完整交互记录（用于持久化到消息历史）。
+/// 包含 assistant 的 tool_calls 和对应的 tool results。
+class ToolInteractionEvent extends ChatStreamEvent {
+  /// OpenAI 格式的 tool_calls 列表
+  final List<Map<String, dynamic>> toolCalls;
+  /// 工具执行结果列表: {id, content}
+  final List<Map<String, dynamic>> toolResults;
+  const ToolInteractionEvent({required this.toolCalls, required this.toolResults});
+}
