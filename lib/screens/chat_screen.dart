@@ -111,52 +111,93 @@ class _ChatScreenState extends State<ChatScreen> {
           surfaceTintColor: Colors.transparent,
         ),
       ),
-      child: PopupMenuButton<ContextDoc>(
+      child: PopupMenuButton<String>(
         offset: const Offset(0, 44),
         color: nc.surface,
-        onSelected: (doc) {
+        onSelected: (value) {
           HapticFeedback.lightImpact();
-          AppRouter.toContextDocViewer(context, doc: doc);
+          if (value == '__scratch__') {
+            AppRouter.toScratchViewer(context);
+          } else {
+            AppRouter.toContextDocViewer(
+              context,
+              doc: ContextDoc.values.firstWhere((d) => d.name == value),
+            );
+          }
         },
-        itemBuilder: (_) => ContextDoc.values
-            .map(
-              (doc) => PopupMenuItem<ContextDoc>(
-                value: doc,
-                padding: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        ContextDocViewerPage.iconFor(doc),
-                        size: 20,
-                        color: nc.textPrimary,
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          ContextDocViewerPage.titleFor(doc),
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: nc.textPrimary,
-                            fontWeight: FontWeight.w400,
-                          ),
+        itemBuilder: (_) => [
+          ...ContextDoc.values
+              .where((doc) => doc != ContextDoc.knowledge)
+              .map(
+            (doc) => PopupMenuItem<String>(
+              value: doc.name,
+              padding: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      ContextDocViewerPage.iconFor(doc),
+                      size: 20,
+                      color: nc.textPrimary,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        ContextDocViewerPage.titleFor(doc),
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: nc.textPrimary,
+                          fontWeight: FontWeight.w400,
                         ),
                       ),
-                      Icon(
-                        Icons.chevron_right,
-                        size: 18,
-                        color: nc.textSecondary.withValues(alpha: 0.5),
-                      ),
-                    ],
-                  ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 18,
+                      color: nc.textSecondary.withValues(alpha: 0.5),
+                    ),
+                  ],
                 ),
               ),
-            )
-            .toList(),
+            ),
+          ),
+          PopupMenuItem<String>(
+            value: '__scratch__',
+            padding: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.auto_stories_outlined,
+                    size: 20,
+                    color: nc.textPrimary,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      'AI 草稿纸',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: nc.textPrimary,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: nc.textSecondary.withValues(alpha: 0.5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         child: Container(
           width: 40,
           height: 40,

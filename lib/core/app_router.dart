@@ -14,6 +14,7 @@ import '../widgets/media_page.dart';
 import '../widgets/model_settings_page.dart';
 import '../widgets/notes_page.dart';
 import '../widgets/reminders_page.dart';
+import '../widgets/scratch_viewer.dart';
 import '../widgets/search_page.dart';
 import '../widgets/settings_page.dart';
 
@@ -85,4 +86,7 @@ class AppRouter {
     BuildContext context, {
     required ContextDoc doc,
   }) => push(context, ContextDocViewerPage(doc: doc));
+
+  static Future<void> toScratchViewer(BuildContext context) =>
+      push(context, const ScratchViewerPage());
 }
