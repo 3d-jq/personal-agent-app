@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/agent_colors.dart';
-import '../../core/app_animations.dart';
+import '../../core/app_router.dart';
+import '../../core/app_config.dart';
 import '../../models/agent.dart';
 import '../../models/agent_group.dart';
 import '../../models/chat_message.dart';
@@ -18,7 +19,6 @@ import '../../widgets/ai_settings_sheet.dart';
 import '../chat_bubble.dart';
 import '../../screens/chat_helpers.dart';
 import 'agent_group_theme.dart';
-import 'group_edit_page.dart';
 
 /// 群聊主页
 class GroupChatScreen extends StatefulWidget {
@@ -109,11 +109,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   Future<void> _editGroup() async {
     final g = _group;
     if (g == null) return;
-    final result = await Navigator.of(context).push<(AgentGroup, List<String>, List<String>)>(
-      SlideFadeRoute(
-        page: GroupEditPage(existing: g),
-      ),
-    );
+    final result = await AppRouter.editGroup(context, existing: g);
     if (result == null) return;
     final (updated, addedNames, removedNames) = result;
     final sysMsgs = <String>[];

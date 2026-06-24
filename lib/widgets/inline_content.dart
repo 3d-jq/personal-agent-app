@@ -7,6 +7,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
 import '../core/agent_colors.dart';
 import '../core/app_animations.dart';
+import '../core/app_router.dart';
 
 /// Build inline content: split text by markdown image patterns,
 /// render text as MarkdownBody, and images as Image.network inline.
@@ -48,9 +49,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: PressableScale(
-        onTap: () => Navigator.of(context).push(SlideFadeRoute(
-          page: _FullscreenVideo(filePath: filePath, heroTag: heroTag),
-        )),
+        onTap: () => AppRouter.push(context, _FullscreenVideo(filePath: filePath, heroTag: heroTag)),
         child: Hero(
           tag: heroTag,
           child: AspectRatio(
@@ -88,9 +87,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
     child: PressableScale(
-      onTap: () => Navigator.of(context).push(SlideFadeRoute(
-        page: _FullscreenImage(url: url, heroTag: heroTag),
-      )),
+      onTap: () => AppRouter.push(context, _FullscreenImage(url: url, heroTag: heroTag)),
       child: Hero(
         tag: heroTag,
         child: ClipRRect(

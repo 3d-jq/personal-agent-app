@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../core/app_animations.dart';
+import '../core/app_router.dart';
 import '../models/media_item.dart';
 import '../services/media_storage.dart';
 
@@ -87,7 +88,7 @@ class _MediaViewState extends State<MediaView> {
     return PressableScale(
       onTap: () {
         HapticFeedback.lightImpact();
-        Navigator.push(context, SlideFadeRoute(page: _MediaDetail(item: item)));
+        AppRouter.push(context, _MediaDetail(item: item));
       },
       child: GestureDetector(
         onLongPress: () {

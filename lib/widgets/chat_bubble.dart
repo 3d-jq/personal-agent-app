@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../models/chat_message.dart';
 import '../core/agent_colors.dart';
 import '../core/app_animations.dart';
+import '../core/app_router.dart';
 import 'inline_content.dart';
 import 'timeline_view.dart';
 import 'shimmer_text.dart';
@@ -65,9 +66,7 @@ class ChatBubble extends StatelessWidget {
     return PressableScale(
       onTap: () {
         HapticFeedback.lightImpact();
-        Navigator.of(context).push(SlideFadeRoute(
-          page: _UserImagePreview(path: path, heroTag: heroTag),
-        ));
+        AppRouter.push(context, _UserImagePreview(path: path, heroTag: heroTag));
       },
       child: Hero(
         tag: heroTag,
