@@ -93,6 +93,17 @@ class ContextDocService {
   /// 获取已缓存的文档内容；未加载时返回空字符串。
   String cached(ContextDoc doc) => _cache[doc] ?? '';
 
+  /// USER.md 是否包含用户自定义资料（而非默认模板）。
+  bool hasUserProfile() {
+    final content = _cache[ContextDoc.user];
+    if (content == null || content.trim().isEmpty) return false;
+    final fallback = _fallbackContent(ContextDoc.user);
+    if (content.trim() == fallback.trim()) return false;
+    // 若仍保留模板占位符，视为未填写真实资料
+    if (content.contains('（待用户首次指定）')) return false;
+    return true;
+  }
+
   /// 读取指定知识库文件。返回完整 Markdown 内容。
   Future<String> readKnowledge(String filename) async {
     // 清理文件名防注入
