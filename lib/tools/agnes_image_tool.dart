@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../models/media_item.dart';
 import '../services/media_storage.dart';
 import '../tools/base_tool.dart';
+import 'agnes_image_tool.g.dart';
 
 class AgnesImageTool extends AgentTool {
   /// API Key for Agnes AI (set via settings)
@@ -20,7 +21,7 @@ class AgnesImageTool extends AgentTool {
   String get name => 'generate_image';
 
   @override
-  String get description => '使用 AI 生成图片。支持根据文本描述生成图片（文生图），也支持基于已有图片进行风格转换或编辑（图生图）。当用户要求生成、创建、画一张图片时使用此工具。';
+  String get description => agnesImageToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

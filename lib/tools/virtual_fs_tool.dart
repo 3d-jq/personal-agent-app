@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'base_tool.dart';
+import 'virtual_fs_tool.g.dart';
 import '../services/virtual_fs.dart';
 
 /// 虚拟文件系统工具
@@ -19,30 +20,7 @@ class VirtualFSTool extends AgentTool {
   bool get readOnly => false;
 
   @override
-  String get description => '''
-管理虚拟文件系统，用于组织和管理上下文信息。
-路径以 / 开头表示从根目录开始，如 /memory/notes.md、/scratch/idea.md。
-目录结构：
-- /soul/     人格设定（只读，由用户配置）
-- /user/     用户信息
-- /agent/    Agent 经验积累
-- /memory/   长期记忆
-- /scratch/  临时草稿
-- /notes/    用户笔记
-- /knowledge/ 知识库（只读）
-
-使用建议：
-- 用 ls / 查看文件系统结构；用 read 按需加载需要的上下文。
-- 复杂任务的中间结果、思考过程、草稿 → 写入 /scratch/ 临时保存。
-- 需要跨会话保留的信息 → 写入 /memory/；单次任务草稿 → /scratch/，完成后可清理。
-
-操作：
-- ls: 列出目录内容
-- read: 读取文件内容
-- write: 写入或创建文件
-- mkdir: 创建目录
-- rm: 删除文件（仅空目录可删）
-- walk: 递归列出所有文件路径'''.trim();
+  String get description => virtualFsToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

@@ -1,14 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../tools/base_tool.dart';
+import 'searxng_search_tool.g.dart';
 
 class SearxngSearchTool extends AgentTool {
   @override
   String get name => 'searxng_search';
 
   @override
-  String get description =>
-      '通过自托管 SearXNG 搜索互联网。适合一般查询；如果结果不理想，可换用 tavily_search。';
+  String get description => searxngSearchToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

@@ -1,5 +1,6 @@
 import 'base_tool.dart';
 import 'skill_registry.dart';
+import 'skill_manage_tool.g.dart';
 
 /// 技能管理工具：让 Agent 发现、激活、停用技能包
 class SkillManageTool extends AgentTool {
@@ -10,13 +11,7 @@ class SkillManageTool extends AgentTool {
   bool get readOnly => false;
 
   @override
-  String get description => '''
-管理 Agent 技能包。技能包是一组相关工具和 prompt 模板的组合。
-- list: 查看所有可用技能
-- activate: 激活一个技能（加载其工具和 prompt）
-- deactivate: 停用一个技能
-- match: 根据用户输入自动匹配可能需要的技能
-激活技能后，对应的工具和 prompt 模板会自动加载到当前会话中。'''.trim();
+  String get description => skillManageToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../tools/base_tool.dart';
+import 'ai_daily_tool.g.dart';
 
 class AiDailyTool extends AgentTool {
   @override
   String get name => 'ai_daily';
 
   @override
-  String get description => '获取今日AI信息（AI日报、AI新闻与热点）。当用户询问今天的AI信息、AI日报、AI新闻、AI热点或趋势时使用。';
+  String get description => aiDailyToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

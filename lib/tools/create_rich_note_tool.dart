@@ -3,6 +3,7 @@ import '../services/crypto_util.dart';
 import '../services/note_storage.dart';
 import 'agnes_image_tool.dart';
 import 'base_tool.dart';
+import 'create_rich_note_tool.g.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// 一步生成图文笔记：内部自动生图 → 拼接 Markdown → 保存。
@@ -16,11 +17,7 @@ class CreateRichNoteTool extends AgentTool {
   bool get readOnly => false;
 
   @override
-  String get description => '创建一篇图文并茂的笔记。'
-      '提供标题、正文（Markdown）、以及需要配图的描述列表，工具会自动生图并嵌入笔记中保存。'
-      '若想让图片出现在正文指定位置，请在 content 中插入占位符 {{IMAGE_0}}、{{IMAGE_1}} 等，'
-      '它们会按顺序被替换为生成的配图。未使用的图片将追加到笔记末尾。'
-      '适用于用户要求"写一篇文章/攻略/报告并配图"的场景。';
+  String get description => createRichNoteToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

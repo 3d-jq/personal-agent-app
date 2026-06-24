@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../models/media_item.dart';
 import '../services/media_storage.dart';
 import '../tools/base_tool.dart';
+import 'agnes_video_tool.g.dart';
 
 class AgnesVideoTool extends AgentTool {
   String? apiKey;
@@ -19,7 +20,7 @@ class AgnesVideoTool extends AgentTool {
   String get name => 'generate_video';
 
   @override
-  String get description => '使用 AI 生成视频。支持根据文本描述生成视频（文生视频），也支持基于图片生成视频（图生视频）。当用户要求生成、创建视频或动画时使用此工具。';
+  String get description => agnesVideoToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../tools/base_tool.dart';
 import 'tool_registry.dart';
+import 'tool_search_tool.g.dart';
 
 /// 按需发现低频/场景化工具。
 ///
@@ -15,11 +16,7 @@ class ToolSearchTool extends AgentTool {
   String get name => 'tool_search';
 
   @override
-  String get description =>
-      '当你需要某个不常用或不确定名称/参数的工具时，先用 tool_search 搜索。'
-      '传入你想做的事（如"查询AI日报"、"企业ERP查询"），返回可用延迟工具列表，'
-      '然后再用 defer_execute_tool 调用目标工具。'
-      '不要凭猜测调用不确定的工具。';
+  String get description => toolSearchToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

@@ -1,5 +1,6 @@
 import '../services/context_doc_service.dart';
 import 'base_tool.dart';
+import 'context_doc_tool.g.dart';
 
 /// 读取或更新 Markdown 上下文文档。
 ///
@@ -13,14 +14,7 @@ class ContextDocTool extends AgentTool {
   @override bool get readOnly => false;
 
   @override
-  String get description => '''
-读取或更新上下文文档（SOUL.md / USER.md / AGENT.md / MEMORY.md）或知识库文件。
-- read：查看指定文档的当前内容。AGENT.md / MEMORY.md 不会自动加载，需要时必须先 read。
-- update：覆盖写入指定文档的完整内容。
-注意：
-- SOUL.md / USER.md / MEMORY.md 可直接更新，但 update 只能写入用户明确陈述的内容。
-- AGENT.md 写入前需要 review 确认。
-- knowledge 文档只读，不支持 update。'''.trim();
+  String get description => contextDocToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

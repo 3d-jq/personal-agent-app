@@ -1,5 +1,6 @@
 import '../tools/base_tool.dart';
 import 'tool_registry.dart';
+import 'defer_execute_tool.g.dart';
 
 /// 执行通过 [tool_search] 发现的延迟工具。
 ///
@@ -14,9 +15,7 @@ class DeferExecuteTool extends AgentTool {
   String get name => 'defer_execute_tool';
 
   @override
-  String get description =>
-      '调用通过 tool_search 发现的延迟工具。'
-      '你必须先调用 tool_search 确认目标工具存在及其参数，再使用此工具执行。';
+  String get description => deferExecuteToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {
