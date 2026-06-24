@@ -81,6 +81,10 @@ class TaskPlanView extends StatelessWidget {
     final doneCount = plan.tasks.where((t) => t.status == TaskStatus.done).length;
     final total = plan.tasks.length;
     final allDone = doneCount == total;
+    final allDoneOrFailed = plan.tasks.every(
+      (t) => t.status == TaskStatus.done || t.status == TaskStatus.failed,
+    );
+    final verified = plan.verified;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
@@ -103,9 +107,17 @@ class TaskPlanView extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(
-                      allDone ? Icons.check_circle : Icons.task_alt,
+                      verified
+                          ? Icons.check_circle
+                          : allDoneOrFailed
+                              ? Icons.pending_actions
+                              : Icons.task_alt,
                       size: 18,
-                      color: allDone ? nc.success : nc.textSecondary,
+                      color: verified
+                          ? nc.success
+                          : allDoneOrFailed
+                              ? nc.warning
+                              : nc.textSecondary,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -124,17 +136,27 @@ class TaskPlanView extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: allDone
+                        color: verified
                             ? nc.success.withValues(alpha: 0.1)
-                            : nc.primarySurface,
+                            : allDoneOrFailed
+                                ? nc.warning.withValues(alpha: 0.1)
+                                : nc.primarySurface,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        '$doneCount/$total',
+                        verified
+                            ? '已完成'
+                            : allDoneOrFailed
+                                ? '待校验'
+                                : '$doneCount/$total',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: allDone ? nc.success : nc.textSecondary,
+                          color: verified
+                              ? nc.success
+                              : allDoneOrFailed
+                                  ? nc.warning
+                                  : nc.textSecondary,
                         ),
                       ),
                     ),

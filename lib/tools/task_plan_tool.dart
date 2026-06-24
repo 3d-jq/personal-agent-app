@@ -7,17 +7,14 @@ import '../services/virtual_fs.dart';
 /// 支持：
 /// - 创建计划（含子任务树）
 /// - 更新任务状态（pending/in_progress/done/failed/blocked）
+/// - advance 自动推进当前 in_progress 任务
 /// - 任务持久化到虚拟文件系统
 /// - 查看当前进度摘要
 class TaskPlanTool extends AgentTool {
-  /// 当前活跃计划（静态，所有实例共享）
   static TaskPlan? _currentPlan;
-
-  /// 当前计划（供 UI 读取结构化数据）
   static TaskPlan? get currentPlan => _currentPlan;
 
-  /// 最后一次操作的状态文本（供 UI 面板读取）
-  String? lastStatusText;
+  static String? lastStatusText;
 
   @override
   String get name => 'task_plan';
@@ -26,9 +23,14 @@ class TaskPlanTool extends AgentTool {
   String get description =>
       '管理当前任务的执行计划。当你要完成一个多步骤的复杂任务时使用，'
       '例如：搜索+整理+保存、多轮搜索对比、创建多个文件、多步骤分析等。'
-      '先调用 create 创建计划并列出所有步骤；每完成一个步骤后，'
-      '立即用 update 将对应 task_id 标记为 done，再继续下一步。'
-      '在输出最终答案之前，必须确保所有 in_progress 的任务都已标记为 done。'
+      '先调用 create 创建计划并列出所有步骤，create 会自动将第一个可执行任务设为 in_progress。'
+      '任务状态必须按轮次串行推进，每轮最多只能发起一次 task_plan 状态变更：'
+      '开始后续任务前调用 update 将其设为 in_progress；'
+      '该任务所需的工具可与本次 update 并发执行；'
+      '工具全部返回后再调用 update 将其设为 done；'
+      '然后才能进入下一个任务。'
+      '所有任务都标记为 done/failed 后，必须调用 verify 校验通过，才能输出最终答案/总结。'
+      '禁止跳过更新、未 verify 通过时直接输出最终回复。'
       '支持子任务：一个步骤可以拆分为多个子步骤。'
       '计划会自动保存到虚拟文件系统 /scratch/plan.json，跨轮次保持进度。';
 
@@ -38,8 +40,12 @@ class TaskPlanTool extends AgentTool {
         'properties': {
           'action': {
             'type': 'string',
-            'enum': ['create', 'update', 'status', 'clear'],
-            'description': 'create: 创建新计划; update: 更新任务状态; status: 查看进度; clear: 清除计划',
+            'enum': ['create', 'update', 'advance', 'status', 'clear', 'verify'],
+            'description':
+                'create: 创建新计划; update: 更新任务状态; '
+                'advance: 自动完成当前 in_progress 任务并推进到下一步; '
+                'status: 查看进度; clear: 清除计划; '
+                'verify: 校验所有任务是否已完成/失败，通过后才能输出最终答案',
           },
           'title': {
             'type': 'string',
@@ -50,9 +56,15 @@ class TaskPlanTool extends AgentTool {
             'items': {
               'type': 'object',
               'properties': {
-                'id': {'type': 'string', 'description': '任务ID，如 T1, T2, T1.1'},
+                'id': {
+                  'type': 'string',
+                  'description': '任务ID，如 T1, T2, T1.1',
+                },
                 'title': {'type': 'string', 'description': '任务描述'},
-                'parent': {'type': 'string', 'description': '父任务ID（可选，用于子任务）'},
+                'parent': {
+                  'type': 'string',
+                  'description': '父任务ID（可选，用于子任务）',
+                },
               },
               'required': ['id', 'title'],
             },
@@ -79,18 +91,21 @@ class TaskPlanTool extends AgentTool {
   Future<String> execute(Map<String, dynamic> args) async {
     final action = args['action'] as String? ?? '';
 
-    // 尝试从虚拟文件系统恢复计划
     if (_currentPlan == null) {
       await _loadPlan();
     }
 
     switch (action) {
       case 'create':
-        final result = _create(args);
+        final result = await _create(args);
         lastStatusText = result;
         return result;
       case 'update':
-        final result = _update(args);
+        final result = await _update(args);
+        lastStatusText = result;
+        return result;
+      case 'advance':
+        final result = await _advance();
         lastStatusText = result;
         return result;
       case 'status':
@@ -98,15 +113,19 @@ class TaskPlanTool extends AgentTool {
         lastStatusText = result;
         return result;
       case 'clear':
-        _currentPlan = null;
-        await _savePlan();
-        return '计划已清除。';
+        final result = await _clear();
+        lastStatusText = result;
+        return result;
+      case 'verify':
+        final result = _verify();
+        lastStatusText = result;
+        return result;
       default:
-        return '错误: action 必须为 create / update / status / clear 之一';
+        return '错误: action 必须为 create / update / advance / status / clear / verify 之一';
     }
   }
 
-  String _create(Map<String, dynamic> args) {
+  Future<String> _create(Map<String, dynamic> args) async {
     final title = (args['title'] as String?)?.trim();
     if (title == null || title.isEmpty) return '错误: 创建计划需要提供 title';
 
@@ -117,20 +136,29 @@ class TaskPlanTool extends AgentTool {
     for (final raw in rawTasks) {
       if (raw is! Map) continue;
       final id = raw['id'] as String? ?? '';
-      final title = raw['title'] as String? ?? '';
+      final taskTitle = raw['title'] as String? ?? '';
       final parent = raw['parent'] as String?;
-      if (id.isEmpty || title.isEmpty) continue;
-      tasks.add(TaskNode(id: id, title: title, parentId: parent));
+      if (id.isEmpty || taskTitle.isEmpty) continue;
+      if (tasks.any((t) => t.id == id)) {
+        return '错误: 任务ID $id 重复，请使用唯一ID';
+      }
+      tasks.add(TaskNode(id: id, title: taskTitle, parentId: parent));
     }
 
     if (tasks.isEmpty) return '错误: 没有有效的任务项';
 
-    _currentPlan = TaskPlan(title: title, tasks: tasks);
-    _savePlan();
-    return _formatProgress('计划已创建');
+    // create 时自动将第一个可执行（叶子）任务设为 in_progress，减少一轮空交互
+    final leafTasks = tasks.where((t) => tasks.every((other) => other.parentId != t.id)).toList();
+    if (leafTasks.isNotEmpty) {
+      leafTasks.first.status = TaskStatus.inProgress;
+    }
+
+    _currentPlan = TaskPlan(title: title, tasks: tasks, verified: false);
+    await _savePlan();
+    return _formatProgressWithRemaining('计划已创建');
   }
 
-  String _update(Map<String, dynamic> args) {
+  Future<String> _update(Map<String, dynamic> args) async {
     if (_currentPlan == null) return '当前没有活跃计划，请先用 create 创建';
 
     final taskId = args['task_id'] as String?;
@@ -141,6 +169,11 @@ class TaskPlanTool extends AgentTool {
 
     final newStatus = args['status'] as String?;
     if (newStatus == null) return '错误: update 需要提供 status';
+
+    if ((task.status == TaskStatus.done || task.status == TaskStatus.failed) &&
+        newStatus != task.status.name) {
+      return '错误: 任务 $taskId 已${task.status == TaskStatus.done ? '完成' : '失败'}，不可回退';
+    }
 
     final note = args['note'] as String?;
 
@@ -161,16 +194,100 @@ class TaskPlanTool extends AgentTool {
 
     if (note != null) task.note = note;
 
-    // 自动更新父任务状态
     _autoUpdateParent(task);
+    _currentPlan!.verified = false;
 
-    _savePlan();
-    return _formatProgress('任务 $taskId 已更新为 $newStatus');
+    await _savePlan();
+    return _formatProgressWithRemaining('任务 $taskId 已更新为 $newStatus');
+  }
+
+  Future<String> _advance() async {
+    if (_currentPlan == null) {
+      return '错误: 当前没有活跃计划，请先用 create 创建';
+    }
+
+    final allTasks = _currentPlan!.tasks;
+
+    // 1. 找当前 in_progress 的任务
+    final current = allTasks
+        .where((t) => t.status == TaskStatus.inProgress)
+        .firstOrNull;
+
+    if (current == null) {
+      return '错误: 当前没有正在进行的任务。\n'
+          '请用 update 手动将某个任务设为 in_progress，然后再调用 advance。';
+    }
+
+    // 2. 标记当前任务为 done
+    current.status = TaskStatus.done;
+    _autoUpdateParent(current);
+
+    // 3. 找下一个 pending 的叶子任务，自动设为 in_progress
+    TaskNode? next;
+    for (final task in allTasks) {
+      if (task.status != TaskStatus.pending) continue;
+      final children = allTasks.where((t) => t.parentId == task.id).toList();
+      if (children.isEmpty || children.every((c) => c.status == TaskStatus.done)) {
+        next = task;
+        break;
+      }
+    }
+
+    if (next != null) {
+      next.status = TaskStatus.inProgress;
+    }
+
+    _currentPlan!.verified = false;
+    await _savePlan();
+
+    final allDone = _currentPlan!.tasks
+        .where((t) =>
+            t.status != TaskStatus.done && t.status != TaskStatus.failed)
+        .isEmpty;
+    if (allDone) {
+      return '✅ 已完成 ${current.id} "${current.title}"\n'
+          '⚠️ 所有步骤已完成，请调用 verify 校验通过后再输出最终答案。';
+    }
+
+    return _formatProgressWithRemaining(
+        '✅ 已完成 ${current.id} "${current.title}"');
   }
 
   String _status() {
     if (_currentPlan == null) return '当前没有活跃计划';
-    return _formatProgress('当前进度');
+    return _formatProgressWithRemaining('当前进度');
+  }
+
+  Future<String> _clear() async {
+    if (_currentPlan == null) return '当前没有活跃计划';
+
+    if (!_currentPlan!.verified) {
+      return '错误: 计划尚未通过 verify 校验，不能清除。\n'
+          '请先调用 verify 校验通过，输出最终答案后再清除。';
+    }
+
+    _currentPlan = null;
+    await _savePlan();
+    return '计划已清除。';
+  }
+
+  String _verify() {
+    if (_currentPlan == null) return '错误: 当前没有活跃计划';
+
+    final notDone = _currentPlan!.tasks
+        .where((t) =>
+            t.status != TaskStatus.done && t.status != TaskStatus.failed)
+        .toList();
+
+    if (notDone.isNotEmpty) {
+      _currentPlan!.verified = false;
+      final ids = notDone.map((t) => t.id).join(', ');
+      return '❌ 校验失败！还有未完成的任务: $ids\n'
+          '请继续推进，不要提前输出最终答案。';
+    }
+
+    _currentPlan!.verified = true;
+    return '✅ 校验通过！所有任务已完成，现在可以输出最终答案了。';
   }
 
   void _autoUpdateParent(TaskNode task) {
@@ -178,71 +295,65 @@ class TaskPlanTool extends AgentTool {
     final parent = _currentPlan!.findTask(task.parentId!);
     if (parent == null) return;
 
-    final children = _currentPlan!.tasks.where((t) => t.parentId == parent.id).toList();
+    final children =
+        _currentPlan!.tasks.where((t) => t.parentId == parent.id).toList();
     if (children.isEmpty) return;
 
-    // 如果所有子任务都 done，父任务也 done
     if (children.every((c) => c.status == TaskStatus.done)) {
       parent.status = TaskStatus.done;
-    }
-    // 如果有任何子任务 in_progress，父任务也 in_progress
-    else if (children.any((c) => c.status == TaskStatus.inProgress)) {
+    } else if (children.any((c) => c.status == TaskStatus.inProgress)) {
       parent.status = TaskStatus.inProgress;
-    }
-    // 如果有任何子任务 failed，父任务也 failed
-    else if (children.any((c) => c.status == TaskStatus.failed)) {
+    } else if (children.any((c) => c.status == TaskStatus.failed)) {
       parent.status = TaskStatus.failed;
     }
   }
 
-  String _formatProgress(String header) {
+  String _formatProgressWithRemaining(String prefix) {
     if (_currentPlan == null) return '当前没有活跃计划';
     final plan = _currentPlan!;
-
     final allTasks = plan.tasks;
     final done = allTasks.where((t) => t.status == TaskStatus.done).length;
     final total = allTasks.length;
-    final rootTasks = allTasks.where((t) => t.parentId == null).toList();
 
     final buf = StringBuffer()
-      ..writeln('$header: ${plan.title} ($done/$total 已完成)')
+      ..writeln('$prefix (${done}/${total} 已完成)')
       ..writeln();
 
-    for (final task in rootTasks) {
-      _printTask(buf, task, allTasks, 0);
+    // 剩余步骤信息
+    final remaining = allTasks
+        .where(
+            (t) => t.status != TaskStatus.done && t.status != TaskStatus.failed)
+        .toList();
+
+    if (remaining.isEmpty) {
+      if (_currentPlan!.verified) {
+        buf.writeln('✅ 所有步骤已完成且校验通过，现在可以输出最终答案了。');
+      } else {
+        buf.writeln('⚠️ 所有步骤已完成，请调用 verify 校验通过后再输出最终答案。');
+      }
+      return buf.toString();
     }
 
-    // 给出下一步建议
-    final next = allTasks.firstWhere(
-      (t) => t.status == TaskStatus.pending || t.status == TaskStatus.inProgress,
-      orElse: () => allTasks.first,
-    );
-    if (done < total) {
-      buf.writeln('\n→ 下一步: ${next.id} ${next.title}');
+    buf.writeln('📋 剩余步骤 (${remaining.length} 项):');
+    for (final task in remaining) {
+      final icon = task.status == TaskStatus.inProgress ? '🔄' : '⬜';
+      buf.writeln('  $icon ${task.id} ${task.title}');
+    }
+
+    final nextInProgress =
+        remaining.where((t) => t.status == TaskStatus.inProgress).firstOrNull;
+    if (nextInProgress != null) {
+      buf.writeln('\n→ 下一步: ${nextInProgress.id} ${nextInProgress.title}');
     } else {
-      buf.writeln('\n🎉 所有任务已完成！');
+      buf.writeln('\n→ 下一步: 调用 advance 继续');
+    }
+
+    final failed = allTasks.where((t) => t.status == TaskStatus.failed).length;
+    if (failed > 0) {
+      buf.writeln('⚠️ $failed 个任务失败');
     }
 
     return buf.toString();
-  }
-
-  void _printTask(StringBuffer buf, TaskNode task, List<TaskNode> allTasks, int depth) {
-    final indent = '  ' * depth;
-    final icon = switch (task.status) {
-      TaskStatus.pending => '⬜',
-      TaskStatus.inProgress => '🔄',
-      TaskStatus.done => '✅',
-      TaskStatus.failed => '❌',
-      TaskStatus.blocked => '🚫',
-    };
-    final note = task.note != null ? ' (${task.note})' : '';
-    buf.writeln('$indent${task.id}. $icon ${task.title}$note');
-
-    // 打印子任务
-    final children = allTasks.where((t) => t.parentId == task.id).toList();
-    for (final child in children) {
-      _printTask(buf, child, allTasks, depth + 1);
-    }
   }
 
   Future<void> _savePlan() async {
@@ -304,8 +415,9 @@ class TaskNode {
 class TaskPlan {
   final String title;
   final List<TaskNode> tasks;
+  bool verified;
 
-  TaskPlan({required this.title, required this.tasks});
+  TaskPlan({required this.title, required this.tasks, this.verified = false});
 
   TaskNode? findTask(String id) {
     try {
@@ -318,6 +430,7 @@ class TaskPlan {
   Map<String, dynamic> toJson() => {
         'title': title,
         'tasks': tasks.map((t) => t.toJson()).toList(),
+        'verified': verified,
       };
 
   factory TaskPlan.fromJson(Map<String, dynamic> json) => TaskPlan(
@@ -325,5 +438,6 @@ class TaskPlan {
         tasks: (json['tasks'] as List)
             .map((t) => TaskNode.fromJson(t as Map<String, dynamic>))
             .toList(),
+        verified: json['verified'] as bool? ?? false,
       );
 }

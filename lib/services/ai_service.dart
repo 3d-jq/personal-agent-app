@@ -151,6 +151,29 @@ class AIService {
     return _sendMessageWithTools(messages);
   }
 
+  /// 非流式摘要，用于 HistoryManager 压缩早期对话历史。
+  Future<String> summarize(List<Map<String, dynamic>> messages) async {
+    final url = '${_normalizeUrl(baseUrl)}/chat/completions';
+    try {
+      final response = await _retryPost(
+        url,
+        headers: _authHeaders,
+        data: {
+          'model': model,
+          'messages': messages,
+          'max_tokens': 1024,
+          'temperature': 0.3,
+        },
+      );
+      final choice = response.data['choices']?[0];
+      return (choice?['message']?['content'] as String? ?? '').trim();
+    } on DioException catch (e) {
+      return '';
+    } catch (e) {
+      return '';
+    }
+  }
+
   // ── Tool-calling aware streaming ──
 
   Stream<ChatStreamEvent> _sendMessageWithTools(List<Map<String, dynamic>> messages) async* {
@@ -223,13 +246,28 @@ class AIService {
       yield ToolStartEvent(tc.name, concurrentCount: count);
     }
 
-    // Execute all tools in parallel (independent calls can run concurrently)
-    final results = await Future.wait(
-      toolCalls.map((tc) async {
+    // task_plan 操作共享可变计划状态，必须串行执行；其他独立工具可以并行。
+    final planCalls = toolCalls.where((tc) => tc.name == 'task_plan').toList();
+    final otherCalls = toolCalls.where((tc) => tc.name != 'task_plan').toList();
+
+    final resultsById = <String, Map<String, dynamic>>{};
+
+    // 非 task_plan 工具并行执行
+    await Future.wait(
+      otherCalls.map((tc) async {
         final result = await toolRegistry.execute(tc);
-        return {'tc': tc, 'result': result};
+        resultsById[tc.id] = {'tc': tc, 'result': result};
       }),
     );
+
+    // task_plan 调用串行执行，避免共享状态竞态
+    for (final tc in planCalls) {
+      final result = await toolRegistry.execute(tc);
+      resultsById[tc.id] = {'tc': tc, 'result': result};
+    }
+
+    // 按原始 tool call 顺序重组结果
+    final results = toolCalls.map((tc) => resultsById[tc.id]!).toList();
 
     // Yield done/error events and add results to messages in original order
     for (final entry in results) {
@@ -249,6 +287,7 @@ class AIService {
         if (plan != null) {
           yield TaskPlanEvent(
             title: plan.title,
+            verified: plan.verified,
             tasks: plan.tasks.map((t) => TaskPlanItem(
               id: t.id,
               title: t.title,
@@ -417,13 +456,28 @@ class AIService {
         }
         currentMessages.add({'role': 'assistant', 'content': content});
 
-        // Execute tools in parallel (independent calls can run concurrently)
-        final results = await Future.wait(
-          toolCalls.map((tc) async {
+        // task_plan 操作共享可变计划状态，必须串行执行；其他独立工具可以并行。
+        final planCalls = toolCalls.where((tc) => tc.name == 'task_plan').toList();
+        final otherCalls = toolCalls.where((tc) => tc.name != 'task_plan').toList();
+
+        final resultsById = <String, Map<String, dynamic>>{};
+
+        // 非 task_plan 工具并行执行
+        await Future.wait(
+          otherCalls.map((tc) async {
             final toolResult = await toolRegistry.execute(tc);
-            return {'tc': tc, 'result': toolResult};
+            resultsById[tc.id] = {'tc': tc, 'result': toolResult};
           }),
         );
+
+        // task_plan 调用串行执行，避免共享状态竞态
+        for (final tc in planCalls) {
+          final toolResult = await toolRegistry.execute(tc);
+          resultsById[tc.id] = {'tc': tc, 'result': toolResult};
+        }
+
+        // 按原始 tool call 顺序重组结果
+        final results = toolCalls.map((tc) => resultsById[tc.id]!).toList();
 
         // Yield events and collect results in original order
         final toolResults = <Map<String, dynamic>>[];
@@ -446,6 +500,7 @@ class AIService {
             if (plan != null) {
               yield TaskPlanEvent(
                 title: plan.title,
+                verified: plan.verified,
                 tasks: plan.tasks.map((t) => TaskPlanItem(
                   id: t.id,
                   title: t.title,

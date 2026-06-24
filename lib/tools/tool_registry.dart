@@ -1,5 +1,6 @@
 import 'base_tool.dart';
 import 'task_plan_tool.dart';
+import '../utils/tool_result_truncator.dart';
 
 /// Registry that manages and dispatches agent tools.
 /// Each instance maintains its own independent tool set — not a singleton.
@@ -16,7 +17,10 @@ class ToolRegistry {
   final Map<String, int> _callCounts = {};
 
   /// 同一工具连续调用超过此次数时触发提醒
-  static const int maxConsecutiveCalls = 5;
+  static const int maxConsecutiveCalls = 10;
+
+  /// 通用工具结果截断器，防止单个工具输出撑爆上下文
+  final ToolResultTruncator _truncator = const ToolResultTruncator();
 
   /// Register a tool.
   /// [discoverable] 为 true 时，该工具不会直接进入默认工具列表，
@@ -121,7 +125,7 @@ class ToolRegistry {
       final result = await tool.execute(toolCall.arguments);
       return ToolResult(
         toolName: toolCall.name,
-        content: result,
+        content: _truncator.truncate(result),
         toolCallId: toolCall.id,
       );
     } catch (e) {

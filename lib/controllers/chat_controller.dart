@@ -14,6 +14,7 @@ import '../services/chat_storage.dart';
 import '../services/chat_stream_event.dart';
 import '../services/connectivity_service.dart';
 import '../services/context_doc_service.dart';
+import '../services/history_manager.dart';
 import '../services/notification_service.dart';
 import '../tools/task_plan_tool.dart';
 import '../tools/tools.dart';
@@ -47,6 +48,9 @@ class ChatController extends ChangeNotifier {
 
   /// 任务计划状态变更通知（供 UI 面板监听）
   TaskPlan? currentPlan;
+
+  /// 对话历史压缩管理器
+  final HistoryManager _historyManager = const HistoryManager();
 
   String? _sessionId;
   List<ChatMessage> _messages = [];
@@ -244,7 +248,28 @@ class ChatController extends ChangeNotifier {
       soulContext: contextDocs.cached(ContextDoc.soul),
       userContext: contextDocs.cached(ContextDoc.user),
       isFirstMeeting: isFirstMeeting,
+      hasExistingProfile: contextDocs.hasUserProfile(),
     );
+
+    final ai = AIService(
+      baseUrl: _aiSettings.baseUrl,
+      apiKey: _aiSettings.apiKey,
+      providerName: _aiSettings.selectedVendor?.name ?? '',
+      model: _aiSettings.effectiveModel,
+      thinkingEffort: _aiSettings.thinkingEffort,
+      toolRegistry: _toolRegistry,
+    );
+
+    // 超过阈值时，对早期对话做摘要压缩，避免滑动窗口直接丢弃信息
+    final compressed = await _historyManager.compressIfNeeded(
+      _messages,
+      ai.summarize,
+    );
+    if (!identical(compressed, _messages)) {
+      // 用摘要消息替换早期消息；最后一条是正在流式回复的 AI 消息，保持不变
+      _messages = [...compressed];
+      _notify();
+    }
 
     final history = buildMessageHistory(
       systemPrompt: systemPrompt,
@@ -256,15 +281,6 @@ class ChatController extends ChangeNotifier {
       text: trimmed,
       pendingFileSize: pendingFile?.lengthSync(),
       maxMessages: 20,
-    );
-
-    final ai = AIService(
-      baseUrl: _aiSettings.baseUrl,
-      apiKey: _aiSettings.apiKey,
-      providerName: _aiSettings.selectedVendor?.name ?? '',
-      model: _aiSettings.effectiveModel,
-      thinkingEffort: _aiSettings.thinkingEffort,
-      toolRegistry: _toolRegistry,
     );
 
     final aiMsg = _messages.last;
@@ -377,12 +393,16 @@ class ChatController extends ChangeNotifier {
           'toolResults': toolResults,
         });
         break;
-      case TaskPlanEvent(:final title, :final tasks):
-        currentPlan = TaskPlan(title: title, tasks: tasks.map((t) => TaskNode(
-          id: t.id,
-          title: t.title,
-          status: t.done ? TaskStatus.done : t.inProgress ? TaskStatus.inProgress : TaskStatus.pending,
-        )).toList());
+      case TaskPlanEvent(:final title, :final tasks, :final verified):
+        currentPlan = TaskPlan(
+          title: title,
+          verified: verified,
+          tasks: tasks.map((t) => TaskNode(
+            id: t.id,
+            title: t.title,
+            status: t.done ? TaskStatus.done : t.inProgress ? TaskStatus.inProgress : TaskStatus.pending,
+          )).toList(),
+        );
         break;
       case ErrorEvent(:final message):
         state.buf.write('\n\n$message');
@@ -474,13 +494,20 @@ class ChatController extends ChangeNotifier {
 
     _captureThinkingDetail(state);
     finishRunningSteps(state.steps);
+    final plan = currentPlan;
+    final allDoneOrFailed = plan != null &&
+        plan.tasks.every((t) =>
+            t.status == TaskStatus.done || t.status == TaskStatus.failed);
+    final waitingVerify = allDoneOrFailed && !(plan?.verified ?? false);
     if (state.steps.isNotEmpty) {
       if (state.steps.last.type == TimelineStepType.thinking) {
-        state.steps.last.label = '任务完成';
+        state.steps.last.label = waitingVerify ? '等待校验' : '任务完成';
       } else {
-        // 最后一步是工具时，追加"任务完成"标记
+        // 最后一步是工具时，追加完成标记
         state.steps.add(TimelineStep(
-            label: '任务完成', type: TimelineStepType.thinking, status: TimelineStepStatus.done));
+            label: waitingVerify ? '等待校验' : '任务完成',
+            type: TimelineStepType.thinking,
+            status: TimelineStepStatus.done));
       }
     }
     _currentSteps = null;

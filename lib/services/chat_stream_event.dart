@@ -53,7 +53,8 @@ class ToolMediaEvent extends ChatStreamEvent {
 class TaskPlanEvent extends ChatStreamEvent {
   final String title;
   final List<TaskPlanItem> tasks;
-  const TaskPlanEvent({required this.title, required this.tasks});
+  final bool verified;
+  const TaskPlanEvent({required this.title, required this.tasks, this.verified = false});
 }
 
 /// 任务计划中的单个任务项
