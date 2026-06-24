@@ -44,6 +44,13 @@ flutter {
     source = "../.."
 }
 
+android.applicationVariants.all {
+    outputs.all {
+        val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+        output.outputFileName = "personal_agent_app.apk"
+    }
+}
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

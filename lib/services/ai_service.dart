@@ -241,7 +241,11 @@ class AIService {
         continue;
       }
 
-      // No tool calls — always stream the final response
+      // No tool calls — yield non-streaming text directly; only fallback to streaming if empty
+      if (response.text.isNotEmpty) {
+        yield TextChunkEvent(response.text);
+        return;
+      }
       yield* _streamOpenAI(conversation, tools: tools);
       return;
     }
