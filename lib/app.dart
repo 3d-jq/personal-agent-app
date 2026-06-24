@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'core/agent_colors.dart';
 import 'core/app_animations.dart';
+import 'core/service_locator.dart';
 import 'screens/chat_screen.dart';
 import 'services/theme_service.dart';
 import 'widgets/ai_settings_sheet.dart';
@@ -14,7 +15,7 @@ class App extends StatefulWidget {
 }
 
 class _AppState extends State<App> with SingleTickerProviderStateMixin {
-  final _themeService = ThemeService();
+  final _themeService = getIt<ThemeService>();
   bool _loaded = false;
   bool _showOnboarding = false;
 
