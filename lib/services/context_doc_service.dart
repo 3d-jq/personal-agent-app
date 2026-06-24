@@ -21,9 +21,7 @@ enum ContextDoc {
 /// - 不自动把 AGENT.md / MEMORY.md 注入系统提示，避免污染上下文。
 /// - AGENT.md 写入需要 review 确认，防止覆盖人格设定。
 class ContextDocService {
-  static final ContextDocService _instance = ContextDocService._();
-  factory ContextDocService() => _instance;
-  ContextDocService._();
+  ContextDocService();
 
   final Map<ContextDoc, String> _cache = {};
 

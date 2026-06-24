@@ -5,12 +5,14 @@ import 'package:personal_agent_app/models/chat_session.dart';
 import 'package:personal_agent_app/services/chat_storage.dart';
 
 void main() {
-  setUp(() {
-    resetDependencies();
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() async {
+    await resetDependencies();
     configureDependencies();
   });
 
-  tearDown(resetDependencies);
+  tearDown(() async => await resetDependencies());
 
   group('ChatController DI', () {
     test('uses injected ChatStorage when provided', () async {

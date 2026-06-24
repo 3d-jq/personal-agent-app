@@ -1,8 +1,19 @@
 import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../core/service_locator.dart';
 import '../models/chat_message.dart';
 import '../services/crypto_util.dart';
+import '../tools/skill_registry.dart';
 import '../tools/tools.dart';
+
+/// 安全读取环境变量，测试环境未加载 dotenv 时返回空字符串。
+String _safeEnv(String key) {
+  try {
+    return dotenv.env[key] ?? '';
+  } catch (_) {
+    return '';
+  }
+}
 
 /// 注册所有内置工具到 ToolRegistry
 ///
@@ -14,11 +25,11 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(TaskPlanTool());
   registry.register(ReminderTool());
   registry.register(WebFetchTool());
-  registry.register(WeatherTool()..apiKey = CryptoUtil.decrypt(dotenv.env['GAODE_API_KEY'] ?? ''));
+  registry.register(WeatherTool()..apiKey = CryptoUtil.decrypt(_safeEnv('GAODE_API_KEY')));
   registry.register(LocationTool());
   registry.register(SearxngSearchTool());
   registry.register(TavilySearchTool());
-  final agnesKey = CryptoUtil.decrypt(dotenv.env['AGNES_API_KEY'] ?? '');
+  final agnesKey = CryptoUtil.decrypt(_safeEnv('AGNES_API_KEY'));
   registry.register(AgnesImageTool()..apiKey = agnesKey);
   registry.register(AgnesVideoTool()..apiKey = agnesKey);
   registry.register(SaveNoteTool());
@@ -30,8 +41,9 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(SkillManageTool());
 
   // 注册内置技能
+  final skillRegistry = getIt<SkillRegistry>();
   for (final skill in BuiltInSkills.all) {
-    SkillRegistry().register(skill);
+    skillRegistry.register(skill);
   }
 
   // 工具发现层（本身也是预加载工具）

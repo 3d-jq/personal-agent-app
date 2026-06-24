@@ -1,9 +1,7 @@
 import 'package:flutter/services.dart';
 
 class NotificationService {
-  static final NotificationService _instance = NotificationService._();
-  factory NotificationService() => _instance;
-  NotificationService._();
+  NotificationService();
 
   static const _channel = MethodChannel('com.example/live_activity');
 

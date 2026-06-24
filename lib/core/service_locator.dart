@@ -11,6 +11,8 @@ import '../services/note_storage.dart';
 import '../services/reminder_storage.dart';
 import '../services/theme_service.dart';
 import '../services/virtual_fs.dart';
+import '../tools/skill_registry.dart';
+import '../widgets/ai_settings_sheet.dart';
 
 /// 全局依赖注入容器。
 ///
@@ -34,10 +36,12 @@ void configureDependencies() {
     ..registerSingleton<NoteStorage>(NoteStorage())
     ..registerSingleton<ReminderStorage>(ReminderStorage())
     ..registerSingleton<ThemeService>(ThemeService())
-    ..registerSingleton<VirtualFileSystem>(VirtualFileSystem());
+    ..registerSingleton<VirtualFileSystem>(VirtualFileSystem())
+    ..registerSingleton<AISettings>(AISettings())
+    ..registerSingleton<SkillRegistry>(SkillRegistry());
 }
 
 /// 重置所有已注册依赖，主要用于测试。
-void resetDependencies() {
-  getIt.reset();
+Future<void> resetDependencies() async {
+  await getIt.reset();
 }

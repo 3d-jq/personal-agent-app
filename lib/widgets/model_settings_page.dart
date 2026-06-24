@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import '../core/service_locator.dart';
 import 'ai_settings_sheet.dart';
 
 class ModelSettingsView extends StatefulWidget {
@@ -10,7 +11,7 @@ class ModelSettingsView extends StatefulWidget {
 }
 
 class _ModelSettingsViewState extends State<ModelSettingsView> {
-  final _aiSettings = AISettings();
+  final _aiSettings = getIt<AISettings>();
   bool _loaded = false;
 
   static const _thinkingOptions = [

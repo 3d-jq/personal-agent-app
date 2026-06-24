@@ -5,9 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/reminder.dart';
 
 class ReminderStorage extends ChangeNotifier {
-  static final ReminderStorage _instance = ReminderStorage._();
-  factory ReminderStorage() => _instance;
-  ReminderStorage._();
+  ReminderStorage();
 
   List<Reminder>? _cache;
 

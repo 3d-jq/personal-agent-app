@@ -262,7 +262,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
     _vendorId = e?.vendorId ?? '';
     _model = e?.model ?? '';
     _tools = (e?.allowedToolNames ?? const []).toSet();
-    _vendors = AISettings().vendors;
+    _vendors = getIt<AISettings>().vendors;
   }
 
   Future<void> _save() async {

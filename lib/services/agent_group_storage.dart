@@ -6,9 +6,7 @@ import 'async_lock.dart';
 
 /// Agent 群存储：所有常驻群落盘
 class AgentGroupStorage {
-  static final AgentGroupStorage _instance = AgentGroupStorage._();
-  factory AgentGroupStorage() => _instance;
-  AgentGroupStorage._();
+  AgentGroupStorage();
 
   final _lock = AsyncLock();
   List<AgentGroup>? _cache;

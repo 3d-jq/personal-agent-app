@@ -1,3 +1,4 @@
+import '../core/service_locator.dart';
 import 'base_tool.dart';
 import 'skill_registry.dart';
 import 'skill_manage_tool.g.dart';
@@ -39,7 +40,7 @@ class SkillManageTool extends AgentTool {
     final action = args['action'] as String?;
     if (action == null) return '错误: 必须提供 action 参数';
 
-    final registry = SkillRegistry();
+    final registry = getIt<SkillRegistry>();
 
     switch (action) {
       case 'list':

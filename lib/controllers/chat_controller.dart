@@ -32,7 +32,7 @@ class ChatController extends ChangeNotifier {
     ToolRegistry? toolRegistry,
     ChatStorage? chatStorage,
     this.onNeedScroll,
-  })  : _aiSettings = aiSettings ?? AISettings(),
+  })  : _aiSettings = aiSettings ?? getIt<AISettings>(),
         _toolRegistry = toolRegistry ?? ToolRegistry(),
         _chatStorage = chatStorage ?? getIt<ChatStorage>() {
     registerAllTools(_toolRegistry);

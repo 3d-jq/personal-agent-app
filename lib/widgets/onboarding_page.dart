@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../core/agent_colors.dart';
+import '../core/service_locator.dart';
 import '../widgets/ai_settings_sheet.dart';
 
 class OnboardingPage extends StatefulWidget {
@@ -43,7 +44,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   void _complete() {
     final k = _keyCtrl.text.trim();
     if (k.isEmpty) return;
-    final settings = AISettings();
+    final settings = getIt<AISettings>();
     final preset = _presets.firstWhere((e) => e.$1 == _selectedPreset);
     settings.addVendor(VendorConfig(
       id: DateTime.now().millisecondsSinceEpoch.toString(),

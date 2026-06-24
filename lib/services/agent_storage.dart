@@ -9,9 +9,7 @@ import 'async_lock.dart';
 
 /// Agent 库：管理所有用户可见的 Agent（内置 + 自定义）
 class AgentStorage {
-  static final AgentStorage _instance = AgentStorage._();
-  factory AgentStorage() => _instance;
-  AgentStorage._();
+  AgentStorage();
 
   final _lock = AsyncLock();
   List<Agent>? _cache;
