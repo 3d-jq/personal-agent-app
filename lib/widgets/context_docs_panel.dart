@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../core/agent_colors.dart';
+import '../core/service_locator.dart';
 import '../services/context_doc_service.dart';
 
 /// Markdown 身份文档查看页。
@@ -59,7 +60,7 @@ class ContextDocViewerPage extends StatelessWidget {
         ),
       ),
       body: FutureBuilder<String>(
-        future: ContextDocService().read(doc),
+        future: getIt<ContextDocService>().read(doc),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.textSecondary));

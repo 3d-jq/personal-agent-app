@@ -1,4 +1,5 @@
 import '../models/note.dart';
+import '../core/service_locator.dart';
 import '../services/note_storage.dart';
 import 'base_tool.dart';
 import 'manage_note_tool.g.dart';
@@ -52,7 +53,7 @@ class ManageNoteTool extends AgentTool {
   @override
   Future<String> execute(Map<String, dynamic> args) async {
     final action = args['action'] as String? ?? '';
-    final storage = NoteStorage();
+    final storage = getIt<NoteStorage>();
     final notes = await storage.loadAll();
 
     switch (action) {

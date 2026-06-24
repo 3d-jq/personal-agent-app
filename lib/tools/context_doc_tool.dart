@@ -1,3 +1,4 @@
+import '../core/service_locator.dart';
 import '../services/context_doc_service.dart';
 import 'base_tool.dart';
 import 'context_doc_tool.g.dart';
@@ -63,7 +64,7 @@ class ContextDocTool extends AgentTool {
     }
 
     final doc = _parseDoc(docRaw);
-    final service = ContextDocService();
+    final service = getIt<ContextDocService>();
 
     switch (action) {
       case 'read':

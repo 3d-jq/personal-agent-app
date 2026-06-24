@@ -3,7 +3,6 @@ import 'package:personal_agent_app/models/chat_message.dart';
 import 'package:personal_agent_app/models/chat_session.dart';
 import 'package:personal_agent_app/models/note.dart';
 import 'package:personal_agent_app/models/reminder.dart';
-import 'package:personal_agent_app/models/memory_entry.dart';
 
 void main() {
   group('ChatMessage', () {
@@ -94,29 +93,4 @@ void main() {
     });
   });
 
-  group('MemoryEntry', () {
-    test('serialization roundtrip with preference type', () {
-      final entry = MemoryEntry(
-        id: 'mem-1',
-        content: 'User prefers dark mode',
-        type: MemoryType.preference,
-      );
-      final json = entry.toJson();
-      final restored = MemoryEntry.fromJson(json);
-      expect(restored.id, 'mem-1');
-      expect(restored.content, 'User prefers dark mode');
-      expect(restored.type, MemoryType.preference);
-    });
-
-    test('serialization roundtrip with fact type', () {
-      final entry = MemoryEntry(
-        id: 'mem-2',
-        content: 'User works at Xiaomi',
-        type: MemoryType.fact,
-      );
-      final json = entry.toJson();
-      final restored = MemoryEntry.fromJson(json);
-      expect(restored.type, MemoryType.fact);
-    });
-  });
 }

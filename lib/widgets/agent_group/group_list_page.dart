@@ -4,6 +4,7 @@ import '../../core/app_router.dart';
 import '../../models/agent.dart';
 import '../../models/agent_group.dart';
 import '../../services/agent_group_storage.dart';
+import '../../core/service_locator.dart';
 import '../../services/agent_storage.dart';
 
 /// 群列表页
@@ -24,8 +25,8 @@ class _GroupListPageState extends State<GroupListPage> {
   }
 
   Future<void> _load() async {
-    final groups = await AgentGroupStorage().loadAll();
-    final agents = await AgentStorage().loadAll();
+    final groups = await getIt<AgentGroupStorage>().loadAll();
+    final agents = await getIt<AgentStorage>().loadAll();
     if (!mounted) return;
     setState(() {
       _groups = groups;
@@ -42,7 +43,7 @@ class _GroupListPageState extends State<GroupListPage> {
     final result = await AppRouter.editGroup(context);
     if (result != null) {
       final (group, _, _) = result;
-      await AgentGroupStorage().save(group);
+      await getIt<AgentGroupStorage>().save(group);
       _openGroup(group);
     }
   }
@@ -60,7 +61,7 @@ class _GroupListPageState extends State<GroupListPage> {
       ),
     );
     if (ok == true) {
-      await AgentGroupStorage().delete(g.id);
+      await getIt<AgentGroupStorage>().delete(g.id);
       _load();
     }
   }

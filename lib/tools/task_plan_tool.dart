@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'base_tool.dart';
 import 'task_plan_tool.g.dart';
+import '../core/service_locator.dart';
 import '../services/virtual_fs.dart';
 
 /// 任务计划工具：帮助大模型在执行复杂多步任务时保持进度。
@@ -348,7 +349,7 @@ class TaskPlanTool extends AgentTool {
   Future<void> _savePlan() async {
     if (_currentPlan == null) return;
     try {
-      final fs = VirtualFileSystem();
+      final fs = getIt<VirtualFileSystem>();
       final json = jsonEncode(_currentPlan!.toJson());
       await fs.mkdir('/scratch');
       await fs.write('/scratch/plan.json', json);
@@ -357,7 +358,7 @@ class TaskPlanTool extends AgentTool {
 
   Future<void> _loadPlan() async {
     try {
-      final fs = VirtualFileSystem();
+      final fs = getIt<VirtualFileSystem>();
       if (await fs.exists('/scratch/plan.json')) {
         final json = await fs.read('/scratch/plan.json');
         final data = jsonDecode(json) as Map<String, dynamic>;

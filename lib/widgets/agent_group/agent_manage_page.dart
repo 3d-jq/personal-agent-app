@@ -6,6 +6,7 @@ import '../../models/agent.dart';
 import '../../services/agent_group_storage.dart';
 import '../../services/agent_storage.dart';
 import '../../widgets/ai_settings_sheet.dart';
+import '../../core/service_locator.dart';
 import '../../services/ai_service.dart';
 import 'agent_group_theme.dart';
 
@@ -26,7 +27,7 @@ class _AgentManagePageState extends State<AgentManagePage> {
   }
 
   Future<void> _load() async {
-    final all = await AgentStorage().loadAll();
+    final all = await getIt<AgentStorage>().loadAll();
     if (!mounted) return;
     setState(() => _agents = all);
   }
@@ -35,9 +36,9 @@ class _AgentManagePageState extends State<AgentManagePage> {
     final result = await AppRouter.editAgent(context, existing: existing);
     if (result != null) {
       if (existing == null) {
-        await AgentStorage().add(result);
+        await getIt<AgentStorage>().add(result);
       } else {
-        await AgentStorage().update(result);
+        await getIt<AgentStorage>().update(result);
       }
       await _load();
     }
@@ -57,7 +58,7 @@ class _AgentManagePageState extends State<AgentManagePage> {
     );
     if (ok == true) {
       // 从所有群组中移除该 agent
-      final groupStorage = AgentGroupStorage();
+      final groupStorage = getIt<AgentGroupStorage>();
       final groups = await groupStorage.loadAll();
       for (final g in groups) {
         if (g.agentIds.remove(a.id)) {
@@ -65,7 +66,7 @@ class _AgentManagePageState extends State<AgentManagePage> {
           await groupStorage.save(g);
         }
       }
-      await AgentStorage().remove(a.id);
+      await getIt<AgentStorage>().remove(a.id);
       await _load();
     }
   }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../core/app_router.dart';
 import '../core/app_config.dart';
+import '../core/service_locator.dart';
 import '../services/theme_service.dart';
 import '../services/update_service.dart';
 
@@ -15,9 +16,9 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    ThemeService().addListener(_rebuild);
+    getIt<ThemeService>().addListener(_rebuild);
   }
-  @override void dispose() { ThemeService().removeListener(_rebuild); super.dispose(); }
+  @override void dispose() { getIt<ThemeService>().removeListener(_rebuild); super.dispose(); }
   void _rebuild() => setState(() {});
 
   Future<void> _checkUpdate(BuildContext context, AgentColors nc) async {
@@ -233,9 +234,9 @@ class _SettingsPageState extends State<SettingsPage> {
           _RoundedCard(
             nc: nc,
             children: [
-              _SettingItem(icon: Icons.brightness_6_outlined, label: '主题', trailing: ThemeService().label, onTap: () {
+              _SettingItem(icon: Icons.brightness_6_outlined, label: '主题', trailing: getIt<ThemeService>().label, onTap: () {
                 HapticFeedback.lightImpact();
-                final ts = ThemeService();
+                final ts = getIt<ThemeService>();
                 final next = ts.mode == ThemeMode.light ? ThemeMode.dark : ts.mode == ThemeMode.dark ? ThemeMode.system : ThemeMode.light;
                 ts.setMode(next);
               }),

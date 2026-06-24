@@ -13,6 +13,7 @@ import '../../services/agent_runner.dart';
 import '../../services/agent_storage.dart';
 import '../../services/ai_service.dart';
 import '../../services/chat_stream_event.dart';
+import '../../core/service_locator.dart';
 import '../../services/connectivity_service.dart';
 import '../../tools/tools.dart';
 import '../../widgets/ai_settings_sheet.dart';
@@ -76,14 +77,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   Future<void> _load() async {
     await _aiSettings.load();
-    final g = (await AgentGroupStorage().loadAll())
+    final g = (await getIt<AgentGroupStorage>().loadAll())
         .where((x) => x.id == widget.groupId)
         .firstOrNull;
     if (g == null) {
       if (mounted) Navigator.of(context).pop();
       return;
     }
-    final allAgents = await AgentStorage().loadAll();
+    final allAgents = await getIt<AgentStorage>().loadAll();
     final ms = g.agentIds
         .map((id) => allAgents.where((a) => a.id == id).firstOrNull)
         .whereType<Agent>()
@@ -103,7 +104,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final g = _group;
     if (g == null) return;
     g.messages = List.from(_messages);
-    await AgentGroupStorage().save(g);
+    await getIt<AgentGroupStorage>().save(g);
   }
 
   Future<void> _editGroup() async {
@@ -127,7 +128,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       });
     }
     updated.messages = List.from(_messages);
-    await AgentGroupStorage().save(updated);
+    await getIt<AgentGroupStorage>().save(updated);
     await _load();
   }
 
@@ -170,7 +171,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     // 是否直接 @ 了某个 Agent
     final hasDirectMentions = mentionAgents.isNotEmpty;
 
-    if (!await ConnectivityService().check()) {
+    if (!await getIt<ConnectivityService>().check()) {
       setState(() {
         _messages.add(ChatMessage(text: '当前无网络连接，请检查网络后重试', isUser: false));
       });
