@@ -381,28 +381,62 @@ class _AIBubbleState extends State<_AIBubble>
       );
     }
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          isError ? Icons.close : Icons.check_circle,
-          size: 16,
-          color: isError ? Colors.red.shade400 : nc.success,
-        ),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            isError ? '${step.label}（失败）' : step.label,
-            style: TextStyle(
-              fontSize: 13,
-              color: nc.textSecondary,
-              fontWeight: FontWeight.w400,
+if (isError) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.close,
+            size: 16,
+            color: Colors.red.shade400,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              '${step.label}（失败）',
+              style: TextStyle(
+                fontSize: 13,
+                color: nc.textSecondary,
+                fontWeight: FontWeight.w400,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
-            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      );
+    }
+
+    // 最后一步是 done 但前面有步骤不是（如 error），按已完成样式渲染
+    if (!isRunning && !isError) {
+      return InkWell(
+        onTap: () => _showTimelineDetail(steps, nc),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                step.label,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: nc.textSecondary,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Icon(
+                Icons.chevron_right,
+                size: 16,
+                color: nc.textSecondary.withValues(alpha: 0.5),
+              ),
+            ],
           ),
         ),
-      ],
-    );
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   void _showTimelineDetail(List<TimelineStep> steps, AgentColors nc) {

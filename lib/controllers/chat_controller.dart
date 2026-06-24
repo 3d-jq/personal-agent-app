@@ -583,10 +583,14 @@ class ChatController extends ChangeNotifier {
     if (state.toolInteractions.isNotEmpty) {
       aiMsg.toolInteractions = state.toolInteractions;
     }
-    if (aiMsg.text.isEmpty && !state.hasToolCalls) {
-      aiMsg.text = state.reasoningBuf.isNotEmpty
-          ? '模型思考时间过长，连接已断开，请重试'
-          : '(无响应)';
+    if (aiMsg.text.isEmpty) {
+      if (state.hasToolCalls) {
+        aiMsg.text = '任务已完成';
+      } else {
+        aiMsg.text = state.reasoningBuf.isNotEmpty
+            ? '模型思考时间过长，连接已断开，请重试'
+            : '(无响应)';
+      }
     }
     _isLoading = false;
     _notify();
