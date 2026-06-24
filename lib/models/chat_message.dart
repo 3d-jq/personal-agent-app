@@ -97,7 +97,7 @@ class ChatMessage extends ChangeNotifier {
 
 // ── Timeline ──
 
-enum TimelineStepType { thinking, tool }
+enum TimelineStepType { thinking, tool, compress }
 
 enum TimelineStepStatus { running, done, error }
 
