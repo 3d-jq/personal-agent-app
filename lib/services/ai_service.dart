@@ -70,7 +70,7 @@ class AIService {
     required this.apiKey,
     required this.providerName,
     required this.model,
-    this.maxTokens = 16384,
+    this.maxTokens = 65536,
     this.thinkingEffort = 'medium',
     ToolRegistry? toolRegistry,
   }) : toolRegistry = toolRegistry ?? ToolRegistry();
