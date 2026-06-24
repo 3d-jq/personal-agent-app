@@ -1,0 +1,4 @@
+# 统一文本文件使用 LF 换行符，避免跨平台协作出现 diff 混乱。
+* text=auto
+*.dart text eol=lf
+.gitattributes text eol=lf
