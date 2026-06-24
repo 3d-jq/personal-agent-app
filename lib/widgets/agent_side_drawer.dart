@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../core/app_router.dart';
 import '../models/chat_session.dart';
+import '../core/service_locator.dart';
 import '../services/export_service.dart';
 
 class AgentSideDrawer extends StatefulWidget {
@@ -122,8 +123,8 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                   GestureDetector(
                     onTap: () async {
                       HapticFeedback.lightImpact();
-                      final text = await ExportService().exportAllChatsAsJson();
-                      await ExportService().shareText(text, 'dewis_chats.json');
+                      final text = await getIt<ExportService>().exportAllChatsAsJson();
+                      await getIt<ExportService>().shareText(text, 'dewis_chats.json');
                     },
                     child: _Pill(icon: Icons.file_download_outlined, nc: nc),
                   ),

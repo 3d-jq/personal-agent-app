@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/media_item.dart';
+import '../core/service_locator.dart';
 import '../services/media_storage.dart';
 import '../tools/base_tool.dart';
 import 'agnes_image_tool.g.dart';
@@ -108,7 +109,7 @@ class AgnesImageTool extends AgentTool {
         final file = File('${dir.path}/agnes_img_${DateTime.now().millisecondsSinceEpoch}.png');
         await file.writeAsBytes(bytes);
         final type = imageUrl != null ? '图生图' : '文生图';
-        await MediaStorage().add(MediaItem(
+        await getIt<MediaStorage>().add(MediaItem(
           id: const Uuid().v4(),
           type: MediaType.image,
           filePath: file.path,

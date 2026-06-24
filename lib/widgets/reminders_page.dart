@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../models/reminder.dart';
+import '../core/service_locator.dart';
 import '../services/reminder_storage.dart';
 import '../tools/reminder_tool.dart';
 
@@ -12,7 +13,7 @@ class RemindersView extends StatefulWidget {
 }
 
 class _RemindersViewState extends State<RemindersView> {
-  final _storage = ReminderStorage();
+  final _storage = getIt<ReminderStorage>();
   List<Reminder> _reminders = [];
   bool _loaded = false;
 

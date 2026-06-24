@@ -7,6 +7,7 @@ import '../core/app_router.dart';
 import '../models/note.dart';
 import '../services/export_service.dart';
 import '../services/note_export_service.dart';
+import '../core/service_locator.dart';
 import '../services/note_storage.dart';
 import 'inline_content.dart';
 
@@ -17,7 +18,7 @@ class NotesPage extends StatefulWidget {
 }
 
 class _NotesPageState extends State<NotesPage> {
-  final _storage = NoteStorage();
+  final _storage = getIt<NoteStorage>();
   List<Note> _notes = [];
   bool _loaded = false;
 
@@ -67,8 +68,8 @@ class _NotesPageState extends State<NotesPage> {
               icon: Icon(Icons.file_download_outlined, color: nc.textPrimary, size: 22),
               onPressed: () async {
                 HapticFeedback.lightImpact();
-                final text = await ExportService().exportNotesAsText();
-                await ExportService().shareText(text, 'dewis_notes.txt');
+                final text = await getIt<ExportService>().exportNotesAsText();
+                await getIt<ExportService>().shareText(text, 'dewis_notes.txt');
               },
             ),
         ],

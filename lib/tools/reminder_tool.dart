@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../models/reminder.dart';
+import '../core/service_locator.dart';
 import '../services/reminder_storage.dart';
 import '../tools/base_tool.dart';
 import 'reminder_tool.g.dart';
@@ -83,7 +84,7 @@ class ReminderTool extends AgentTool {
   static Future<void> cancelReminder(String id) async {
     final nativeChannel = const MethodChannel('com.example/reminder');
     await nativeChannel.invokeMethod('cancel', {'id': id.hashCode.abs()});
-    await ReminderStorage().remove(id);
+    await getIt<ReminderStorage>().remove(id);
   }
 
   @override
@@ -127,7 +128,7 @@ class ReminderTool extends AgentTool {
         'delaySeconds': delaySeconds,
       });
 
-      await ReminderStorage().add(Reminder(
+      await getIt<ReminderStorage>().add(Reminder(
         id: id,
         title: title,
         message: message,

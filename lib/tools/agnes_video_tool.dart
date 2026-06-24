@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/media_item.dart';
+import '../core/service_locator.dart';
 import '../services/media_storage.dart';
 import '../tools/base_tool.dart';
 import 'agnes_video_tool.g.dart';
@@ -123,7 +124,7 @@ class AgnesVideoTool extends AgentTool {
           await _dio.download(videoUrl, tempFile.path);
           // Copy to permanent storage
           final docsFile = await tempFile.copy('${docsDir.path}/$fileName');
-          await MediaStorage().add(MediaItem(
+          await getIt<MediaStorage>().add(MediaItem(
             id: const Uuid().v4(),
             type: MediaType.video,
             filePath: docsFile.path,

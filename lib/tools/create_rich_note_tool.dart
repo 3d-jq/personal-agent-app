@@ -1,5 +1,6 @@
 import '../models/note.dart';
 import '../services/crypto_util.dart';
+import '../core/service_locator.dart';
 import '../services/note_storage.dart';
 import 'agnes_image_tool.dart';
 import 'base_tool.dart';
@@ -98,11 +99,11 @@ class CreateRichNoteTool extends AgentTool {
 
     // 保存笔记
     final note = Note(
-      id: await NoteStorage().nextId(),
+      id: await getIt<NoteStorage>().nextId(),
       title: title,
       content: buf.toString(),
     );
-    await NoteStorage().add(note);
+    await getIt<NoteStorage>().add(note);
 
     // 结果反馈
     final status = StringBuffer();

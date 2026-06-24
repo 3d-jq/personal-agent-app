@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../../core/agent_colors.dart';
 import '../../models/agent.dart';
 import '../../models/agent_group.dart';
+import '../../core/service_locator.dart';
 import '../../services/agent_storage.dart';
 
 /// 新建/编辑群
@@ -29,7 +30,7 @@ class _GroupEditPageState extends State<GroupEditPage> {
   }
 
   Future<void> _loadAgents() async {
-    final all = await AgentStorage().loadAll();
+    final all = await getIt<AgentStorage>().loadAll();
     if (!mounted) return;
     // DWeis Agent 默认自动加入（必须在 loadAll 之后）
     final dweis = all.where((a) => a.name == 'DWeis').firstOrNull;

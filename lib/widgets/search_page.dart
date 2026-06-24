@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
 import '../services/chat_storage.dart';
+import '../core/service_locator.dart';
 import '../services/note_storage.dart';
 
 class SearchPage extends StatefulWidget {
@@ -37,14 +38,14 @@ class _SearchPageState extends State<SearchPage> {
     final q = query.toLowerCase();
     final results = <_SearchResult>[];
 
-    final sessions = await ChatStorage().loadAll();
+    final sessions = await getIt<ChatStorage>().loadAll();
     for (final s in sessions) {
       if (s.title.toLowerCase().contains(q)) {
         results.add(_SearchResult(type: '对话', title: s.title, subtitle: '${s.messages.length} 条消息', icon: Icons.chat_bubble_outline));
       }
     }
 
-    final notes = await NoteStorage().loadAll();
+    final notes = await getIt<NoteStorage>().loadAll();
     for (final n in notes) {
       if (n.title.toLowerCase().contains(q) || n.content.toLowerCase().contains(q)) {
         results.add(_SearchResult(type: '笔记', title: n.title, subtitle: n.summary, icon: Icons.note_outlined));

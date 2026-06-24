@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/chat_session.dart';
 import '../models/note.dart';
 import '../services/chat_storage.dart';
+import '../core/service_locator.dart';
 import '../services/note_storage.dart';
 
 class ExportService {
@@ -13,7 +14,7 @@ class ExportService {
   ExportService._();
 
   Future<String> exportChatAsText(String sessionId) async {
-    final sessions = await ChatStorage().loadAll();
+    final sessions = await getIt<ChatStorage>().loadAll();
     final session = sessions.where((s) => s.id == sessionId).firstOrNull;
     if (session == null) return '';
 
@@ -34,13 +35,13 @@ class ExportService {
   }
 
   Future<String> exportAllChatsAsJson() async {
-    final sessions = await ChatStorage().loadAll();
+    final sessions = await getIt<ChatStorage>().loadAll();
     final data = sessions.map((s) => s.toJson()).toList();
     return const JsonEncoder.withIndent('  ').convert(data);
   }
 
   Future<String> exportNotesAsText() async {
-    final notes = await NoteStorage().loadAll();
+    final notes = await getIt<NoteStorage>().loadAll();
     final buf = StringBuffer();
     buf.writeln('=== DWeis 笔记导出 ===');
     buf.writeln('导出时间: ${DateTime.now()}');
@@ -58,7 +59,7 @@ class ExportService {
   }
 
   Future<String> exportNotesAsJson() async {
-    final notes = await NoteStorage().loadAll();
+    final notes = await getIt<NoteStorage>().loadAll();
     final data = notes.map((n) => n.toJson()).toList();
     return const JsonEncoder.withIndent('  ').convert(data);
   }

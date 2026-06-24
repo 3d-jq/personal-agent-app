@@ -1,4 +1,5 @@
 import '../models/note.dart';
+import '../core/service_locator.dart';
 import '../services/note_storage.dart';
 import 'base_tool.dart';
 import 'save_note_tool.g.dart';
@@ -47,12 +48,12 @@ class SaveNoteTool extends AgentTool {
     }
 
     final note = Note(
-      id: await NoteStorage().nextId(),
+      id: await getIt<NoteStorage>().nextId(),
       title: title,
       content: content,
     );
 
-    await NoteStorage().add(note);
+    await getIt<NoteStorage>().add(note);
     return '笔记已保存：「$title」${images.isNotEmpty ? '（含 ${images.length} 张图片）' : ''}';
   }
 }

@@ -5,6 +5,7 @@ import '../core/agent_colors.dart';
 import '../core/app_animations.dart';
 import '../core/app_router.dart';
 import '../models/media_item.dart';
+import '../core/service_locator.dart';
 import '../services/media_storage.dart';
 
 class MediaView extends StatefulWidget {
@@ -14,7 +15,7 @@ class MediaView extends StatefulWidget {
 }
 
 class _MediaViewState extends State<MediaView> {
-  final _storage = MediaStorage();
+  final _storage = getIt<MediaStorage>();
   List<MediaItem> _items = [];
   bool _loaded = false;
 

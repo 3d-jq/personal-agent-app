@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'base_tool.dart';
 import 'virtual_fs_tool.g.dart';
+import '../core/service_locator.dart';
 import '../services/virtual_fs.dart';
 
 /// 虚拟文件系统工具
@@ -52,7 +53,7 @@ class VirtualFSTool extends AgentTool {
       return '错误：必须提供 action 和 path 参数。';
     }
 
-    final fs = VirtualFileSystem();
+    final fs = getIt<VirtualFileSystem>();
 
     try {
       switch (action) {
