@@ -6,16 +6,15 @@ import 'storage/json_file_data_source.dart';
 
 class NoteStorage extends ChangeNotifier {
   NoteStorage()
-      : _repo = CachedRepository<Note>(
-          dataSource: JsonFileDataSource<Note>(
-            relativePath: 'notes.json',
-            fromJson: (list) => list
-                .map((j) => Note.fromJson(j as Map<String, dynamic>))
-                .toList()
-              ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)),
-            toJson: (items) => items.map((e) => e.toJson()).toList(),
-          ),
-        ) {
+    : _repo = CachedRepository<Note>(
+        dataSource: JsonFileDataSource<Note>(
+          relativePath: 'notes.json',
+          fromJson: (list) =>
+              list.map((j) => Note.fromJson(j as Map<String, dynamic>)).toList()
+                ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)),
+          toJson: (items) => items.map((e) => e.toJson()).toList(),
+        ),
+      ) {
     _repo.addListener(notifyListeners);
   }
 

@@ -157,11 +157,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         .toList();
 
     setState(() {
-      _messages.add(ChatMessage(
-        text: text,
-        isUser: true,
-        mentions: mentionNames,
-      ));
+      _messages.add(
+        ChatMessage(text: text, isUser: true, mentions: mentionNames),
+      );
       _inputCtrl.clear();
       _inputFocus.unfocus();
     });
@@ -211,7 +209,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         final mentionNames = <String>[];
         for (var round = 0; round < maxRounds && !_stopped; round++) {
           // Manager 判断谁该发言
-          final nextName = await _managerPickSpeaker(managerAgent, mentionNames);
+          final nextName = await _managerPickSpeaker(
+            managerAgent,
+            mentionNames,
+          );
           if (nextName == null || nextName == 'STOP') break;
 
           final nextAgent = _byName[nextName];
@@ -237,8 +238,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   ///
   /// 用一个轻量 LLM 调用，根据用户消息 + 已有对话 + 各 Agent 的角色描述，
   /// 选出最适合接下来回复的 Agent。
-  Future<String?> _managerPickSpeaker(Agent manager, List<String> alreadySpoken) async {
-    final vendor = _aiSettings.selectedVendor ??
+  Future<String?> _managerPickSpeaker(
+    Agent manager,
+    List<String> alreadySpoken,
+  ) async {
+    final vendor =
+        _aiSettings.selectedVendor ??
         (_aiSettings.vendors.isNotEmpty ? _aiSettings.vendors.first : null);
     if (vendor == null || vendor.apiKey.isEmpty) return null;
 
@@ -252,7 +257,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         .map((a) => '- ${a.name}：${a.role.isNotEmpty ? a.role : '通用助手'}')
         .join('\n');
 
-    final prompt = '''你是「${manager.name}」，群的协调者。
+    final prompt =
+        '''你是「${manager.name}」，群的协调者。
 根据用户的消息和已有对话，判断哪位成员最适合回复。
 只能从下面列表中选择一人，或回复 STOP 表示不需要更多回复。
 
@@ -307,14 +313,19 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
   Future<String> _runOneAgent(Agent agent) async {
     VendorConfig? vendor;
     if (agent.vendorId.isNotEmpty) {
-      vendor = _aiSettings.vendors.where((v) => v.id == agent.vendorId).firstOrNull;
+      vendor = _aiSettings.vendors
+          .where((v) => v.id == agent.vendorId)
+          .firstOrNull;
     }
-    vendor ??= _aiSettings.selectedVendor ??
+    vendor ??=
+        _aiSettings.selectedVendor ??
         (_aiSettings.vendors.isNotEmpty ? _aiSettings.vendors.first : null);
     if (vendor == null || vendor.apiKey.isEmpty) {
       final errText = '${agent.name} 没有可用的 AI 后端';
       setState(() {
-        _messages.add(ChatMessage(text: errText, isUser: false, speakerId: agent.id));
+        _messages.add(
+          ChatMessage(text: errText, isUser: false, speakerId: agent.id),
+        );
       });
       _scrollDown();
       return errText;
@@ -360,20 +371,29 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
               currentSteps ??= [];
               // 只结束思考步骤，不影响正在并行执行的工具步骤
               for (final s in currentSteps!) {
-                if (s.type == TimelineStepType.thinking && s.status == TimelineStepStatus.running) {
+                if (s.type == TimelineStepType.thinking &&
+                    s.status == TimelineStepStatus.running) {
                   s.status = TimelineStepStatus.done;
                 }
               }
               final suffix = concurrentCount > 1 ? ' ×$concurrentCount' : '';
-              currentSteps!.add(TimelineStep(
+              currentSteps!.add(
+                TimelineStep(
                   label: '${toolLabel(name)}$suffix',
                   type: TimelineStepType.tool,
                   status: TimelineStepStatus.running,
-                  detail: '工具: $name'));
+                  detail: '工具: $name',
+                ),
+              );
               break;
             case ToolDoneEvent(:final name):
               if (currentSteps != null) {
-                final idx = currentSteps!.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.detail == '工具: $name' && s.status == TimelineStepStatus.running);
+                final idx = currentSteps!.lastIndexWhere(
+                  (s) =>
+                      s.type == TimelineStepType.tool &&
+                      s.detail == '工具: $name' &&
+                      s.status == TimelineStepStatus.running,
+                );
                 if (idx >= 0) {
                   currentSteps![idx].status = TimelineStepStatus.done;
                   currentSteps![idx].detail = '执行成功';
@@ -382,7 +402,12 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
               break;
             case ToolErrorEvent(:final name, :final message):
               if (currentSteps != null) {
-                final idx = currentSteps!.lastIndexWhere((s) => s.type == TimelineStepType.tool && s.detail == '工具: $name' && s.status == TimelineStepStatus.running);
+                final idx = currentSteps!.lastIndexWhere(
+                  (s) =>
+                      s.type == TimelineStepType.tool &&
+                      s.detail == '工具: $name' &&
+                      s.status == TimelineStepStatus.running,
+                );
                 if (idx >= 0) {
                   currentSteps![idx].status = TimelineStepStatus.error;
                   currentSteps![idx].detail = message;
@@ -467,31 +492,56 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
           children: [
             Container(
               margin: const EdgeInsets.only(top: 8),
-              width: 36, height: 4,
-              decoration: BoxDecoration(color: nc.divider, borderRadius: BorderRadius.circular(2)),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: nc.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text('选择要 @ 的 Agent',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+              child: Text(
+                '选择要 @ 的 Agent',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: nc.textPrimary,
+                ),
+              ),
             ),
-            ..._members.map((a) => ListTile(
-                  leading: Container(
-                    width: 36, height: 36, alignment: Alignment.center,
-                    decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(18)),
-                    child: Text(a.avatar.isNotEmpty ? a.avatar : a.name.characters.first,
-                        style: const TextStyle(fontSize: 16)),
+            ..._members.map(
+              (a) => ListTile(
+                leading: Container(
+                  width: 36,
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: nc.primarySurface,
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  title: Text(a.name, style: TextStyle(fontSize: 15, color: nc.textPrimary)),
-                  subtitle: a.role.isNotEmpty
-                      ? Text(a.role, style: TextStyle(fontSize: 12, color: nc.textSecondary))
-                      : null,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    Navigator.pop(context);
-                    insertAt(a.name);
-                  },
-                )),
+                  child: Text(
+                    a.avatar.isNotEmpty ? a.avatar : a.name.characters.first,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+                title: Text(
+                  a.name,
+                  style: TextStyle(fontSize: 15, color: nc.textPrimary),
+                ),
+                subtitle: a.role.isNotEmpty
+                    ? Text(
+                        a.role,
+                        style: TextStyle(fontSize: 12, color: nc.textSecondary),
+                      )
+                    : null,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.pop(context);
+                  insertAt(a.name);
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -523,8 +573,14 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
           icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(_group!.name,
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        title: Text(
+          _group!.name,
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: nc.textPrimary,
+          ),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -549,7 +605,10 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
                   )
                 : ListView.builder(
                     controller: _scrollCtrl,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                     itemCount: _messages.length,
                     itemBuilder: (c, i) {
                       final m = _messages[i];
@@ -579,14 +638,25 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
                       child: TextField(
                         controller: _inputCtrl,
                         focusNode: _inputFocus,
-                        minLines: 1, maxLines: 6,
+                        minLines: 1,
+                        maxLines: 6,
                         keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.newline,
-                        style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.5),
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: nc.textPrimary,
+                          height: 1.5,
+                        ),
                         onChanged: (_) => setState(() {}),
                         decoration: InputDecoration(
-                          hintText: _members.isEmpty ? '先把 Agent 拉进群再说' : '说点什么，@名字 来召唤 Agent',
-                          hintStyle: TextStyle(color: nc.textSecondary.withValues(alpha: 0.6), fontSize: 15, height: 1.5),
+                          hintText: _members.isEmpty
+                              ? '先把 Agent 拉进群再说'
+                              : '说点什么，@名字 来召唤 Agent',
+                          hintStyle: TextStyle(
+                            color: nc.textSecondary.withValues(alpha: 0.6),
+                            fontSize: 15,
+                            height: 1.5,
+                          ),
                           border: InputBorder.none,
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
@@ -605,12 +675,23 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
                               _showMentionSheet(nc);
                             },
                             child: Container(
-                              width: 40, height: 40, alignment: Alignment.center,
-                              decoration: BoxDecoration(color: nc.primarySurface, shape: BoxShape.circle),
-                              child: Text('@',
-                                  style: TextStyle(
-                                      fontSize: 16, fontWeight: FontWeight.w600,
-                                      color: _members.isNotEmpty ? nc.textPrimary : nc.textDisabled)),
+                              width: 40,
+                              height: 40,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: nc.primarySurface,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text(
+                                '@',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: _members.isNotEmpty
+                                      ? nc.textPrimary
+                                      : nc.textDisabled,
+                                ),
+                              ),
                             ),
                           ),
                           const Spacer(),
@@ -625,20 +706,27 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
                               }
                             },
                             child: Container(
-                              width: 40, height: 40, alignment: Alignment.center,
+                              width: 40,
+                              height: 40,
+                              alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: _busy
                                     ? Colors.red.withValues(alpha: 0.1)
                                     : _inputCtrl.text.trim().isEmpty
-                                        ? nc.primarySurface : nc.textPrimary,
+                                    ? nc.primarySurface
+                                    : nc.textPrimary,
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
-                                _busy ? Icons.stop_rounded : Icons.arrow_upward_rounded,
+                                _busy
+                                    ? Icons.stop_rounded
+                                    : Icons.arrow_upward_rounded,
                                 size: 18,
                                 color: _busy
                                     ? Colors.red
-                                    : _inputCtrl.text.trim().isEmpty ? nc.textSecondary : nc.surface,
+                                    : _inputCtrl.text.trim().isEmpty
+                                    ? nc.textSecondary
+                                    : nc.surface,
                               ),
                             ),
                           ),
@@ -661,14 +749,21 @@ class _GroupBubble extends StatelessWidget {
   final ChatMessage msg;
   final Agent? speaker;
   final AgentColors nc;
-  const _GroupBubble({super.key, required this.msg, required this.speaker, required this.nc});
+  const _GroupBubble({
+    super.key,
+    required this.msg,
+    required this.speaker,
+    required this.nc,
+  });
   @override
   Widget build(BuildContext context) {
     final showHeader = speaker != null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
-        crossAxisAlignment: msg.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: msg.isUser
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           if (showHeader)
             Padding(
@@ -683,15 +778,29 @@ class _GroupBubble extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 24, height: 24, alignment: Alignment.center,
-                      decoration: BoxDecoration(color: nc.surface, borderRadius: BorderRadius.circular(12)),
+                      width: 24,
+                      height: 24,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: nc.surface,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: Text(
-                          speaker!.avatar.isNotEmpty ? speaker!.avatar : speaker!.name.characters.first,
-                          style: const TextStyle(fontSize: 14)),
+                        speaker!.avatar.isNotEmpty
+                            ? speaker!.avatar
+                            : speaker!.name.characters.first,
+                        style: const TextStyle(fontSize: 14),
+                      ),
                     ),
                     const SizedBox(width: 8),
-                    Text(speaker!.name,
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: nc.textPrimary)),
+                    Text(
+                      speaker!.name,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: nc.textPrimary,
+                      ),
+                    ),
                   ],
                 ),
               ),

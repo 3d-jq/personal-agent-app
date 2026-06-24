@@ -23,7 +23,8 @@ class AgentRunner {
 
   /// 每次 run() 都重建 system prompt，不缓存，确保 Agent 身份隔离
   /// 结构：固定前缀（身份+规则+团队）→ 动态后缀（角色人设+记忆），利于 prompt caching
-  Future<String> _buildSystemPrompt(Agent agent, {
+  Future<String> _buildSystemPrompt(
+    Agent agent, {
     required List<String> memberNames,
     required Map<String, String> memberRoles,
     String groupName = '',
@@ -58,8 +59,12 @@ class AgentRunner {
       buf.writeln('你只能回复被 @ 提及的消息。如果消息中没有 @${agent.name}，不要发言。');
     }
     buf.writeln('用户是群主，拥有最终决策权。重要决策必须由群主确认。');
-    buf.writeln('【禁止幻觉】回答时事、数据、地点、人物、版本等你不能 100% 确定的事实时，必须调用 searxng_search 或 tavily_search 确认，禁止凭训练数据猜测；tavily_search 效果通常更好，当 searxng_search 结果不理想时请换用 tavily_search。');
-    buf.writeln('【低频工具发现】对于不常用、场景化或你不确定名称的工具（如 AI日报、企业 MCP 等），先使用 tool_search 搜索，确认名称和参数后，再用 defer_execute_tool 调用。');
+    buf.writeln(
+      '【禁止幻觉】回答时事、数据、地点、人物、版本等你不能 100% 确定的事实时，必须调用 searxng_search 或 tavily_search 确认，禁止凭训练数据猜测；tavily_search 效果通常更好，当 searxng_search 结果不理想时请换用 tavily_search。',
+    );
+    buf.writeln(
+      '【低频工具发现】对于不常用、场景化或你不确定名称的工具（如 AI日报、企业 MCP 等），先使用 tool_search 搜索，确认名称和参数后，再用 defer_execute_tool 调用。',
+    );
     buf.writeln('【先工具后回答】工具返回前不要给出最终结论，只能基于工具返回的内容回答。');
     buf.writeln('</rules>');
     buf.writeln();
@@ -107,8 +112,6 @@ class AgentRunner {
       buf.writeln();
     }
 
-
-
     return buf.toString();
   }
 
@@ -125,16 +128,24 @@ class AgentRunner {
         : msgs;
 
     final history = <Map<String, dynamic>>[
-      {'role': 'system', 'content': systemPrompt}
+      {'role': 'system', 'content': systemPrompt},
     ];
     for (final m in window) {
       final isSelf = !m.isUser && m.speakerLabel == selfLabel;
       if (m.isUser) {
         history.add({'role': 'user', 'content': m.text, 'name': '群主'});
       } else if (isSelf) {
-        history.add({'role': 'assistant', 'content': m.text, 'name': m.speakerLabel});
+        history.add({
+          'role': 'assistant',
+          'content': m.text,
+          'name': m.speakerLabel,
+        });
       } else {
-        history.add({'role': 'assistant', 'content': m.text, 'name': m.speakerLabel});
+        history.add({
+          'role': 'assistant',
+          'content': m.text,
+          'name': m.speakerLabel,
+        });
       }
     }
     return history;
@@ -147,7 +158,9 @@ class AgentRunner {
     return _scopedCache.putIfAbsent(key, () {
       final scoped = ToolRegistry();
       final allowed = agent.allowedToolNames.toSet();
-      final canDiscover = allowed.contains('tool_search') || allowed.contains('defer_execute_tool');
+      final canDiscover =
+          allowed.contains('tool_search') ||
+          allowed.contains('defer_execute_tool');
 
       for (final tool in baseRegistry.all) {
         if (!allowed.contains(tool.name)) continue;
@@ -180,12 +193,14 @@ class AgentRunner {
     String thinkingEffort = 'medium',
   }) async* {
     try {
-      final systemPrompt = await _buildSystemPrompt(agent,
-          memberNames: memberNames,
-          memberRoles: memberRoles,
-          groupName: groupName,
-          groupDesc: groupDesc,
-          now: DateTime.now());
+      final systemPrompt = await _buildSystemPrompt(
+        agent,
+        memberNames: memberNames,
+        memberRoles: memberRoles,
+        groupName: groupName,
+        groupDesc: groupDesc,
+        now: DateTime.now(),
+      );
 
       final mapped = <_GroupMsg>[];
       for (final m in groupMessages) {

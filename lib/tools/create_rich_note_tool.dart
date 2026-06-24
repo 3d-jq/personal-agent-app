@@ -22,26 +22,25 @@ class CreateRichNoteTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {
-          'title': {
-            'type': 'string',
-            'description': '笔记标题，简洁概括主题',
-          },
-          'content': {
-            'type': 'string',
-            'description': '笔记正文，支持 Markdown 格式。'
-                '如需指定配图位置，可插入占位符 {{IMAGE_0}}、{{IMAGE_1}} 等，'
-                '工具会按 image_descriptions 顺序将图片替换到对应位置。',
-          },
-          'image_descriptions': {
-            'type': 'array',
-            'items': {'type': 'string'},
-            'description': '需要生成的图片描述列表，每项为一个精炼的英文图 prompt（如 "A serene mountain landscape at sunset, digital art"）',
-          },
-        },
-        'required': ['title', 'content'],
-      };
+    'type': 'object',
+    'properties': {
+      'title': {'type': 'string', 'description': '笔记标题，简洁概括主题'},
+      'content': {
+        'type': 'string',
+        'description':
+            '笔记正文，支持 Markdown 格式。'
+            '如需指定配图位置，可插入占位符 {{IMAGE_0}}、{{IMAGE_1}} 等，'
+            '工具会按 image_descriptions 顺序将图片替换到对应位置。',
+      },
+      'image_descriptions': {
+        'type': 'array',
+        'items': {'type': 'string'},
+        'description':
+            '需要生成的图片描述列表，每项为一个精炼的英文图 prompt（如 "A serene mountain landscape at sunset, digital art"）',
+      },
+    },
+    'required': ['title', 'content'],
+  };
 
   AgnesImageTool? _imageTool;
 
@@ -84,7 +83,10 @@ class CreateRichNoteTool extends AgentTool {
     for (var i = 0; i < imageUrls.length; i++) {
       final placeholder = '{{IMAGE_$i}}';
       if (finalContent.contains(placeholder)) {
-        finalContent = finalContent.replaceFirst(placeholder, '\n\n![配图](${imageUrls[i]})\n\n');
+        finalContent = finalContent.replaceFirst(
+          placeholder,
+          '\n\n![配图](${imageUrls[i]})\n\n',
+        );
       } else {
         unusedUrls.add(imageUrls[i]);
       }

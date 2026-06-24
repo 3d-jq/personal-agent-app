@@ -11,41 +11,40 @@ import 'context_doc_tool.g.dart';
 /// - AGENT.md：任务中积累的经验与技巧；写入前需要 review 确认，避免覆盖 SOUL.md 人格。
 /// - MEMORY.md：跨场景长期记忆。
 class ContextDocTool extends AgentTool {
-  @override String get name => 'context_doc';
-  @override bool get readOnly => false;
+  @override
+  String get name => 'context_doc';
+  @override
+  bool get readOnly => false;
 
   @override
   String get description => contextDocToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {
-          'action': {
-            'type': 'string',
-            'enum': ['read', 'update'],
-            'description': 'read=读取；update=覆盖写入',
-          },
-          'doc': {
-            'type': 'string',
-            'enum': ['soul', 'user', 'agent', 'memory', 'knowledge'],
-            'description': '文档类型：soul / user / agent / memory / knowledge',
-          },
-          'filename': {
-            'type': 'string',
-            'description': '仅 knowledge 类型需要：知识库文件名，如 01_major_selection.md',
-          },
-          'content': {
-            'type': 'string',
-            'description': 'update 时使用，覆盖写入的完整 Markdown 内容',
-          },
-          'reviewed': {
-            'type': 'boolean',
-            'description': '仅对 agent 文档有效',
-          },
-        },
-        'required': ['action', 'doc'],
-      };
+    'type': 'object',
+    'properties': {
+      'action': {
+        'type': 'string',
+        'enum': ['read', 'update'],
+        'description': 'read=读取；update=覆盖写入',
+      },
+      'doc': {
+        'type': 'string',
+        'enum': ['soul', 'user', 'agent', 'memory', 'knowledge'],
+        'description': '文档类型：soul / user / agent / memory / knowledge',
+      },
+      'filename': {
+        'type': 'string',
+        'description': '仅 knowledge 类型需要：知识库文件名，如 01_major_selection.md',
+      },
+      'content': {
+        'type': 'string',
+        'description': 'update 时使用，覆盖写入的完整 Markdown 内容',
+      },
+      'reviewed': {'type': 'boolean', 'description': '仅对 agent 文档有效'},
+    },
+    'required': ['action', 'doc'],
+  };
 
   ContextDoc _parseDoc(String value) {
     return ContextDoc.values.firstWhere(

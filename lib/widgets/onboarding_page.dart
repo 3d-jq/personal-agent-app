@@ -46,13 +46,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
     if (k.isEmpty) return;
     final settings = getIt<AISettings>();
     final preset = _presets.firstWhere((e) => e.$1 == _selectedPreset);
-    settings.addVendor(VendorConfig(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: preset.$1,
-      apiKey: k,
-      baseUrl: _urlCtrl.text.trim().isNotEmpty ? _urlCtrl.text.trim() : preset.$2,
-      model: preset.$3,
-    ));
+    settings.addVendor(
+      VendorConfig(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: preset.$1,
+        apiKey: k,
+        baseUrl: _urlCtrl.text.trim().isNotEmpty
+            ? _urlCtrl.text.trim()
+            : preset.$2,
+        model: preset.$3,
+      ),
+    );
     settings.selectVendor(settings.vendors.last.id);
     widget.onComplete();
   }
@@ -86,11 +90,24 @@ class _OnboardingPageState extends State<OnboardingPage> {
             child: Icon(Icons.smart_toy_outlined, size: 44, color: nc.success),
           ),
           const SizedBox(height: 24),
-          Text('欢迎使用 DWeis', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: nc.textPrimary)),
+          Text(
+            '欢迎使用 DWeis',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: nc.textPrimary,
+            ),
+          ),
           const SizedBox(height: 12),
-          Text('你的全能 AI 助手\n可以聊天、搜索、生成图片视频、管理笔记和提醒',
+          Text(
+            '你的全能 AI 助手\n可以聊天、搜索、生成图片视频、管理笔记和提醒',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 15, color: nc.textSecondary, height: 1.5)),
+            style: TextStyle(
+              fontSize: 15,
+              color: nc.textSecondary,
+              height: 1.5,
+            ),
+          ),
           const Spacer(flex: 3),
           FilledButton(
             onPressed: () {
@@ -100,9 +117,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
             style: FilledButton.styleFrom(
               minimumSize: const Size(double.infinity, 52),
               backgroundColor: nc.success,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
-            child: const Text('开始设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            child: const Text(
+              '开始设置',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
           ),
           const SizedBox(height: 16),
           TextButton(
@@ -110,7 +132,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
               HapticFeedback.lightImpact();
               widget.onComplete();
             },
-            child: Text('稍后设置', style: TextStyle(fontSize: 14, color: nc.textSecondary)),
+            child: Text(
+              '稍后设置',
+              style: TextStyle(fontSize: 14, color: nc.textSecondary),
+            ),
           ),
           SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
         ],
@@ -126,12 +151,26 @@ class _OnboardingPageState extends State<OnboardingPage> {
         children: [
           IconButton(
             onPressed: () => setState(() => _step = 0),
-            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: nc.textPrimary),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 20,
+              color: nc.textPrimary,
+            ),
           ),
           const SizedBox(height: 8),
-          Text('配置 AI 后端', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: nc.textPrimary)),
+          Text(
+            '配置 AI 后端',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: nc.textPrimary,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text('选择一个服务商并填入 API Key', style: TextStyle(fontSize: 14, color: nc.textSecondary)),
+          Text(
+            '选择一个服务商并填入 API Key',
+            style: TextStyle(fontSize: 14, color: nc.textSecondary),
+          ),
           const SizedBox(height: 24),
           Wrap(
             spacing: 8,
@@ -144,17 +183,28 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   _applyPreset(p.$1);
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: sel ? nc.success.withValues(alpha: 0.12) : nc.surface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: sel ? nc.success : nc.divider, width: 1.2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
                   ),
-                  child: Text(p.$1, style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
-                    color: sel ? nc.success : nc.textPrimary,
-                  )),
+                  decoration: BoxDecoration(
+                    color: sel
+                        ? nc.success.withValues(alpha: 0.12)
+                        : nc.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: sel ? nc.success : nc.divider,
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Text(
+                    p.$1,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
+                      color: sel ? nc.success : nc.textPrimary,
+                    ),
+                  ),
                 ),
               );
             }).toList(),
@@ -166,7 +216,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
             decoration: InputDecoration(
               labelText: 'API Key *',
               hintText: 'sk-...',
-              border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+              border: const OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
               labelStyle: TextStyle(color: nc.textSecondary),
             ),
           ),
@@ -175,7 +227,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
             controller: _urlCtrl,
             decoration: InputDecoration(
               labelText: 'Base URL',
-              border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+              border: const OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+              ),
               labelStyle: TextStyle(color: nc.textSecondary),
             ),
           ),
@@ -186,9 +240,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
               minimumSize: const Size(double.infinity, 52),
               backgroundColor: nc.success,
               disabledBackgroundColor: nc.divider,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
-            child: const Text('完成设置', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            child: const Text(
+              '完成设置',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),

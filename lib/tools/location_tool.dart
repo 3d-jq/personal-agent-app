@@ -15,10 +15,10 @@ class LocationTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {},
-        'required': [],
-      };
+    'type': 'object',
+    'properties': {},
+    'required': [],
+  };
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {

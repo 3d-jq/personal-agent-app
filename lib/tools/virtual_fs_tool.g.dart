@@ -26,5 +26,4 @@ const String virtualFsToolDescription = r'''
 - mkdir: 创建目录
 - rm: 删除文件（仅空目录可删）
 - walk: 递归列出所有文件路径
-'''
-;
+''';

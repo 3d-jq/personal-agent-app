@@ -31,7 +31,9 @@ void main() {
 
   var generatedCount = 0;
   for (final txtFile in txtFiles) {
-    final basename = p.basenameWithoutExtension(txtFile.path); // e.g. task_plan_tool
+    final basename = p.basenameWithoutExtension(
+      txtFile.path,
+    ); // e.g. task_plan_tool
     final outputName = '$basename.g.dart';
     final outputPath = p.join(toolsDir.path, outputName);
 
@@ -63,7 +65,10 @@ void main() {
 String _toCamelCase(String snakeCase) {
   return snakeCase
       .split('_')
-      .map((word) => word.isEmpty ? '' : '${word[0].toUpperCase()}${word.substring(1)}')
+      .map(
+        (word) =>
+            word.isEmpty ? '' : '${word[0].toUpperCase()}${word.substring(1)}',
+      )
       .join('')
       .replaceFirstMapped(RegExp(r'^[A-Z]'), (m) => m.group(0)!.toLowerCase());
 }

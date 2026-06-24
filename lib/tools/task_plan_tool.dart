@@ -26,56 +26,44 @@ class TaskPlanTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {
-          'action': {
-            'type': 'string',
-            'enum': ['create', 'update', 'advance', 'status', 'clear', 'verify'],
-            'description':
-                'create: 创建新计划; update: 更新任务状态; '
-                'advance: 自动完成当前 in_progress 任务并推进到下一步; '
-                'status: 查看进度; clear: 清除计划; '
-                'verify: 校验所有任务是否已完成/失败，通过后才能输出最终答案',
+    'type': 'object',
+    'properties': {
+      'action': {
+        'type': 'string',
+        'enum': ['create', 'update', 'advance', 'status', 'clear', 'verify'],
+        'description':
+            'create: 创建新计划; update: 更新任务状态; '
+            'advance: 自动完成当前 in_progress 任务并推进到下一步; '
+            'status: 查看进度; clear: 清除计划; '
+            'verify: 校验所有任务是否已完成/失败，通过后才能输出最终答案',
+      },
+      'title': {'type': 'string', 'description': '计划标题（仅 create 时必填）'},
+      'tasks': {
+        'type': 'array',
+        'items': {
+          'type': 'object',
+          'properties': {
+            'id': {'type': 'string', 'description': '任务ID，如 T1, T2, T1.1'},
+            'title': {'type': 'string', 'description': '任务描述'},
+            'parent': {'type': 'string', 'description': '父任务ID（可选，用于子任务）'},
           },
-          'title': {
-            'type': 'string',
-            'description': '计划标题（仅 create 时必填）',
-          },
-          'tasks': {
-            'type': 'array',
-            'items': {
-              'type': 'object',
-              'properties': {
-                'id': {
-                  'type': 'string',
-                  'description': '任务ID，如 T1, T2, T1.1',
-                },
-                'title': {'type': 'string', 'description': '任务描述'},
-                'parent': {
-                  'type': 'string',
-                  'description': '父任务ID（可选，用于子任务）',
-                },
-              },
-              'required': ['id', 'title'],
-            },
-            'description': '任务列表（仅 create 时使用），支持通过 parent 字段构建子任务树',
-          },
-          'task_id': {
-            'type': 'string',
-            'description': '任务ID（仅 update 时必填），如 T1, T1.1',
-          },
-          'status': {
-            'type': 'string',
-            'enum': ['pending', 'in_progress', 'done', 'failed', 'blocked'],
-            'description': '新状态（仅 update 时使用）',
-          },
-          'note': {
-            'type': 'string',
-            'description': '状态更新备注（可选）',
-          },
+          'required': ['id', 'title'],
         },
-        'required': ['action'],
-      };
+        'description': '任务列表（仅 create 时使用），支持通过 parent 字段构建子任务树',
+      },
+      'task_id': {
+        'type': 'string',
+        'description': '任务ID（仅 update 时必填），如 T1, T1.1',
+      },
+      'status': {
+        'type': 'string',
+        'enum': ['pending', 'in_progress', 'done', 'failed', 'blocked'],
+        'description': '新状态（仅 update 时使用）',
+      },
+      'note': {'type': 'string', 'description': '状态更新备注（可选）'},
+    },
+    'required': ['action'],
+  };
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {
@@ -138,7 +126,9 @@ class TaskPlanTool extends AgentTool {
     if (tasks.isEmpty) return '错误: 没有有效的任务项';
 
     // create 时自动将第一个可执行（叶子）任务设为 in_progress，减少一轮空交互
-    final leafTasks = tasks.where((t) => tasks.every((other) => other.parentId != t.id)).toList();
+    final leafTasks = tasks
+        .where((t) => tasks.every((other) => other.parentId != t.id))
+        .toList();
     if (leafTasks.isNotEmpty) {
       leafTasks.first.status = TaskStatus.inProgress;
     }
@@ -217,7 +207,8 @@ class TaskPlanTool extends AgentTool {
     for (final task in allTasks) {
       if (task.status != TaskStatus.pending) continue;
       final children = allTasks.where((t) => t.parentId == task.id).toList();
-      if (children.isEmpty || children.every((c) => c.status == TaskStatus.done)) {
+      if (children.isEmpty ||
+          children.every((c) => c.status == TaskStatus.done)) {
         next = task;
         break;
       }
@@ -231,8 +222,9 @@ class TaskPlanTool extends AgentTool {
     await _savePlan();
 
     final allDone = _currentPlan!.tasks
-        .where((t) =>
-            t.status != TaskStatus.done && t.status != TaskStatus.failed)
+        .where(
+          (t) => t.status != TaskStatus.done && t.status != TaskStatus.failed,
+        )
         .isEmpty;
     if (allDone) {
       return '✅ 已完成 ${current.id} "${current.title}"\n'
@@ -240,7 +232,8 @@ class TaskPlanTool extends AgentTool {
     }
 
     return _formatProgressWithRemaining(
-        '✅ 已完成 ${current.id} "${current.title}"');
+      '✅ 已完成 ${current.id} "${current.title}"',
+    );
   }
 
   String _status() {
@@ -265,8 +258,9 @@ class TaskPlanTool extends AgentTool {
     if (_currentPlan == null) return '错误: 当前没有活跃计划';
 
     final notDone = _currentPlan!.tasks
-        .where((t) =>
-            t.status != TaskStatus.done && t.status != TaskStatus.failed)
+        .where(
+          (t) => t.status != TaskStatus.done && t.status != TaskStatus.failed,
+        )
         .toList();
 
     if (notDone.isNotEmpty) {
@@ -285,8 +279,9 @@ class TaskPlanTool extends AgentTool {
     final parent = _currentPlan!.findTask(task.parentId!);
     if (parent == null) return;
 
-    final children =
-        _currentPlan!.tasks.where((t) => t.parentId == parent.id).toList();
+    final children = _currentPlan!.tasks
+        .where((t) => t.parentId == parent.id)
+        .toList();
     if (children.isEmpty) return;
 
     if (children.every((c) => c.status == TaskStatus.done)) {
@@ -312,7 +307,8 @@ class TaskPlanTool extends AgentTool {
     // 剩余步骤信息
     final remaining = allTasks
         .where(
-            (t) => t.status != TaskStatus.done && t.status != TaskStatus.failed)
+          (t) => t.status != TaskStatus.done && t.status != TaskStatus.failed,
+        )
         .toList();
 
     if (remaining.isEmpty) {
@@ -330,8 +326,9 @@ class TaskPlanTool extends AgentTool {
       buf.writeln('  $icon ${task.id} ${task.title}');
     }
 
-    final nextInProgress =
-        remaining.where((t) => t.status == TaskStatus.inProgress).firstOrNull;
+    final nextInProgress = remaining
+        .where((t) => t.status == TaskStatus.inProgress)
+        .firstOrNull;
     if (nextInProgress != null) {
       buf.writeln('\n→ 下一步: ${nextInProgress.id} ${nextInProgress.title}');
     } else {
@@ -386,20 +383,20 @@ class TaskNode {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        if (parentId != null) 'parentId': parentId,
-        'status': status.name,
-        if (note != null) 'note': note,
-      };
+    'id': id,
+    'title': title,
+    if (parentId != null) 'parentId': parentId,
+    'status': status.name,
+    if (note != null) 'note': note,
+  };
 
   factory TaskNode.fromJson(Map<String, dynamic> json) => TaskNode(
-        id: json['id'] as String,
-        title: json['title'] as String,
-        parentId: json['parentId'] as String?,
-        status: TaskStatus.values.byName(json['status'] as String? ?? 'pending'),
-        note: json['note'] as String?,
-      );
+    id: json['id'] as String,
+    title: json['title'] as String,
+    parentId: json['parentId'] as String?,
+    status: TaskStatus.values.byName(json['status'] as String? ?? 'pending'),
+    note: json['note'] as String?,
+  );
 }
 
 class TaskPlan {
@@ -418,16 +415,16 @@ class TaskPlan {
   }
 
   Map<String, dynamic> toJson() => {
-        'title': title,
-        'tasks': tasks.map((t) => t.toJson()).toList(),
-        'verified': verified,
-      };
+    'title': title,
+    'tasks': tasks.map((t) => t.toJson()).toList(),
+    'verified': verified,
+  };
 
   factory TaskPlan.fromJson(Map<String, dynamic> json) => TaskPlan(
-        title: json['title'] as String,
-        tasks: (json['tasks'] as List)
-            .map((t) => TaskNode.fromJson(t as Map<String, dynamic>))
-            .toList(),
-        verified: json['verified'] as bool? ?? false,
-      );
+    title: json['title'] as String,
+    tasks: (json['tasks'] as List)
+        .map((t) => TaskNode.fromJson(t as Map<String, dynamic>))
+        .toList(),
+    verified: json['verified'] as bool? ?? false,
+  );
 }

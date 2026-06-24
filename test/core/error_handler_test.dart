@@ -20,8 +20,9 @@ void main() {
       expect(FlutterError.onError, isNotNull);
     });
 
-    testWidgets('buildErrorWidget renders fallback UI',
-        (WidgetTester tester) async {
+    testWidgets('buildErrorWidget renders fallback UI', (
+      WidgetTester tester,
+    ) async {
       final details = FlutterErrorDetails(exception: Exception('boom'));
       final widget = ErrorHandler.buildErrorWidget(details);
 

@@ -34,7 +34,11 @@ class NotificationService {
     });
   }
 
-  Future<void> complete({required String id, String? title, String? message}) async {
+  Future<void> complete({
+    required String id,
+    String? title,
+    String? message,
+  }) async {
     await _call('complete', {
       'id': id,
       if (title != null) 'title': title,
@@ -42,7 +46,11 @@ class NotificationService {
     });
   }
 
-  Future<void> fail({required String id, String? title, String? message}) async {
+  Future<void> fail({
+    required String id,
+    String? title,
+    String? message,
+  }) async {
     await _call('fail', {
       'id': id,
       if (title != null) 'title': title,

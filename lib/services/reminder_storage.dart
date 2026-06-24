@@ -23,8 +23,9 @@ class ReminderStorage extends ChangeNotifier {
         return [];
       }
       final list = jsonDecode(await file.readAsString()) as List;
-      _cache = list.map((j) => Reminder.fromJson(j as Map<String, dynamic>)).toList()
-        ..sort((a, b) => b.scheduledTime.compareTo(a.scheduledTime));
+      _cache =
+          list.map((j) => Reminder.fromJson(j as Map<String, dynamic>)).toList()
+            ..sort((a, b) => b.scheduledTime.compareTo(a.scheduledTime));
       return _cache!;
     } catch (_) {
       await _backupCorruptedFile();
@@ -37,7 +38,9 @@ class ReminderStorage extends ChangeNotifier {
     try {
       final file = await _file();
       if (await file.exists()) {
-        final backup = File('${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}');
+        final backup = File(
+          '${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}',
+        );
         await file.rename(backup.path);
       }
     } catch (_) {}

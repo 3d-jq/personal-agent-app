@@ -9,7 +9,8 @@ import '../services/update_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
-  @override State<SettingsPage> createState() => _SettingsPageState();
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
 }
 
 class _SettingsPageState extends State<SettingsPage> {
@@ -18,7 +19,13 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     getIt<ThemeService>().addListener(_rebuild);
   }
-  @override void dispose() { getIt<ThemeService>().removeListener(_rebuild); super.dispose(); }
+
+  @override
+  void dispose() {
+    getIt<ThemeService>().removeListener(_rebuild);
+    super.dispose();
+  }
+
   void _rebuild() => setState(() {});
 
   Future<void> _checkUpdate(BuildContext context, AgentColors nc) async {
@@ -31,7 +38,12 @@ class _SettingsPageState extends State<SettingsPage> {
     } on UpdateException catch (e) {
       if (context.mounted) Navigator.pop(context);
       if (context.mounted) {
-        _showResult(context, nc, '检查更新失败', e.reason.isEmpty ? '请稍后重试' : e.reason);
+        _showResult(
+          context,
+          nc,
+          '检查更新失败',
+          e.reason.isEmpty ? '请稍后重试' : e.reason,
+        );
       }
       return;
     }
@@ -50,19 +62,33 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  void _showResult(BuildContext context, AgentColors nc, String title, String msg) {
+  void _showResult(
+    BuildContext context,
+    AgentColors nc,
+    String title,
+    String msg,
+  ) {
     showDialog(
       context: context,
       builder: (c) => AlertDialog(
         backgroundColor: nc.surface,
         title: Text(title, style: TextStyle(color: nc.textPrimary)),
         content: Text(msg, style: TextStyle(color: nc.textSecondary)),
-        actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('确定'))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text('确定'),
+          ),
+        ],
       ),
     );
   }
 
-  void _showLoadingDialog(BuildContext context, AgentColors nc, String message) {
+  void _showLoadingDialog(
+    BuildContext context,
+    AgentColors nc,
+    String message,
+  ) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -73,17 +99,27 @@ class _SettingsPageState extends State<SettingsPage> {
             SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(nc.textSecondary)),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation(nc.textSecondary),
+              ),
             ),
             const SizedBox(width: 16),
-            Text(message, style: TextStyle(color: nc.textPrimary, fontSize: 14)),
+            Text(
+              message,
+              style: TextStyle(color: nc.textPrimary, fontSize: 14),
+            ),
           ],
         ),
       ),
     );
   }
 
-  void _showUpdateDialog(BuildContext context, AgentColors nc, UpdateInfo info) {
+  void _showUpdateDialog(
+    BuildContext context,
+    AgentColors nc,
+    UpdateInfo info,
+  ) {
     showDialog(
       context: context,
       builder: (c) => AlertDialog(
@@ -92,7 +128,10 @@ class _SettingsPageState extends State<SettingsPage> {
           children: [
             Icon(Icons.system_update, color: nc.success, size: 24),
             const SizedBox(width: 8),
-            Text('发现新版本 v${info.version}', style: TextStyle(color: nc.textPrimary, fontSize: 16)),
+            Text(
+              '发现新版本 v${info.version}',
+              style: TextStyle(color: nc.textPrimary, fontSize: 16),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -100,16 +139,25 @@ class _SettingsPageState extends State<SettingsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('当前版本：${AppConfig.displayVersion}', style: TextStyle(color: nc.textSecondary, fontSize: 13)),
+              Text(
+                '当前版本：${AppConfig.displayVersion}',
+                style: TextStyle(color: nc.textSecondary, fontSize: 13),
+              ),
               if (info.notes.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                Text(info.notes, style: TextStyle(color: nc.textPrimary, fontSize: 13)),
+                Text(
+                  info.notes,
+                  style: TextStyle(color: nc.textPrimary, fontSize: 13),
+                ),
               ],
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('以后再说')),
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text('以后再说'),
+          ),
           if (info.apkUrl != null)
             TextButton(
               onPressed: () {
@@ -128,7 +176,11 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Future<void> _downloadAndInstall(BuildContext context, AgentColors nc, String apkUrl) async {
+  Future<void> _downloadAndInstall(
+    BuildContext context,
+    AgentColors nc,
+    String apkUrl,
+  ) async {
     String? downloadPath;
     String downloadFailReason = '请检查网络后重试';
 
@@ -145,8 +197,10 @@ class _SettingsPageState extends State<SettingsPage> {
             final done = progress != null && progress >= 1.0;
             return AlertDialog(
               backgroundColor: nc.surface,
-              title: Text(done ? '下载完成' : '正在下载更新...',
-                  style: TextStyle(color: nc.textPrimary, fontSize: 16)),
+              title: Text(
+                done ? '下载完成' : '正在下载更新...',
+                style: TextStyle(color: nc.textPrimary, fontSize: 16),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -160,8 +214,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     done
                         ? '准备安装...'
                         : progress != null
-                            ? '${(progress * 100).toStringAsFixed(0)}%'
-                            : '正在连接...',
+                        ? '${(progress * 100).toStringAsFixed(0)}%'
+                        : '正在连接...',
                     style: TextStyle(color: nc.textSecondary, fontSize: 13),
                   ),
                 ],
@@ -223,7 +277,14 @@ class _SettingsPageState extends State<SettingsPage> {
           icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('设置', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        title: Text(
+          '设置',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: nc.textPrimary,
+          ),
+        ),
         centerTitle: true,
       ),
       body: ListView(
@@ -234,16 +295,30 @@ class _SettingsPageState extends State<SettingsPage> {
           _RoundedCard(
             nc: nc,
             children: [
-              _SettingItem(icon: Icons.brightness_6_outlined, label: '主题', trailing: getIt<ThemeService>().label, onTap: () {
-                HapticFeedback.lightImpact();
-                final ts = getIt<ThemeService>();
-                final next = ts.mode == ThemeMode.light ? ThemeMode.dark : ts.mode == ThemeMode.dark ? ThemeMode.system : ThemeMode.light;
-                ts.setMode(next);
-              }),
-              _SettingItem(icon: Icons.layers_outlined, label: '模型', trailing: '管理', onTap: () {
-                HapticFeedback.lightImpact();
-                AppRouter.toModelSettings(context);
-              }),
+              _SettingItem(
+                icon: Icons.brightness_6_outlined,
+                label: '主题',
+                trailing: getIt<ThemeService>().label,
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  final ts = getIt<ThemeService>();
+                  final next = ts.mode == ThemeMode.light
+                      ? ThemeMode.dark
+                      : ts.mode == ThemeMode.dark
+                      ? ThemeMode.system
+                      : ThemeMode.light;
+                  ts.setMode(next);
+                },
+              ),
+              _SettingItem(
+                icon: Icons.layers_outlined,
+                label: '模型',
+                trailing: '管理',
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  AppRouter.toModelSettings(context);
+                },
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -251,15 +326,25 @@ class _SettingsPageState extends State<SettingsPage> {
           _RoundedCard(
             nc: nc,
             children: [
-                _SettingItem(label: '检查更新', trailing: AppConfig.displayVersion, onTap: () => _checkUpdate(context, nc)),
-              _SettingItem(label: '关于', onTap: () {
-                HapticFeedback.lightImpact();
-                AppRouter.toAbout(context);
-              }),
-              _SettingItem(label: '致谢', onTap: () {
-                HapticFeedback.lightImpact();
-                AppRouter.toAcknowledgement(context);
-              }),
+              _SettingItem(
+                label: '检查更新',
+                trailing: AppConfig.displayVersion,
+                onTap: () => _checkUpdate(context, nc),
+              ),
+              _SettingItem(
+                label: '关于',
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  AppRouter.toAbout(context);
+                },
+              ),
+              _SettingItem(
+                label: '致谢',
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  AppRouter.toAcknowledgement(context);
+                },
+              ),
             ],
           ),
           const SizedBox(height: 40),
@@ -278,7 +363,14 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(title, style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500)),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          color: nc.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 }
@@ -294,7 +386,13 @@ class _RoundedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(children: children),
     );
@@ -306,7 +404,12 @@ class _SettingItem extends StatelessWidget {
   final String label;
   final String? trailing;
   final VoidCallback? onTap;
-  const _SettingItem({this.icon, required this.label, this.trailing, this.onTap});
+  const _SettingItem({
+    this.icon,
+    required this.label,
+    this.trailing,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -324,10 +427,27 @@ class _SettingItem extends StatelessWidget {
                 Icon(icon, size: 20, color: nc.textPrimary),
                 const SizedBox(width: 14),
               ],
-              Expanded(child: Text(label, style: TextStyle(fontSize: 15, color: nc.textPrimary, fontWeight: FontWeight.w400))),
-              if (trailing != null) Text(trailing!, style: TextStyle(fontSize: 14, color: nc.textSecondary)),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: nc.textPrimary,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ),
+              if (trailing != null)
+                Text(
+                  trailing!,
+                  style: TextStyle(fontSize: 14, color: nc.textSecondary),
+                ),
               const SizedBox(width: 4),
-              Icon(Icons.chevron_right, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: nc.textSecondary.withValues(alpha: 0.5),
+              ),
             ],
           ),
         ),

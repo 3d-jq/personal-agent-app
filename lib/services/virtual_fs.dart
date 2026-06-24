@@ -11,8 +11,13 @@ class FSNode {
   final String? content; // 仅 file 类型有内容
   final List<FSNode> children; // 仅 directory 类型有子节点
 
-  FSNode.file(this.name, {this.content}) : type = FSNodeType.file, children = [];
-  FSNode.directory(this.name, {List<FSNode>? children}) : type = FSNodeType.directory, content = null, children = children ?? [];
+  FSNode.file(this.name, {this.content})
+    : type = FSNodeType.file,
+      children = [];
+  FSNode.directory(this.name, {List<FSNode>? children})
+    : type = FSNodeType.directory,
+      content = null,
+      children = children ?? [];
 
   /// 获取文件大小（字节）
   int get size => content?.length ?? 0;
@@ -49,7 +54,9 @@ class VirtualFileSystem {
   Future<String> _resolvePath(String virtualPath) async {
     final root = await getRoot();
     // 移除开头的 / 并规范化
-    final cleanPath = virtualPath.startsWith('/') ? virtualPath.substring(1) : virtualPath;
+    final cleanPath = virtualPath.startsWith('/')
+        ? virtualPath.substring(1)
+        : virtualPath;
     if (cleanPath.isEmpty) return root.path;
     return '${root.path}/$cleanPath';
   }

@@ -13,10 +13,12 @@ class AgnesImageTool extends AgentTool {
   /// API Key for Agnes AI (set via settings)
   String? apiKey;
 
-  final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 30),
-    receiveTimeout: const Duration(minutes: 5),
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(minutes: 5),
+    ),
+  );
 
   @override
   String get name => 'generate_image';
@@ -30,15 +32,18 @@ class AgnesImageTool extends AgentTool {
     'properties': {
       'prompt': {
         'type': 'string',
-        'description': '图片生成提示词。描述主体、场景、风格、光照、构图和质量要求。例如: "A futuristic city at sunset, neon lights, cinematic realism, wide-angle"',
+        'description':
+            '图片生成提示词。描述主体、场景、风格、光照、构图和质量要求。例如: "A futuristic city at sunset, neon lights, cinematic realism, wide-angle"',
       },
       'size': {
         'type': 'string',
-        'description': '输出图片尺寸，格式为 宽x高。常用值: 1024x768, 768x1024, 1024x1024。默认 1024x768',
+        'description':
+            '输出图片尺寸，格式为 宽x高。常用值: 1024x768, 768x1024, 1024x1024。默认 1024x768',
       },
       'image_url': {
         'type': 'string',
-        'description': '输入图片的公网 URL 或 base64 编码的图片数据（data:image/png;base64,...格式），用于图生图。留空则为文生图',
+        'description':
+            '输入图片的公网 URL 或 base64 编码的图片数据（data:image/png;base64,...格式），用于图生图。留空则为文生图',
       },
     },
     'required': ['prompt'],
@@ -85,10 +90,12 @@ class AgnesImageTool extends AgentTool {
 
       final response = await _dio.post(
         'https://apihub.agnes-ai.com/v1/images/generations',
-        options: Options(headers: {
-          'Authorization': 'Bearer $apiKey',
-          'Content-Type': 'application/json',
-        }),
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': 'application/json',
+          },
+        ),
         data: body,
       );
 
@@ -106,15 +113,19 @@ class AgnesImageTool extends AgentTool {
       if (b64 != null && b64.isNotEmpty) {
         final bytes = base64Decode(b64);
         final dir = await getApplicationDocumentsDirectory();
-        final file = File('${dir.path}/agnes_img_${DateTime.now().millisecondsSinceEpoch}.png');
+        final file = File(
+          '${dir.path}/agnes_img_${DateTime.now().millisecondsSinceEpoch}.png',
+        );
         await file.writeAsBytes(bytes);
         final type = imageUrl != null ? '图生图' : '文生图';
-        await getIt<MediaStorage>().add(MediaItem(
-          id: const Uuid().v4(),
-          type: MediaType.image,
-          filePath: file.path,
-          prompt: prompt,
-        ));
+        await getIt<MediaStorage>().add(
+          MediaItem(
+            id: const Uuid().v4(),
+            type: MediaType.image,
+            filePath: file.path,
+            prompt: prompt,
+          ),
+        );
         return '[$type] 图片已生成\n\n![生成的图片](file://${file.path})';
       }
 

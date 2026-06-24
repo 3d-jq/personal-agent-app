@@ -32,9 +32,9 @@ class ChatController extends ChangeNotifier {
     ToolRegistry? toolRegistry,
     ChatStorage? chatStorage,
     this.onNeedScroll,
-  })  : _aiSettings = aiSettings ?? getIt<AISettings>(),
-        _toolRegistry = toolRegistry ?? ToolRegistry(),
-        _chatStorage = chatStorage ?? getIt<ChatStorage>() {
+  }) : _aiSettings = aiSettings ?? getIt<AISettings>(),
+       _toolRegistry = toolRegistry ?? ToolRegistry(),
+       _chatStorage = chatStorage ?? getIt<ChatStorage>() {
     registerAllTools(_toolRegistry);
     _toolRegistry.register(AskUserTool(onAsk: _onAskUser));
   }
@@ -84,7 +84,8 @@ class ChatController extends ChangeNotifier {
     await _aiSettings.load();
     await _warmUpCaches();
     _sessions = await _chatStorage.loadAll();
-    final sid = initialSessionId ?? (_sessions.isNotEmpty ? _sessions.first.id : null);
+    final sid =
+        initialSessionId ?? (_sessions.isNotEmpty ? _sessions.first.id : null);
     if (sid != null) {
       await loadSession(sid);
     } else {
@@ -132,14 +133,19 @@ class ChatController extends ChangeNotifier {
     if (_sessionId == null || _messages.isEmpty) return;
     final userMsg = _messages.where((m) => m.isUser).firstOrNull;
     final title = userMsg != null
-        ? userMsg.text.replaceAll('\n', ' ').substring(0, userMsg.text.length.clamp(0, 30)).trim()
+        ? userMsg.text
+              .replaceAll('\n', ' ')
+              .substring(0, userMsg.text.length.clamp(0, 30))
+              .trim()
         : '新对话';
-    await _chatStorage.save(ChatSession(
-      id: _sessionId!,
-      title: title,
-      messages: List<ChatMessage>.from(_messages),
-      updatedAt: DateTime.now(),
-    ));
+    await _chatStorage.save(
+      ChatSession(
+        id: _sessionId!,
+        title: title,
+        messages: List<ChatMessage>.from(_messages),
+        updatedAt: DateTime.now(),
+      ),
+    );
     _chatStorage.clearCache();
     _sessions = await _chatStorage.loadAll();
     _notify();
@@ -195,16 +201,14 @@ class ChatController extends ChangeNotifier {
     _toolRegistry.resetCallCounts();
 
     if (!_aiSettings.hasVendor) {
-      _messages.add(ChatMessage(
-          text: '请先配置 AI 后端（点击输入框内存图标）', isUser: false));
+      _messages.add(ChatMessage(text: '请先配置 AI 后端（点击输入框内存图标）', isUser: false));
       _notify();
       onNeedScroll?.call();
       return;
     }
 
     if (!await getIt<ConnectivityService>().check()) {
-      _messages.add(ChatMessage(
-          text: '当前无网络连接，请检查网络后重试', isUser: false));
+      _messages.add(ChatMessage(text: '当前无网络连接，请检查网络后重试', isUser: false));
       _notify();
       onNeedScroll?.call();
       return;
@@ -216,7 +220,9 @@ class ChatController extends ChangeNotifier {
     if (_pendingAttachment != null) {
       final bytes = await _pendingAttachment!.readAsBytes();
       attachmentBase64 = base64Encode(bytes);
-      attachmentName = _pendingAttachment!.path.split(Platform.pathSeparator).last;
+      attachmentName = _pendingAttachment!.path
+          .split(Platform.pathSeparator)
+          .last;
       final typeLabel = _pendingAttachmentType == 'image' ? '图片' : '文档';
       displayText = trimmed.isEmpty
           ? '[附件: $typeLabel $attachmentName]'
@@ -225,12 +231,16 @@ class ChatController extends ChangeNotifier {
 
     final isFirstMeeting = _sessions.isEmpty && _messages.isEmpty;
 
-    _messages.add(ChatMessage(
-      text: displayText,
-      isUser: true,
-      attachmentPath: _pendingAttachment?.path,
-      attachmentType: _pendingAttachmentType.isNotEmpty ? _pendingAttachmentType : null,
-    ));
+    _messages.add(
+      ChatMessage(
+        text: displayText,
+        isUser: true,
+        attachmentPath: _pendingAttachment?.path,
+        attachmentType: _pendingAttachmentType.isNotEmpty
+            ? _pendingAttachmentType
+            : null,
+      ),
+    );
     _messages.add(ChatMessage(text: '', isUser: false, isStreaming: true));
     _isLoading = true;
 
@@ -291,11 +301,13 @@ class ChatController extends ChangeNotifier {
     _currentSteps = state.steps;
 
     try {
-      _aiStream = ai.sendMessageStream(history).listen(
-        (event) => _onStreamEvent(event, state, aiMsg),
-        onDone: () => _onStreamDone(state, aiMsg),
-        onError: (e) => _onStreamError(e, state, aiMsg),
-      );
+      _aiStream = ai
+          .sendMessageStream(history)
+          .listen(
+            (event) => _onStreamEvent(event, state, aiMsg),
+            onDone: () => _onStreamDone(state, aiMsg),
+            onError: (e) => _onStreamError(e, state, aiMsg),
+          );
     } catch (e) {
       _onStreamError(e, state, aiMsg);
     }
@@ -313,7 +325,9 @@ class ChatController extends ChangeNotifier {
         : null;
     if (aiMsg != null) {
       aiMsg.isStreaming = false;
-      aiMsg.steps = _currentSteps != null ? List.unmodifiable(_currentSteps!) : null;
+      aiMsg.steps = _currentSteps != null
+          ? List.unmodifiable(_currentSteps!)
+          : null;
       if (aiMsg.text.isEmpty) aiMsg.text = '(已停止)';
     }
     _currentSteps = null;
@@ -323,22 +337,36 @@ class ChatController extends ChangeNotifier {
 
   // ═══ Stream handling ═══
 
-  void _onStreamEvent(ChatStreamEvent event, _StreamState state, ChatMessage aiMsg) {
+  void _onStreamEvent(
+    ChatStreamEvent event,
+    _StreamState state,
+    ChatMessage aiMsg,
+  ) {
     switch (event) {
       case ThinkingChunkEvent(:final text):
         state.reasoningBuf.write(text);
         if (state.firstChunk) {
           state.firstChunk = false;
-          state.steps.add(TimelineStep(
-              label: '思考中', type: TimelineStepType.thinking, status: TimelineStepStatus.running));
+          state.steps.add(
+            TimelineStep(
+              label: '思考中',
+              type: TimelineStepType.thinking,
+              status: TimelineStepStatus.running,
+            ),
+          );
         }
         break;
       case TextChunkEvent(:final text):
         if (state.firstChunk) {
           state.firstChunk = false;
           state.thinkingStepBufStart = 0; // 第一个思考步从 buf 起始处开始截取
-          state.steps.add(TimelineStep(
-              label: '思考中', type: TimelineStepType.thinking, status: TimelineStepStatus.running));
+          state.steps.add(
+            TimelineStep(
+              label: '思考中',
+              type: TimelineStepType.thinking,
+              status: TimelineStepStatus.running,
+            ),
+          );
         }
         state.buf.write(text);
         break;
@@ -348,42 +376,58 @@ class ChatController extends ChangeNotifier {
         // 只结束思考步骤，不影响正在并行执行的工具步骤
         _finishThinkingSteps(state.steps);
         final suffix = concurrentCount > 1 ? ' ×$concurrentCount' : '';
-        state.steps.add(TimelineStep(
+        state.steps.add(
+          TimelineStep(
             label: '${_toolLabel(name)}$suffix',
             type: TimelineStepType.tool,
             status: TimelineStepStatus.running,
-            detail: '工具: $name'));
+            detail: '工具: $name',
+          ),
+        );
         if (name == 'generate_image' || name == 'generate_video') {
           getIt<NotificationService>().startTask(
-              id: name, title: _toolLabel(name), message: '准备中…');
+            id: name,
+            title: _toolLabel(name),
+            message: '准备中…',
+          );
         }
         break;
       case ToolDoneEvent(:final name):
-        final idx = state.steps.lastIndexWhere((s) =>
-            s.type == TimelineStepType.tool &&
-            s.status == TimelineStepStatus.running &&
-            s.detail == '工具: $name');
+        final idx = state.steps.lastIndexWhere(
+          (s) =>
+              s.type == TimelineStepType.tool &&
+              s.status == TimelineStepStatus.running &&
+              s.detail == '工具: $name',
+        );
         if (idx >= 0) {
           state.steps[idx].status = TimelineStepStatus.done;
           state.steps[idx].detail = '执行成功';
         }
         if (name == 'generate_image' || name == 'generate_video') {
           getIt<NotificationService>().complete(
-              id: name, title: _toolLabel(name), message: '已完成');
+            id: name,
+            title: _toolLabel(name),
+            message: '已完成',
+          );
         }
         break;
       case ToolErrorEvent(:final name, :final message):
-        final idx = state.steps.lastIndexWhere((s) =>
-            s.type == TimelineStepType.tool &&
-            s.status == TimelineStepStatus.running &&
-            s.detail == '工具: $name');
+        final idx = state.steps.lastIndexWhere(
+          (s) =>
+              s.type == TimelineStepType.tool &&
+              s.status == TimelineStepStatus.running &&
+              s.detail == '工具: $name',
+        );
         if (idx >= 0) {
           state.steps[idx].status = TimelineStepStatus.error;
           state.steps[idx].detail = message;
         }
         if (name == 'generate_image' || name == 'generate_video') {
           getIt<NotificationService>().complete(
-              id: name, title: _toolLabel(name), message: '执行失败');
+            id: name,
+            title: _toolLabel(name),
+            message: '执行失败',
+          );
         }
         break;
       case ToolMediaEvent(:final url):
@@ -399,11 +443,19 @@ class ChatController extends ChangeNotifier {
         currentPlan = TaskPlan(
           title: title,
           verified: verified,
-          tasks: tasks.map((t) => TaskNode(
-            id: t.id,
-            title: t.title,
-            status: t.done ? TaskStatus.done : t.inProgress ? TaskStatus.inProgress : TaskStatus.pending,
-          )).toList(),
+          tasks: tasks
+              .map(
+                (t) => TaskNode(
+                  id: t.id,
+                  title: t.title,
+                  status: t.done
+                      ? TaskStatus.done
+                      : t.inProgress
+                      ? TaskStatus.inProgress
+                      : TaskStatus.pending,
+                ),
+              )
+              .toList(),
         );
         break;
       case ErrorEvent(:final message):
@@ -420,7 +472,9 @@ class ChatController extends ChangeNotifier {
 
   Future<String> _onAskUser(String prompt) async {
     final state = _streamState;
-    final aiMsg = _messages.isNotEmpty && !_messages.last.isUser ? _messages.last : null;
+    final aiMsg = _messages.isNotEmpty && !_messages.last.isUser
+        ? _messages.last
+        : null;
     if (state == null || aiMsg == null) {
       return '无法询问用户：当前不在有效的 AI 响应流程中';
     }
@@ -428,7 +482,9 @@ class ChatController extends ChangeNotifier {
     state.isWaitingUserInput = true;
     // 将当前正在运行的工具步骤改写为“等待用户输入”，用户可直接看到阻塞原因
     final stepIdx = state.steps.lastIndexWhere(
-      (s) => s.type == TimelineStepType.tool && s.status == TimelineStepStatus.running,
+      (s) =>
+          s.type == TimelineStepType.tool &&
+          s.status == TimelineStepStatus.running,
     );
     if (stepIdx >= 0) {
       state.steps[stepIdx].label = '等待用户输入';
@@ -472,7 +528,9 @@ class ChatController extends ChangeNotifier {
   void _captureThinkingDetail(_StreamState state) {
     if (state.steps.isEmpty) return;
     final last = state.steps.last;
-    if (last.type != TimelineStepType.thinking || last.status != TimelineStepStatus.running) return;
+    if (last.type != TimelineStepType.thinking ||
+        last.status != TimelineStepStatus.running)
+      return;
 
     // 优先用大模型的 reasoning_content，否则用正文增量作为兜底
     String text;
@@ -497,19 +555,24 @@ class ChatController extends ChangeNotifier {
     _captureThinkingDetail(state);
     finishRunningSteps(state.steps);
     final plan = currentPlan;
-    final allDoneOrFailed = plan != null &&
-        plan.tasks.every((t) =>
-            t.status == TaskStatus.done || t.status == TaskStatus.failed);
+    final allDoneOrFailed =
+        plan != null &&
+        plan.tasks.every(
+          (t) => t.status == TaskStatus.done || t.status == TaskStatus.failed,
+        );
     final waitingVerify = allDoneOrFailed && !(plan?.verified ?? false);
     if (state.steps.isNotEmpty) {
       if (state.steps.last.type == TimelineStepType.thinking) {
         state.steps.last.label = waitingVerify ? '等待校验' : '任务完成';
       } else {
         // 最后一步是工具时，追加完成标记
-        state.steps.add(TimelineStep(
+        state.steps.add(
+          TimelineStep(
             label: waitingVerify ? '等待校验' : '任务完成',
             type: TimelineStepType.thinking,
-            status: TimelineStepStatus.done));
+            status: TimelineStepStatus.done,
+          ),
+        );
       }
     }
     _currentSteps = null;
@@ -535,7 +598,9 @@ class ChatController extends ChangeNotifier {
     finishRunningSteps(state.steps);
     _currentSteps = null;
     _streamState = null;
-    aiMsg.text = state.buf.isEmpty ? '错误: $e' : '${state.buf.toString()}\n\n错误: $e';
+    aiMsg.text = state.buf.isEmpty
+        ? '错误: $e'
+        : '${state.buf.toString()}\n\n错误: $e';
     aiMsg.isStreaming = false;
     aiMsg.steps = state.steps.isEmpty ? null : List.unmodifiable(state.steps);
     _isLoading = false;
@@ -558,6 +623,7 @@ class ChatController extends ChangeNotifier {
 /// 一次流式响应的临时状态，避免在闭包里维护大量局部变量。
 class _StreamState {
   final StringBuffer buf = StringBuffer();
+
   /// 大模型内部推理内容（reasoning_content），不显示在正文中。
   final StringBuffer reasoningBuf = StringBuffer();
   final List<TimelineStep> steps = [];

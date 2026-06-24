@@ -50,10 +50,7 @@ void main() {
 
     test('reset clears all registrations', () async {
       await resetDependencies();
-      expect(
-        () => getIt<ChatStorage>(),
-        throwsA(isA<StateError>()),
-      );
+      expect(() => getIt<ChatStorage>(), throwsA(isA<StateError>()));
     });
 
     test('allows replacing a service with a fake', () async {

@@ -4,5 +4,4 @@
 /// Tool description for `ai_daily_tool`.
 const String aiDailyToolDescription = r'''
 获取今日AI信息（AI日报、AI新闻与热点）。当用户询问今天的AI信息、AI日报、AI新闻、AI热点或趋势时使用。
-'''
-;
+''';

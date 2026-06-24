@@ -4,5 +4,4 @@
 /// Tool description for `reminder_tool`.
 const String reminderToolDescription = r'''
 创建定时提醒，到时间会推送系统通知。当用户说"提醒我..."、"N分钟后叫我"、"定时提醒"时使用。
-'''
-;
+''';

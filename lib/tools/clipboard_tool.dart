@@ -3,8 +3,10 @@ import '../tools/base_tool.dart';
 import 'clipboard_tool.g.dart';
 
 class ClipboardTool extends AgentTool {
-  @override String get name => 'clipboard';
-  @override bool get readOnly => false;
+  @override
+  String get name => 'clipboard';
+  @override
+  bool get readOnly => false;
 
   @override
   String get description => clipboardToolDescription;
@@ -18,10 +20,7 @@ class ClipboardTool extends AgentTool {
         'enum': ['read', 'write'],
         'description': '操作类型：read(读取剪贴板内容), write(写入文本到剪贴板)',
       },
-      'text': {
-        'type': 'string',
-        'description': '要写入剪贴板的文本内容（write操作需要）',
-      },
+      'text': {'type': 'string', 'description': '要写入剪贴板的文本内容（write操作需要）'},
     },
     'required': ['action'],
   };

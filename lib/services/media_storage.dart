@@ -22,8 +22,11 @@ class MediaStorage {
         return [];
       }
       final list = jsonDecode(await file.readAsString()) as List;
-      _cache = list.map((j) => MediaItem.fromJson(j as Map<String, dynamic>)).toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      _cache =
+          list
+              .map((j) => MediaItem.fromJson(j as Map<String, dynamic>))
+              .toList()
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return _cache!;
     } catch (_) {
       _cache = [];
@@ -39,7 +42,11 @@ class MediaStorage {
 
   Future<void> remove(String id) async {
     final all = await loadAll();
-    final item = all.firstWhere((m) => m.id == id, orElse: () => MediaItem(id: '', type: MediaType.image, filePath: '', prompt: ''));
+    final item = all.firstWhere(
+      (m) => m.id == id,
+      orElse: () =>
+          MediaItem(id: '', type: MediaType.image, filePath: '', prompt: ''),
+    );
     if (item.filePath.isNotEmpty) {
       final file = File(item.filePath);
       if (await file.exists()) await file.delete();

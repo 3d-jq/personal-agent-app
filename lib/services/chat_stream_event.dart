@@ -25,6 +25,7 @@ class ThinkingChunkEvent extends ChatStreamEvent {
 /// 工具调用开始。
 class ToolStartEvent extends ChatStreamEvent {
   final String name;
+
   /// 本轮并发执行的工具总数（>1 时表示并行执行）。
   final int concurrentCount;
   const ToolStartEvent(this.name, {this.concurrentCount = 1});
@@ -54,7 +55,11 @@ class TaskPlanEvent extends ChatStreamEvent {
   final String title;
   final List<TaskPlanItem> tasks;
   final bool verified;
-  const TaskPlanEvent({required this.title, required this.tasks, this.verified = false});
+  const TaskPlanEvent({
+    required this.title,
+    required this.tasks,
+    this.verified = false,
+  });
 }
 
 /// 任务计划中的单个任务项
@@ -83,7 +88,11 @@ class ErrorEvent extends ChatStreamEvent {
 class ToolInteractionEvent extends ChatStreamEvent {
   /// OpenAI 格式的 tool_calls 列表
   final List<Map<String, dynamic>> toolCalls;
+
   /// 工具执行结果列表: {id, content}
   final List<Map<String, dynamic>> toolResults;
-  const ToolInteractionEvent({required this.toolCalls, required this.toolResults});
+  const ToolInteractionEvent({
+    required this.toolCalls,
+    required this.toolResults,
+  });
 }

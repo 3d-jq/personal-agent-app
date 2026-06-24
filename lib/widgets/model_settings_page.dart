@@ -21,43 +21,72 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
   ];
 
   String _thinkingLabel(String v) {
-    return _thinkingOptions.firstWhere((o) => o.$1 == v, orElse: () => ('medium', '中')).$2;
+    return _thinkingOptions
+        .firstWhere((o) => o.$1 == v, orElse: () => ('medium', '中'))
+        .$2;
   }
 
   void _showThinkingPicker() {
     final nc = AgentColors.of(context);
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.only(bottom: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(margin: const EdgeInsets.only(top: 8), width: 36, height: 4,
-                decoration: BoxDecoration(color: nc.divider, borderRadius: BorderRadius.circular(2))),
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: nc.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Text('思考强度', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+              child: Text(
+                '思考强度',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: nc.textPrimary,
+                ),
+              ),
             ),
-            Text('控制模型推理深度，仅对支持推理的模型生效',
-                style: TextStyle(fontSize: 13, color: nc.textSecondary)),
+            Text(
+              '控制模型推理深度，仅对支持推理的模型生效',
+              style: TextStyle(fontSize: 13, color: nc.textSecondary),
+            ),
             const SizedBox(height: 12),
-            ..._thinkingOptions.map((o) => ListTile(
-                  title: Text(o.$2, style: TextStyle(fontSize: 15, color: nc.textPrimary)),
-                  subtitle: Text(
-                    o.$1 == 'low' ? '快速响应，适合简单任务' : o.$1 == 'medium' ? '平衡速度和深度（推荐）' : '深度思考，适合复杂推理',
-                    style: TextStyle(fontSize: 12, color: nc.textSecondary),
-                  ),
-                  trailing: _aiSettings.thinkingEffort == o.$1
-                      ? Icon(Icons.check, color: nc.success)
-                      : null,
-                  onTap: () {
-                    setState(() => _aiSettings.thinkingEffort = o.$1);
-                    _aiSettings.save();
-                    Navigator.pop(ctx);
-                  },
-                )),
+            ..._thinkingOptions.map(
+              (o) => ListTile(
+                title: Text(
+                  o.$2,
+                  style: TextStyle(fontSize: 15, color: nc.textPrimary),
+                ),
+                subtitle: Text(
+                  o.$1 == 'low'
+                      ? '快速响应，适合简单任务'
+                      : o.$1 == 'medium'
+                      ? '平衡速度和深度（推荐）'
+                      : '深度思考，适合复杂推理',
+                  style: TextStyle(fontSize: 12, color: nc.textSecondary),
+                ),
+                trailing: _aiSettings.thinkingEffort == o.$1
+                    ? Icon(Icons.check, color: nc.success)
+                    : null,
+                onTap: () {
+                  setState(() => _aiSettings.thinkingEffort = o.$1);
+                  _aiSettings.save();
+                  Navigator.pop(ctx);
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -84,74 +113,101 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
           icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('模型', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        title: Text(
+          '模型',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: nc.textPrimary,
+          ),
+        ),
         centerTitle: true,
       ),
       body: ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      children: [
-        const SizedBox(height: 8),
-        _RoundedCard(
-          nc: nc,
-          children: [
-            _SettingItem(
-              icon: Icons.check_circle_outline,
-              label: '当前厂商',
-              trailing: vendor?.name ?? '未配置',
-              onTap: () {
-                HapticFeedback.lightImpact();
-                showBackendPicker(context, _aiSettings, () => setState(() {}));
-              },
-            ),
-            _SettingItem(
-              icon: Icons.smart_toy_outlined,
-              label: '当前模型',
-              trailing: vendor?.model.isNotEmpty == true ? vendor!.model : '未设置',
-              onTap: () {
-                HapticFeedback.lightImpact();
-                if (vendor != null) showModelPicker(context, _aiSettings, () => setState(() {}));
-              },
-            ),
-            _SettingItem(
-              icon: Icons.psychology_outlined,
-              label: '思考强度',
-              trailing: _thinkingLabel(_aiSettings.thinkingEffort),
-              onTap: () {
-                HapticFeedback.lightImpact();
-                _showThinkingPicker();
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        _SectionHeader(title: '管理', nc: nc),
-        _RoundedCard(
-          nc: nc,
-          children: [
-            _SettingItem(
-              icon: Icons.settings_outlined,
-              label: '管理厂商配置',
-              onTap: () {
-                HapticFeedback.lightImpact();
-                showBackendPicker(context, _aiSettings, () => setState(() {}));
-              },
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        if (vendor != null) ...[
-          _SectionHeader(title: '厂商信息', nc: nc),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          const SizedBox(height: 8),
           _RoundedCard(
             nc: nc,
             children: [
-              _InfoRow(label: '名称', value: vendor.name, nc: nc),
-              _InfoRow(label: 'Base URL', value: vendor.baseUrl, nc: nc),
-              _InfoRow(label: 'API Key', value: '${vendor.apiKey.substring(0, vendor.apiKey.length.clamp(0, 8))}...', nc: nc),
+              _SettingItem(
+                icon: Icons.check_circle_outline,
+                label: '当前厂商',
+                trailing: vendor?.name ?? '未配置',
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  showBackendPicker(
+                    context,
+                    _aiSettings,
+                    () => setState(() {}),
+                  );
+                },
+              ),
+              _SettingItem(
+                icon: Icons.smart_toy_outlined,
+                label: '当前模型',
+                trailing: vendor?.model.isNotEmpty == true
+                    ? vendor!.model
+                    : '未设置',
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  if (vendor != null)
+                    showModelPicker(
+                      context,
+                      _aiSettings,
+                      () => setState(() {}),
+                    );
+                },
+              ),
+              _SettingItem(
+                icon: Icons.psychology_outlined,
+                label: '思考强度',
+                trailing: _thinkingLabel(_aiSettings.thinkingEffort),
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  _showThinkingPicker();
+                },
+              ),
             ],
           ),
+          const SizedBox(height: 20),
+          _SectionHeader(title: '管理', nc: nc),
+          _RoundedCard(
+            nc: nc,
+            children: [
+              _SettingItem(
+                icon: Icons.settings_outlined,
+                label: '管理厂商配置',
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  showBackendPicker(
+                    context,
+                    _aiSettings,
+                    () => setState(() {}),
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (vendor != null) ...[
+            _SectionHeader(title: '厂商信息', nc: nc),
+            _RoundedCard(
+              nc: nc,
+              children: [
+                _InfoRow(label: '名称', value: vendor.name, nc: nc),
+                _InfoRow(label: 'Base URL', value: vendor.baseUrl, nc: nc),
+                _InfoRow(
+                  label: 'API Key',
+                  value:
+                      '${vendor.apiKey.substring(0, vendor.apiKey.length.clamp(0, 8))}...',
+                  nc: nc,
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 40),
         ],
-        const SizedBox(height: 40),
-      ],
       ),
     );
   }
@@ -168,7 +224,13 @@ class _RoundedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(children: children),
     );
@@ -180,7 +242,12 @@ class _SettingItem extends StatelessWidget {
   final String label;
   final String? trailing;
   final VoidCallback? onTap;
-  const _SettingItem({required this.icon, required this.label, this.trailing, this.onTap});
+  const _SettingItem({
+    required this.icon,
+    required this.label,
+    this.trailing,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -197,12 +264,26 @@ class _SettingItem extends StatelessWidget {
               Icon(icon, size: 20, color: nc.textPrimary),
               const SizedBox(width: 14),
               Expanded(
-                child: Text(label, style: TextStyle(fontSize: 15, color: nc.textPrimary, fontWeight: FontWeight.w400)),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: nc.textPrimary,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
               ),
               if (trailing != null)
-                Text(trailing!, style: TextStyle(fontSize: 14, color: nc.textSecondary)),
+                Text(
+                  trailing!,
+                  style: TextStyle(fontSize: 14, color: nc.textSecondary),
+                ),
               const SizedBox(width: 4),
-              Icon(Icons.chevron_right, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: nc.textSecondary.withValues(alpha: 0.5),
+              ),
             ],
           ),
         ),
@@ -220,7 +301,14 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(title, style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500)),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          color: nc.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 }
@@ -240,8 +328,12 @@ class _InfoRow extends StatelessWidget {
           Text(label, style: TextStyle(fontSize: 14, color: nc.textSecondary)),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(value, maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 14, color: nc.textPrimary)),
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 14, color: nc.textPrimary),
+            ),
           ),
         ],
       ),

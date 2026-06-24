@@ -12,26 +12,22 @@ class SearxngSearchTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {
-          'query': {
-            'type': 'string',
-            'description': '搜索关键词或问题',
-          },
-          'max_results': {
-            'type': 'integer',
-            'description': '返回结果数量，1-10，默认 5',
-          },
-        },
-        'required': ['query'],
-      };
+    'type': 'object',
+    'properties': {
+      'query': {'type': 'string', 'description': '搜索关键词或问题'},
+      'max_results': {'type': 'integer', 'description': '返回结果数量，1-10，默认 5'},
+    },
+    'required': ['query'],
+  };
 
   String get _searxngBaseUrl => dotenv.env['SEARXNG_BASE_URL'] ?? '';
 
-  final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 20),
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 20),
+    ),
+  );
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {
@@ -45,7 +41,8 @@ class SearxngSearchTool extends AgentTool {
 
     try {
       final url = '$_searxngBaseUrl/search';
-      final response = await _dio.get(url,
+      final response = await _dio.get(
+        url,
         queryParameters: {
           'q': query,
           'format': 'json',

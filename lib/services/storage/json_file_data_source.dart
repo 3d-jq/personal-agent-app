@@ -62,7 +62,9 @@ class JsonFileDataSource<T> implements LocalDataSource<T> {
 
   Future<void> _backupCorruptedFile(File file) async {
     try {
-      final backup = File('${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}');
+      final backup = File(
+        '${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}',
+      );
       await file.rename(backup.path);
     } catch (_) {
       // 备份也失败时静默忽略，至少不阻塞后续写入。

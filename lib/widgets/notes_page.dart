@@ -59,13 +59,23 @@ class _NotesPageState extends State<NotesPage> {
           icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('笔记',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        title: Text(
+          '笔记',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: nc.textPrimary,
+          ),
+        ),
         centerTitle: true,
         actions: [
           if (_notes.isNotEmpty)
             IconButton(
-              icon: Icon(Icons.file_download_outlined, color: nc.textPrimary, size: 22),
+              icon: Icon(
+                Icons.file_download_outlined,
+                color: nc.textPrimary,
+                size: 22,
+              ),
               onPressed: () async {
                 HapticFeedback.lightImpact();
                 final text = await getIt<ExportService>().exportNotesAsText();
@@ -77,12 +87,12 @@ class _NotesPageState extends State<NotesPage> {
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : _notes.isEmpty
-              ? _emptyState(nc)
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: _notes.length,
-                  itemBuilder: (_, i) => _noteCard(_notes[i], nc),
-                ),
+          ? _emptyState(nc)
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: _notes.length,
+              itemBuilder: (_, i) => _noteCard(_notes[i], nc),
+            ),
       floatingActionButton: PressableScale(
         onTap: () => _openEditor(null),
         child: FloatingActionButton(
@@ -99,13 +109,27 @@ class _NotesPageState extends State<NotesPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.note_add_outlined, size: 48, color: nc.textSecondary.withValues(alpha: 0.3)),
+          Icon(
+            Icons.note_add_outlined,
+            size: 48,
+            color: nc.textSecondary.withValues(alpha: 0.3),
+          ),
           const SizedBox(height: 12),
-          Text('还没有笔记',
-              style: TextStyle(fontSize: 15, color: nc.textSecondary.withValues(alpha: 0.6))),
+          Text(
+            '还没有笔记',
+            style: TextStyle(
+              fontSize: 15,
+              color: nc.textSecondary.withValues(alpha: 0.6),
+            ),
+          ),
           const SizedBox(height: 6),
-          Text('点击右下角 + 创建，或在聊天中让 DWeis 帮你记录',
-              style: TextStyle(fontSize: 13, color: nc.textSecondary.withValues(alpha: 0.4))),
+          Text(
+            '点击右下角 + 创建，或在聊天中让 DWeis 帮你记录',
+            style: TextStyle(
+              fontSize: 13,
+              color: nc.textSecondary.withValues(alpha: 0.4),
+            ),
+          ),
         ],
       ),
     );
@@ -114,9 +138,12 @@ class _NotesPageState extends State<NotesPage> {
   Widget _noteCard(Note note, AgentColors nc) {
     return PressableScale(
       onTap: () {
-          HapticFeedback.lightImpact();
-          AppRouter.push(context, _NoteDetail(note: note, onEdit: () => _openEditor(note)));
-        },
+        HapticFeedback.lightImpact();
+        AppRouter.push(
+          context,
+          _NoteDetail(note: note, onEdit: () => _openEditor(note)),
+        );
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(16),
@@ -125,46 +152,63 @@ class _NotesPageState extends State<NotesPage> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 1)),
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 1),
+            ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              Expanded(
-                child: Text(note.title,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    note.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: nc.textPrimary)),
-              ),
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  _confirmDelete(note);
-                },
-                child: Icon(Icons.close_rounded,
-                    size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
-              ),
-            ]),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: nc.textPrimary,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    _confirmDelete(note);
+                  },
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: nc.textSecondary.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+            ),
             if (note.summary.isNotEmpty) ...[
               const SizedBox(height: 6),
-              Text(note.summary,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: 13, color: nc.textSecondary, height: 1.5)),
+              Text(
+                note.summary,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: nc.textSecondary,
+                  height: 1.5,
+                ),
+              ),
             ],
             const SizedBox(height: 8),
-            Text(_formatTime(note.updatedAt),
-                style: TextStyle(
-                    fontSize: 11,
-                    color: nc.textSecondary.withValues(alpha: 0.5))),
+            Text(
+              _formatTime(note.updatedAt),
+              style: TextStyle(
+                fontSize: 11,
+                color: nc.textSecondary.withValues(alpha: 0.5),
+              ),
+            ),
           ],
         ),
       ),
@@ -179,7 +223,9 @@ class _NotesPageState extends State<NotesPage> {
         content: Text('确定要删除「${note.title}」吗？'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
@@ -204,17 +250,20 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   void _openEditor(Note? existing) {
-    AppRouter.push(context, _NoteEditor(
-      note: existing,
-      onSaved: (note) async {
-        if (existing != null) {
-          await _storage.update(note);
-        } else {
-          await _storage.add(note);
-        }
-        _load();
-      },
-    ));
+    AppRouter.push(
+      context,
+      _NoteEditor(
+        note: existing,
+        onSaved: (note) async {
+          if (existing != null) {
+            await _storage.update(note);
+          } else {
+            await _storage.add(note);
+          }
+          _load();
+        },
+      ),
+    );
   }
 }
 
@@ -235,9 +284,14 @@ class _NoteDetail extends StatelessWidget {
           icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(note.title,
-            style: TextStyle(
-                fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        title: Text(
+          note.title,
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: nc.textPrimary,
+          ),
+        ),
         centerTitle: true,
         actions: [
           if (onEdit != null)
@@ -257,9 +311,9 @@ class _NoteDetail extends StatelessWidget {
                 await NoteExportService.exportToWord(note);
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('导出失败: $e')),
-                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('导出失败: $e')));
                 }
               }
             },
@@ -275,7 +329,9 @@ class _NoteDetail extends StatelessWidget {
               '${note.createdAt.year}/${note.createdAt.month.toString().padLeft(2, '0')}/${note.createdAt.day.toString().padLeft(2, '0')} '
               '${note.createdAt.hour.toString().padLeft(2, '0')}:${note.createdAt.minute.toString().padLeft(2, '0')} 创建',
               style: TextStyle(
-                  fontSize: 12, color: nc.textSecondary.withValues(alpha: 0.5)),
+                fontSize: 12,
+                color: nc.textSecondary.withValues(alpha: 0.5),
+              ),
             ),
             const SizedBox(height: 16),
             ...buildInlineContent(note.content, nc, context),
@@ -332,13 +388,26 @@ class _NoteEditorState extends State<_NoteEditor> {
           icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => _confirmDiscard(nc),
         ),
-        title: Text(isEditing ? '编辑笔记' : '新建笔记',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        title: Text(
+          isEditing ? '编辑笔记' : '新建笔记',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: nc.textPrimary,
+          ),
+        ),
         centerTitle: true,
         actions: [
           TextButton(
             onPressed: _save,
-            child: Text('保存', style: TextStyle(fontSize: 15, color: nc.success, fontWeight: FontWeight.w600)),
+            child: Text(
+              '保存',
+              style: TextStyle(
+                fontSize: 15,
+                color: nc.success,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -349,10 +418,17 @@ class _NoteEditorState extends State<_NoteEditor> {
           children: [
             TextField(
               controller: _titleCtrl,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: nc.textPrimary),
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: nc.textPrimary,
+              ),
               decoration: InputDecoration(
                 hintText: '标题',
-                hintStyle: TextStyle(color: nc.textSecondary.withValues(alpha: 0.4), fontSize: 20),
+                hintStyle: TextStyle(
+                  color: nc.textSecondary.withValues(alpha: 0.4),
+                  fontSize: 20,
+                ),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
               ),
@@ -363,10 +439,17 @@ class _NoteEditorState extends State<_NoteEditor> {
               focusNode: _focusNode,
               maxLines: null,
               minLines: 10,
-              style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.6),
+              style: TextStyle(
+                fontSize: 15,
+                color: nc.textPrimary,
+                height: 1.6,
+              ),
               decoration: InputDecoration(
                 hintText: '开始写笔记…\n\n支持 Markdown 格式',
-                hintStyle: TextStyle(color: nc.textSecondary.withValues(alpha: 0.4), fontSize: 15),
+                hintStyle: TextStyle(
+                  color: nc.textSecondary.withValues(alpha: 0.4),
+                  fontSize: 15,
+                ),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
               ),
@@ -405,7 +488,8 @@ class _NoteEditorState extends State<_NoteEditor> {
   }
 
   void _confirmDiscard(AgentColors nc) {
-    final hasChanges = _titleCtrl.text.isNotEmpty || _contentCtrl.text.isNotEmpty;
+    final hasChanges =
+        _titleCtrl.text.isNotEmpty || _contentCtrl.text.isNotEmpty;
     if (!hasChanges || widget.note == null) {
       Navigator.pop(context);
       return;
@@ -416,7 +500,10 @@ class _NoteEditorState extends State<_NoteEditor> {
         title: const Text('放弃修改？'),
         content: const Text('未保存的更改将丢失'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);

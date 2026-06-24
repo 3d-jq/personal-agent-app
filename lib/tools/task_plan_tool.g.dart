@@ -14,5 +14,4 @@ const String taskPlanToolDescription = r'''
 禁止跳过更新、未 verify 通过时直接输出最终回复。
 支持子任务：一个步骤可以拆分为多个子步骤。
 计划会自动保存到虚拟文件系统 /scratch/plan.json，跨轮次保持进度。
-'''
-;
+''';

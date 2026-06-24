@@ -27,7 +27,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   final ScrollController _scrollCtrl = ScrollController();
-  final GlobalKey<TaskPlanPanelState> _planPanelKey = GlobalKey<TaskPlanPanelState>();
+  final GlobalKey<TaskPlanPanelState> _planPanelKey =
+      GlobalKey<TaskPlanPanelState>();
   late final ChatController _controller;
   Timer? _scrollTimer;
   bool _showScrollBottom = false;
@@ -102,7 +103,9 @@ class _ChatScreenState extends State<ChatScreen> {
       data: Theme.of(context).copyWith(
         popupMenuTheme: PopupMenuThemeData(
           color: nc.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           elevation: 4,
           shadowColor: Colors.black.withValues(alpha: 0.04),
           surfaceTintColor: Colors.transparent,
@@ -116,24 +119,43 @@ class _ChatScreenState extends State<ChatScreen> {
           AppRouter.toContextDocViewer(context, doc: doc);
         },
         itemBuilder: (_) => ContextDoc.values
-            .map((doc) => PopupMenuItem<ContextDoc>(
-                  value: doc,
-                  padding: EdgeInsets.zero,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    child: Row(children: [
-                      Icon(ContextDocViewerPage.iconFor(doc), size: 20, color: nc.textPrimary),
+            .map(
+              (doc) => PopupMenuItem<ContextDoc>(
+                value: doc,
+                padding: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        ContextDocViewerPage.iconFor(doc),
+                        size: 20,
+                        color: nc.textPrimary,
+                      ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Text(
                           ContextDocViewerPage.titleFor(doc),
-                          style: TextStyle(fontSize: 15, color: nc.textPrimary, fontWeight: FontWeight.w400),
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: nc.textPrimary,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ),
-                      Icon(Icons.chevron_right, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
-                    ]),
+                      Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: nc.textSecondary.withValues(alpha: 0.5),
+                      ),
+                    ],
                   ),
-                ))
+                ),
+              ),
+            )
             .toList(),
         child: Container(
           width: 40,
@@ -141,7 +163,13 @@ class _ChatScreenState extends State<ChatScreen> {
           decoration: BoxDecoration(
             color: nc.surface,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 1))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 1),
+              ),
+            ],
           ),
           child: Icon(Icons.badge_outlined, size: 18, color: nc.textPrimary),
         ),
@@ -164,14 +192,31 @@ class _ChatScreenState extends State<ChatScreen> {
         decoration: BoxDecoration(
           color: nc.surface,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 1))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(vendor.model, style: TextStyle(fontSize: 12, color: nc.textSecondary, fontWeight: FontWeight.w500)),
+            Text(
+              vendor.model,
+              style: TextStyle(
+                fontSize: 12,
+                color: nc.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
             const SizedBox(width: 2),
-            Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: nc.textSecondary),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 14,
+              color: nc.textSecondary,
+            ),
           ],
         ),
       ),
@@ -189,7 +234,9 @@ class _ChatScreenState extends State<ChatScreen> {
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarColor: nc.background,
-        systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarIconBrightness: isDark
+            ? Brightness.light
+            : Brightness.dark,
       ),
       child: GestureDetector(
         onTap: () {
@@ -230,60 +277,79 @@ class _ChatScreenState extends State<ChatScreen> {
             trailing: _buildIdentityButton(nc),
           ),
           resizeToAvoidBottomInset: true,
-          body: Column(children: [
-            Expanded(
-              child: Stack(children: [
-                ListView.builder(
-                  controller: _scrollCtrl,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  itemCount: _controller.messages.length,
-                  cacheExtent: 1500,
-                  itemBuilder: (c, i) => ChatBubble(msg: _controller.messages[i], nc: nc),
-                ),
-                if (_showScrollBottom)
-                  Positioned(
-                    right: 16,
-                    bottom: 12,
-                    child: GestureDetector(
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        _scrollCtrl.animateTo(
-                          _scrollCtrl.position.maxScrollExtent,
-                          duration: const Duration(milliseconds: 200),
-                          curve: Curves.easeOut,
-                        );
-                      },
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: nc.surface,
-                          shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 8, offset: const Offset(0, 2))],
-                        ),
-                        child: Icon(Icons.keyboard_double_arrow_down_rounded, size: 22, color: nc.textPrimary),
+          body: Column(
+            children: [
+              Expanded(
+                child: Stack(
+                  children: [
+                    ListView.builder(
+                      controller: _scrollCtrl,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
                       ),
+                      itemCount: _controller.messages.length,
+                      cacheExtent: 1500,
+                      itemBuilder: (c, i) =>
+                          ChatBubble(msg: _controller.messages[i], nc: nc),
                     ),
-                  ),
-              ]),
-            ),
-            TaskPlanPanel(key: _planPanelKey, controller: _controller),
-            ChatInputBar(
-              bottomSafe: bottomSafe,
-              controller: _inputCtrl,
-              focusNode: _inputFocus,
-              onSend: _handleSend,
-              onStop: _controller.stopStream,
-              isLoading: _controller.isLoading,
-              isAwaitingReply: _controller.isWaitingUserPrompt,
-              settings: _controller.aiSettings,
-              onChanged: () => setState(() {}),
-              pendingFile: _controller.pendingAttachment,
-              pendingFileType: _controller.pendingAttachmentType,
-              onAttachment: (file, type) => _controller.setAttachment(file, type),
-              onClearAttachment: _controller.clearAttachment,
-            ),
-          ]),
+                    if (_showScrollBottom)
+                      Positioned(
+                        right: 16,
+                        bottom: 12,
+                        child: GestureDetector(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            _scrollCtrl.animateTo(
+                              _scrollCtrl.position.maxScrollExtent,
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeOut,
+                            );
+                          },
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: nc.surface,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.12),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.keyboard_double_arrow_down_rounded,
+                              size: 22,
+                              color: nc.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              TaskPlanPanel(key: _planPanelKey, controller: _controller),
+              ChatInputBar(
+                bottomSafe: bottomSafe,
+                controller: _inputCtrl,
+                focusNode: _inputFocus,
+                onSend: _handleSend,
+                onStop: _controller.stopStream,
+                isLoading: _controller.isLoading,
+                isAwaitingReply: _controller.isWaitingUserPrompt,
+                settings: _controller.aiSettings,
+                onChanged: () => setState(() {}),
+                pendingFile: _controller.pendingAttachment,
+                pendingFileType: _controller.pendingAttachmentType,
+                onAttachment: (file, type) =>
+                    _controller.setAttachment(file, type),
+                onClearAttachment: _controller.clearAttachment,
+              ),
+            ],
+          ),
         ),
       ),
     );

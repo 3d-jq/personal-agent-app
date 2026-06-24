@@ -4,8 +4,10 @@ import '../tools/base_tool.dart';
 import 'file_tool.g.dart';
 
 class FileTool extends AgentTool {
-  @override String get name => 'file_manager';
-  @override bool get readOnly => false;
+  @override
+  String get name => 'file_manager';
+  @override
+  bool get readOnly => false;
 
   @override
   String get description => fileToolDescription;
@@ -17,12 +19,10 @@ class FileTool extends AgentTool {
       'action': {
         'type': 'string',
         'enum': ['list', 'read', 'write', 'append', 'mkdir', 'delete'],
-        'description': '操作类型：list(列目录), read(读文件), write(写文件), append(追加文件), mkdir(创建目录), delete(删除)',
+        'description':
+            '操作类型：list(列目录), read(读文件), write(写文件), append(追加文件), mkdir(创建目录), delete(删除)',
       },
-      'path': {
-        'type': 'string',
-        'description': '文件/文件夹路径（相对于应用文档目录）',
-      },
+      'path': {'type': 'string', 'description': '文件/文件夹路径（相对于应用文档目录）'},
       'content': {
         'type': 'string',
         'description': '写入/追加时的内容（write/append操作需要）',
@@ -46,7 +46,8 @@ class FileTool extends AgentTool {
 
     try {
       final baseDir = await _getBaseDir();
-      final fullPath = '${baseDir.path}/${path.replaceAll(RegExp(r'^[/\\]'), '')}';
+      final fullPath =
+          '${baseDir.path}/${path.replaceAll(RegExp(r'^[/\\]'), '')}';
       final file = File(fullPath);
       final dir = Directory(fullPath);
 

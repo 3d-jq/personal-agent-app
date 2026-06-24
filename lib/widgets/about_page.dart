@@ -19,66 +19,97 @@ class AboutView extends StatelessWidget {
           icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('关于', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        title: Text(
+          '关于',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: nc.textPrimary,
+          ),
+        ),
         centerTitle: true,
       ),
       body: ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      children: [
-        const SizedBox(height: 40),
-        Center(
-          child: Text('DWeis',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: nc.textPrimary)),
-        ),
-        const SizedBox(height: 4),
-        Center(
-          child: Text('全能 AI 助手',
-              style: TextStyle(fontSize: 14, color: nc.textSecondary)),
-        ),
-        const SizedBox(height: 40),
-        _SectionHeader(title: '应用信息', nc: nc),
-        _RoundedCard(
-          nc: nc,
-          children: [
-            _InfoRow(label: '版本', value: AppConfig.version, nc: nc),
-            _InfoRow(label: '构建', value: '2024.01', nc: nc),
-            _InfoRow(label: '框架', value: 'Flutter', nc: nc),
-          ],
-        ),
-        const SizedBox(height: 20),
-        _SectionHeader(title: '能力', nc: nc),
-        _RoundedCard(
-          nc: nc,
-          children: [
-            _CapabilityItem(icon: Icons.chat_bubble_outline, label: 'AI 对话', nc: nc),
-            _CapabilityItem(icon: Icons.image_outlined, label: '图片生成', nc: nc),
-            _CapabilityItem(icon: Icons.videocam_outlined, label: '视频生成', nc: nc),
-            _CapabilityItem(icon: Icons.language, label: '网页搜索', nc: nc),
-            _CapabilityItem(icon: Icons.bookmark_border, label: '记忆系统', nc: nc),
-            _CapabilityItem(icon: Icons.note_outlined, label: '笔记管理', nc: nc),
-          ],
-        ),
-        const SizedBox(height: 20),
-        _SectionHeader(title: '开源许可', nc: nc),
-        _RoundedCard(
-          nc: nc,
-          children: [
-            _SettingItem(
-              icon: Icons.description_outlined,
-              label: '查看开源许可',
-              onTap: () {
-                HapticFeedback.lightImpact();
-                showLicensePage(
-                  context: context,
-                  applicationName: 'DWeis',
-                  applicationVersion: AppConfig.version,
-                );
-              },
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          const SizedBox(height: 40),
+          Center(
+            child: Text(
+              'DWeis',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: nc.textPrimary,
+              ),
             ),
-          ],
-        ),
-        const SizedBox(height: 40),
-      ],
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: Text(
+              '全能 AI 助手',
+              style: TextStyle(fontSize: 14, color: nc.textSecondary),
+            ),
+          ),
+          const SizedBox(height: 40),
+          _SectionHeader(title: '应用信息', nc: nc),
+          _RoundedCard(
+            nc: nc,
+            children: [
+              _InfoRow(label: '版本', value: AppConfig.version, nc: nc),
+              _InfoRow(label: '构建', value: '2024.01', nc: nc),
+              _InfoRow(label: '框架', value: 'Flutter', nc: nc),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _SectionHeader(title: '能力', nc: nc),
+          _RoundedCard(
+            nc: nc,
+            children: [
+              _CapabilityItem(
+                icon: Icons.chat_bubble_outline,
+                label: 'AI 对话',
+                nc: nc,
+              ),
+              _CapabilityItem(
+                icon: Icons.image_outlined,
+                label: '图片生成',
+                nc: nc,
+              ),
+              _CapabilityItem(
+                icon: Icons.videocam_outlined,
+                label: '视频生成',
+                nc: nc,
+              ),
+              _CapabilityItem(icon: Icons.language, label: '网页搜索', nc: nc),
+              _CapabilityItem(
+                icon: Icons.bookmark_border,
+                label: '记忆系统',
+                nc: nc,
+              ),
+              _CapabilityItem(icon: Icons.note_outlined, label: '笔记管理', nc: nc),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _SectionHeader(title: '开源许可', nc: nc),
+          _RoundedCard(
+            nc: nc,
+            children: [
+              _SettingItem(
+                icon: Icons.description_outlined,
+                label: '查看开源许可',
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  showLicensePage(
+                    context: context,
+                    applicationName: 'DWeis',
+                    applicationVersion: AppConfig.version,
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 40),
+        ],
       ),
     );
   }
@@ -95,7 +126,13 @@ class _RoundedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(children: children),
     );
@@ -111,7 +148,14 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(title, style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500)),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          color: nc.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 }
@@ -141,7 +185,11 @@ class _CapabilityItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final AgentColors nc;
-  const _CapabilityItem({required this.icon, required this.label, required this.nc});
+  const _CapabilityItem({
+    required this.icon,
+    required this.label,
+    required this.nc,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -179,9 +227,20 @@ class _SettingItem extends StatelessWidget {
               Icon(icon, size: 20, color: nc.textPrimary),
               const SizedBox(width: 14),
               Expanded(
-                child: Text(label, style: TextStyle(fontSize: 15, color: nc.textPrimary, fontWeight: FontWeight.w400)),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: nc.textPrimary,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
               ),
-              Icon(Icons.chevron_right, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: nc.textSecondary.withValues(alpha: 0.5),
+              ),
             ],
           ),
         ),

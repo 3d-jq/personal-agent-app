@@ -10,8 +10,10 @@ import '../tools/base_tool.dart';
 import 'reminder_tool.g.dart';
 
 class ReminderTool extends AgentTool {
-  @override String get name => 'reminder';
-  @override bool get readOnly => false;
+  @override
+  String get name => 'reminder';
+  @override
+  bool get readOnly => false;
 
   @override
   String get description => reminderToolDescription;
@@ -20,14 +22,8 @@ class ReminderTool extends AgentTool {
   Map<String, dynamic> get parameters => {
     'type': 'object',
     'properties': {
-      'title': {
-        'type': 'string',
-        'description': '提醒标题',
-      },
-      'message': {
-        'type': 'string',
-        'description': '提醒内容',
-      },
+      'title': {'type': 'string', 'description': '提醒标题'},
+      'message': {'type': 'string', 'description': '提醒内容'},
       'delay_seconds': {
         'type': 'number',
         'description': '延迟秒数。例如: 60=1分钟, 300=5分钟, 600=10分钟, 3600=1小时',
@@ -46,14 +42,19 @@ class ReminderTool extends AgentTool {
     if (_channelCreated) return;
     final plugin = FlutterLocalNotificationsPlugin();
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    await plugin.initialize(settings: const InitializationSettings(android: android));
+    await plugin.initialize(
+      settings: const InitializationSettings(android: android),
+    );
     const channel = AndroidNotificationChannel(
-      'agent_reminders', 'Agent 提醒',
+      'agent_reminders',
+      'Agent 提醒',
       description: 'Agent 创建的定时提醒',
       importance: Importance.max,
     );
     await plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
     _channelCreated = true;
   }
@@ -61,7 +62,10 @@ class ReminderTool extends AgentTool {
   Future<String> _checkExactAlarmPermission() async {
     try {
       final plugin = FlutterLocalNotificationsPlugin();
-      final android = plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      final android = plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       if (android == null) return 'ok';
       final granted = await android.requestExactAlarmsPermission();
       if (granted == false) {
@@ -107,9 +111,13 @@ class ReminderTool extends AgentTool {
     if (title == null || message == null) return '错误: 请提供提醒标题和内容';
 
     int delaySeconds;
-    if (delayMinutesRaw != null && (delayMinutesRaw is num) && delayMinutesRaw > 0) {
+    if (delayMinutesRaw != null &&
+        (delayMinutesRaw is num) &&
+        delayMinutesRaw > 0) {
       delaySeconds = (delayMinutesRaw.toDouble() * 60).toInt();
-    } else if (delaySecondsRaw != null && (delaySecondsRaw is num) && delaySecondsRaw > 0) {
+    } else if (delaySecondsRaw != null &&
+        (delaySecondsRaw is num) &&
+        delaySecondsRaw > 0) {
       delaySeconds = delaySecondsRaw.toInt();
     } else {
       return '错误: 延迟时间必须大于0。请提供 delay_seconds（秒）或 delay_minutes（分钟）';
@@ -128,12 +136,14 @@ class ReminderTool extends AgentTool {
         'delaySeconds': delaySeconds,
       });
 
-      await getIt<ReminderStorage>().add(Reminder(
-        id: id,
-        title: title,
-        message: message,
-        scheduledTime: DateTime.now().add(Duration(seconds: delaySeconds)),
-      ));
+      await getIt<ReminderStorage>().add(
+        Reminder(
+          id: id,
+          title: title,
+          message: message,
+          scheduledTime: DateTime.now().add(Duration(seconds: delaySeconds)),
+        ),
+      );
 
       final minutes = delaySeconds ~/ 60;
       final seconds = delaySeconds % 60;

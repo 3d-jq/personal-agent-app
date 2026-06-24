@@ -25,10 +25,14 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _themeAnimCtrl = AnimationController(vsync: this, duration: AppDurations.slow);
-    _bgColorAnim = ColorTween(begin: animatedBgNotifier.value, end: animatedBgNotifier.value).animate(
-      CurvedAnimation(parent: _themeAnimCtrl, curve: AppCurves.color),
+    _themeAnimCtrl = AnimationController(
+      vsync: this,
+      duration: AppDurations.slow,
     );
+    _bgColorAnim = ColorTween(
+      begin: animatedBgNotifier.value,
+      end: animatedBgNotifier.value,
+    ).animate(CurvedAnimation(parent: _themeAnimCtrl, curve: AppCurves.color));
     _themeAnimCtrl.addListener(() {
       animatedBgNotifier.value = _bgColorAnim.value ?? animatedBgNotifier.value;
     });
@@ -47,24 +51,31 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
   }
 
   Color get _targetBgColor {
-    final isDark = _themeService.mode == ThemeMode.dark ||
+    final isDark =
+        _themeService.mode == ThemeMode.dark ||
         (_themeService.mode == ThemeMode.system &&
             MediaQuery.platformBrightnessOf(context) == Brightness.dark);
-    return isDark ? AgentColors.dark().staticBackground : AgentColors.light().staticBackground;
+    return isDark
+        ? AgentColors.dark().staticBackground
+        : AgentColors.light().staticBackground;
   }
 
   void _syncBgColor() {
     final target = _targetBgColor;
-    _bgColorAnim = ColorTween(begin: target, end: target).animate(_themeAnimCtrl);
+    _bgColorAnim = ColorTween(
+      begin: target,
+      end: target,
+    ).animate(_themeAnimCtrl);
     animatedBgNotifier.value = target;
   }
 
   void _onThemeChanged() {
     final newColor = _targetBgColor;
     final oldColor = animatedBgNotifier.value;
-    _bgColorAnim = ColorTween(begin: oldColor, end: newColor).animate(
-      CurvedAnimation(parent: _themeAnimCtrl, curve: AppCurves.color),
-    );
+    _bgColorAnim = ColorTween(
+      begin: oldColor,
+      end: newColor,
+    ).animate(CurvedAnimation(parent: _themeAnimCtrl, curve: AppCurves.color));
     _themeAnimCtrl.forward(from: 0.0);
     setState(() {});
   }
@@ -123,7 +134,9 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
           ),
           themeMode: _loaded ? _themeService.mode : ThemeMode.light,
           home: _showOnboarding
-              ? OnboardingPage(onComplete: () => setState(() => _showOnboarding = false))
+              ? OnboardingPage(
+                  onComplete: () => setState(() => _showOnboarding = false),
+                )
               : const ChatScreen(),
         );
       },

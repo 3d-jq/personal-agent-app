@@ -4,5 +4,4 @@
 /// Tool description for `location_tool`.
 const String locationToolDescription = r'''
 获取设备当前 GPS 定位信息。返回经纬度、城市名（如果可用）和精度。当用户问"天气"、"附近有什么"、需要位置信息时使用。
-'''
-;
+''';

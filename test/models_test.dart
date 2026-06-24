@@ -67,11 +67,7 @@ void main() {
     });
 
     test('summary is derived from content', () {
-      final note = Note(
-        id: 'note-2',
-        title: 'T',
-        content: '这是一段正文内容',
-      );
+      final note = Note(id: 'note-2', title: 'T', content: '这是一段正文内容');
       expect(note.summary, contains('正文'));
     });
   });
@@ -92,5 +88,4 @@ void main() {
       expect(restored.isCompleted, false);
     });
   });
-
 }

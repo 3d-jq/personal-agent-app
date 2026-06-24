@@ -67,22 +67,22 @@ class AppRouter {
   static Future<void> toAgentManage(BuildContext context) =>
       push(context, const AgentManagePage());
 
-  static Future<void> toGroupChat(BuildContext context, {required String groupId}) =>
-      push(context, GroupChatScreen(groupId: groupId));
+  static Future<void> toGroupChat(
+    BuildContext context, {
+    required String groupId,
+  }) => push(context, GroupChatScreen(groupId: groupId));
 
   static Future<(AgentGroup, List<String>, List<String>)?> editGroup(
     BuildContext context, {
     AgentGroup? existing,
-  }) =>
-      push(context, GroupEditPage(existing: existing));
+  }) => push(context, GroupEditPage(existing: existing));
 
-  static Future<Agent?> editAgent(
-    BuildContext context, {
-    Agent? existing,
-  }) =>
+  static Future<Agent?> editAgent(BuildContext context, {Agent? existing}) =>
       push(context, AgentEditPage(existing: existing));
 
   // ── 其他 ──
-  static Future<void> toContextDocViewer(BuildContext context, {required ContextDoc doc}) =>
-      push(context, ContextDocViewerPage(doc: doc));
+  static Future<void> toContextDocViewer(
+    BuildContext context, {
+    required ContextDoc doc,
+  }) => push(context, ContextDocViewerPage(doc: doc));
 }

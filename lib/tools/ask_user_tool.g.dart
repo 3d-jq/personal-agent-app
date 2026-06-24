@@ -4,5 +4,4 @@
 /// Tool description for `ask_user_tool`.
 const String askUserToolDescription = r'''
 当你对用户的请求不确定、缺少关键信息、或需要用户确认/做选择时调用。调用后会暂停当前流程，向用户展示问题并等待回复；用户回复后会作为工具结果返回给你。参数 prompt 为你要询问用户的具体内容，应简洁明确。
-'''
-;
+''';

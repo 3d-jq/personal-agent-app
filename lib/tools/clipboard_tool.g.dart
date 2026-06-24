@@ -4,5 +4,4 @@
 /// Tool description for `clipboard_tool`.
 const String clipboardToolDescription = r'''
 操作系统剪贴板：读取当前剪贴板内容或写入文本到剪贴板。当用户需要复制/粘贴文本时使用。
-'''
-;
+''';

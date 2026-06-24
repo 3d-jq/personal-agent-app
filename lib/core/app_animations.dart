@@ -57,9 +57,10 @@ class _PressableScaleState extends State<PressableScale>
   void initState() {
     super.initState();
     _ctrl = AnimationController(vsync: this, duration: AppDurations.fast);
-    _anim = Tween<double>(begin: 1.0, end: widget.scale).animate(
-      CurvedAnimation(parent: _ctrl, curve: AppCurves.press),
-    );
+    _anim = Tween<double>(
+      begin: 1.0,
+      end: widget.scale,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: AppCurves.press));
   }
 
   @override
@@ -79,7 +80,8 @@ class _PressableScaleState extends State<PressableScale>
       onTapCancel: () => _ctrl.reverse(),
       child: AnimatedBuilder(
         animation: _anim,
-        builder: (_, child) => Transform.scale(scale: _anim.value, child: child),
+        builder: (_, child) =>
+            Transform.scale(scale: _anim.value, child: child),
         child: widget.child,
       ),
     );
@@ -91,28 +93,28 @@ class SlideFadeRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
 
   SlideFadeRoute({required this.page})
-      : super(
-          transitionDuration: AppDurations.standard,
-          reverseTransitionDuration: AppDurations.standard,
-          pageBuilder: (_, __, ___) => page,
-          transitionsBuilder: (_, animation, __, child) {
-            final curved = CurvedAnimation(
-              parent: animation,
-              curve: AppCurves.page,
-              reverseCurve: AppCurves.page,
-            );
-            return FadeTransition(
-              opacity: curved,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0.06, 0),
-                  end: Offset.zero,
-                ).animate(curved),
-                child: child,
-              ),
-            );
-          },
-        );
+    : super(
+        transitionDuration: AppDurations.standard,
+        reverseTransitionDuration: AppDurations.standard,
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: AppCurves.page,
+            reverseCurve: AppCurves.page,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.06, 0),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
+      );
 }
 
 /// 自定义 BottomSheet 转场：从底部滑入 + 淡入
@@ -120,27 +122,27 @@ class SlideUpRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
 
   SlideUpRoute({required this.page})
-      : super(
-          transitionDuration: AppDurations.standard,
-          reverseTransitionDuration: AppDurations.standard,
-          pageBuilder: (_, __, ___) => page,
-          opaque: false,
-          transitionsBuilder: (_, animation, __, child) {
-            final curved = CurvedAnimation(
-              parent: animation,
-              curve: AppCurves.page,
-              reverseCurve: AppCurves.page,
-            );
-            return FadeTransition(
-              opacity: curved,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, 0.1),
-                  end: Offset.zero,
-                ).animate(curved),
-                child: child,
-              ),
-            );
-          },
-        );
+    : super(
+        transitionDuration: AppDurations.standard,
+        reverseTransitionDuration: AppDurations.standard,
+        pageBuilder: (_, __, ___) => page,
+        opaque: false,
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: AppCurves.page,
+            reverseCurve: AppCurves.page,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.1),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
+      );
 }

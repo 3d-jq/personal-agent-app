@@ -19,10 +19,13 @@ class UpdateException implements Exception {
 enum UpdateErrorType {
   /// 网络/服务端异常（重定向、超时、HTTP 非 200 等）
   network,
+
   /// 写文件失败（磁盘满、IO 错误等）
   io,
+
   /// 解析返回数据失败（JSON 结构异常等）
   parse,
+
   /// 其它未分类错误
   unknown,
 }
@@ -39,31 +42,34 @@ class UpdateService {
   /// 失败时抛出 [UpdateException]，调用方应捕获并展示真实原因，
   /// 而不是统一显示"请检查网络连接或存储权限"。
   static Future<UpdateInfo?> checkUpdate(String currentVersion) async {
-    final dio = Dio(BaseOptions(
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
-    ));
+    final dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+      ),
+    );
     try {
       final resp = await dio.get(
         _apiUrl,
         options: Options(
           receiveTimeout: const Duration(seconds: 15),
-          headers: {
-            'Accept': 'application/json',
-          },
+          headers: {'Accept': 'application/json'},
         ),
       );
 
       if (resp.statusCode != 200) {
         throw UpdateException(
-            UpdateErrorType.network, 'GitHub API 返回 ${resp.statusCode}');
+          UpdateErrorType.network,
+          'GitHub API 返回 ${resp.statusCode}',
+        );
       }
 
       final tagName = resp.data['tag_name'] as String? ?? '';
       final latestVersion = tagName.replaceFirst('v', '');
       final notes = resp.data['body'] as String? ?? '';
       // Gitee 的 release 接口顶层无 html_url，自行拼接 release 页地址。
-      final htmlUrl = resp.data['html_url'] as String? ??
+      final htmlUrl =
+          resp.data['html_url'] as String? ??
           'https://gitee.com/$_giteeOwner/$_giteeRepo/releases/tag/$tagName';
 
       // 解析 APK 下载链接
@@ -115,10 +121,12 @@ class UpdateService {
     String url, {
     void Function(int received, int total)? onProgress,
   }) async {
-    final dio = Dio(BaseOptions(
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(minutes: 10),
-    ));
+    final dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(minutes: 10),
+      ),
+    );
     try {
       final dir = await getTemporaryDirectory();
       final savePath = '${dir.path}/app-update.apk';

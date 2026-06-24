@@ -4,5 +4,4 @@
 /// Tool description for `tavily_search_tool`.
 const String tavilySearchToolDescription = r'''
 通过 Tavily 搜索互联网，效果通常比 SearXNG 更好。当 searxng_search 结果不理想或没有配置 SearXNG 时使用。
-'''
-;
+''';

@@ -5,32 +5,29 @@ import 'base_tool.dart';
 import 'save_note_tool.g.dart';
 
 class SaveNoteTool extends AgentTool {
-  @override String get name => 'save_note';
-  @override bool get readOnly => false;
+  @override
+  String get name => 'save_note';
+  @override
+  bool get readOnly => false;
 
   @override
   String get description => saveNoteToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {
-          'title': {
-            'type': 'string',
-            'description': '笔记标题，简洁概括内容主题',
-          },
-          'content': {
-            'type': 'string',
-            'description': '笔记正文内容，支持 Markdown 格式',
-          },
-          'images': {
-            'type': 'array',
-            'items': {'type': 'string'},
-            'description': '图片文件路径列表（file:// 格式），来自 generate_image 工具的返回结果。按顺序插入到内容对应位置',
-          },
-        },
-        'required': ['title', 'content'],
-      };
+    'type': 'object',
+    'properties': {
+      'title': {'type': 'string', 'description': '笔记标题，简洁概括内容主题'},
+      'content': {'type': 'string', 'description': '笔记正文内容，支持 Markdown 格式'},
+      'images': {
+        'type': 'array',
+        'items': {'type': 'string'},
+        'description':
+            '图片文件路径列表（file:// 格式），来自 generate_image 工具的返回结果。按顺序插入到内容对应位置',
+      },
+    },
+    'required': ['title', 'content'],
+  };
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {

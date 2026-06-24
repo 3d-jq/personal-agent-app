@@ -25,7 +25,9 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(TaskPlanTool());
   registry.register(ReminderTool());
   registry.register(WebFetchTool());
-  registry.register(WeatherTool()..apiKey = CryptoUtil.decrypt(_safeEnv('GAODE_API_KEY')));
+  registry.register(
+    WeatherTool()..apiKey = CryptoUtil.decrypt(_safeEnv('GAODE_API_KEY')),
+  );
   registry.register(LocationTool());
   registry.register(SearxngSearchTool());
   registry.register(TavilySearchTool());
@@ -57,28 +59,50 @@ void registerAllTools(ToolRegistry registry) {
 /// 工具名称 → 中文标签
 String toolLabel(String name) {
   switch (name) {
-    case 'weather': return '查询天气';
-    case 'location': return '获取位置';
-    case 'searxng_search': return 'SearXNG搜索';
-    case 'tavily_search': return 'Tavily搜索';
-    case 'web_fetch': return '获取网页';
-    case 'reminder': return '设置提醒';
-    case 'generate_image': return '生成图片';
-    case 'generate_video': return '生成视频';
-    case 'save_note': return '保存笔记';
-    case 'manage_notes': return '管理笔记';
-    case 'create_rich_note': return '图文笔记';
-    case 'calendar': return '日历';
-    case 'ai_daily': return 'AI日报';
-    case 'context_doc': return '上下文文档';
-    case 'virtual_fs': return '文件系统';
-    case 'skill_manage': return '技能管理';
-    case 'task_plan': return '任务计划';
-    case 'tool_search': return '发现工具';
-    case 'defer_execute_tool': return '调用延迟工具';
-    case 'get_current_time': return '获取时间';
-    case 'ask_user': return '询问用户';
-    default: return name;
+    case 'weather':
+      return '查询天气';
+    case 'location':
+      return '获取位置';
+    case 'searxng_search':
+      return 'SearXNG搜索';
+    case 'tavily_search':
+      return 'Tavily搜索';
+    case 'web_fetch':
+      return '获取网页';
+    case 'reminder':
+      return '设置提醒';
+    case 'generate_image':
+      return '生成图片';
+    case 'generate_video':
+      return '生成视频';
+    case 'save_note':
+      return '保存笔记';
+    case 'manage_notes':
+      return '管理笔记';
+    case 'create_rich_note':
+      return '图文笔记';
+    case 'calendar':
+      return '日历';
+    case 'ai_daily':
+      return 'AI日报';
+    case 'context_doc':
+      return '上下文文档';
+    case 'virtual_fs':
+      return '文件系统';
+    case 'skill_manage':
+      return '技能管理';
+    case 'task_plan':
+      return '任务计划';
+    case 'tool_search':
+      return '发现工具';
+    case 'defer_execute_tool':
+      return '调用延迟工具';
+    case 'get_current_time':
+      return '获取时间';
+    case 'ask_user':
+      return '询问用户';
+    default:
+      return name;
   }
 }
 
@@ -98,9 +122,26 @@ String _guessMimeType(String path) {
     'xml' => 'application/xml',
     'yaml' || 'yml' => 'text/yaml',
     'txt' || 'md' || 'log' || 'ini' || 'cfg' || 'conf' => 'text/plain',
-    'py' || 'js' || 'ts' || 'dart' || 'java' || 'c' || 'cpp' || 'h' || 'cs' ||
-    'go' || 'rs' || 'rb' || 'php' || 'swift' || 'kt' || 'scala' || 'r' ||
-    'm' || 'mm' || 'swift' => 'text/x-source',
+    'py' ||
+    'js' ||
+    'ts' ||
+    'dart' ||
+    'java' ||
+    'c' ||
+    'cpp' ||
+    'h' ||
+    'cs' ||
+    'go' ||
+    'rs' ||
+    'rb' ||
+    'php' ||
+    'swift' ||
+    'kt' ||
+    'scala' ||
+    'r' ||
+    'm' ||
+    'mm' ||
+    'swift' => 'text/x-source',
     'html' || 'htm' => 'text/html',
     'css' => 'text/css',
     'sql' => 'application/sql',
@@ -132,7 +173,7 @@ List<Map<String, dynamic>> buildMessageHistory({
   int? maxMessages, // 滑动窗口，保留最近 N 条
 }) {
   final history = <Map<String, dynamic>>[
-    {'role': 'system', 'content': systemPrompt}
+    {'role': 'system', 'content': systemPrompt},
   ];
 
   // 滑动窗口截断
@@ -146,7 +187,9 @@ List<Map<String, dynamic>> buildMessageHistory({
     if (m.isStreaming) continue;
 
     // 如果 assistant 消息有工具交互记录，重建完整的工具调用链
-    if (!m.isUser && m.toolInteractions != null && m.toolInteractions!.isNotEmpty) {
+    if (!m.isUser &&
+        m.toolInteractions != null &&
+        m.toolInteractions!.isNotEmpty) {
       for (final interaction in m.toolInteractions!) {
         final toolCalls = interaction['toolCalls'] as List?;
         final toolResults = interaction['toolResults'] as List?;
@@ -181,32 +224,62 @@ List<Map<String, dynamic>> buildMessageHistory({
     if (i == msgs.length - 2 && attachmentBase64 != null) {
       final userText = (text?.isEmpty ?? true) ? '' : text!;
       if (pendingType == 'image') {
-        final mimeType = attachmentName != null ? _guessMimeType(attachmentName) : 'image/png';
+        final mimeType = attachmentName != null
+            ? _guessMimeType(attachmentName)
+            : 'image/png';
         msg['content'] = [
-          {'type': 'text', 'text': userText.isEmpty ? '请基于这张图片帮我生成图片或视频' : userText},
-          {'type': 'image_url', 'image_url': {'url': 'data:$mimeType;base64,$attachmentBase64'}},
+          {
+            'type': 'text',
+            'text': userText.isEmpty ? '请基于这张图片帮我生成图片或视频' : userText,
+          },
+          {
+            'type': 'image_url',
+            'image_url': {'url': 'data:$mimeType;base64,$attachmentBase64'},
+          },
         ];
-      } else if (attachmentName != null && _isTextFile(attachmentName) && attachmentPath != null) {
+      } else if (attachmentName != null &&
+          _isTextFile(attachmentName) &&
+          attachmentPath != null) {
         try {
           final fileContent = File(attachmentPath).readAsStringSync();
           final truncated = fileContent.length > 8000
               ? '${fileContent.substring(0, 8000)}\n\n...(内容过长，已截断)'
               : fileContent;
           msg['content'] = [
-            {'type': 'text', 'text': '${userText.isEmpty ? '请分析这个文档' : userText}\n\n文档文件名: $attachmentName\n文件大小: $pendingFileSize bytes\n\n--- 文档内容 ---\n$truncated'},
+            {
+              'type': 'text',
+              'text':
+                  '${userText.isEmpty ? '请分析这个文档' : userText}\n\n文档文件名: $attachmentName\n文件大小: $pendingFileSize bytes\n\n--- 文档内容 ---\n$truncated',
+            },
           ];
         } catch (_) {
           final mimeType = _guessMimeType(attachmentName);
           msg['content'] = [
-            {'type': 'text', 'text': '${userText.isEmpty ? '请分析这个文档' : userText}\n\n文档文件名: $attachmentName\n文件大小: $pendingFileSize bytes'},
-            {'type': 'image_url', 'image_url': {'url': 'data:$mimeType;base64,$attachmentBase64'}},
+            {
+              'type': 'text',
+              'text':
+                  '${userText.isEmpty ? '请分析这个文档' : userText}\n\n文档文件名: $attachmentName\n文件大小: $pendingFileSize bytes',
+            },
+            {
+              'type': 'image_url',
+              'image_url': {'url': 'data:$mimeType;base64,$attachmentBase64'},
+            },
           ];
         }
       } else {
-        final mimeType = attachmentName != null ? _guessMimeType(attachmentName) : 'application/octet-stream';
+        final mimeType = attachmentName != null
+            ? _guessMimeType(attachmentName)
+            : 'application/octet-stream';
         msg['content'] = [
-          {'type': 'text', 'text': '${userText.isEmpty ? '请分析这个文档' : userText}\n\n文档文件名: $attachmentName\n文件大小: $pendingFileSize bytes'},
-          {'type': 'image_url', 'image_url': {'url': 'data:$mimeType;base64,$attachmentBase64'}},
+          {
+            'type': 'text',
+            'text':
+                '${userText.isEmpty ? '请分析这个文档' : userText}\n\n文档文件名: $attachmentName\n文件大小: $pendingFileSize bytes',
+          },
+          {
+            'type': 'image_url',
+            'image_url': {'url': 'data:$mimeType;base64,$attachmentBase64'},
+          },
         ];
       }
     }

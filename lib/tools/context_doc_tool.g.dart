@@ -10,5 +10,4 @@ const String contextDocToolDescription = r'''
 - SOUL.md / USER.md / MEMORY.md 可直接更新，但 update 只能写入用户明确陈述的内容。
 - AGENT.md 写入前需要 review 确认。
 - knowledge 文档只读，不支持 update。
-'''
-;
+''';

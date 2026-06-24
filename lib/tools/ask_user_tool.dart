@@ -19,15 +19,12 @@ class AskUserTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {
-          'prompt': {
-            'type': 'string',
-            'description': '需要询问用户的具体问题',
-          },
-        },
-        'required': ['prompt'],
-      };
+    'type': 'object',
+    'properties': {
+      'prompt': {'type': 'string', 'description': '需要询问用户的具体问题'},
+    },
+    'required': ['prompt'],
+  };
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {

@@ -15,26 +15,23 @@ class TavilySearchTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {
-          'query': {
-            'type': 'string',
-            'description': '搜索关键词或问题',
-          },
-          'max_results': {
-            'type': 'integer',
-            'description': '返回结果数量，1-10，默认 5',
-          },
-        },
-        'required': ['query'],
-      };
+    'type': 'object',
+    'properties': {
+      'query': {'type': 'string', 'description': '搜索关键词或问题'},
+      'max_results': {'type': 'integer', 'description': '返回结果数量，1-10，默认 5'},
+    },
+    'required': ['query'],
+  };
 
-  String get _tavilyApiKey => CryptoUtil.decrypt(dotenv.env['TAVILY_API_KEY'] ?? '');
+  String get _tavilyApiKey =>
+      CryptoUtil.decrypt(dotenv.env['TAVILY_API_KEY'] ?? '');
 
-  final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 20),
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 20),
+    ),
+  );
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {
@@ -47,7 +44,8 @@ class TavilySearchTool extends AgentTool {
     }
 
     try {
-      final response = await _dio.post('https://api.tavily.com/search',
+      final response = await _dio.post(
+        'https://api.tavily.com/search',
         data: jsonEncode({
           'api_key': _tavilyApiKey,
           'query': query,
