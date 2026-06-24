@@ -161,7 +161,7 @@ class AIService {
         data: {
           'model': model,
           'messages': messages,
-          'max_tokens': 1024,
+          'max_tokens': 2048,
           'temperature': 0.3,
         },
       );
