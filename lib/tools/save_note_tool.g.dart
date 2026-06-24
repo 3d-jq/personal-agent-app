@@ -3,6 +3,6 @@
 
 /// Tool description for `save_note_tool`.
 const String saveNoteToolDescription = r'''
-将内容保存为笔记。支持 Markdown 格式和图片插入。
+将内容保存为文本笔记，支持 Markdown 格式。除非用户明确要求笔记中包含图片或需要图文并茂，否则优先使用本工具保存笔记。
 '''
 ;
