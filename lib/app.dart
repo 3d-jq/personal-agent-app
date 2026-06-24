@@ -34,13 +34,14 @@ class _AppState extends State<App> with SingleTickerProviderStateMixin {
     });
 
     _themeService.addListener(_onThemeChanged);
+    final aiSettings = getIt<AISettings>();
     _themeService.load().then((_) async {
-      await AISettings().load();
+      await aiSettings.load();
       if (!mounted) return;
       _syncBgColor();
       setState(() {
         _loaded = true;
-        _showOnboarding = !AISettings().hasVendor;
+        _showOnboarding = !aiSettings.hasVendor;
       });
     });
   }

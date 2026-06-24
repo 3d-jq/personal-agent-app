@@ -40,9 +40,7 @@ class Skill {
 
 /// 技能注册表
 class SkillRegistry {
-  static final SkillRegistry _instance = SkillRegistry._();
-  factory SkillRegistry() => _instance;
-  SkillRegistry._();
+  SkillRegistry();
 
   final List<Skill> _skills = [];
   final Set<String> _activeSkillIds = {};

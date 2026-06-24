@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_agent_app/core/service_locator.dart';
 import 'package:personal_agent_app/services/agent_group_storage.dart';
 import 'package:personal_agent_app/services/agent_storage.dart';
+import 'package:personal_agent_app/models/chat_session.dart';
 import 'package:personal_agent_app/services/chat_storage.dart';
 import 'package:personal_agent_app/services/connectivity_service.dart';
 import 'package:personal_agent_app/services/context_doc_service.dart';
@@ -12,14 +13,16 @@ import 'package:personal_agent_app/services/note_storage.dart';
 import 'package:personal_agent_app/services/reminder_storage.dart';
 import 'package:personal_agent_app/services/theme_service.dart';
 import 'package:personal_agent_app/services/virtual_fs.dart';
+import 'package:personal_agent_app/tools/skill_registry.dart';
+import 'package:personal_agent_app/widgets/ai_settings_sheet.dart';
 
 void main() {
-  setUp(() {
-    resetDependencies();
+  setUp(() async {
+    await resetDependencies();
     configureDependencies();
   });
 
-  tearDown(resetDependencies);
+  tearDown(() async => await resetDependencies());
 
   group('ServiceLocator', () {
     test('registers all core services', () {
@@ -35,6 +38,8 @@ void main() {
       expect(getIt.isRegistered<ReminderStorage>(), true);
       expect(getIt.isRegistered<ThemeService>(), true);
       expect(getIt.isRegistered<VirtualFileSystem>(), true);
+      expect(getIt.isRegistered<AISettings>(), true);
+      expect(getIt.isRegistered<SkillRegistry>(), true);
     });
 
     test('returns the same singleton instance', () {
@@ -43,17 +48,17 @@ void main() {
       expect(identical(a, b), true);
     });
 
-    test('reset clears all registrations', () {
-      resetDependencies();
+    test('reset clears all registrations', () async {
+      await resetDependencies();
       expect(
         () => getIt<ChatStorage>(),
-        throwsA(isA<AssertionError>()),
+        throwsA(isA<StateError>()),
       );
     });
 
-    test('allows replacing a service with a fake', () {
+    test('allows replacing a service with a fake', () async {
       final fake = _FakeChatStorage();
-      resetDependencies();
+      await resetDependencies();
       getIt.registerSingleton<ChatStorage>(fake);
 
       expect(getIt<ChatStorage>(), same(fake));
@@ -69,8 +74,8 @@ class _FakeChatStorage implements ChatStorage {
   Future<void> delete(String id) async {}
 
   @override
-  Future<List<dynamic>> loadAll() async => [];
+  Future<List<ChatSession>> loadAll() async => [];
 
   @override
-  Future<void> save(dynamic session) async {}
+  Future<void> save(ChatSession session) async {}
 }

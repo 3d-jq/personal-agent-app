@@ -3,9 +3,7 @@ import 'storage/cached_repository.dart';
 import 'storage/json_file_data_source.dart';
 
 class ChatStorage {
-  static final ChatStorage _instance = ChatStorage._();
-  factory ChatStorage() => _instance;
-  ChatStorage._()
+  ChatStorage()
       : _repo = CachedRepository<ChatSession>(
           dataSource: JsonFileDataSource<ChatSession>(
             relativePath: 'sessions/index.json',

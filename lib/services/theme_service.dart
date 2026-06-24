@@ -8,12 +8,7 @@ class ThemeService extends ChangeNotifier {
 
   ThemeMode get mode => _mode;
 
-  static ThemeService? _instance;
-  factory ThemeService() {
-    _instance ??= ThemeService._();
-    return _instance!;
-  }
-  ThemeService._();
+  ThemeService();
 
   Future<File> _file() async {
     final dir = await getApplicationDocumentsDirectory();

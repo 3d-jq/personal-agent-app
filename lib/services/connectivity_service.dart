@@ -2,9 +2,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class ConnectivityService {
-  static final ConnectivityService _instance = ConnectivityService._();
-  factory ConnectivityService() => _instance;
-  ConnectivityService._();
+  ConnectivityService();
 
   final _connectivity = Connectivity();
   final _controller = StreamController<bool>.broadcast();

@@ -33,7 +33,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   final ScrollController _scrollCtrl = ScrollController();
-  final AISettings _aiSettings = AISettings();
+  final AISettings _aiSettings = getIt<AISettings>();
   late final ToolRegistry _baseRegistry = () {
     final r = ToolRegistry();
     if (r.all.isEmpty) registerAllTools(r);

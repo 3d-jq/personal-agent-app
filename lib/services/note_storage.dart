@@ -5,9 +5,7 @@ import 'storage/cached_repository.dart';
 import 'storage/json_file_data_source.dart';
 
 class NoteStorage extends ChangeNotifier {
-  static final NoteStorage _instance = NoteStorage._();
-  factory NoteStorage() => _instance;
-  NoteStorage._()
+  NoteStorage()
       : _repo = CachedRepository<Note>(
           dataSource: JsonFileDataSource<Note>(
             relativePath: 'notes.json',

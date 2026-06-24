@@ -9,9 +9,7 @@ import '../core/service_locator.dart';
 import '../services/note_storage.dart';
 
 class ExportService {
-  static final ExportService _instance = ExportService._();
-  factory ExportService() => _instance;
-  ExportService._();
+  ExportService();
 
   Future<String> exportChatAsText(String sessionId) async {
     final sessions = await getIt<ChatStorage>().loadAll();

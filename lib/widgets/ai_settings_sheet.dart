@@ -23,9 +23,7 @@ class VendorConfig {
 // ── Settings ──
 
 class AISettings {
-  static final AISettings _instance = AISettings._();
-  factory AISettings() => _instance;
-  AISettings._();
+  AISettings();
 
   static List<(String, String, String)> _builtIn = [];
   List<VendorConfig> vendors = [];

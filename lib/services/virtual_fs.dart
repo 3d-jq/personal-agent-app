@@ -30,9 +30,7 @@ class FSNode {
 /// 管理 Agent 的虚拟文件树，支持 ls/read/write/mkdir/rm 操作。
 /// 文件存储在应用文档目录的 `virtual_fs/` 子目录下。
 class VirtualFileSystem {
-  static final VirtualFileSystem _instance = VirtualFileSystem._();
-  factory VirtualFileSystem() => _instance;
-  VirtualFileSystem._();
+  VirtualFileSystem();
 
   Directory? _rootDir;
 

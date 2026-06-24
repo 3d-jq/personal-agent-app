@@ -4,9 +4,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/media_item.dart';
 
 class MediaStorage {
-  static final MediaStorage _instance = MediaStorage._();
-  factory MediaStorage() => _instance;
-  MediaStorage._();
+  MediaStorage();
 
   List<MediaItem>? _cache;
 
