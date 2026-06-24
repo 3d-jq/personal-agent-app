@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../core/agent_colors.dart';
 import '../core/app_animations.dart';
+import '../core/app_router.dart';
 import '../models/note.dart';
 import '../services/export_service.dart';
 import '../services/note_export_service.dart';
@@ -112,11 +113,9 @@ class _NotesPageState extends State<NotesPage> {
   Widget _noteCard(Note note, AgentColors nc) {
     return PressableScale(
       onTap: () {
-        HapticFeedback.lightImpact();
-        Navigator.push(context, SlideFadeRoute(
-          page: _NoteDetail(note: note, onEdit: () => _openEditor(note)),
-        ));
-      },
+          HapticFeedback.lightImpact();
+          AppRouter.push(context, _NoteDetail(note: note, onEdit: () => _openEditor(note)));
+        },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(16),
@@ -204,18 +203,16 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   void _openEditor(Note? existing) {
-    Navigator.push(context, SlideFadeRoute(
-      page: _NoteEditor(
-        note: existing,
-        onSaved: (note) async {
-          if (existing != null) {
-            await _storage.update(note);
-          } else {
-            await _storage.add(note);
-          }
-          _load();
-        },
-      ),
+    AppRouter.push(context, _NoteEditor(
+      note: existing,
+      onSaved: (note) async {
+        if (existing != null) {
+          await _storage.update(note);
+        } else {
+          await _storage.add(note);
+        }
+        _load();
+      },
     ));
   }
 }

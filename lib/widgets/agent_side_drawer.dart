@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
-import '../core/app_animations.dart';
+import '../core/app_router.dart';
 import '../models/chat_session.dart';
 import '../services/export_service.dart';
-import 'notes_page.dart';
-import 'settings_page.dart';
-import 'reminders_page.dart';
-import 'media_page.dart';
-import 'search_page.dart';
-import 'agent_group/group_list_page.dart';
 
 class AgentSideDrawer extends StatefulWidget {
   final List<ChatSession> sessions;
@@ -34,10 +28,10 @@ class AgentSideDrawer extends StatefulWidget {
 }
 
 class _AgentSideDrawerState extends State<AgentSideDrawer> {
-  void _openPage(Widget page) {
+  void _closeAnd(VoidCallback action) {
     HapticFeedback.lightImpact();
     Navigator.of(context).pop();
-    Navigator.push(context, SlideFadeRoute(page: page));
+    action();
   }
 
   @override
@@ -67,10 +61,10 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: _Card(nc: nc, children: [
-                  _CardItem(icon: Icons.note_outlined, label: '笔记', nc: nc, onTap: () => _openPage(const NotesPage())),
-                  _CardItem(icon: Icons.photo_library_outlined, label: '图视', nc: nc, onTap: () => _openPage(const MediaView())),
-                  _CardItem(icon: Icons.alarm_outlined, label: '定时任务', nc: nc, onTap: () => _openPage(const RemindersView())),
-                  _CardItem(icon: Icons.groups_outlined, label: 'Agent 群', nc: nc, isLast: true, onTap: () => _openPage(const GroupListPage())),
+                  _CardItem(icon: Icons.note_outlined, label: '笔记', nc: nc, onTap: () => _closeAnd(() => AppRouter.toNotes(context))),
+                  _CardItem(icon: Icons.photo_library_outlined, label: '图视', nc: nc, onTap: () => _closeAnd(() => AppRouter.toMedia(context))),
+                  _CardItem(icon: Icons.alarm_outlined, label: '定时任务', nc: nc, onTap: () => _closeAnd(() => AppRouter.toReminders(context))),
+                  _CardItem(icon: Icons.groups_outlined, label: 'Agent 群', nc: nc, isLast: true, onTap: () => _closeAnd(() => AppRouter.toGroupList(context))),
                 ]),
               ),
 
@@ -116,12 +110,12 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
                 child: Row(children: [
                   GestureDetector(
-                    onTap: () => _openPage(const SearchPage()),
+                    onTap: () => _closeAnd(() => AppRouter.toSearch(context)),
                     child: _Pill(icon: Icons.search_rounded, nc: nc),
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: () => _openPage(const SettingsPage()),
+                    onTap: () => _closeAnd(() => AppRouter.toSettings(context)),
                     child: _Pill(icon: Icons.person_rounded, nc: nc),
                   ),
                   const SizedBox(width: 8),

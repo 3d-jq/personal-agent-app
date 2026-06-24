@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/chat_controller.dart';
 import '../core/agent_colors.dart';
-import '../core/app_animations.dart';
+import '../core/app_router.dart';
 import '../services/context_doc_service.dart';
 import '../widgets/agent_side_drawer.dart';
 import '../widgets/agent_top_bar.dart';
@@ -113,9 +113,7 @@ class _ChatScreenState extends State<ChatScreen> {
         color: nc.surface,
         onSelected: (doc) {
           HapticFeedback.lightImpact();
-          Navigator.of(context).push(
-            SlideFadeRoute(page: ContextDocViewerPage(doc: doc)),
-          );
+          AppRouter.toContextDocViewer(context, doc: doc);
         },
         itemBuilder: (_) => ContextDoc.values
             .map((doc) => PopupMenuItem<ContextDoc>(

@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/agent_colors.dart';
-import '../../core/app_animations.dart';
+import '../../core/app_router.dart';
 import '../../models/agent.dart';
 import '../../models/agent_group.dart';
 import '../../services/agent_group_storage.dart';
 import '../../services/agent_storage.dart';
-import 'agent_manage_page.dart';
-import 'group_chat_screen.dart';
-import 'group_edit_page.dart';
 
 /// 群列表页
 class GroupListPage extends StatefulWidget {
@@ -37,18 +34,12 @@ class _GroupListPageState extends State<GroupListPage> {
   }
 
   Future<void> _openGroup(AgentGroup g) async {
-    await Navigator.of(context).push(SlideFadeRoute(
-      page: GroupChatScreen(groupId: g.id),
-    ));
+    await AppRouter.toGroupChat(context, groupId: g.id);
     _load();
   }
 
   Future<void> _createGroup() async {
-    final result = await Navigator.of(context).push<(AgentGroup, List<String>, List<String>)>(
-      SlideFadeRoute(
-        page: const GroupEditPage(),
-      ),
-    );
+    final result = await AppRouter.editGroup(context);
     if (result != null) {
       final (group, _, _) = result;
       await AgentGroupStorage().save(group);
@@ -92,8 +83,7 @@ class _GroupListPageState extends State<GroupListPage> {
           IconButton(
             tooltip: 'Agent 库',
             icon: Icon(Icons.smart_toy_outlined, color: nc.textPrimary),
-            onPressed: () => Navigator.of(context).push(
-                SlideFadeRoute(page: const AgentManagePage())),
+            onPressed: () => AppRouter.toAgentManage(context),
           ),
           IconButton(
             icon: Icon(Icons.add, color: nc.textPrimary),
