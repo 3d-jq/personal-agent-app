@@ -1,6 +1,7 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'base_tool.dart';
+import 'location_tool.g.dart';
 
 /// 获取设备当前 GPS 定位。
 ///
@@ -10,8 +11,7 @@ class LocationTool extends AgentTool {
   String get name => 'location';
 
   @override
-  String get description => '获取设备当前 GPS 定位信息。返回经纬度、城市名（如果可用）和精度。'
-      '当用户问"天气"、"附近有什么"、需要位置信息时使用。';
+  String get description => locationToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

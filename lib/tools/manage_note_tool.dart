@@ -1,6 +1,7 @@
 import '../models/note.dart';
 import '../services/note_storage.dart';
 import 'base_tool.dart';
+import 'manage_note_tool.g.dart';
 
 /// 管理（列出/修改/删除）已有笔记。save_note 工具负责新建，本工具负责后续管理。
 class ManageNoteTool extends AgentTool {
@@ -8,10 +9,7 @@ class ManageNoteTool extends AgentTool {
   @override bool get readOnly => false;
 
   @override
-  String get description => '管理已有笔记：列出列表、修改内容、删除笔记。'
-      '当用户要求查看笔记列表、修改某条笔记、删除笔记时使用本工具。'
-      '操作笔记前，建议先 list 获取准确的 note_id，再按 id 执行 update/delete。'
-      '注意：新建笔记请用 save_note 工具，本工具不负责新建。';
+  String get description => manageNoteToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

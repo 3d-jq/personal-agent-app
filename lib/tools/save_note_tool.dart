@@ -1,13 +1,14 @@
 import '../models/note.dart';
 import '../services/note_storage.dart';
 import 'base_tool.dart';
+import 'save_note_tool.g.dart';
 
 class SaveNoteTool extends AgentTool {
   @override String get name => 'save_note';
   @override bool get readOnly => false;
 
   @override
-  String get description => '将内容保存为笔记。支持 Markdown 格式和图片插入。';
+  String get description => saveNoteToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

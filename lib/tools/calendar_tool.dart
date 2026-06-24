@@ -1,13 +1,14 @@
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../tools/base_tool.dart';
+import 'calendar_tool.g.dart';
 
 class CalendarTool extends AgentTool {
   @override String get name => 'calendar';
   @override bool get readOnly => false;
 
   @override
-  String get description => '读写系统日历：查看日程、创建事件、删除事件。当用户提到"日程"、"会议"、"约会"、"提醒我明天..."或需要添加到日历时使用。';
+  String get description => calendarToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

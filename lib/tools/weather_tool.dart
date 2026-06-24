@@ -1,12 +1,13 @@
 import 'package:dio/dio.dart';
 import '../tools/base_tool.dart';
+import 'weather_tool.g.dart';
 
 class WeatherTool extends AgentTool {
   @override
   String get name => 'weather';
 
   @override
-  String get description => '【必须】当用户询问任何城市的当前天气、气温、下雨、未来天气预报时调用此工具。禁止凭经验或训练数据猜测天气。';
+  String get description => weatherToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {

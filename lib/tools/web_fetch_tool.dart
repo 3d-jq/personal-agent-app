@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:html/dom.dart';
 import 'package:html/parser.dart' as html_parser;
 import '../tools/base_tool.dart';
+import 'web_fetch_tool.g.dart';
 
 class WebFetchTool extends AgentTool {
   static const String _userAgent =
@@ -29,7 +30,7 @@ class WebFetchTool extends AgentTool {
   String get name => 'web_fetch';
 
   @override
-  String get description => '抓取网页内容并提取正文。当用户给出 URL 并要求读取、总结、分析该网页时使用。不要对未抓取的网页内容做猜测。';
+  String get description => webFetchToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {
