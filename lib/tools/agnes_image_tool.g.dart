@@ -4,5 +4,4 @@
 /// Tool description for `agnes_image_tool`.
 const String agnesImageToolDescription = r'''
 使用 AI 生成图片。支持根据文本描述生成图片（文生图），也支持基于已有图片进行风格转换或编辑（图生图）。当用户要求生成、创建、画一张图片时使用此工具。
-'''
-;
+''';

@@ -67,11 +67,10 @@ class ExportService {
     final file = File('${dir.path}/$filename');
     await file.writeAsString(text);
     try {
-      await const MethodChannel('com.example/share_file').invokeMethod('shareFile', {
-        'path': file.path,
-        'mimeType': 'text/plain',
-        'title': 'DWeis 导出',
-      });
+      await const MethodChannel('com.example/share_file').invokeMethod(
+        'shareFile',
+        {'path': file.path, 'mimeType': 'text/plain', 'title': 'DWeis 导出'},
+      );
     } catch (_) {}
   }
 }

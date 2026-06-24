@@ -225,8 +225,7 @@ class _AgentBottomNavState extends State<AgentBottomNav>
               style: TextStyle(fontSize: 16, color: colors.textPrimary),
               decoration: InputDecoration(
                 hintText: '输入...',
-                hintStyle:
-                    TextStyle(color: colors.textSecondary, fontSize: 16),
+                hintStyle: TextStyle(color: colors.textSecondary, fontSize: 16),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 8),
               ),
@@ -253,8 +252,7 @@ class _AgentBottomNavState extends State<AgentBottomNav>
           borderRadius: BorderRadius.circular(26),
         ),
         child: Center(
-          child:
-              Icon(Icons.edit_outlined, size: 22, color: colors.textPrimary),
+          child: Icon(Icons.edit_outlined, size: 22, color: colors.textPrimary),
         ),
       ),
     );

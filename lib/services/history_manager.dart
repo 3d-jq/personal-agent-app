@@ -48,8 +48,10 @@ class HistoryManager {
 
   List<Map<String, dynamic>> _buildSummaryInput(List<ChatMessage> messages) {
     final buffer = StringBuffer();
-    buffer.writeln('请对以下对话进行简洁摘要，保留关键事实、用户意图和已完成的操作结果。'
-        '摘要用于替代原始对话进入后续上下文，所以请尽量完整。');
+    buffer.writeln(
+      '请对以下对话进行简洁摘要，保留关键事实、用户意图和已完成的操作结果。'
+      '摘要用于替代原始对话进入后续上下文，所以请尽量完整。',
+    );
     buffer.writeln();
     buffer.writeln('--- 对话记录 ---');
 

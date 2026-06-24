@@ -25,10 +25,11 @@ class AgentGroupStorage {
         return _cache!;
       }
       final list = jsonDecode(await file.readAsString()) as List;
-      _cache = list
-          .map((j) => AgentGroup.fromJson(j as Map<String, dynamic>))
-          .toList()
-        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      _cache =
+          list
+              .map((j) => AgentGroup.fromJson(j as Map<String, dynamic>))
+              .toList()
+            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       return _cache!;
     } catch (_) {
       await _backupCorruptedFile();
@@ -42,7 +43,8 @@ class AgentGroupStorage {
       final file = await _file();
       if (await file.exists()) {
         final backup = File(
-            '${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}');
+          '${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}',
+        );
         await file.rename(backup.path);
       }
     } catch (_) {}
@@ -61,8 +63,7 @@ class AgentGroupStorage {
       all.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       _cache = all;
       final file = await _file();
-      await file.writeAsString(
-          jsonEncode(all.map((e) => e.toJson()).toList()));
+      await file.writeAsString(jsonEncode(all.map((e) => e.toJson()).toList()));
     });
   }
 
@@ -72,8 +73,7 @@ class AgentGroupStorage {
       all.removeWhere((g) => g.id == id);
       _cache = all;
       final file = await _file();
-      await file.writeAsString(
-          jsonEncode(all.map((e) => e.toJson()).toList()));
+      await file.writeAsString(jsonEncode(all.map((e) => e.toJson()).toList()));
     });
   }
 

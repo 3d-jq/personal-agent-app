@@ -20,22 +20,22 @@ class Skill {
   });
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'description': description,
-        'toolNames': toolNames,
-        'promptTemplate': promptTemplate,
-        'keywords': keywords,
-      };
+    'id': id,
+    'name': name,
+    'description': description,
+    'toolNames': toolNames,
+    'promptTemplate': promptTemplate,
+    'keywords': keywords,
+  };
 
   factory Skill.fromJson(Map<String, dynamic> json) => Skill(
-        id: json['id'] as String,
-        name: json['name'] as String,
-        description: json['description'] as String,
-        toolNames: (json['toolNames'] as List).cast<String>(),
-        promptTemplate: json['promptTemplate'] as String? ?? '',
-        keywords: (json['keywords'] as List?)?.cast<String>() ?? [],
-      );
+    id: json['id'] as String,
+    name: json['name'] as String,
+    description: json['description'] as String,
+    toolNames: (json['toolNames'] as List).cast<String>(),
+    promptTemplate: json['promptTemplate'] as String? ?? '',
+    keywords: (json['keywords'] as List?)?.cast<String>() ?? [],
+  );
 }
 
 /// 技能注册表
@@ -54,7 +54,8 @@ class SkillRegistry {
   List<Skill> get all => List.unmodifiable(_skills);
 
   /// 获取所有已激活的技能
-  List<Skill> get active => _skills.where((s) => _activeSkillIds.contains(s.id)).toList();
+  List<Skill> get active =>
+      _skills.where((s) => _activeSkillIds.contains(s.id)).toList();
 
   /// 激活技能
   void activate(String skillId) {
@@ -123,7 +124,8 @@ class BuiltInSkills {
       name: '数据分析',
       description: '搜索数据、整理分析、生成报告',
       toolNames: ['searxng_search', 'tavily_search', 'web_fetch', 'save_note'],
-      promptTemplate: '## 数据分析技能已激活\n'
+      promptTemplate:
+          '## 数据分析技能已激活\n'
           '当用户需要数据分析时，按以下流程执行：\n'
           '1. 用搜索工具收集数据\n'
           '2. 用 web_fetch 获取详细内容\n'
@@ -136,7 +138,8 @@ class BuiltInSkills {
       name: '内容创作',
       description: '写作、笔记、图文创作',
       toolNames: ['save_note', 'create_rich_note', 'generate_image'],
-      promptTemplate: '## 内容创作技能已激活\n'
+      promptTemplate:
+          '## 内容创作技能已激活\n'
           '当用户需要创作内容时：\n'
           '1. 理解用户需求和风格偏好\n'
           '2. 草拟内容\n'
@@ -148,7 +151,8 @@ class BuiltInSkills {
       name: '媒体生成',
       description: '生成图片和视频',
       toolNames: ['generate_image', 'generate_video'],
-      promptTemplate: '## 媒体生成技能已激活\n'
+      promptTemplate:
+          '## 媒体生成技能已激活\n'
           '当用户需要生成图片或视频时：\n'
           '1. 确认用户需求（风格、内容、尺寸）\n'
           '2. 构造合适的 prompt\n'
@@ -160,8 +164,15 @@ class BuiltInSkills {
       id: 'knowledge_research',
       name: '知识研究',
       description: '深度搜索、知识库查阅、学习整理',
-      toolNames: ['searxng_search', 'tavily_search', 'web_fetch', 'context_doc', 'save_note'],
-      promptTemplate: '## 知识研究技能已激活\n'
+      toolNames: [
+        'searxng_search',
+        'tavily_search',
+        'web_fetch',
+        'context_doc',
+        'save_note',
+      ],
+      promptTemplate:
+          '## 知识研究技能已激活\n'
           '当用户需要深度研究某个话题时：\n'
           '1. 先查阅知识库（context_doc）\n'
           '2. 用搜索工具补充最新信息\n'
@@ -174,7 +185,8 @@ class BuiltInSkills {
       name: '生活规划',
       description: '日程管理、提醒设置、生活建议',
       toolNames: ['reminder', 'calendar', 'location', 'weather'],
-      promptTemplate: '## 生活规划技能已激活\n'
+      promptTemplate:
+          '## 生活规划技能已激活\n'
           '当用户需要生活规划相关帮助时：\n'
           '1. 获取当前位置和天气\n'
           '2. 查询日历安排\n'

@@ -51,8 +51,14 @@ class _AgentManagePageState extends State<AgentManagePage> {
         title: const Text('删除 Agent'),
         content: Text('确定删除「${a.name}」？将从所有群组中移除。'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('删除')),
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('删除'),
+          ),
         ],
       ),
     );
@@ -83,7 +89,14 @@ class _AgentManagePageState extends State<AgentManagePage> {
           icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('Agent 库', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        title: Text(
+          'Agent 库',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: nc.textPrimary,
+          ),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -94,8 +107,10 @@ class _AgentManagePageState extends State<AgentManagePage> {
       ),
       body: _agents.isEmpty
           ? Center(
-              child: Text('暂无 Agent，点击右上角 + 新建',
-                  style: TextStyle(color: nc.textSecondary)),
+              child: Text(
+                '暂无 Agent，点击右上角 + 新建',
+                style: TextStyle(color: nc.textSecondary),
+              ),
             )
           : ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -128,7 +143,14 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(title, style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500)),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          color: nc.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 }
@@ -143,7 +165,13 @@ class _RoundedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(children: children),
     );
@@ -183,29 +211,45 @@ class _AgentItem extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Text(
-                    agent.avatar.isNotEmpty ? agent.avatar : agent.name.characters.first,
-                    style: const TextStyle(fontSize: 16)),
+                  agent.avatar.isNotEmpty
+                      ? agent.avatar
+                      : agent.name.characters.first,
+                  style: const TextStyle(fontSize: 16),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(agent.name,
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: nc.textPrimary)),
+                    Text(
+                      agent.name,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                        color: nc.textPrimary,
+                      ),
+                    ),
                     if (agent.role.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
-                        child: Text(agent.role,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 12, color: nc.textSecondary)),
+                        child: Text(
+                          agent.role,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: nc.textSecondary,
+                          ),
+                        ),
                       ),
                     const SizedBox(height: 2),
-                    Text(toolOptionsLabel(agent.allowedToolNames),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 11, color: nc.textDisabled)),
+                    Text(
+                      toolOptionsLabel(agent.allowedToolNames),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(fontSize: 11, color: nc.textDisabled),
+                    ),
                   ],
                 ),
               ),
@@ -214,11 +258,19 @@ class _AgentItem extends StatelessWidget {
                   onTap: onDelete,
                   child: Padding(
                     padding: const EdgeInsets.only(left: 12),
-                    child: Icon(Icons.delete_outline, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
+                    child: Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: nc.textSecondary.withValues(alpha: 0.5),
+                    ),
                   ),
                 ),
               const SizedBox(width: 4),
-              Icon(Icons.chevron_right, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: nc.textSecondary.withValues(alpha: 0.5),
+              ),
             ],
           ),
         ),
@@ -267,9 +319,9 @@ class _AgentEditPageState extends State<AgentEditPage> {
 
   Future<void> _save() async {
     if (_name.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请填写 Agent 名字')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请填写 Agent 名字')));
       return;
     }
     final a = Agent(
@@ -297,11 +349,20 @@ class _AgentEditPageState extends State<AgentEditPage> {
           icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(widget.existing == null ? '新建 Agent' : '编辑 Agent',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        title: Text(
+          widget.existing == null ? '新建 Agent' : '编辑 Agent',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: nc.textPrimary,
+          ),
+        ),
         centerTitle: true,
         actions: [
-          TextButton(onPressed: _save, child: Text('保存', style: TextStyle(color: nc.success))),
+          TextButton(
+            onPressed: _save,
+            child: Text('保存', style: TextStyle(color: nc.success)),
+          ),
         ],
       ),
       body: ListView(
@@ -311,7 +372,10 @@ class _AgentEditPageState extends State<AgentEditPage> {
           _Field(label: '头像 emoji', ctrl: _avatar, nc: nc, hint: '可选，例如 💡'),
           _Field(label: '职能描述', ctrl: _role, nc: nc, hint: '一句话说明擅长什么'),
           const SizedBox(height: 16),
-          Text('System Prompt', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
+          Text(
+            'System Prompt',
+            style: TextStyle(fontSize: 12, color: nc.textSecondary),
+          ),
           const SizedBox(height: 6),
           TextField(
             controller: _prompt,
@@ -466,11 +530,14 @@ class _VendorOption extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Text(label,
-                    style: TextStyle(
-                        fontSize: 14,
-                        color: selected ? nc.textPrimary : nc.textSecondary,
-                        fontWeight: selected ? FontWeight.w600 : FontWeight.w400)),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: selected ? nc.textPrimary : nc.textSecondary,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
               ),
               Icon(
                 selected ? Icons.check_circle : Icons.radio_button_unchecked,
@@ -529,11 +596,14 @@ class _ToolOption extends StatelessWidget {
                     ? const Icon(Icons.check, size: 14, color: Colors.white)
                     : null,
               ),
-              Text(label,
-                  style: TextStyle(
-                      fontSize: 14,
-                      color: selected ? nc.textPrimary : nc.textSecondary,
-                      fontWeight: selected ? FontWeight.w500 : FontWeight.w400)),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: selected ? nc.textPrimary : nc.textSecondary,
+                  fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
+                ),
+              ),
             ],
           ),
         ),
@@ -548,8 +618,14 @@ class _AgentModelPicker extends StatefulWidget {
   final String currentModel;
   final List<VendorConfig> vendors;
   final ValueChanged<String> onChanged;
-  const _AgentModelPicker({required this.vendorId, required this.currentModel, required this.vendors, required this.onChanged});
-  @override State<_AgentModelPicker> createState() => _AgentModelPickerState();
+  const _AgentModelPicker({
+    required this.vendorId,
+    required this.currentModel,
+    required this.vendors,
+    required this.onChanged,
+  });
+  @override
+  State<_AgentModelPicker> createState() => _AgentModelPickerState();
 }
 
 class _AgentModelPickerState extends State<_AgentModelPicker> {
@@ -557,7 +633,8 @@ class _AgentModelPickerState extends State<_AgentModelPicker> {
   bool _loading = false;
   String? _error;
   late final TextEditingController _modelCtrl;
-  VendorConfig? get _vendor => widget.vendors.where((v) => v.id == widget.vendorId).firstOrNull;
+  VendorConfig? get _vendor =>
+      widget.vendors.where((v) => v.id == widget.vendorId).firstOrNull;
 
   @override
   void initState() {
@@ -569,7 +646,8 @@ class _AgentModelPickerState extends State<_AgentModelPicker> {
   @override
   void didUpdateWidget(_AgentModelPicker old) {
     super.didUpdateWidget(old);
-    if (widget.currentModel != old.currentModel && widget.currentModel != _modelCtrl.text) {
+    if (widget.currentModel != old.currentModel &&
+        widget.currentModel != _modelCtrl.text) {
       _modelCtrl.text = widget.currentModel;
     }
   }
@@ -581,58 +659,142 @@ class _AgentModelPickerState extends State<_AgentModelPicker> {
   }
 
   Future<void> _fetch() async {
-    final v = _vendor; if (v == null) return;
-    setState(() { _loading = true; _error = null; _fetched = null; });
+    final v = _vendor;
+    if (v == null) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+      _fetched = null;
+    });
     try {
-      final models = await AIService(baseUrl: v.baseUrl, apiKey: v.apiKey, providerName: v.name, model: '').fetchModels();
-      if (mounted) setState(() { _fetched = models; _loading = false; });
+      final models = await AIService(
+        baseUrl: v.baseUrl,
+        apiKey: v.apiKey,
+        providerName: v.name,
+        model: '',
+      ).fetchModels();
+      if (mounted)
+        setState(() {
+          _fetched = models;
+          _loading = false;
+        });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString().replaceFirst('Exception: ', ''); _loading = false; });
+      if (mounted)
+        setState(() {
+          _error = e.toString().replaceFirst('Exception: ', '');
+          _loading = false;
+        });
     }
   }
 
   List<String> get _models => _fetched ?? [];
-  String get _defaultModel => _vendor?.model.isNotEmpty == true ? _vendor!.model : '未配置';
+  String get _defaultModel =>
+      _vendor?.model.isNotEmpty == true ? _vendor!.model : '未配置';
 
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      if (_loading) Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Row(children: [
-        SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation(nc.textSecondary))),
-        const SizedBox(width: 8), Text('获取模型列表...', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
-      ])),
-      if (_error != null) Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Row(children: [
-        Icon(Icons.error_outline, size: 14, color: nc.error), const SizedBox(width: 6),
-        Expanded(child: Text(_error!, style: TextStyle(fontSize: 11, color: nc.error))),
-        TextButton(onPressed: _fetch, child: Text('重试', style: TextStyle(fontSize: 12, color: nc.success))),
-      ])),
-      if (_models.isNotEmpty) ...[
-        Text('选择模型：', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_loading)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation(nc.textSecondary),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '获取模型列表...',
+                  style: TextStyle(fontSize: 12, color: nc.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, size: 14, color: nc.error),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _error!,
+                    style: TextStyle(fontSize: 11, color: nc.error),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _fetch,
+                  child: Text(
+                    '重试',
+                    style: TextStyle(fontSize: 12, color: nc.success),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (_models.isNotEmpty) ...[
+          Text(
+            '选择模型：',
+            style: TextStyle(fontSize: 12, color: nc.textSecondary),
+          ),
+          const SizedBox(height: 6),
+          _RoundedCard(
+            nc: nc,
+            children: List.generate(_models.length, (i) {
+              final m = _models[i];
+              final sel = widget.currentModel == m;
+              return _VendorOption(
+                label: m,
+                selected: sel,
+                nc: nc,
+                isFirst: i == 0,
+                isLast: i == _models.length - 1,
+                onTap: () => widget.onChanged(m),
+              );
+            }),
+          ),
+        ],
+        const SizedBox(height: 12),
+        Text('或手动输入：', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
         const SizedBox(height: 6),
-        _RoundedCard(nc: nc, children: List.generate(_models.length, (i) {
-          final m = _models[i]; final sel = widget.currentModel == m;
-          return _VendorOption(label: m, selected: sel, nc: nc, isFirst: i == 0, isLast: i == _models.length - 1, onTap: () => widget.onChanged(m));
-        })),
-      ],
-      const SizedBox(height: 12),
-      Text('或手动输入：', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
-      const SizedBox(height: 6),
-      TextField(
-        controller: _modelCtrl,
-        onChanged: (v) => widget.onChanged(v.trim()),
-        style: TextStyle(fontSize: 14, color: nc.textPrimary),
-        decoration: InputDecoration(
-          filled: true, fillColor: nc.surface,
-          hintText: '例如：gpt-4o、claude-3-opus',
-          hintStyle: TextStyle(color: nc.textSecondary.withValues(alpha: 0.5), fontSize: 13),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          suffixIcon: widget.currentModel.isNotEmpty
-              ? IconButton(icon: Icon(Icons.close, size: 18, color: nc.textSecondary), onPressed: () => widget.onChanged(''))
-              : null,
+        TextField(
+          controller: _modelCtrl,
+          onChanged: (v) => widget.onChanged(v.trim()),
+          style: TextStyle(fontSize: 14, color: nc.textPrimary),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: nc.surface,
+            hintText: '例如：gpt-4o、claude-3-opus',
+            hintStyle: TextStyle(
+              color: nc.textSecondary.withValues(alpha: 0.5),
+              fontSize: 13,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            suffixIcon: widget.currentModel.isNotEmpty
+                ? IconButton(
+                    icon: Icon(Icons.close, size: 18, color: nc.textSecondary),
+                    onPressed: () => widget.onChanged(''),
+                  )
+                : null,
+          ),
         ),
-      ),
-    ]);
+      ],
+    );
   }
 }

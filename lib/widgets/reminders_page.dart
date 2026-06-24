@@ -54,19 +54,25 @@ class _RemindersViewState extends State<RemindersView> {
           icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('定时任务',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        title: Text(
+          '定时任务',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: nc.textPrimary,
+          ),
+        ),
         centerTitle: true,
       ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : _reminders.isEmpty
-              ? _emptyState(nc)
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: _reminders.length,
-                  itemBuilder: (_, i) => _reminderCard(_reminders[i], nc),
-                ),
+          ? _emptyState(nc)
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: _reminders.length,
+              itemBuilder: (_, i) => _reminderCard(_reminders[i], nc),
+            ),
     );
   }
 
@@ -75,13 +81,27 @@ class _RemindersViewState extends State<RemindersView> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.alarm_off_rounded, size: 48, color: nc.textSecondary.withValues(alpha: 0.3)),
+          Icon(
+            Icons.alarm_off_rounded,
+            size: 48,
+            color: nc.textSecondary.withValues(alpha: 0.3),
+          ),
           const SizedBox(height: 12),
-          Text('没有定时任务',
-              style: TextStyle(fontSize: 15, color: nc.textSecondary.withValues(alpha: 0.6))),
+          Text(
+            '没有定时任务',
+            style: TextStyle(
+              fontSize: 15,
+              color: nc.textSecondary.withValues(alpha: 0.6),
+            ),
+          ),
           const SizedBox(height: 6),
-          Text('在聊天中让 DWeis 帮你设置提醒',
-              style: TextStyle(fontSize: 13, color: nc.textSecondary.withValues(alpha: 0.4))),
+          Text(
+            '在聊天中让 DWeis 帮你设置提醒',
+            style: TextStyle(
+              fontSize: 13,
+              color: nc.textSecondary.withValues(alpha: 0.4),
+            ),
+          ),
         ],
       ),
     );
@@ -93,9 +113,13 @@ class _RemindersViewState extends State<RemindersView> {
     final statusColor = r.isCompleted
         ? nc.textSecondary.withValues(alpha: 0.4)
         : isPast
-            ? nc.textSecondary.withValues(alpha: 0.4)
-            : nc.success;
-    final statusText = r.isCompleted ? '已完成' : isPast ? '已过期' : '等待中';
+        ? nc.textSecondary.withValues(alpha: 0.4)
+        : nc.success;
+    final statusText = r.isCompleted
+        ? '已完成'
+        : isPast
+        ? '已过期'
+        : '等待中';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -103,57 +127,105 @@ class _RemindersViewState extends State<RemindersView> {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Expanded(
-              child: Text(r.title,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  r.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: nc.textPrimary)),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(statusText, style: TextStyle(fontSize: 11, color: statusColor, fontWeight: FontWeight.w500)),
-            ),
-          ]),
-          if (r.message.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(r.message,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 13, color: nc.textSecondary, height: 1.5)),
-          ],
-          const SizedBox(height: 8),
-          Row(children: [
-            Icon(Icons.access_time, size: 14, color: nc.textSecondary.withValues(alpha: 0.5)),
-            const SizedBox(width: 4),
-            Text(_formatTime(r.scheduledTime),
-                style: TextStyle(fontSize: 11, color: nc.textSecondary.withValues(alpha: 0.5))),
-            const Spacer(),
-            if (!r.isCompleted && !isPast)
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  _cancelReminder(r);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: nc.textPrimary,
                   ),
-                  child: const Text('取消', style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.w500)),
                 ),
               ),
-          ]),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  statusText,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: statusColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (r.message.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              r.message,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: nc.textSecondary,
+                height: 1.5,
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(
+                Icons.access_time,
+                size: 14,
+                color: nc.textSecondary.withValues(alpha: 0.5),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                _formatTime(r.scheduledTime),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: nc.textSecondary.withValues(alpha: 0.5),
+                ),
+              ),
+              const Spacer(),
+              if (!r.isCompleted && !isPast)
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    _cancelReminder(r);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      '取消',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.red,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -166,7 +238,10 @@ class _RemindersViewState extends State<RemindersView> {
         title: const Text('取消提醒'),
         content: Text('确定要取消「${r.title}」吗？'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('返回')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('返回'),
+          ),
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);

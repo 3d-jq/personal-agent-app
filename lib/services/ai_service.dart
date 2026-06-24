@@ -9,15 +9,21 @@ String _normalizeUrl(String url) => url.trim().replaceAll(RegExp(r'/+$'), '');
 String _friendlyError(DioException e) {
   final code = e.response?.statusCode;
   switch (code) {
-    case 401: return 'API Key 无效或已过期（401）';
-    case 403: return '没有访问权限或被拒绝（403）';
-    case 404: return 'API 地址或模型不存在（404），请检查 URL 和模型名';
-    case 429: return '请求过于频繁或额度不足（429）';
+    case 401:
+      return 'API Key 无效或已过期（401）';
+    case 403:
+      return '没有访问权限或被拒绝（403）';
+    case 404:
+      return 'API 地址或模型不存在（404），请检查 URL 和模型名';
+    case 429:
+      return '请求过于频繁或额度不足（429）';
     case 500:
     case 502:
-    case 503: return '服务端暂时不可用（$code）';
+    case 503:
+      return '服务端暂时不可用（$code）';
   }
-  if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+  if (e.type == DioExceptionType.connectionTimeout ||
+      e.type == DioExceptionType.receiveTimeout) {
     return '网络超时，请检查网络或 Base URL';
   }
   if (e.type == DioExceptionType.connectionError) {
@@ -46,16 +52,23 @@ class AIService {
   final String model;
   final ToolRegistry toolRegistry;
 
-  static final Dio _sharedDio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 20),
-    receiveTimeout: const Duration(minutes: 2),
-  ));
+  static final Dio _sharedDio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(minutes: 2),
+    ),
+  );
 
   /// Known tool failure prefixes — centralized to avoid scattered hardcoded checks.
   static const _failurePrefixes = [
-    '执行失败', '错误', '创建提醒失败',
-    '视频生成失败', '视频任务创建失败', '视频生成超时',
-    '图片生成失败', '图片生成错误',
+    '执行失败',
+    '错误',
+    '创建提醒失败',
+    '视频生成失败',
+    '视频任务创建失败',
+    '视频生成超时',
+    '图片生成失败',
+    '图片生成错误',
   ];
 
   static bool _isToolFailed(String toolName, String content) {
@@ -124,7 +137,11 @@ class AIService {
   }
 
   Map<String, String> get _authHeaders => _isAnthropic
-      ? {'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01'}
+      ? {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        }
       : {'Content-Type': 'application/json', 'Authorization': 'Bearer $apiKey'};
 
   /// Fetch available model IDs.
@@ -132,7 +149,10 @@ class AIService {
     if (_isAnthropic) throw Exception('Anthropic 不支持获取模型列表');
     final url = '${_normalizeUrl(baseUrl)}/models';
     try {
-      final response = await _sharedDio.get(url, options: Options(headers: _authHeaders));
+      final response = await _sharedDio.get(
+        url,
+        options: Options(headers: _authHeaders),
+      );
       final data = response.data['data'] as List?;
       if (data == null) throw Exception('该厂商不支持获取模型列表');
       return data
@@ -147,7 +167,9 @@ class AIService {
 
   /// Send messages with tool support.
   /// Returns a stream of AI responses. Tool calls are handled internally.
-  Stream<ChatStreamEvent> sendMessageStream(List<Map<String, dynamic>> messages) {
+  Stream<ChatStreamEvent> sendMessageStream(
+    List<Map<String, dynamic>> messages,
+  ) {
     return _sendMessageWithTools(messages);
   }
 
@@ -176,7 +198,9 @@ class AIService {
 
   // ── Tool-calling aware streaming ──
 
-  Stream<ChatStreamEvent> _sendMessageWithTools(List<Map<String, dynamic>> messages) async* {
+  Stream<ChatStreamEvent> _sendMessageWithTools(
+    List<Map<String, dynamic>> messages,
+  ) async* {
     final hasTools = toolRegistry.all.isNotEmpty;
     const safetyLimit = 20;
     var round = 0;
@@ -194,9 +218,7 @@ class AIService {
       }
 
       // OpenAI-compatible: streaming for normal responses, non-streaming for tool calls
-      final tools = hasTools
-          ? toolRegistry.functionDefinitions
-          : null;
+      final tools = hasTools ? toolRegistry.functionDefinitions : null;
 
       // If no tools or last round, do streaming
       if (tools == null) {
@@ -211,7 +233,11 @@ class AIService {
         // Yield any text before the tool calls
         if (response.text.isNotEmpty) yield TextChunkEvent(response.text);
         // Execute tools and add results to conversation
-        yield* _processToolCalls(conversation, response.toolCalls!, response.text);
+        yield* _processToolCalls(
+          conversation,
+          response.toolCalls!,
+          response.text,
+        );
         continue;
       }
 
@@ -228,15 +254,20 @@ class AIService {
   ) async* {
     final assistantMsg = {
       'role': 'assistant',
-      'content': assistantText, // Always string — some providers reject null content
-      'tool_calls': toolCalls.map((tc) => {
-        'id': tc.id,
-        'type': 'function',
-        'function': {
-          'name': tc.name,
-          'arguments': jsonEncode(tc.arguments),
-        },
-      }).toList(),
+      'content':
+          assistantText, // Always string — some providers reject null content
+      'tool_calls': toolCalls
+          .map(
+            (tc) => {
+              'id': tc.id,
+              'type': 'function',
+              'function': {
+                'name': tc.name,
+                'arguments': jsonEncode(tc.arguments),
+              },
+            },
+          )
+          .toList(),
     };
     messages.add(assistantMsg);
 
@@ -279,7 +310,9 @@ class AIService {
       } else {
         yield ToolDoneEvent(tc.name);
       }
-      if ((tc.name == 'generate_image' || tc.name == 'generate_video') && result.content.isNotEmpty && !failed) {
+      if ((tc.name == 'generate_image' || tc.name == 'generate_video') &&
+          result.content.isNotEmpty &&
+          !failed) {
         yield ToolMediaEvent(result.content);
       }
       if (tc.name == 'task_plan' && result.content.isNotEmpty && !failed) {
@@ -288,12 +321,16 @@ class AIService {
           yield TaskPlanEvent(
             title: plan.title,
             verified: plan.verified,
-            tasks: plan.tasks.map((t) => TaskPlanItem(
-              id: t.id,
-              title: t.title,
-              done: t.status == TaskStatus.done,
-              inProgress: t.status == TaskStatus.inProgress,
-            )).toList(),
+            tasks: plan.tasks
+                .map(
+                  (t) => TaskPlanItem(
+                    id: t.id,
+                    title: t.title,
+                    done: t.status == TaskStatus.done,
+                    inProgress: t.status == TaskStatus.inProgress,
+                  ),
+                )
+                .toList(),
           );
         }
       }
@@ -306,7 +343,8 @@ class AIService {
 
     // 持久化事件：输出本轮完整的工具交互记录
     yield ToolInteractionEvent(
-      toolCalls: (assistantMsg['tool_calls'] as List).cast<Map<String, dynamic>>(),
+      toolCalls: (assistantMsg['tool_calls'] as List)
+          .cast<Map<String, dynamic>>(),
       toolResults: results.map((e) {
         final tc = e['tc'] as ToolCall;
         final result = e['result'] as ToolResult;
@@ -329,7 +367,8 @@ class AIService {
           'messages': messages,
           'tools': tools,
           'max_tokens': _effectiveMaxTokens,
-          if (thinkingEffort != 'low') 'chat_template_kwargs': {'enable_thinking': true},
+          if (thinkingEffort != 'low')
+            'chat_template_kwargs': {'enable_thinking': true},
           if (thinkingEffort.isNotEmpty) 'reasoning_effort': thinkingEffort,
         },
       );
@@ -341,10 +380,15 @@ class AIService {
       }
 
       final message = choice['message'];
-      final text = (message['content'] as String? ?? '') +
-          (choice['finish_reason'] == 'length' ? '\n\n[回复被长度限制截断，请简化问题或分多次询问]' : '');
+      final text =
+          (message['content'] as String? ?? '') +
+          (choice['finish_reason'] == 'length'
+              ? '\n\n[回复被长度限制截断，请简化问题或分多次询问]'
+              : '');
       final toolCallsRaw = message['tool_calls'] as List?;
-      final toolCalls = toolCallsRaw?.map((tc) => ToolCall.fromJson(tc)).toList();
+      final toolCalls = toolCallsRaw
+          ?.map((tc) => ToolCall.fromJson(tc))
+          .toList();
 
       return AiResponse(text: text, toolCalls: toolCalls);
     } on DioException catch (e) {
@@ -356,21 +400,27 @@ class AIService {
 
   // ── OpenAI-compatible streaming ──
 
-  Stream<ChatStreamEvent> _streamOpenAI(List<Map<String, dynamic>> messages, {List<Map<String, dynamic>>? tools}) async* {
+  Stream<ChatStreamEvent> _streamOpenAI(
+    List<Map<String, dynamic>> messages, {
+    List<Map<String, dynamic>>? tools,
+  }) async* {
     final url = '${_normalizeUrl(baseUrl)}/chat/completions';
     try {
       final response = await _retryPost(
         url,
         headers: _authHeaders,
         responseType: ResponseType.stream,
-        receiveTimeout: const Duration(minutes: 5), // Streaming needs longer timeout
+        receiveTimeout: const Duration(
+          minutes: 5,
+        ), // Streaming needs longer timeout
         data: {
           'model': model,
           'messages': messages,
           'stream': true,
           'max_tokens': _effectiveMaxTokens,
           if (tools != null && tools.isNotEmpty) 'tools': tools,
-          if (thinkingEffort != 'low') 'chat_template_kwargs': {'enable_thinking': true},
+          if (thinkingEffort != 'low')
+            'chat_template_kwargs': {'enable_thinking': true},
           if (thinkingEffort.isNotEmpty) 'reasoning_effort': thinkingEffort,
         },
       );
@@ -394,9 +444,11 @@ class AIService {
             final delta = choice?['delta'];
             if (delta == null) continue;
             final reasoning = delta['reasoning_content'] as String?;
-            if (reasoning != null && reasoning.isNotEmpty) yield ThinkingChunkEvent(reasoning);
+            if (reasoning != null && reasoning.isNotEmpty)
+              yield ThinkingChunkEvent(reasoning);
             final content = delta['content'] as String?;
-            if (content != null && content.isNotEmpty) yield TextChunkEvent(content);
+            if (content != null && content.isNotEmpty)
+              yield TextChunkEvent(content);
           } catch (_) {}
         }
       }
@@ -413,9 +465,11 @@ class AIService {
             final delta = choice?['delta'];
             if (delta != null) {
               final reasoning = delta['reasoning_content'] as String?;
-              if (reasoning != null && reasoning.isNotEmpty) yield ThinkingChunkEvent(reasoning);
+              if (reasoning != null && reasoning.isNotEmpty)
+                yield ThinkingChunkEvent(reasoning);
               final content = delta['content'] as String?;
-              if (content != null && content.isNotEmpty) yield TextChunkEvent(content);
+              if (content != null && content.isNotEmpty)
+                yield TextChunkEvent(content);
             }
           }
         } catch (_) {}
@@ -457,8 +511,12 @@ class AIService {
         currentMessages.add({'role': 'assistant', 'content': content});
 
         // task_plan 操作共享可变计划状态，必须串行执行；其他独立工具可以并行。
-        final planCalls = toolCalls.where((tc) => tc.name == 'task_plan').toList();
-        final otherCalls = toolCalls.where((tc) => tc.name != 'task_plan').toList();
+        final planCalls = toolCalls
+            .where((tc) => tc.name == 'task_plan')
+            .toList();
+        final otherCalls = toolCalls
+            .where((tc) => tc.name != 'task_plan')
+            .toList();
 
         final resultsById = <String, Map<String, dynamic>>{};
 
@@ -492,21 +550,29 @@ class AIService {
           } else {
             yield ToolDoneEvent(tc.name);
           }
-          if ((tc.name == 'generate_image' || tc.name == 'generate_video') && toolResult.content.isNotEmpty && !failed) {
+          if ((tc.name == 'generate_image' || tc.name == 'generate_video') &&
+              toolResult.content.isNotEmpty &&
+              !failed) {
             yield ToolMediaEvent(toolResult.content);
           }
-          if (tc.name == 'task_plan' && toolResult.content.isNotEmpty && !failed) {
+          if (tc.name == 'task_plan' &&
+              toolResult.content.isNotEmpty &&
+              !failed) {
             final plan = TaskPlanTool.currentPlan;
             if (plan != null) {
               yield TaskPlanEvent(
                 title: plan.title,
                 verified: plan.verified,
-                tasks: plan.tasks.map((t) => TaskPlanItem(
-                  id: t.id,
-                  title: t.title,
-                  done: t.status == TaskStatus.done,
-                  inProgress: t.status == TaskStatus.inProgress,
-                )).toList(),
+                tasks: plan.tasks
+                    .map(
+                      (t) => TaskPlanItem(
+                        id: t.id,
+                        title: t.title,
+                        done: t.status == TaskStatus.done,
+                        inProgress: t.status == TaskStatus.inProgress,
+                      ),
+                    )
+                    .toList(),
               );
             }
           }
@@ -530,7 +596,10 @@ class AIService {
     required List<ToolCall> outToolCalls,
   }) async* {
     final url = '${_normalizeUrl(baseUrl)}/messages';
-    final system = messages.where((m) => m['role'] == 'system').map((m) => m['content'] ?? '').join('\n');
+    final system = messages
+        .where((m) => m['role'] == 'system')
+        .map((m) => m['content'] ?? '')
+        .join('\n');
     // Preserve role field — Anthropic API requires {role, content} in messages
     final conversation = messages.where((m) => m['role'] != 'system').toList();
 
@@ -552,7 +621,9 @@ class AIService {
         url,
         headers: _authHeaders,
         responseType: ResponseType.stream,
-        receiveTimeout: const Duration(minutes: 5), // Streaming needs longer timeout
+        receiveTimeout: const Duration(
+          minutes: 5,
+        ), // Streaming needs longer timeout
         data: {
           'model': model,
           'max_tokens': _effectiveMaxTokens,
@@ -591,7 +662,8 @@ class AIService {
                   }
                 } else if (delta['type'] == 'input_json_delta') {
                   final partialJson = delta['partial_json'] as String?;
-                  if (partialJson != null) currentToolInputBuf.write(partialJson);
+                  if (partialJson != null)
+                    currentToolInputBuf.write(partialJson);
                 }
               }
             } else if (type == 'content_block_start') {
@@ -610,14 +682,18 @@ class AIService {
                 Map<String, dynamic> args = {};
                 if (currentToolInputBuf.isNotEmpty) {
                   try {
-                    args = Map<String, dynamic>.from(jsonDecode(currentToolInputBuf.toString()));
+                    args = Map<String, dynamic>.from(
+                      jsonDecode(currentToolInputBuf.toString()),
+                    );
                   } catch (_) {}
                 }
-                outToolCalls.add(ToolCall(
-                  id: currentToolId!,
-                  name: currentToolName!,
-                  arguments: args,
-                ));
+                outToolCalls.add(
+                  ToolCall(
+                    id: currentToolId!,
+                    name: currentToolName!,
+                    arguments: args,
+                  ),
+                );
                 currentToolId = null;
                 currentToolName = null;
                 currentToolInputBuf.clear();
@@ -632,5 +708,4 @@ class AIService {
       yield ErrorEvent('未知错误: $e');
     }
   }
-
 }

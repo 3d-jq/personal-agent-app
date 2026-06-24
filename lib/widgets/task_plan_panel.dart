@@ -78,7 +78,9 @@ class TaskPlanView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
-    final doneCount = plan.tasks.where((t) => t.status == TaskStatus.done).length;
+    final doneCount = plan.tasks
+        .where((t) => t.status == TaskStatus.done)
+        .length;
     final total = plan.tasks.length;
     final allDone = doneCount == total;
     final allDoneOrFailed = plan.tasks.every(
@@ -103,21 +105,24 @@ class TaskPlanView extends StatelessWidget {
             GestureDetector(
               onTap: onToggle,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
                     Icon(
                       verified
                           ? Icons.check_circle
                           : allDoneOrFailed
-                              ? Icons.pending_actions
-                              : Icons.task_alt,
+                          ? Icons.pending_actions
+                          : Icons.task_alt,
                       size: 18,
                       color: verified
                           ? nc.success
                           : allDoneOrFailed
-                              ? nc.warning
-                              : nc.textSecondary,
+                          ? nc.warning
+                          : nc.textSecondary,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -134,29 +139,32 @@ class TaskPlanView extends StatelessWidget {
                     ),
                     // Progress badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: verified
                             ? nc.success.withValues(alpha: 0.1)
                             : allDoneOrFailed
-                                ? nc.warning.withValues(alpha: 0.1)
-                                : nc.primarySurface,
+                            ? nc.warning.withValues(alpha: 0.1)
+                            : nc.primarySurface,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         verified
                             ? '已完成'
                             : allDoneOrFailed
-                                ? '待校验'
-                                : '$doneCount/$total',
+                            ? '待校验'
+                            : '$doneCount/$total',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: verified
                               ? nc.success
                               : allDoneOrFailed
-                                  ? nc.warning
-                                  : nc.textSecondary,
+                              ? nc.warning
+                              : nc.textSecondary,
                         ),
                       ),
                     ),
@@ -180,7 +188,9 @@ class TaskPlanView extends StatelessWidget {
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: plan.tasks.map((task) => _buildTaskItem(task, nc)).toList(),
+                    children: plan.tasks
+                        .map((task) => _buildTaskItem(task, nc))
+                        .toList(),
                   ),
                 ),
               ),
@@ -207,20 +217,20 @@ class TaskPlanView extends StatelessWidget {
               isDone
                   ? Icons.check_circle
                   : isInProgress
-                      ? Icons.radio_button_checked
-                      : isFailed
-                          ? Icons.error
-                          : isBlocked
-                              ? Icons.block
-                              : Icons.radio_button_unchecked,
+                  ? Icons.radio_button_checked
+                  : isFailed
+                  ? Icons.error
+                  : isBlocked
+                  ? Icons.block
+                  : Icons.radio_button_unchecked,
               size: 14,
               color: isDone
                   ? nc.success
                   : isInProgress
-                      ? nc.warning
-                      : isFailed
-                          ? nc.error
-                          : nc.textSecondary.withValues(alpha: 0.4),
+                  ? nc.warning
+                  : isFailed
+                  ? nc.error
+                  : nc.textSecondary.withValues(alpha: 0.4),
             ),
           ),
           const SizedBox(width: 8),

@@ -43,25 +43,31 @@ class _MediaViewState extends State<MediaView> {
           icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('图视',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        title: Text(
+          '图视',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: nc.textPrimary,
+          ),
+        ),
         centerTitle: true,
       ),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : _items.isEmpty
-              ? _emptyState(nc)
-              : GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 10,
-                    crossAxisSpacing: 10,
-                    childAspectRatio: 1,
-                  ),
-                  itemCount: _items.length,
-                  itemBuilder: (_, i) => _mediaCard(_items[i], nc),
-                ),
+          ? _emptyState(nc)
+          : GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 1,
+              ),
+              itemCount: _items.length,
+              itemBuilder: (_, i) => _mediaCard(_items[i], nc),
+            ),
     );
   }
 
@@ -70,13 +76,27 @@ class _MediaViewState extends State<MediaView> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.photo_library_outlined, size: 48, color: nc.textSecondary.withValues(alpha: 0.3)),
+          Icon(
+            Icons.photo_library_outlined,
+            size: 48,
+            color: nc.textSecondary.withValues(alpha: 0.3),
+          ),
           const SizedBox(height: 12),
-          Text('还没有图片和视频',
-              style: TextStyle(fontSize: 15, color: nc.textSecondary.withValues(alpha: 0.6))),
+          Text(
+            '还没有图片和视频',
+            style: TextStyle(
+              fontSize: 15,
+              color: nc.textSecondary.withValues(alpha: 0.6),
+            ),
+          ),
           const SizedBox(height: 6),
-          Text('在聊天中让 DWeis 帮你生成',
-              style: TextStyle(fontSize: 13, color: nc.textSecondary.withValues(alpha: 0.4))),
+          Text(
+            '在聊天中让 DWeis 帮你生成',
+            style: TextStyle(
+              fontSize: 13,
+              color: nc.textSecondary.withValues(alpha: 0.4),
+            ),
+          ),
         ],
       ),
     );
@@ -96,41 +116,64 @@ class _MediaViewState extends State<MediaView> {
           HapticFeedback.lightImpact();
           _confirmDelete(item);
         },
-      child: Container(
-        decoration: BoxDecoration(
-          color: nc.surface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 1))],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (!isVideo && file.existsSync())
-              Image.file(file, fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => _placeholder(nc))
-            else
-              _videoThumbnail(nc),
-            if (isVideo)
-              Positioned(
-                bottom: 8, right: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xAA000000),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.play_arrow_rounded, size: 12, color: Colors.white),
-                    SizedBox(width: 2),
-                    Text('视频', style: TextStyle(fontSize: 10, color: Colors.white70)),
-                  ]),
-                ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: nc.surface,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 1),
               ),
-          ],
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (!isVideo && file.existsSync())
+                Image.file(
+                  file,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _placeholder(nc),
+                )
+              else
+                _videoThumbnail(nc),
+              if (isVideo)
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xAA000000),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.play_arrow_rounded,
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                        SizedBox(width: 2),
+                        Text(
+                          '视频',
+                          style: TextStyle(fontSize: 10, color: Colors.white70),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -138,7 +181,11 @@ class _MediaViewState extends State<MediaView> {
     return Container(
       color: nc.primarySurface,
       child: Center(
-        child: Icon(Icons.videocam_outlined, size: 32, color: nc.textSecondary.withValues(alpha: 0.3)),
+        child: Icon(
+          Icons.videocam_outlined,
+          size: 32,
+          color: nc.textSecondary.withValues(alpha: 0.3),
+        ),
       ),
     );
   }
@@ -147,7 +194,11 @@ class _MediaViewState extends State<MediaView> {
     return Container(
       color: nc.primarySurface,
       child: Center(
-        child: Icon(Icons.image_outlined, size: 32, color: nc.textSecondary.withValues(alpha: 0.3)),
+        child: Icon(
+          Icons.image_outlined,
+          size: 32,
+          color: nc.textSecondary.withValues(alpha: 0.3),
+        ),
       ),
     );
   }
@@ -159,7 +210,10 @@ class _MediaViewState extends State<MediaView> {
         title: const Text('删除'),
         content: const Text('确定要删除这个媒体文件吗？'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
@@ -190,10 +244,12 @@ class _MediaDetail extends StatelessWidget {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Text(item.prompt,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 14)),
+        title: Text(
+          item.prompt,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 14),
+        ),
       ),
       body: Center(
         child: file.existsSync()
@@ -212,9 +268,21 @@ class _MediaDetail extends StatelessWidget {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.play_circle_outline_rounded, size: 64, color: nc.textSecondary.withValues(alpha: 0.5)),
+                                Icon(
+                                  Icons.play_circle_outline_rounded,
+                                  size: 64,
+                                  color: nc.textSecondary.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                ),
                                 const SizedBox(height: 12),
-                                Text('视频文件', style: TextStyle(color: nc.textSecondary, fontSize: 14)),
+                                Text(
+                                  '视频文件',
+                                  style: TextStyle(
+                                    color: nc.textSecondary,
+                                    fontSize: 14,
+                                  ),
+                                ),
                               ],
                             ),
                           ),

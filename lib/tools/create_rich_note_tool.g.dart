@@ -4,5 +4,4 @@
 /// Tool description for `create_rich_note_tool`.
 const String createRichNoteToolDescription = r'''
 仅当用户明确要求笔记中包含图片、或需要图文并茂的笔记时才调用本工具。提供标题、正文（Markdown）、以及需要配图的描述列表，工具会自动生图并嵌入笔记中保存。若想让图片出现在正文指定位置，请在 content 中插入占位符 {{IMAGE_0}}、{{IMAGE_1}} 等，它们会按顺序被替换为生成的配图。未使用的图片将追加到笔记末尾。
-'''
-;
+''';

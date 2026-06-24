@@ -45,9 +45,19 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                       decoration: BoxDecoration(
                         color: colors.surface,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 1))],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 6,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
                       ),
-                      child: Icon(Icons.menu_rounded, size: 18, color: colors.textPrimary),
+                      child: Icon(
+                        Icons.menu_rounded,
+                        size: 18,
+                        color: colors.textPrimary,
+                      ),
                     ),
                   ),
                   if (afterMenu != null) ...[
@@ -61,7 +71,10 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
               Center(
                 child: dropdownText != null
                     ? Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: colors.primarySurface,
                           border: Border.all(color: colors.divider, width: 0.5),
@@ -79,7 +92,11 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                               ),
                             ),
                             const SizedBox(width: 4),
-                            Icon(Icons.keyboard_arrow_down, size: 18, color: colors.textPrimary),
+                            Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 18,
+                              color: colors.textPrimary,
+                            ),
                           ],
                         ),
                       )

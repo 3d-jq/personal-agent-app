@@ -51,22 +51,62 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
               // ── Header ──
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
-                child: Text('DWeis', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: nc.textPrimary, height: 1.2)),
+                child: Text(
+                  'DWeis',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: nc.textPrimary,
+                    height: 1.2,
+                  ),
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                child: Text('生成图片、视频能力来自 Agnes-AI', style: TextStyle(fontSize: 11, color: nc.textSecondary.withValues(alpha: 0.5))),
+                child: Text(
+                  '生成图片、视频能力来自 Agnes-AI',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: nc.textSecondary.withValues(alpha: 0.5),
+                  ),
+                ),
               ),
 
               // ── Menu card ──
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: _Card(nc: nc, children: [
-                  _CardItem(icon: Icons.note_outlined, label: '笔记', nc: nc, onTap: () => _closeAnd(() => AppRouter.toNotes(context))),
-                  _CardItem(icon: Icons.photo_library_outlined, label: '图视', nc: nc, onTap: () => _closeAnd(() => AppRouter.toMedia(context))),
-                  _CardItem(icon: Icons.alarm_outlined, label: '定时任务', nc: nc, onTap: () => _closeAnd(() => AppRouter.toReminders(context))),
-                  _CardItem(icon: Icons.groups_outlined, label: 'Agent 群', nc: nc, isLast: true, onTap: () => _closeAnd(() => AppRouter.toGroupList(context))),
-                ]),
+                child: _Card(
+                  nc: nc,
+                  children: [
+                    _CardItem(
+                      icon: Icons.note_outlined,
+                      label: '笔记',
+                      nc: nc,
+                      onTap: () => _closeAnd(() => AppRouter.toNotes(context)),
+                    ),
+                    _CardItem(
+                      icon: Icons.photo_library_outlined,
+                      label: '图视',
+                      nc: nc,
+                      onTap: () => _closeAnd(() => AppRouter.toMedia(context)),
+                    ),
+                    _CardItem(
+                      icon: Icons.alarm_outlined,
+                      label: '定时任务',
+                      nc: nc,
+                      onTap: () =>
+                          _closeAnd(() => AppRouter.toReminders(context)),
+                    ),
+                    _CardItem(
+                      icon: Icons.groups_outlined,
+                      label: 'Agent 群',
+                      nc: nc,
+                      isLast: true,
+                      onTap: () =>
+                          _closeAnd(() => AppRouter.toGroupList(context)),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 20),
@@ -74,7 +114,14 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
               // ── Chat history ──
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text('最近', style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500)),
+                child: Text(
+                  '最近',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: nc.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
               Expanded(
                 child: Padding(
@@ -82,19 +129,35 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                   child: _Card(
                     nc: nc,
                     children: widget.sessions.isEmpty
-                        ? [Center(child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 20),
-                            child: Text('暂无对话', style: TextStyle(fontSize: 13, color: nc.textSecondary.withValues(alpha: 0.5))),
-                          ))]
+                        ? [
+                            Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 20,
+                                ),
+                                child: Text(
+                                  '暂无对话',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: nc.textSecondary.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ]
                         : List.generate(widget.sessions.length, (i) {
                             final s = widget.sessions[i];
                             return _CardItem(
                               label: s.title,
                               isActive: s.id == widget.currentSessionId,
-                              isCurrentLoading: widget.isLoading && s.id == widget.currentSessionId,
+                              isCurrentLoading:
+                                  widget.isLoading &&
+                                  s.id == widget.currentSessionId,
                               nc: nc,
                               isLast: i == widget.sessions.length - 1,
-                               onTap: () {
+                              onTap: () {
                                 HapticFeedback.lightImpact();
                                 Navigator.of(context).pop();
                                 widget.onSessionTap(s.id);
@@ -109,47 +172,77 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
               // ── Bottom bar ──
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
-                child: Row(children: [
-                  GestureDetector(
-                    onTap: () => _closeAnd(() => AppRouter.toSearch(context)),
-                    child: _Pill(icon: Icons.search_rounded, nc: nc),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => _closeAnd(() => AppRouter.toSettings(context)),
-                    child: _Pill(icon: Icons.person_rounded, nc: nc),
-                  ),
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () async {
-                      HapticFeedback.lightImpact();
-                      final text = await getIt<ExportService>().exportAllChatsAsJson();
-                      await getIt<ExportService>().shareText(text, 'dewis_chats.json');
-                    },
-                    child: _Pill(icon: Icons.file_download_outlined, nc: nc),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      Navigator.of(context).pop();
-                      widget.onNewChat();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: nc.surface,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 8, offset: const Offset(0, 1))],
-                      ),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.edit_outlined, size: 18, color: nc.textPrimary),
-                        const SizedBox(width: 6),
-                        Text('聊天', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: nc.textPrimary)),
-                      ]),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => _closeAnd(() => AppRouter.toSearch(context)),
+                      child: _Pill(icon: Icons.search_rounded, nc: nc),
                     ),
-                  ),
-                ]),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () =>
+                          _closeAnd(() => AppRouter.toSettings(context)),
+                      child: _Pill(icon: Icons.person_rounded, nc: nc),
+                    ),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () async {
+                        HapticFeedback.lightImpact();
+                        final text = await getIt<ExportService>()
+                            .exportAllChatsAsJson();
+                        await getIt<ExportService>().shareText(
+                          text,
+                          'dewis_chats.json',
+                        );
+                      },
+                      child: _Pill(icon: Icons.file_download_outlined, nc: nc),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.of(context).pop();
+                        widget.onNewChat();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: nc.surface,
+                          borderRadius: BorderRadius.circular(22),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 8,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.edit_outlined,
+                              size: 18,
+                              color: nc.textPrimary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '聊天',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: nc.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -165,8 +258,17 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
         title: const Text('删除对话'),
         content: Text('确定要删除「${s.title}」吗？'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
-          TextButton(onPressed: () { Navigator.pop(ctx); widget.onSessionDeleted(s.id); }, child: const Text('删除')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              widget.onSessionDeleted(s.id);
+            },
+            child: const Text('删除'),
+          ),
         ],
       ),
     );
@@ -186,7 +288,13 @@ class _Card extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(children: children),
     );
@@ -226,37 +334,51 @@ class _CardItem extends StatelessWidget {
         borderRadius: BorderRadius.zero,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(children: [
-            if (icon != null) ...[
-              Icon(icon, size: 20, color: nc.textPrimary),
-              const SizedBox(width: 14),
-            ],
-            Expanded(
-              child: Row(children: [
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: nc.textPrimary,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+          child: Row(
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 20, color: nc.textPrimary),
+                const SizedBox(width: 14),
+              ],
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: nc.textPrimary,
+                          fontWeight: isActive
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
                     ),
-                  ),
+                    if (isCurrentLoading)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: nc.textSecondary,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-                if (isCurrentLoading)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: SizedBox(
-                      width: 16, height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: nc.textSecondary),
-                    ),
-                  ),
-              ]),
-            ),
-            Icon(Icons.chevron_right, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
-          ]),
+              ),
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: nc.textSecondary.withValues(alpha: 0.5),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -273,11 +395,18 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 40, height: 40,
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Icon(icon, size: 18, color: nc.textPrimary),
     );

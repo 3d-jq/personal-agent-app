@@ -34,7 +34,8 @@ class ToolRegistry {
   }
 
   /// 注册一个延迟/按需发现工具（等价于 register(tool, discoverable: true)）。
-  void registerDiscoverable(AgentTool tool) => register(tool, discoverable: true);
+  void registerDiscoverable(AgentTool tool) =>
+      register(tool, discoverable: true);
 
   /// Unregister a tool
   void unregister(String name) {
@@ -44,7 +45,8 @@ class ToolRegistry {
   }
 
   /// Check if a tool is registered (preloaded or discoverable)
-  bool has(String name) => _tools.containsKey(name) || _discoverable.containsKey(name);
+  bool has(String name) =>
+      _tools.containsKey(name) || _discoverable.containsKey(name);
 
   /// Check if a tool is discoverable
   bool isDiscoverable(String name) => _discoverable.containsKey(name);
@@ -69,19 +71,26 @@ class ToolRegistry {
   List<Map<String, dynamic>> searchDiscoverable(String query) {
     final q = query.toLowerCase().trim();
     if (q.isEmpty) return [];
-    final tokens = q.split(RegExp(r'[\s,，]+')).where((s) => s.isNotEmpty).toList();
+    final tokens = q
+        .split(RegExp(r'[\s,，]+'))
+        .where((s) => s.isNotEmpty)
+        .toList();
     return _discoverable.values
         .where((t) {
           final name = t.name.toLowerCase();
           final desc = t.description.toLowerCase();
           if (name.contains(q) || desc.contains(q)) return true;
-          return tokens.any((token) => name.contains(token) || desc.contains(token));
+          return tokens.any(
+            (token) => name.contains(token) || desc.contains(token),
+          );
         })
-        .map((t) => {
-              'name': t.name,
-              'description': t.description,
-              'parameters': t.parameters,
-            })
+        .map(
+          (t) => {
+            'name': t.name,
+            'description': t.description,
+            'parameters': t.parameters,
+          },
+        )
         .toList();
   }
 
@@ -136,5 +145,4 @@ class ToolRegistry {
       );
     }
   }
-
 }

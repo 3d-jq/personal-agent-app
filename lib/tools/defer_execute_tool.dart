@@ -19,19 +19,16 @@ class DeferExecuteTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {
-          'tool_name': {
-            'type': 'string',
-            'description': '目标工具名称（tool_search 返回的 name）',
-          },
-          'arguments': {
-            'type': 'object',
-            'description': '目标工具所需的参数对象',
-          },
-        },
-        'required': ['tool_name', 'arguments'],
-      };
+    'type': 'object',
+    'properties': {
+      'tool_name': {
+        'type': 'string',
+        'description': '目标工具名称（tool_search 返回的 name）',
+      },
+      'arguments': {'type': 'object', 'description': '目标工具所需的参数对象'},
+    },
+    'required': ['tool_name', 'arguments'],
+  };
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {
@@ -43,8 +40,11 @@ class DeferExecuteTool extends AgentTool {
       return '错误: "$name" 不是可延迟调用的工具（请检查是否已通过 tool_search 发现，或该工具是否需要预加载直接调用）';
     }
 
-    final arguments = (args['arguments'] as Map?)?.cast<String, dynamic>() ?? {};
-    final result = await registry.execute(ToolCall(id: '', name: name, arguments: arguments));
+    final arguments =
+        (args['arguments'] as Map?)?.cast<String, dynamic>() ?? {};
+    final result = await registry.execute(
+      ToolCall(id: '', name: name, arguments: arguments),
+    );
     return result.content;
   }
 }

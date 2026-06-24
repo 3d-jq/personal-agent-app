@@ -9,5 +9,4 @@ const String skillManageToolDescription = r'''
 - deactivate: 停用一个技能
 - match: 根据用户输入自动匹配可能需要的技能
 激活技能后，对应的工具和 prompt 模板会自动加载到当前会话中。
-'''
-;
+''';

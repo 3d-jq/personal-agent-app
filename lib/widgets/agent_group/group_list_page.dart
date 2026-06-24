@@ -55,8 +55,16 @@ class _GroupListPageState extends State<GroupListPage> {
         title: const Text('删除群'),
         content: Text('确定删除「${g.name}」？'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('取消')),
-          TextButton(onPressed: () { Navigator.pop(c, true); }, child: const Text('删除')),
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(c, true);
+            },
+            child: const Text('删除'),
+          ),
         ],
       ),
     );
@@ -78,7 +86,14 @@ class _GroupListPageState extends State<GroupListPage> {
           icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('Agent 群', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        title: Text(
+          'Agent 群',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: nc.textPrimary,
+          ),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -99,8 +114,10 @@ class _GroupListPageState extends State<GroupListPage> {
                 children: [
                   Icon(Icons.groups_outlined, size: 56, color: nc.textDisabled),
                   const SizedBox(height: 12),
-                  Text('还没有群，点击右上角 + 建一个',
-                      style: TextStyle(color: nc.textSecondary)),
+                  Text(
+                    '还没有群，点击右上角 + 建一个',
+                    style: TextStyle(color: nc.textSecondary),
+                  ),
                 ],
               ),
             )
@@ -140,7 +157,14 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(title, style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500)),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          color: nc.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 }
@@ -155,7 +179,13 @@ class _RoundedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(children: children),
     );
@@ -195,11 +225,19 @@ class _GroupItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(group.name,
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: nc.textPrimary)),
+                    Text(
+                      group.name,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                        color: nc.textPrimary,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(
-                      members.isEmpty ? '空群' : members.map((a) => a.name).join('、'),
+                      members.isEmpty
+                          ? '空群'
+                          : members.map((a) => a.name).join('、'),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontSize: 12, color: nc.textSecondary),
@@ -207,7 +245,11 @@ class _GroupItem extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: nc.textSecondary.withValues(alpha: 0.5),
+              ),
             ],
           ),
         ),
@@ -252,8 +294,9 @@ class _MemberAvatars extends StatelessWidget {
                 border: Border.all(color: nc.surface, width: 2),
               ),
               child: Text(
-                  a.avatar.isNotEmpty ? a.avatar : a.name.characters.first,
-                  style: const TextStyle(fontSize: 13)),
+                a.avatar.isNotEmpty ? a.avatar : a.name.characters.first,
+                style: const TextStyle(fontSize: 13),
+              ),
             ),
           );
         }),

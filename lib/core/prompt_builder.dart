@@ -57,7 +57,9 @@ class PromptBuilder {
 
     buf.writeln('<rules>');
     buf.writeln('【核心规则】');
-    buf.writeln('1. 事实性/时效性/本地性/不确定的问题 → 必须先调工具搜索再回答（搜索优先 searxng_search，不理想可换 tavily_search）；常识性/确定性简单问题可直接回答。');
+    buf.writeln(
+      '1. 事实性/时效性/本地性/不确定的问题 → 必须先调工具搜索再回答（搜索优先 searxng_search，不理想可换 tavily_search）；常识性/确定性简单问题可直接回答。',
+    );
     buf.writeln('2. 天气/气温/下雨相关提问 → 必须调用 weather 工具，禁止猜测。');
     buf.writeln('3. 工具调用失败后：读错误信息 → 调整参数重试一次 → 仍失败则明确告知用户原因，禁止编造结果。');
     buf.writeln('4. 信息不足时先尝试工具补足；仍不足以决策、或涉及用户偏好/确认时，调用 ask_user 询问用户。');
@@ -69,12 +71,18 @@ class PromptBuilder {
     buf.writeln('   - 开始后续任务前：调用 task_plan update(task_id, in_progress)；');
     buf.writeln('   - 该任务所需的工具可与本次 update 并发执行；');
     buf.writeln('   - 工具全部返回后：调用 task_plan update(task_id, done)；');
-    buf.writeln('   - 每轮最多只能发起一次 task_plan 状态变更（create 自带的首任务 in_progress 除外）。');
-    buf.writeln('7. 所有任务都标记为 done/failed 后，必须先调用 task_plan verify 校验通过，才能输出最终答案/总结。');
+    buf.writeln(
+      '   - 每轮最多只能发起一次 task_plan 状态变更（create 自带的首任务 in_progress 除外）。',
+    );
+    buf.writeln(
+      '7. 所有任务都标记为 done/failed 后，必须先调用 task_plan verify 校验通过，才能输出最终答案/总结。',
+    );
     buf.writeln('8. 完成任务或响应用户请求后，必须简短总结你做了什么。');
     buf.writeln();
     buf.writeln('【记忆规则】');
-    buf.writeln('9. 用户明确说"记住"/"保存"时 → 使用 context_doc 更新 USER.md 或 MEMORY.md，只写入用户明确陈述的事实，禁止推断。');
+    buf.writeln(
+      '9. 用户明确说"记住"/"保存"时 → 使用 context_doc 更新 USER.md 或 MEMORY.md，只写入用户明确陈述的事实，禁止推断。',
+    );
     buf.writeln('10. 文档较短（< 500 字）时全量更新；文档较长（≥ 500 字）时优先用 append 追加。');
     buf.writeln();
     buf.writeln('【安全规则】');

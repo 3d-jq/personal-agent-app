@@ -11,7 +11,11 @@ import '../core/app_router.dart';
 
 /// Build inline content: split text by markdown image patterns,
 /// render text as MarkdownBody, and images as Image.network inline.
-List<Widget> buildInlineContent(String text, AgentColors nc, BuildContext context) {
+List<Widget> buildInlineContent(
+  String text,
+  AgentColors nc,
+  BuildContext context,
+) {
   final widgets = <Widget>[];
   final seenUrls = <String>{};
   final pattern = RegExp(r'!\[.*?\]\((https?://[^\s)]+|file://[^\s)]+)\)');
@@ -42,14 +46,20 @@ List<Widget> buildInlineContent(String text, AgentColors nc, BuildContext contex
 Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
   final isLocal = url.startsWith('file://');
   final filePath = isLocal ? url.replaceFirst('file://', '') : url;
-  final isVideo = filePath.endsWith('.mp4') || filePath.endsWith('.mov') || filePath.endsWith('.webm');
+  final isVideo =
+      filePath.endsWith('.mp4') ||
+      filePath.endsWith('.mov') ||
+      filePath.endsWith('.webm');
   final heroTag = 'ai_media_${url.hashCode}';
 
   if (isVideo) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: PressableScale(
-        onTap: () => AppRouter.push(context, _FullscreenVideo(filePath: filePath, heroTag: heroTag)),
+        onTap: () => AppRouter.push(
+          context,
+          _FullscreenVideo(filePath: filePath, heroTag: heroTag),
+        ),
         child: Hero(
           tag: heroTag,
           child: AspectRatio(
@@ -63,16 +73,34 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                 alignment: Alignment.center,
                 children: [
                   Container(
-                    width: 56, height: 56,
-                    decoration: const BoxDecoration(color: Color(0xAA000000), shape: BoxShape.circle),
-                    child: const Icon(Icons.play_arrow_rounded, size: 30, color: Colors.white),
+                    width: 56,
+                    height: 56,
+                    decoration: const BoxDecoration(
+                      color: Color(0xAA000000),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.play_arrow_rounded,
+                      size: 30,
+                      color: Colors.white,
+                    ),
                   ),
                   Positioned(
-                    bottom: 8, right: 8,
+                    bottom: 8,
+                    right: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: const Color(0xAA000000), borderRadius: BorderRadius.circular(6)),
-                      child: const Text('视频', style: TextStyle(fontSize: 11, color: Colors.white70)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xAA000000),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        '视频',
+                        style: TextStyle(fontSize: 11, color: Colors.white70),
+                      ),
                     ),
                   ),
                 ],
@@ -87,20 +115,43 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 6),
     child: PressableScale(
-      onTap: () => AppRouter.push(context, _FullscreenImage(url: url, heroTag: heroTag)),
+      onTap: () =>
+          AppRouter.push(context, _FullscreenImage(url: url, heroTag: heroTag)),
       child: Hero(
         tag: heroTag,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: isLocal
-              ? Image.file(File(filePath), fit: BoxFit.contain, width: double.infinity,
+              ? Image.file(
+                  File(filePath),
+                  fit: BoxFit.contain,
+                  width: double.infinity,
                   errorBuilder: (ctx, err, stack) => Container(
-                    height: 160, decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(12)),
-                    child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.broken_image_outlined, size: 32, color: nc.textSecondary.withValues(alpha: 0.3)),
-                      const SizedBox(height: 8),
-                      Text('加载失败', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
-                    ])),
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: nc.primarySurface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.broken_image_outlined,
+                            size: 32,
+                            color: nc.textSecondary.withValues(alpha: 0.3),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '加载失败',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: nc.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 )
               : CachedNetworkImage(
@@ -110,24 +161,61 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                   memCacheWidth: 1080,
                   placeholder: (ctx, url) => Container(
                     height: 200,
-                    decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(
+                      color: nc.primarySurface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.image_outlined, size: 28, color: nc.textSecondary.withValues(alpha: 0.25)),
-                        const SizedBox(height: 6),
-                        Text('加载中…', style: TextStyle(fontSize: 13, color: nc.textSecondary.withValues(alpha: 0.4), fontWeight: FontWeight.w500)),
-                      ])),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.image_outlined,
+                              size: 28,
+                              color: nc.textSecondary.withValues(alpha: 0.25),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '加载中…',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: nc.textSecondary.withValues(alpha: 0.4),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   errorWidget: (ctx, url, error) => Container(
                     height: 160,
-                    decoration: BoxDecoration(color: nc.primarySurface, borderRadius: BorderRadius.circular(12)),
-                    child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.broken_image_outlined, size: 32, color: nc.textSecondary.withValues(alpha: 0.3)),
-                      const SizedBox(height: 8),
-                      Text('加载失败', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
-                    ])),
+                    decoration: BoxDecoration(
+                      color: nc.primarySurface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.broken_image_outlined,
+                            size: 32,
+                            color: nc.textSecondary.withValues(alpha: 0.3),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '加载失败',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: nc.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
         ),
@@ -142,26 +230,84 @@ Widget mdBlock(String text, AgentColors nc, [BuildContext? context]) {
     selectable: true,
     styleSheet: MarkdownStyleSheet(
       p: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.6),
-      h1: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: nc.textPrimary, height: 1.4),
-      h2: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: nc.textPrimary, height: 1.4),
-      h3: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: nc.textPrimary, height: 1.4),
-      h4: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: nc.textPrimary, height: 1.4),
-      h5: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: nc.textPrimary, height: 1.4),
-      h6: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: nc.textPrimary, height: 1.4),
-      a: TextStyle(fontSize: 15, color: nc.success, decoration: TextDecoration.underline),
-      em: TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: nc.textPrimary),
-      strong: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: nc.textPrimary),
-      code: TextStyle(fontSize: 13, color: const Color(0xFFEB5757), fontFamily: 'monospace'),
-      codeblockDecoration: BoxDecoration(color: const Color(0xFF1E1E1E), borderRadius: BorderRadius.circular(10)),
+      h1: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: nc.textPrimary,
+        height: 1.4,
+      ),
+      h2: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+        color: nc.textPrimary,
+        height: 1.4,
+      ),
+      h3: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        color: nc.textPrimary,
+        height: 1.4,
+      ),
+      h4: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+        color: nc.textPrimary,
+        height: 1.4,
+      ),
+      h5: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: nc.textPrimary,
+        height: 1.4,
+      ),
+      h6: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: nc.textPrimary,
+        height: 1.4,
+      ),
+      a: TextStyle(
+        fontSize: 15,
+        color: nc.success,
+        decoration: TextDecoration.underline,
+      ),
+      em: TextStyle(
+        fontSize: 15,
+        fontStyle: FontStyle.italic,
+        color: nc.textPrimary,
+      ),
+      strong: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+        color: nc.textPrimary,
+      ),
+      code: TextStyle(
+        fontSize: 13,
+        color: const Color(0xFFEB5757),
+        fontFamily: 'monospace',
+      ),
+      codeblockDecoration: BoxDecoration(
+        color: const Color(0xFF1E1E1E),
+        borderRadius: BorderRadius.circular(10),
+      ),
       codeblockPadding: const EdgeInsets.all(14),
       blockquoteDecoration: BoxDecoration(
         border: Border(left: BorderSide(color: nc.success, width: 3)),
         color: nc.success.withValues(alpha: 0.06),
       ),
-      blockquotePadding: const EdgeInsets.only(left: 14, right: 14, top: 8, bottom: 8),
+      blockquotePadding: const EdgeInsets.only(
+        left: 14,
+        right: 14,
+        top: 8,
+        bottom: 8,
+      ),
       listBullet: TextStyle(fontSize: 15, color: nc.textPrimary),
       tableBorder: TableBorder.all(color: nc.divider),
-      tableHead: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: nc.textPrimary),
+      tableHead: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: nc.textPrimary,
+      ),
       tableBody: TextStyle(fontSize: 14, color: nc.textPrimary),
       horizontalRuleDecoration: BoxDecoration(
         border: Border(top: BorderSide(color: nc.divider, width: 0.5)),
@@ -195,39 +341,64 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: const Color(0xFF333333), width: 0.5)),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: const Color(0xFF333333), width: 0.5),
+              ),
             ),
-            child: Row(children: [
-              Icon(Icons.code, size: 13, color: Colors.white54),
-              const SizedBox(width: 6),
-              Text(
-                element.attributes['class']?.toString().replaceAll('language-', '') ?? 'code',
-                style: TextStyle(fontSize: 11, color: Colors.white54),
-              ),
-              const Spacer(),
-              GestureDetector(
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: code));
-                  HapticFeedback.lightImpact();
-                  if (context != null) {
-                    ScaffoldMessenger.of(context!).showSnackBar(
-                      const SnackBar(content: Text('已复制到剪贴板'), duration: Duration(seconds: 1)),
-                    );
-                  }
-                },
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.copy, size: 13, color: Colors.white54),
-                  const SizedBox(width: 4),
-                  Text('复制', style: TextStyle(fontSize: 11, color: Colors.white54)),
-                ]),
-              ),
-            ]),
+            child: Row(
+              children: [
+                Icon(Icons.code, size: 13, color: Colors.white54),
+                const SizedBox(width: 6),
+                Text(
+                  element.attributes['class']?.toString().replaceAll(
+                        'language-',
+                        '',
+                      ) ??
+                      'code',
+                  style: TextStyle(fontSize: 11, color: Colors.white54),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () {
+                    Clipboard.setData(ClipboardData(text: code));
+                    HapticFeedback.lightImpact();
+                    if (context != null) {
+                      ScaffoldMessenger.of(context!).showSnackBar(
+                        const SnackBar(
+                          content: Text('已复制到剪贴板'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    }
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.copy, size: 13, color: Colors.white54),
+                      const SizedBox(width: 4),
+                      Text(
+                        '复制',
+                        style: TextStyle(fontSize: 11, color: Colors.white54),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.all(14),
-            child: Text(code, style: const TextStyle(fontSize: 13, color: Color(0xFFD4D4D4), fontFamily: 'monospace', height: 1.5)),
+            child: Text(
+              code,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFFD4D4D4),
+                fontFamily: 'monospace',
+                height: 1.5,
+              ),
+            ),
           ),
         ],
       ),
@@ -254,26 +425,34 @@ class _FullscreenImageState extends State<_FullscreenImage> {
     try {
       Uint8List bytes;
       if (widget.url.startsWith('file://')) {
-        bytes = await File(widget.url.replaceFirst('file://', '')).readAsBytes();
+        bytes = await File(
+          widget.url.replaceFirst('file://', ''),
+        ).readAsBytes();
       } else {
-        final response = await Dio().get(widget.url, options: Options(responseType: ResponseType.bytes));
+        final response = await Dio().get(
+          widget.url,
+          options: Options(responseType: ResponseType.bytes),
+        );
         bytes = response.data;
       }
       // Save to gallery
-      await const MethodChannel('com.example/save_to_gallery').invokeMethod('saveImage', {
-        'bytes': bytes,
-        'name': 'agnes_${DateTime.now().millisecondsSinceEpoch}',
-      });
+      await const MethodChannel('com.example/save_to_gallery').invokeMethod(
+        'saveImage',
+        {
+          'bytes': bytes,
+          'name': 'agnes_${DateTime.now().millisecondsSinceEpoch}',
+        },
+      );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已保存到相册')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('已保存到相册')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -283,7 +462,10 @@ class _FullscreenImageState extends State<_FullscreenImage> {
   Widget _buildImage() {
     final isLocal = widget.url.startsWith('file://');
     if (isLocal) {
-      return Image.file(File(widget.url.replaceFirst('file://', '')), fit: BoxFit.contain);
+      return Image.file(
+        File(widget.url.replaceFirst('file://', '')),
+        fit: BoxFit.contain,
+      );
     }
     return Image.network(
       widget.url,
@@ -300,11 +482,14 @@ class _FullscreenImageState extends State<_FullscreenImage> {
         );
       },
       errorBuilder: (ctx, err, stack) => const Center(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.broken_image, size: 48, color: Colors.white38),
-          SizedBox(height: 12),
-          Text('加载失败', style: TextStyle(color: Colors.white38)),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.broken_image, size: 48, color: Colors.white38),
+            SizedBox(height: 12),
+            Text('加载失败', style: TextStyle(color: Colors.white38)),
+          ],
+        ),
       ),
     );
   }
@@ -321,7 +506,14 @@ class _FullscreenImageState extends State<_FullscreenImage> {
           IconButton(
             onPressed: _saving ? null : _save,
             icon: _saving
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                 : const Icon(Icons.download_rounded),
             tooltip: '保存',
           ),
@@ -330,7 +522,9 @@ class _FullscreenImageState extends State<_FullscreenImage> {
       body: InteractiveViewer(
         minScale: 0.5,
         maxScale: 4.0,
-        child: Center(child: Hero(tag: widget.heroTag, child: _buildImage())),
+        child: Center(
+          child: Hero(tag: widget.heroTag, child: _buildImage()),
+        ),
       ),
     );
   }
@@ -354,20 +548,22 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
     setState(() => _saving = true);
     try {
       final bytes = await File(widget.filePath).readAsBytes();
-      await const MethodChannel('com.example/save_to_gallery').invokeMethod('saveVideo', {
+      await const MethodChannel(
+        'com.example/save_to_gallery',
+      ).invokeMethod('saveVideo', {
         'bytes': bytes,
         'name': 'dweis_video_${DateTime.now().millisecondsSinceEpoch}.mp4',
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已保存到相册')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('已保存到相册')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -386,7 +582,14 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
           IconButton(
             onPressed: _saving ? null : _save,
             icon: _saving
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
                 : const Icon(Icons.download_rounded),
             tooltip: '保存',
           ),
@@ -401,9 +604,16 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.videocam_outlined, size: 64, color: Colors.white38),
+                    Icon(
+                      Icons.videocam_outlined,
+                      size: 64,
+                      color: Colors.white38,
+                    ),
                     const SizedBox(height: 16),
-                    Text('视频文件', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                    Text(
+                      '视频文件',
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       widget.filePath.split(Platform.pathSeparator).last,
@@ -419,24 +629,40 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
               child: GestureDetector(
                 onTap: () async {
                   try {
-                    await MethodChannel('com.example/open_file').invokeMethod('openFile', {'path': widget.filePath});
+                    await MethodChannel(
+                      'com.example/open_file',
+                    ).invokeMethod('openFile', {'path': widget.filePath});
                   } catch (e) {
-                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('无法播放: $e\n请安装视频播放器应用')),
-                    );
+                    if (mounted)
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('无法播放: $e\n请安装视频播放器应用')),
+                      );
                   }
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: const [
-                    Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
-                    SizedBox(width: 8),
-                    Text('用播放器打开', style: TextStyle(color: Colors.white, fontSize: 15)),
-                  ]),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(
+                        Icons.play_arrow_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        '用播放器打开',
+                        style: TextStyle(color: Colors.white, fontSize: 15),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

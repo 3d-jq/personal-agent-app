@@ -28,10 +28,9 @@ class AgentStorage {
         return _cache!;
       }
       final list = jsonDecode(await file.readAsString()) as List;
-      _cache = list
-          .map((j) => Agent.fromJson(j as Map<String, dynamic>))
-          .toList()
-        ..sort((a, b) => a.name.compareTo(b.name));
+      _cache =
+          list.map((j) => Agent.fromJson(j as Map<String, dynamic>)).toList()
+            ..sort((a, b) => a.name.compareTo(b.name));
       await _migrate();
       return _cache!;
     } catch (_) {
@@ -64,7 +63,8 @@ class AgentStorage {
       final file = await _file();
       if (await file.exists()) {
         final backup = File(
-            '${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}');
+          '${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}',
+        );
         await file.rename(backup.path);
       }
     } catch (_) {}
@@ -99,7 +99,13 @@ class AgentStorage {
         systemPrompt: await _loadPrompt('pm.md'),
         vendorId: '',
         model: '',
-        allowedToolNames: const ['searxng_search', 'tavily_search', 'web_fetch', 'tool_search', 'defer_execute_tool'],
+        allowedToolNames: const [
+          'searxng_search',
+          'tavily_search',
+          'web_fetch',
+          'tool_search',
+          'defer_execute_tool',
+        ],
       ),
       Agent(
         id: const Uuid().v4(),
@@ -109,7 +115,13 @@ class AgentStorage {
         systemPrompt: await _loadPrompt('dev.md'),
         vendorId: '',
         model: '',
-        allowedToolNames: const ['searxng_search', 'tavily_search', 'web_fetch', 'tool_search', 'defer_execute_tool'],
+        allowedToolNames: const [
+          'searxng_search',
+          'tavily_search',
+          'web_fetch',
+          'tool_search',
+          'defer_execute_tool',
+        ],
       ),
       Agent(
         id: const Uuid().v4(),
@@ -119,7 +131,13 @@ class AgentStorage {
         systemPrompt: await _loadPrompt('food.md'),
         vendorId: '',
         model: '',
-        allowedToolNames: const ['searxng_search', 'tavily_search', 'web_fetch', 'tool_search', 'defer_execute_tool'],
+        allowedToolNames: const [
+          'searxng_search',
+          'tavily_search',
+          'web_fetch',
+          'tool_search',
+          'defer_execute_tool',
+        ],
       ),
       Agent(
         id: const Uuid().v4(),
@@ -129,7 +147,13 @@ class AgentStorage {
         systemPrompt: await _loadPrompt('travel.md'),
         vendorId: '',
         model: '',
-        allowedToolNames: const ['searxng_search', 'tavily_search', 'web_fetch', 'tool_search', 'defer_execute_tool'],
+        allowedToolNames: const [
+          'searxng_search',
+          'tavily_search',
+          'web_fetch',
+          'tool_search',
+          'defer_execute_tool',
+        ],
       ),
       Agent(
         id: const Uuid().v4(),
@@ -139,7 +163,13 @@ class AgentStorage {
         systemPrompt: await _loadPrompt('zodiac.md'),
         vendorId: '',
         model: '',
-        allowedToolNames: const ['searxng_search', 'tavily_search', 'web_fetch', 'tool_search', 'defer_execute_tool'],
+        allowedToolNames: const [
+          'searxng_search',
+          'tavily_search',
+          'web_fetch',
+          'tool_search',
+          'defer_execute_tool',
+        ],
       ),
       Agent(
         id: const Uuid().v4(),
@@ -213,8 +243,7 @@ class AgentStorage {
   Future<void> _saveAll(List<Agent> all) async {
     _cache = all;
     final file = await _file();
-    await file.writeAsString(
-        jsonEncode(all.map((e) => e.toJson()).toList()));
+    await file.writeAsString(jsonEncode(all.map((e) => e.toJson()).toList()));
   }
 
   void clearCache() => _cache = null;

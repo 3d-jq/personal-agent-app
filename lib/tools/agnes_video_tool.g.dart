@@ -4,5 +4,4 @@
 /// Tool description for `agnes_video_tool`.
 const String agnesVideoToolDescription = r'''
 使用 AI 生成视频。支持根据文本描述生成视频（文生视频），也支持基于图片生成视频（图生视频）。当用户要求生成、创建视频或动画时使用此工具。
-'''
-;
+''';

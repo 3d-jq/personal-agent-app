@@ -20,9 +20,7 @@ Future<void> main() async {
     await AppConfig.init();
     await getIt<ConnectivityService>().init();
     SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-      ),
+      const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
     );
     runApp(const App());
   }, ErrorHandler.logError);

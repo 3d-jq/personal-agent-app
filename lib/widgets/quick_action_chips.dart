@@ -5,11 +5,7 @@ class QuickActionChips extends StatelessWidget {
   final List<String> actions;
   final ValueChanged<String>? onTap;
 
-  const QuickActionChips({
-    super.key,
-    required this.actions,
-    this.onTap,
-  });
+  const QuickActionChips({super.key, required this.actions, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -51,10 +47,7 @@ class _Chip extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: TextStyle(
-          fontSize: 14,
-          color: colors.textPrimary,
-        ),
+        style: TextStyle(fontSize: 14, color: colors.textPrimary),
       ),
     );
   }

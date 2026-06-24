@@ -8,23 +8,26 @@ class WebFetchTool extends AgentTool {
   static const String _userAgent =
       'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
 
-  final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 25),
-    followRedirects: true,
-    maxRedirects: 5,
-    headers: {
-      'User-Agent': _userAgent,
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Sec-Fetch-Dest': 'document',
-      'Sec-Fetch-Mode': 'navigate',
-      'Sec-Fetch-Site': 'none',
-      'Upgrade-Insecure-Requests': '1',
-    },
-    responseType: ResponseType.plain,
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 25),
+      followRedirects: true,
+      maxRedirects: 5,
+      headers: {
+        'User-Agent': _userAgent,
+        'Accept':
+            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Upgrade-Insecure-Requests': '1',
+      },
+      responseType: ResponseType.plain,
+    ),
+  );
 
   @override
   String get name => 'web_fetch';
@@ -36,10 +39,7 @@ class WebFetchTool extends AgentTool {
   Map<String, dynamic> get parameters => {
     'type': 'object',
     'properties': {
-      'url': {
-        'type': 'string',
-        'description': '要抓取的网页URL',
-      },
+      'url': {'type': 'string', 'description': '要抓取的网页URL'},
       'max_length': {
         'type': 'integer',
         'description': '返回内容的最大长度（字符数），默认 6000',
@@ -95,12 +95,14 @@ class WebFetchTool extends AgentTool {
     final document = html_parser.parse(html);
 
     // 移除噪声元素
-    document.querySelectorAll(
-      'script, style, noscript, iframe, svg, canvas, nav, footer, header, aside, '
-      '[role="navigation"], [role="banner"], [role="contentinfo"], [role="complementary"], '
-      '.sidebar, .nav, .footer, .header, .advertisement, .ad, .ads, .comments, .comment, '
-      '.social-share, .related-posts, .recommended, #cookie-banner, #gdpr-banner'
-    ).forEach((e) => e.remove());
+    document
+        .querySelectorAll(
+          'script, style, noscript, iframe, svg, canvas, nav, footer, header, aside, '
+          '[role="navigation"], [role="banner"], [role="contentinfo"], [role="complementary"], '
+          '.sidebar, .nav, .footer, .header, .advertisement, .ad, .ads, .comments, .comment, '
+          '.social-share, .related-posts, .recommended, #cookie-banner, #gdpr-banner',
+        )
+        .forEach((e) => e.remove());
 
     // 1. 优先从语义标签和常见正文容器提取
     final candidates = [
@@ -130,7 +132,12 @@ class WebFetchTool extends AgentTool {
     }
 
     final title = document.querySelector('title')?.text.trim() ?? '';
-    final metaDesc = document.querySelector('meta[name="description"]')?.attributes['content']?.trim() ?? '';
+    final metaDesc =
+        document
+            .querySelector('meta[name="description"]')
+            ?.attributes['content']
+            ?.trim() ??
+        '';
     final h1 = document.querySelector('h1')?.text.trim() ?? '';
 
     // 格式化文本
@@ -193,12 +200,18 @@ class WebFetchTool extends AgentTool {
       if (text.length < 40) continue;
       final parent = p.parent;
       if (parent == null) continue;
-      scores.update(parent, (value) => value + text.length, ifAbsent: () => text.length);
+      scores.update(
+        parent,
+        (value) => value + text.length,
+        ifAbsent: () => text.length,
+      );
     }
 
     if (scores.isEmpty) return body.text;
 
-    final bestEntry = scores.entries.reduce((a, b) => a.value > b.value ? a : b);
+    final bestEntry = scores.entries.reduce(
+      (a, b) => a.value > b.value ? a : b,
+    );
     return _nodeText(bestEntry.key);
   }
 

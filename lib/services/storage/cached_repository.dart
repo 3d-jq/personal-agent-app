@@ -13,7 +13,7 @@ import 'local_data_source.dart';
 /// 所有写操作（[saveAll] / [mutate]）都会序列化执行，避免“读-改-写”竞态。
 class CachedRepository<T> extends ChangeNotifier {
   CachedRepository({required LocalDataSource<T> dataSource})
-      : _dataSource = dataSource;
+    : _dataSource = dataSource;
 
   final LocalDataSource<T> _dataSource;
   final AsyncLock _lock = AsyncLock();

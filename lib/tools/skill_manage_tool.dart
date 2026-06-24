@@ -16,24 +16,21 @@ class SkillManageTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {
-          'action': {
-            'type': 'string',
-            'enum': ['list', 'activate', 'deactivate', 'match'],
-            'description': '操作类型',
-          },
-          'skill_id': {
-            'type': 'string',
-            'description': '技能ID（activate/deactivate 时必填）',
-          },
-          'text': {
-            'type': 'string',
-            'description': '用户输入文本（match 时使用）',
-          },
-        },
-        'required': ['action'],
-      };
+    'type': 'object',
+    'properties': {
+      'action': {
+        'type': 'string',
+        'enum': ['list', 'activate', 'deactivate', 'match'],
+        'description': '操作类型',
+      },
+      'skill_id': {
+        'type': 'string',
+        'description': '技能ID（activate/deactivate 时必填）',
+      },
+      'text': {'type': 'string', 'description': '用户输入文本（match 时使用）'},
+    },
+    'required': ['action'],
+  };
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {

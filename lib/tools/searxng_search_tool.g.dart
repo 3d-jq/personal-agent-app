@@ -4,5 +4,4 @@
 /// Tool description for `searxng_search_tool`.
 const String searxngSearchToolDescription = r'''
 通过自托管 SearXNG 搜索互联网。适合一般查询；如果结果不理想，可换用 tavily_search。
-'''
-;
+''';

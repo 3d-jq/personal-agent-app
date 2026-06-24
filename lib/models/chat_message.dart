@@ -36,9 +36,9 @@ class ChatMessage extends ChangeNotifier {
     this.attachmentPath,
     this.attachmentType,
     this.toolInteractions,
-  })  : _text = text,
-        _isStreaming = isStreaming,
-        _steps = steps;
+  }) : _text = text,
+       _isStreaming = isStreaming,
+       _steps = steps;
 
   String get text => _text;
   set text(String value) {
@@ -62,7 +62,7 @@ class ChatMessage extends ChangeNotifier {
     notifyListeners();
   }
 
- /// 正文已天然干净（工具状态走独立事件），无需再剥离标记。
+  /// 正文已天然干净（工具状态走独立事件），无需再剥离标记。
   String get cleanText => _text;
 
   Map<String, dynamic> toJson() => {
@@ -89,7 +89,8 @@ class ChatMessage extends ChangeNotifier {
       mentions: (json['mentions'] as List?)?.cast<String>() ?? const [],
       attachmentPath: json['attachmentPath'] as String?,
       attachmentType: json['attachmentType'] as String?,
-      toolInteractions: (json['toolInteractions'] as List?)?.cast<Map<String, dynamic>>(),
+      toolInteractions: (json['toolInteractions'] as List?)
+          ?.cast<Map<String, dynamic>>(),
     );
   }
 }
@@ -104,6 +105,7 @@ class TimelineStep {
   String label;
   final TimelineStepType type;
   TimelineStepStatus status;
+
   /// 步骤详情：思考阶段可放简要描述，工具阶段可放参数摘要或错误信息。
   /// 在 [TimelineView] 中展示在 label 下面单独一行。
   String? detail;
@@ -125,8 +127,12 @@ class TimelineStep {
   factory TimelineStep.fromJson(Map<String, dynamic> json) {
     return TimelineStep(
       label: json['label'] as String? ?? '',
-      type: TimelineStepType.values.byName(json['type'] as String? ?? 'thinking'),
-      status: TimelineStepStatus.values.byName(json['status'] as String? ?? 'running'),
+      type: TimelineStepType.values.byName(
+        json['type'] as String? ?? 'thinking',
+      ),
+      status: TimelineStepStatus.values.byName(
+        json['status'] as String? ?? 'running',
+      ),
       detail: json['detail'] as String?,
     );
   }

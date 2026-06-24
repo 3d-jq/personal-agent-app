@@ -13,10 +13,7 @@ class WeatherTool extends AgentTool {
   Map<String, dynamic> get parameters => {
     'type': 'object',
     'properties': {
-      'city': {
-        'type': 'string',
-        'description': '城市名称，例如: "北京", "上海", "广州"',
-      },
+      'city': {'type': 'string', 'description': '城市名称，例如: "北京", "上海", "广州"'},
       'days': {
         'type': 'integer',
         'description': '查询未来第几天。0 表示今天（当前天气），1 表示明天，最大 3。默认 0',
@@ -33,10 +30,12 @@ class WeatherTool extends AgentTool {
 
   String? apiKey;
 
-  final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 15),
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+    ),
+  );
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {
@@ -77,8 +76,8 @@ class WeatherTool extends AgentTool {
       final reason = code == null
           ? '网络连接失败'
           : code >= 500
-              ? '高德服务异常'
-              : '请求异常';
+          ? '高德服务异常'
+          : '请求异常';
       return '天气服务不可用：$reason (${code ?? '无响应'})';
     } catch (e) {
       return '天气查询错误: $e';
@@ -100,7 +99,8 @@ class WeatherTool extends AgentTool {
   }
 
   String _formatCurrent(Map<String, dynamic> data, String city, String units) {
-    final lives = (data['lives'] as List<dynamic>?)?.cast<Map<String, dynamic>>();
+    final lives = (data['lives'] as List<dynamic>?)
+        ?.cast<Map<String, dynamic>>();
     if (lives == null || lives.isEmpty) {
       return '未找到 $city 的实时天气数据';
     }
@@ -114,12 +114,19 @@ class WeatherTool extends AgentTool {
 发布时间: ${live['reporttime']}''';
   }
 
-  String _formatForecast(Map<String, dynamic> data, String city, String units, int days) {
-    final forecasts = (data['forecasts'] as List<dynamic>?)?.cast<Map<String, dynamic>>();
+  String _formatForecast(
+    Map<String, dynamic> data,
+    String city,
+    String units,
+    int days,
+  ) {
+    final forecasts = (data['forecasts'] as List<dynamic>?)
+        ?.cast<Map<String, dynamic>>();
     if (forecasts == null || forecasts.isEmpty) {
       return '未找到 $city 的预报数据';
     }
-    final casts = (forecasts.first['casts'] as List<dynamic>?)?.cast<Map<String, dynamic>>();
+    final casts = (forecasts.first['casts'] as List<dynamic>?)
+        ?.cast<Map<String, dynamic>>();
     if (casts == null || casts.isEmpty) {
       return '未找到 $city 的预报数据';
     }
@@ -127,7 +134,11 @@ class WeatherTool extends AgentTool {
       return '仅支持未来 ${casts.length - 1} 天的预报';
     }
     final day = casts[days];
-    final label = days == 1 ? '明天' : days == 2 ? '后天' : '未来第 $days 天';
+    final label = days == 1
+        ? '明天'
+        : days == 2
+        ? '后天'
+        : '未来第 $days 天';
     return '''$city - ${day['date']} $label
 天气: 白天${day['dayweather']} / 夜间${day['nightweather']}
 温度: ${_formatTemp(day['nighttemp']?.toString(), units)} ~ ${_formatTemp(day['daytemp']?.toString(), units)}

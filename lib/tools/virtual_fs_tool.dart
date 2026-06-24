@@ -25,24 +25,18 @@ class VirtualFSTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {
-          'action': {
-            'type': 'string',
-            'enum': ['ls', 'read', 'write', 'mkdir', 'rm', 'walk'],
-            'description': '操作类型',
-          },
-          'path': {
-            'type': 'string',
-            'description': '文件或目录路径，如 /memory/notes.md',
-          },
-          'content': {
-            'type': 'string',
-            'description': 'write 操作时的文件内容',
-          },
-        },
-        'required': ['action', 'path'],
-      };
+    'type': 'object',
+    'properties': {
+      'action': {
+        'type': 'string',
+        'enum': ['ls', 'read', 'write', 'mkdir', 'rm', 'walk'],
+        'description': '操作类型',
+      },
+      'path': {'type': 'string', 'description': '文件或目录路径，如 /memory/notes.md'},
+      'content': {'type': 'string', 'description': 'write 操作时的文件内容'},
+    },
+    'required': ['action', 'path'],
+  };
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {
@@ -62,7 +56,9 @@ class VirtualFSTool extends AgentTool {
           if (nodes.isEmpty) return '目录为空。';
           final buffer = StringBuffer('【$path】\n');
           for (final node in nodes) {
-            buffer.writeln('  ${node.type == FSNodeType.directory ? '📁 ' : '📄 '}${node.toDisplayString()}');
+            buffer.writeln(
+              '  ${node.type == FSNodeType.directory ? '📁 ' : '📄 '}${node.toDisplayString()}',
+            );
           }
           return buffer.toString();
 

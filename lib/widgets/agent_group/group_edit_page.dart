@@ -40,9 +40,9 @@ class _GroupEditPageState extends State<GroupEditPage> {
 
   void _save() {
     if (_name.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请填写群名')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请填写群名')));
       return;
     }
     // 计算成员变更
@@ -81,11 +81,20 @@ class _GroupEditPageState extends State<GroupEditPage> {
           icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(widget.existing == null ? '新建群' : '编辑群',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: nc.textPrimary)),
+        title: Text(
+          widget.existing == null ? '新建群' : '编辑群',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: nc.textPrimary,
+          ),
+        ),
         centerTitle: true,
         actions: [
-          TextButton(onPressed: _save, child: Text('保存', style: TextStyle(color: nc.success))),
+          TextButton(
+            onPressed: _save,
+            child: Text('保存', style: TextStyle(color: nc.success)),
+          ),
         ],
       ),
       body: ListView(
@@ -104,8 +113,10 @@ class _GroupEditPageState extends State<GroupEditPage> {
           if (_agents.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text('Agent 库是空的，先去 Agent 库建一个',
-                  style: TextStyle(color: nc.textSecondary)),
+              child: Text(
+                'Agent 库是空的，先去 Agent 库建一个',
+                style: TextStyle(color: nc.textSecondary),
+              ),
             )
           else
             _RoundedCard(
@@ -147,7 +158,14 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(title, style: TextStyle(fontSize: 13, color: nc.textSecondary, fontWeight: FontWeight.w500)),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 13,
+          color: nc.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 }
@@ -162,7 +180,13 @@ class _RoundedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 1))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(children: children),
     );
@@ -189,7 +213,10 @@ class _FieldRow extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontSize: 12, color: nc.textSecondary)),
+            Text(
+              label,
+              style: TextStyle(fontSize: 12, color: nc.textSecondary),
+            ),
             const SizedBox(height: 6),
             TextField(
               controller: ctrl,
@@ -201,7 +228,10 @@ class _FieldRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
             ),
           ],
@@ -246,8 +276,11 @@ class _AgentPickRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Text(
-                    agent.avatar.isNotEmpty ? agent.avatar : agent.name.characters.first,
-                    style: const TextStyle(fontSize: 16)),
+                  agent.avatar.isNotEmpty
+                      ? agent.avatar
+                      : agent.name.characters.first,
+                  style: const TextStyle(fontSize: 16),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -257,21 +290,35 @@ class _AgentPickRow extends StatelessWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(agent.name,
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: nc.textPrimary)),
+                        Text(
+                          agent.name,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                            color: nc.textPrimary,
+                          ),
+                        ),
                         if (locked)
                           Padding(
                             padding: const EdgeInsets.only(left: 8),
-                            child: Text('默认成员',
-                                style: TextStyle(fontSize: 11, color: nc.success, fontWeight: FontWeight.w500)),
+                            child: Text(
+                              '默认成员',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: nc.success,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
                       ],
                     ),
                     if (agent.role.isNotEmpty)
-                      Text(agent.role,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, color: nc.textSecondary)),
+                      Text(
+                        agent.role,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: nc.textSecondary),
+                      ),
                   ],
                 ),
               ),

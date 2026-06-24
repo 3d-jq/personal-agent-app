@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 /// Global animated background color, driven by theme transition in App.
-final ValueNotifier<Color> animatedBgNotifier = ValueNotifier<Color>(const Color(0xFFF3F3F3));
+final ValueNotifier<Color> animatedBgNotifier = ValueNotifier<Color>(
+  const Color(0xFFF3F3F3),
+);
 
 /// Notion-inspired warm gray color system.
 /// No pure black, no pure white — every gray leans warm.
@@ -57,34 +59,34 @@ class AgentColors extends ThemeExtension<AgentColors> {
   Color get staticBackground => _background;
 
   factory AgentColors.light() => const AgentColors._(
-        background: Color(0xFFF3F3F3),
-        textPrimary: Color(0xFF37352F),
-        textSecondary: Color(0xFF9B9A97),
-        textDisabled: Color(0xFFC3C2BF),
-        surface: Color(0xFFFFFFFF),
-        primarySurface: Color(0xFFF7F6F3),
-        cardBackground: Color(0xFFFFFFFF),
-        primary: Color(0xFF2383E2),
-        success: Color(0xFF0F7B6C),
-        warning: Color(0xFFDFAB01),
-        error: Color(0xFFEB5757),
-        divider: Color(0xFFEBECED),
-      );
+    background: Color(0xFFF3F3F3),
+    textPrimary: Color(0xFF37352F),
+    textSecondary: Color(0xFF9B9A97),
+    textDisabled: Color(0xFFC3C2BF),
+    surface: Color(0xFFFFFFFF),
+    primarySurface: Color(0xFFF7F6F3),
+    cardBackground: Color(0xFFFFFFFF),
+    primary: Color(0xFF2383E2),
+    success: Color(0xFF0F7B6C),
+    warning: Color(0xFFDFAB01),
+    error: Color(0xFFEB5757),
+    divider: Color(0xFFEBECED),
+  );
 
   factory AgentColors.dark() => const AgentColors._(
-        background: Color(0xFF1A1A18),
-        textPrimary: Color(0xFFE8E6E1),
-        textSecondary: Color(0xFF9B9A97),
-        textDisabled: Color(0xFF6B6A67),
-        surface: Color(0xFF2C2C2A),
-        primarySurface: Color(0xFF37352F),
-        cardBackground: Color(0xFF2C2C2A),
-        primary: Color(0xFF529CCA),
-        success: Color(0xFF2DD4BF),
-        warning: Color(0xFFFBBF24),
-        error: Color(0xFFF87171),
-        divider: Color(0xFF3A3A38),
-      );
+    background: Color(0xFF1A1A18),
+    textPrimary: Color(0xFFE8E6E1),
+    textSecondary: Color(0xFF9B9A97),
+    textDisabled: Color(0xFF6B6A67),
+    surface: Color(0xFF2C2C2A),
+    primarySurface: Color(0xFF37352F),
+    cardBackground: Color(0xFF2C2C2A),
+    primary: Color(0xFF529CCA),
+    success: Color(0xFF2DD4BF),
+    warning: Color(0xFFFBBF24),
+    error: Color(0xFFF87171),
+    divider: Color(0xFF3A3A38),
+  );
 
   static AgentColors of(BuildContext context) =>
       Theme.of(context).extension<AgentColors>() ?? AgentColors.light();

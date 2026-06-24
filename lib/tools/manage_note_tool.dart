@@ -6,36 +6,35 @@ import 'manage_note_tool.g.dart';
 
 /// 管理（列出/修改/删除）已有笔记。save_note 工具负责新建，本工具负责后续管理。
 class ManageNoteTool extends AgentTool {
-  @override String get name => 'manage_notes';
-  @override bool get readOnly => false;
+  @override
+  String get name => 'manage_notes';
+  @override
+  bool get readOnly => false;
 
   @override
   String get description => manageNoteToolDescription;
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {
-          'action': {
-            'type': 'string',
-            'enum': ['list', 'update', 'delete'],
-            'description': 'list=列出全部笔记；update=修改某条笔记；delete=删除某条笔记',
-          },
-          'note_id': {
-            'type': 'string',
-            'description': '要修改/删除的笔记 id（update/delete 时必填，从 list 结果获取）',
-          },
-          'title': {
-            'type': 'string',
-            'description': '修改后的新标题（update 时可选）',
-          },
-          'content': {
-            'type': 'string',
-            'description': '修改后的新正文，支持 Markdown（update 时可选）',
-          },
-        },
-        'required': ['action'],
-      };
+    'type': 'object',
+    'properties': {
+      'action': {
+        'type': 'string',
+        'enum': ['list', 'update', 'delete'],
+        'description': 'list=列出全部笔记；update=修改某条笔记；delete=删除某条笔记',
+      },
+      'note_id': {
+        'type': 'string',
+        'description': '要修改/删除的笔记 id（update/delete 时必填，从 list 结果获取）',
+      },
+      'title': {'type': 'string', 'description': '修改后的新标题（update 时可选）'},
+      'content': {
+        'type': 'string',
+        'description': '修改后的新正文，支持 Markdown（update 时可选）',
+      },
+    },
+    'required': ['action'],
+  };
 
   /// 格式化笔记列表为紧凑文本，方便 AI 在 update/delete 失败时快速定位 id。
   static String _formatList(List<Note> notes) {
@@ -67,31 +66,31 @@ class ManageNoteTool extends AgentTool {
 
         // 没给 id 或 id 无效 → 自动 list，让 AI 在同轮看到可用 id 后重试
         if (id == null || idx < 0) {
-          final hint = id == null
-              ? '未提供 note_id'
-              : '找不到 id 为 "$id" 的笔记';
+          final hint = id == null ? '未提供 note_id' : '找不到 id 为 "$id" 的笔记';
           final list = _formatList(notes);
           return '$hint。当前笔记列表如下，请选择正确的 id 重新调用 update：\n\n$list';
         }
 
         final note = notes[idx];
-        await storage.update(Note(
-          id: note.id,
-          title: (args['title'] as String?) ?? note.title,
-          content: (args['content'] as String?) ?? note.content,
-          createdAt: note.createdAt,
-        ));
+        await storage.update(
+          Note(
+            id: note.id,
+            title: (args['title'] as String?) ?? note.title,
+            content: (args['content'] as String?) ?? note.content,
+            createdAt: note.createdAt,
+          ),
+        );
         return '笔记「${(args['title'] as String?) ?? note.title}」已更新\n\n当前笔记列表（更新后）：\n${_formatList(await storage.loadAll())}';
 
       case 'delete':
         final id = args['note_id'] as String?;
-        final note = id != null ? notes.where((n) => n.id == id).firstOrNull : null;
+        final note = id != null
+            ? notes.where((n) => n.id == id).firstOrNull
+            : null;
 
         // 没给 id 或 id 无效 → 自动 list
         if (note == null) {
-          final hint = id == null
-              ? '未提供 note_id'
-              : '找不到 id 为 "$id" 的笔记';
+          final hint = id == null ? '未提供 note_id' : '找不到 id 为 "$id" 的笔记';
           final list = _formatList(notes);
           return '$hint。当前笔记列表如下，请选择正确的 id 重新调用 delete：\n\n$list';
         }

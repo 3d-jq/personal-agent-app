@@ -61,63 +61,70 @@ class _ChatInputBarState extends State<ChatInputBar> {
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
           child: Container(
-              decoration: BoxDecoration(
-                color: nc.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: hasFile ? nc.success.withValues(alpha: 0.4) : nc.divider,
-                  width: hasFile ? 1 : 0.5,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-                    child: TextField(
-                      controller: widget.controller,
-                      focusNode: widget.focusNode,
-                      maxLines: 6,
-                      minLines: 1,
-                      keyboardType: TextInputType.multiline,
-                      textInputAction: TextInputAction.newline,
-                      style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.5),
-                      decoration: InputDecoration(
-                        hintText: widget.isAwaitingReply
-                            ? '回复以继续…'
-                            : (hasFile ? '添加描述（可选）' : '给 DWeis 发消息'),
-                        hintStyle: TextStyle(
-                          color: nc.textSecondary.withValues(alpha: 0.6),
-                          fontSize: 15,
-                          height: 1.5,
-                        ),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                    child: Row(
-                      children: [
-                        _buildAttachmentButton(nc, hasFile),
-                        const Spacer(),
-                        _buildSendButton(nc, hasText, hasFile),
-                      ],
-                    ),
-                  ),
-                ],
+            decoration: BoxDecoration(
+              color: nc.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: hasFile ? nc.success.withValues(alpha: 0.4) : nc.divider,
+                width: hasFile ? 1 : 0.5,
               ),
             ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                  child: TextField(
+                    controller: widget.controller,
+                    focusNode: widget.focusNode,
+                    maxLines: 6,
+                    minLines: 1,
+                    keyboardType: TextInputType.multiline,
+                    textInputAction: TextInputAction.newline,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: nc.textPrimary,
+                      height: 1.5,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: widget.isAwaitingReply
+                          ? '回复以继续…'
+                          : (hasFile ? '添加描述（可选）' : '给 DWeis 发消息'),
+                      hintStyle: TextStyle(
+                        color: nc.textSecondary.withValues(alpha: 0.6),
+                        fontSize: 15,
+                        height: 1.5,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                  child: Row(
+                    children: [
+                      _buildAttachmentButton(nc, hasFile),
+                      const Spacer(),
+                      _buildSendButton(nc, hasText, hasFile),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
         const SizedBox(height: 4),
         Padding(
           padding: EdgeInsets.only(bottom: widget.bottomSafe + 6),
           child: Text(
             '大模型也会出错，请谨慎核对内容',
-            style: TextStyle(fontSize: 11, color: nc.textSecondary.withValues(alpha: 0.45)),
+            style: TextStyle(
+              fontSize: 11,
+              color: nc.textSecondary.withValues(alpha: 0.45),
+            ),
           ),
         ),
       ],
@@ -137,7 +144,9 @@ class _ChatInputBarState extends State<ChatInputBar> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: hasFile ? nc.success.withValues(alpha: 0.1) : nc.primarySurface,
+          color: hasFile
+              ? nc.success.withValues(alpha: 0.1)
+              : nc.primarySurface,
           shape: BoxShape.circle,
         ),
         child: Icon(
@@ -167,8 +176,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
           color: widget.isLoading
               ? Colors.red.withValues(alpha: 0.1)
               : isActive
-                  ? nc.textPrimary
-                  : nc.primarySurface,
+              ? nc.textPrimary
+              : nc.primarySurface,
           shape: BoxShape.circle,
         ),
         child: Icon(
@@ -177,8 +186,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
           color: widget.isLoading
               ? Colors.red
               : isActive
-                  ? nc.surface
-                  : nc.textSecondary,
+              ? nc.surface
+              : nc.textSecondary,
         ),
       ),
     );
@@ -205,19 +214,39 @@ class _ChatInputBarState extends State<ChatInputBar> {
             if (isImage) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.file(file, width: 32, height: 32, fit: BoxFit.cover,
+                child: Image.file(
+                  file,
+                  width: 32,
+                  height: 32,
+                  fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => Container(
-                    width: 32, height: 32,
-                    decoration: BoxDecoration(color: nc.surface, borderRadius: BorderRadius.circular(8)),
-                    child: Icon(Icons.image_outlined, size: 18, color: nc.textSecondary),
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: nc.surface,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.image_outlined,
+                      size: 18,
+                      color: nc.textSecondary,
+                    ),
                   ),
                 ),
               ),
             ] else ...[
               Container(
-                width: 32, height: 32,
-                decoration: BoxDecoration(color: nc.surface, borderRadius: BorderRadius.circular(8)),
-                child: Icon(Icons.insert_drive_file_outlined, size: 18, color: nc.textSecondary),
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: nc.surface,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.insert_drive_file_outlined,
+                  size: 18,
+                  color: nc.textSecondary,
+                ),
               ),
             ],
             const SizedBox(width: 8),
@@ -226,22 +255,37 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(shortName, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, color: nc.textPrimary, fontWeight: FontWeight.w500)),
+                  Text(
+                    shortName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: nc.textPrimary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                   const SizedBox(height: 1),
-                  Text(isImage ? '图片 · 点击加号更换' : '文档 · 点击加号更换',
-                    style: TextStyle(fontSize: 11, color: nc.textSecondary)),
+                  Text(
+                    isImage ? '图片 · 点击加号更换' : '文档 · 点击加号更换',
+                    style: TextStyle(fontSize: 11, color: nc.textSecondary),
+                  ),
                 ],
               ),
             ),
             GestureDetector(
               onTap: () {
                 HapticFeedback.lightImpact();
-                if (widget.onClearAttachment != null) widget.onClearAttachment!();
+                if (widget.onClearAttachment != null)
+                  widget.onClearAttachment!();
               },
               child: Container(
-                width: 24, height: 24,
-                decoration: BoxDecoration(color: nc.surface, shape: BoxShape.circle),
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: nc.surface,
+                  shape: BoxShape.circle,
+                ),
                 child: Icon(Icons.close, size: 14, color: nc.textSecondary),
               ),
             ),

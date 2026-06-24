@@ -4,5 +4,4 @@
 /// Tool description for `web_fetch_tool`.
 const String webFetchToolDescription = r'''
 抓取网页内容并提取正文。当用户给出 URL 并要求读取、总结、分析该网页时使用。不要对未抓取的网页内容做猜测。
-'''
-;
+''';

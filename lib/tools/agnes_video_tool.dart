@@ -12,10 +12,12 @@ import 'agnes_video_tool.g.dart';
 class AgnesVideoTool extends AgentTool {
   String? apiKey;
 
-  final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 30),
-    receiveTimeout: const Duration(minutes: 10),
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(minutes: 10),
+    ),
+  );
 
   @override
   String get name => 'generate_video';
@@ -33,7 +35,8 @@ class AgnesVideoTool extends AgentTool {
       },
       'image_url': {
         'type': 'string',
-        'description': '输入图片的 URL 或 base64 编码（data:image/png;base64,...格式），用于图生视频。留空则为文生视频',
+        'description':
+            '输入图片的 URL 或 base64 编码（data:image/png;base64,...格式），用于图生视频。留空则为文生视频',
       },
       'duration': {
         'type': 'string',
@@ -79,10 +82,12 @@ class AgnesVideoTool extends AgentTool {
 
       final createResp = await _dio.post(
         'https://apihub.agnes-ai.com/v1/videos',
-        options: Options(headers: {
-          'Authorization': 'Bearer $apiKey',
-          'Content-Type': 'application/json',
-        }),
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $apiKey',
+            'Content-Type': 'application/json',
+          },
+        ),
         data: body,
       );
 
@@ -107,7 +112,8 @@ class AgnesVideoTool extends AgentTool {
 
         if (status == 'completed') {
           // Try multiple possible URL fields from the API response
-          final videoUrl = (queryResp.data['url'] as String?) ??
+          final videoUrl =
+              (queryResp.data['url'] as String?) ??
               (queryResp.data['video_url'] as String?) ??
               (queryResp.data['output_url'] as String?) ??
               (queryResp.data['download_url'] as String?) ??
@@ -119,17 +125,20 @@ class AgnesVideoTool extends AgentTool {
           // Download video to temp (for playback) and docs (for storage)
           final tempDir = await getTemporaryDirectory();
           final docsDir = await getApplicationDocumentsDirectory();
-          final fileName = 'agnes_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+          final fileName =
+              'agnes_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
           final tempFile = File('${tempDir.path}/$fileName');
           await _dio.download(videoUrl, tempFile.path);
           // Copy to permanent storage
           final docsFile = await tempFile.copy('${docsDir.path}/$fileName');
-          await getIt<MediaStorage>().add(MediaItem(
-            id: const Uuid().v4(),
-            type: MediaType.video,
-            filePath: docsFile.path,
-            prompt: prompt,
-          ));
+          await getIt<MediaStorage>().add(
+            MediaItem(
+              id: const Uuid().v4(),
+              type: MediaType.video,
+              filePath: docsFile.path,
+              prompt: prompt,
+            ),
+          );
 
           final type = imageUrl != null ? '图生视频' : '文生视频';
           return '[$type] 视频已生成\n\n![生成的视频](file://${docsFile.path})';

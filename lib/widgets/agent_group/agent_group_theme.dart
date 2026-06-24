@@ -55,13 +55,20 @@ const Set<String> kDeprecatedTools = {
 /// 把"已选工具名"映射成中文 label，便于在卡片上展示
 String toolOptionsLabel(List<String> names) {
   if (names.isEmpty) return '无可用工具';
-  return names.map((n) {
-    final opt = kAgentToolOptions.where((o) => o.name == n).firstOrNull;
-    return opt?.label ?? n;
-  }).join(' · ');
+  return names
+      .map((n) {
+        final opt = kAgentToolOptions.where((o) => o.name == n).firstOrNull;
+        return opt?.label ?? n;
+      })
+      .join(' · ');
 }
 
 /// 从工具列表中剔除写操作类及已下线工具（数据迁移/历史 Agent 清理用）
 List<String> filterAgentTools(List<String> tools) {
-  return tools.where((n) => !kAgentWriteStateTools.contains(n) && !kDeprecatedTools.contains(n)).toList();
+  return tools
+      .where(
+        (n) =>
+            !kAgentWriteStateTools.contains(n) && !kDeprecatedTools.contains(n),
+      )
+      .toList();
 }

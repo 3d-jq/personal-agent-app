@@ -51,36 +51,75 @@ class ContextDocViewerPage extends StatelessWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, size: 18, color: colors.textPrimary),
+          icon: Icon(
+            Icons.arrow_back_ios_new,
+            size: 18,
+            color: colors.textPrimary,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           titleFor(doc),
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.textPrimary),
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: colors.textPrimary,
+          ),
         ),
       ),
       body: FutureBuilder<String>(
         future: getIt<ContextDocService>().read(doc),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator(strokeWidth: 2, color: colors.textSecondary));
+            return Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: colors.textSecondary,
+              ),
+            );
           }
           final content = snapshot.data ?? '';
           return Markdown(
             data: content,
             selectable: true,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-              h1: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: colors.textPrimary),
-              h2: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: colors.textPrimary),
-              h3: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: colors.textPrimary),
-              p: TextStyle(fontSize: 15, height: 1.6, color: colors.textPrimary),
-              listBullet: TextStyle(fontSize: 15, color: colors.textPrimary),
-              blockquote: TextStyle(fontSize: 14, color: colors.textSecondary, fontStyle: FontStyle.italic),
-              blockquoteDecoration: BoxDecoration(
-                border: Border(left: BorderSide(color: colors.divider, width: 3)),
-              ),
-            ),
+            styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
+                .copyWith(
+                  h1: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: colors.textPrimary,
+                  ),
+                  h2: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
+                  ),
+                  h3: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
+                  ),
+                  p: TextStyle(
+                    fontSize: 15,
+                    height: 1.6,
+                    color: colors.textPrimary,
+                  ),
+                  listBullet: TextStyle(
+                    fontSize: 15,
+                    color: colors.textPrimary,
+                  ),
+                  blockquote: TextStyle(
+                    fontSize: 14,
+                    color: colors.textSecondary,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  blockquoteDecoration: BoxDecoration(
+                    border: Border(
+                      left: BorderSide(color: colors.divider, width: 3),
+                    ),
+                  ),
+                ),
           );
         },
       ),

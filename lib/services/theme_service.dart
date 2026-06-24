@@ -21,7 +21,11 @@ class ThemeService extends ChangeNotifier {
       if (await file.exists()) {
         final data = jsonDecode(await file.readAsString());
         final v = data['mode'] as String? ?? 'light';
-        _mode = v == 'dark' ? ThemeMode.dark : v == 'system' ? ThemeMode.system : ThemeMode.light;
+        _mode = v == 'dark'
+            ? ThemeMode.dark
+            : v == 'system'
+            ? ThemeMode.system
+            : ThemeMode.light;
         notifyListeners();
       }
     } catch (_) {}
@@ -32,11 +36,21 @@ class ThemeService extends ChangeNotifier {
     notifyListeners();
     try {
       final file = await _file();
-      await file.writeAsString(jsonEncode({
-        'mode': mode == ThemeMode.dark ? 'dark' : mode == ThemeMode.system ? 'system' : 'light',
-      }));
+      await file.writeAsString(
+        jsonEncode({
+          'mode': mode == ThemeMode.dark
+              ? 'dark'
+              : mode == ThemeMode.system
+              ? 'system'
+              : 'light',
+        }),
+      );
     } catch (_) {}
   }
 
-  String get label => _mode == ThemeMode.dark ? '深色' : _mode == ThemeMode.system ? '跟随系统' : '浅色';
+  String get label => _mode == ThemeMode.dark
+      ? '深色'
+      : _mode == ThemeMode.system
+      ? '跟随系统'
+      : '浅色';
 }

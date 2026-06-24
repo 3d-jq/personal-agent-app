@@ -20,15 +20,15 @@ class ToolSearchTool extends AgentTool {
 
   @override
   Map<String, dynamic> get parameters => {
-        'type': 'object',
-        'properties': {
-          'query': {
-            'type': 'string',
-            'description': '你想做的事或目标工具名称关键字，如"AI日报"、"生成图片"、"企业ERP"',
-          },
-        },
-        'required': ['query'],
-      };
+    'type': 'object',
+    'properties': {
+      'query': {
+        'type': 'string',
+        'description': '你想做的事或目标工具名称关键字，如"AI日报"、"生成图片"、"企业ERP"',
+      },
+    },
+    'required': ['query'],
+  };
 
   @override
   Future<String> execute(Map<String, dynamic> args) async {
