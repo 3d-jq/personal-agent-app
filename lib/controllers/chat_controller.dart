@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/prompt_builder.dart';
+import '../core/service_locator.dart';
 import '../models/chat_message.dart';
 import '../models/chat_session.dart';
 import '../screens/chat_helpers.dart';
@@ -33,7 +34,7 @@ class ChatController extends ChangeNotifier {
     this.onNeedScroll,
   })  : _aiSettings = aiSettings ?? AISettings(),
         _toolRegistry = toolRegistry ?? ToolRegistry(),
-        _chatStorage = chatStorage ?? ChatStorage() {
+        _chatStorage = chatStorage ?? getIt<ChatStorage>() {
     registerAllTools(_toolRegistry);
     _toolRegistry.register(AskUserTool(onAsk: _onAskUser));
   }
@@ -94,8 +95,9 @@ class ChatController extends ChangeNotifier {
 
   /// 预热上下文文档缓存，避免首次发消息时再加载。
   Future<void> _warmUpCaches() async {
-    await ContextDocService().ensureDefaults();
-    await ContextDocService().loadAll();
+    final contextDocs = getIt<ContextDocService>();
+    await contextDocs.ensureDefaults();
+    await contextDocs.loadAll();
   }
 
   @override
@@ -200,7 +202,7 @@ class ChatController extends ChangeNotifier {
       return;
     }
 
-    if (!await ConnectivityService().check()) {
+    if (!await getIt<ConnectivityService>().check()) {
       _messages.add(ChatMessage(
           text: '当前无网络连接，请检查网络后重试', isUser: false));
       _notify();
@@ -240,7 +242,7 @@ class ChatController extends ChangeNotifier {
     _notify();
     onNeedScroll?.call();
 
-    final contextDocs = ContextDocService();
+    final contextDocs = getIt<ContextDocService>();
     await contextDocs.loadAll();
 
     final systemPrompt = PromptBuilder.buildMainPrompt(
@@ -352,7 +354,7 @@ class ChatController extends ChangeNotifier {
             status: TimelineStepStatus.running,
             detail: '工具: $name'));
         if (name == 'generate_image' || name == 'generate_video') {
-          NotificationService().startTask(
+          getIt<NotificationService>().startTask(
               id: name, title: _toolLabel(name), message: '准备中…');
         }
         break;
@@ -366,7 +368,7 @@ class ChatController extends ChangeNotifier {
           state.steps[idx].detail = '执行成功';
         }
         if (name == 'generate_image' || name == 'generate_video') {
-          NotificationService().complete(
+          getIt<NotificationService>().complete(
               id: name, title: _toolLabel(name), message: '已完成');
         }
         break;
@@ -380,7 +382,7 @@ class ChatController extends ChangeNotifier {
           state.steps[idx].detail = message;
         }
         if (name == 'generate_image' || name == 'generate_video') {
-          NotificationService().complete(
+          getIt<NotificationService>().complete(
               id: name, title: _toolLabel(name), message: '执行失败');
         }
         break;
