@@ -448,14 +448,17 @@ class TaskPlan {
 
     // v0 → v1: ensure each task has dependsOn and blockedReason
     if (version < 1) {
-      final tasks = (json['tasks'] as List?)?.map((t) {
-        if (t is! Map<String, dynamic>) return t;
-        // Add missing fields that v1 expects
-        if (!t.containsKey('dependsOn')) t['dependsOn'] = <String>[];
-        if (!t.containsKey('blockedReason')) t['blockedReason'] = null;
-        return t;
-      }).toList();
-      json['tasks'] = tasks ?? [];
+      final rawTasks = json['tasks'] as List?;
+      if (rawTasks != null) {
+        final migrated = rawTasks.map((t) {
+          if (t is! Map<String, dynamic>) return t;
+          final m = Map<String, dynamic>.from(t);
+          if (!m.containsKey('dependsOn')) m['dependsOn'] = <String>[];
+          if (!m.containsKey('blockedReason')) m['blockedReason'] = null;
+          return m;
+        }).toList();
+        json['tasks'] = migrated;
+      }
       json['schemaVersion'] = 1;
     }
 
