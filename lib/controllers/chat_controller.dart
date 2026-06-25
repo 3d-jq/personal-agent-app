@@ -229,7 +229,10 @@ class ChatController extends ChangeNotifier {
           : '$trimmed\n[附件: $typeLabel $attachmentName]';
     }
 
-    final isFirstMeeting = _sessions.isEmpty && _messages.isEmpty;
+    final contextDocs = getIt<ContextDocService>();
+    await contextDocs.loadAll();
+
+    final isFirstMeeting = !contextDocs.hasUserProfile() && _messages.isEmpty;
 
     _messages.add(
       ChatMessage(
@@ -251,9 +254,6 @@ class ChatController extends ChangeNotifier {
 
     _notify();
     onNeedScroll?.call();
-
-    final contextDocs = getIt<ContextDocService>();
-    await contextDocs.loadAll();
 
     final systemPrompt = PromptBuilder.buildMainPrompt(
       now: DateTime.now(),
@@ -536,7 +536,6 @@ class ChatController extends ChangeNotifier {
     String text;
     if (state.reasoningBuf.isNotEmpty) {
       text = state.reasoningBuf.toString().trim();
-      state.reasoningBuf.clear();
     } else {
       final start = state.thinkingStepBufStart;
       final end = state.buf.length;
@@ -583,14 +582,10 @@ class ChatController extends ChangeNotifier {
     if (state.toolInteractions.isNotEmpty) {
       aiMsg.toolInteractions = state.toolInteractions;
     }
-    if (aiMsg.text.isEmpty) {
-      if (state.hasToolCalls) {
-        aiMsg.text = '任务已完成';
-      } else {
-        aiMsg.text = state.reasoningBuf.isNotEmpty
-            ? '模型思考时间过长，连接已断开，请重试'
-            : '(无响应)';
-      }
+    if (aiMsg.text.isEmpty && !state.hasToolCalls) {
+      aiMsg.text = state.reasoningBuf.isNotEmpty
+          ? '模型思考时间过长，连接已断开，请重试'
+          : '(无响应)';
     }
     _isLoading = false;
     _notify();

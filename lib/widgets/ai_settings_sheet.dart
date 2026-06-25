@@ -178,7 +178,7 @@ void showBackendPicker(BuildContext context, AISettings s, VoidCallback cb) {
   showModalBottomSheet(
     context: context,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
     builder: (ctx) => Padding(
       padding: const EdgeInsets.only(bottom: 32),
@@ -266,7 +266,7 @@ void _showAddVendor(BuildContext context, AISettings s, VoidCallback cb) {
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
     builder: (ctx) => _AddVendorBody(
       nameCtrl: nCtrl,
@@ -389,7 +389,7 @@ void _showEditVendor(
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
     builder: (ctx) => _EditVendorBody(
       vendor: v,
@@ -522,7 +522,7 @@ void showModelPicker(BuildContext context, AISettings s, VoidCallback cb) {
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
     builder: (_) => _ModelPickBody(vendor: v, settings: s, onChanged: cb),
   );
@@ -651,6 +651,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
             ),
           Flexible(
             child: ListView(
+              physics: const BouncingScrollPhysics(),
               children: [
                 ..._models.map((m) {
                   final sel = m == _current;

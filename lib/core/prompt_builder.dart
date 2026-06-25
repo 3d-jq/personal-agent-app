@@ -48,16 +48,14 @@ class PromptBuilder {
     // ── 4. 首次见面（条件注入） ──
     if (isFirstMeeting && !hasExistingProfile) {
       buf.writeln('<first_meeting>');
-      buf.writeln('这是你与该用户的首次正式对话，USER.md 当前为空。');
-      buf.writeln('理想的首次回复包含：');
-      buf.writeln('1. 一句话自我介绍（你是 DWeis，用户的个人 AI 助手）。');
-      buf.writeln('2. 询问两个必填信息（按优先级）：');
-      buf.writeln('   P0 · 称呼：希望你怎么叫 ta');
-      buf.writeln('   P1 · 语气：温柔 / 简洁直接 / 专业严谨 / 轻松幽默（四选一即可）');
-      buf.writeln('3. 暗示你会根据 ta 的偏好调整后续回复风格。');
-      buf.writeln();
-      buf.writeln('兜底规则：用户只回答 P0 时，下一轮温和追问 P1；连续两轮未答全则按"简洁直接"风格默认继续，并在 USER.md 中标注"语气未确认"。');
-      buf.writeln('回答完毕后通过 context_doc 工具写入 USER.md。');
+      buf.writeln('这是你和用户的首次见面，当前 USER.md 中还没有有效的用户资料与偏好。');
+      buf.writeln('你必须在本次回复中完成以下两件事：');
+      buf.writeln('1. 简单自我介绍（你是 DWeis，用户的个人 AI 助手）；');
+      buf.writeln('2. 主动询问用户两个必填信息：');
+      buf.writeln('   - 希望你怎么称呼 ta（名字或昵称）；');
+      buf.writeln('   - 偏好的对话语气风格（可爱温柔、简洁直接、专业严谨、轻松幽默等）。');
+      buf.writeln('在用户明确回复后，必须使用 context_doc 工具写入 USER.md。');
+      buf.writeln('注意：不要只回复问候，必须同时提出上述两个问题。');
       buf.writeln('</first_meeting>');
       buf.writeln();
     }

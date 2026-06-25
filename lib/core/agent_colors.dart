@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 
 /// Global animated background color, driven by theme transition in App.
 final ValueNotifier<Color> animatedBgNotifier = ValueNotifier<Color>(
-  const Color(0xFFF3F3F3),
+  const Color(0xFFF2F2F7),
 );
 
-/// Notion-inspired warm gray color system.
-/// No pure black, no pure white — every gray leans warm.
+/// iOS-inspired color system.
 class AgentColors extends ThemeExtension<AgentColors> {
   // ── Text ──
   final Color textPrimary;
@@ -59,33 +58,33 @@ class AgentColors extends ThemeExtension<AgentColors> {
   Color get staticBackground => _background;
 
   factory AgentColors.light() => const AgentColors._(
-    background: Color(0xFFF3F3F3),
-    textPrimary: Color(0xFF37352F),
-    textSecondary: Color(0xFF9B9A97),
-    textDisabled: Color(0xFFC3C2BF),
+    background: Color(0xFFF2F2F7), // iOS System Gray 6
+    textPrimary: Color(0xFF000000),
+    textSecondary: Color.fromRGBO(0, 0, 0, 0.55),
+    textDisabled: Color.fromRGBO(0, 0, 0, 0.25),
     surface: Color(0xFFFFFFFF),
-    primarySurface: Color(0xFFF7F6F3),
+    primarySurface: Color(0xFFF2F2F7),
     cardBackground: Color(0xFFFFFFFF),
-    primary: Color(0xFF2383E2),
-    success: Color(0xFF0F7B6C),
-    warning: Color(0xFFDFAB01),
-    error: Color(0xFFEB5757),
-    divider: Color(0xFFEBECED),
+    primary: Color(0xFF007AFF), // iOS System Blue
+    success: Color(0xFF34C759), // iOS System Green
+    warning: Color(0xFFFF9500), // iOS System Orange
+    error: Color(0xFFFF3B30), // iOS System Red
+    divider: Color.fromRGBO(60, 60, 67, 0.12),
   );
 
   factory AgentColors.dark() => const AgentColors._(
-    background: Color(0xFF1A1A18),
-    textPrimary: Color(0xFFE8E6E1),
-    textSecondary: Color(0xFF9B9A97),
-    textDisabled: Color(0xFF6B6A67),
-    surface: Color(0xFF2C2C2A),
-    primarySurface: Color(0xFF37352F),
-    cardBackground: Color(0xFF2C2C2A),
-    primary: Color(0xFF529CCA),
-    success: Color(0xFF2DD4BF),
-    warning: Color(0xFFFBBF24),
-    error: Color(0xFFF87171),
-    divider: Color(0xFF3A3A38),
+    background: Color(0xFF000000),
+    textPrimary: Color(0xFFFFFFFF),
+    textSecondary: Color.fromRGBO(255, 255, 255, 0.55),
+    textDisabled: Color.fromRGBO(255, 255, 255, 0.25),
+    surface: Color.fromRGBO(28, 28, 30, 0.95),
+    primarySurface: Color.fromRGBO(28, 28, 30, 0.95),
+    cardBackground: Color.fromRGBO(28, 28, 30, 0.95),
+    primary: Color(0xFF0A84FF), // iOS Dark Blue
+    success: Color(0xFF30D158), // iOS Dark Green
+    warning: Color(0xFFFF9F0A), // iOS Dark Orange
+    error: Color(0xFFFF453A), // iOS Dark Red
+    divider: Color.fromRGBO(84, 84, 88, 0.12),
   );
 
   static AgentColors of(BuildContext context) =>

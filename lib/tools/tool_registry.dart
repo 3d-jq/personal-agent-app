@@ -99,12 +99,22 @@ class ToolRegistry {
     _callCounts.clear();
   }
 
-  /// 检查是否需要频率限制提醒
+  /// 检查是否超过频率限制（返回错误消息表示应阻止执行）
   String? checkFrequencyLimit(String toolName) {
     final count = (_callCounts[toolName] ?? 0) + 1;
     _callCounts[toolName] = count;
     if (count > maxConsecutiveCalls) {
       return '你已经连续调用 $toolName 工具 $count 次。请基于已有信息回答，不要继续调用同一工具。';
+    }
+    return null;
+  }
+
+  /// 检查是否需要提前预警（返回警告消息，不阻止执行）
+  String? checkFrequencyWarning(String toolName) {
+    final count = _callCounts[toolName] ?? 0;
+    if (count > 0 && count >= maxConsecutiveCalls - 2 && count <= maxConsecutiveCalls) {
+      return '⚠️ 你已经连续调用 $toolName 工具 $count 次（上限 $maxConsecutiveCalls 次）。'
+          '请在 $maxConsecutiveCalls 次内完成当前子任务，不要继续调用同一工具。';
     }
     return null;
   }
@@ -120,7 +130,7 @@ class ToolRegistry {
       );
     }
 
-    // 频率限制检查
+    // 频率限制检查（硬阻止）
     final limitMsg = checkFrequencyLimit(toolCall.name);
     if (limitMsg != null) {
       return ToolResult(
@@ -132,9 +142,12 @@ class ToolRegistry {
 
     try {
       final result = await tool.execute(toolCall.arguments);
+      // 频率预警附加到结果中（不阻止执行）
+      final warning = checkFrequencyWarning(toolCall.name);
+      final content = _truncator.truncate(result);
       return ToolResult(
         toolName: toolCall.name,
-        content: _truncator.truncate(result),
+        content: warning != null ? '$warning\n\n$content' : content,
         toolCallId: toolCall.id,
       );
     } catch (e) {

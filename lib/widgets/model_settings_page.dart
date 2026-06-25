@@ -31,7 +31,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.only(bottom: 32),
@@ -124,6 +124,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
         centerTitle: true,
       ),
       body: ListView(
+        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           const SizedBox(height: 8),
@@ -226,9 +227,9 @@ class _RoundedCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 8,
-            offset: const Offset(0, 1),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -258,7 +259,7 @@ class _SettingItem extends StatelessWidget {
         onTap: onTap ?? () {},
         borderRadius: BorderRadius.zero,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
               Icon(icon, size: 20, color: nc.textPrimary),

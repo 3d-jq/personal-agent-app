@@ -288,6 +288,7 @@ class _SettingsPageState extends State<SettingsPage> {
         centerTitle: true,
       ),
       body: ListView(
+        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           const SizedBox(height: 8),
@@ -310,6 +311,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ts.setMode(next);
                 },
               ),
+              _BubbleColorPicker(nc: nc),
               _SettingItem(
                 icon: Icons.layers_outlined,
                 label: '模型',
@@ -388,9 +390,9 @@ class _RoundedCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 8,
-            offset: const Offset(0, 1),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -420,7 +422,7 @@ class _SettingItem extends StatelessWidget {
         onTap: onTap ?? () {},
         borderRadius: BorderRadius.zero,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
               if (icon != null) ...[
@@ -451,6 +453,65 @@ class _SettingItem extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BubbleColorPicker extends StatelessWidget {
+  final AgentColors nc;
+  const _BubbleColorPicker({required this.nc});
+
+  @override
+  Widget build(BuildContext context) {
+    final ts = getIt<ThemeService>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentKey = ts.bubbleColorKey;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Icon(Icons.palette_outlined, size: 20, color: nc.textPrimary),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              '气泡颜色',
+              style: TextStyle(
+                fontSize: 15,
+                color: nc.textPrimary,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ),
+          ...ThemeService.bubbleColors.entries.map((entry) {
+            final isSelected = entry.key == currentKey;
+            final colors = entry.value;
+            final color = isDark ? colors.$2 : colors.$1;
+            return GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                ts.setBubbleColor(entry.key);
+              },
+              child: Container(
+                width: 28,
+                height: 28,
+                margin: const EdgeInsets.only(left: 6),
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? nc.primary : nc.divider,
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+                child: isSelected
+                    ? Icon(Icons.check, size: 14, color: nc.primary)
+                    : null,
+              ),
+            );
+          }),
+        ],
       ),
     );
   }

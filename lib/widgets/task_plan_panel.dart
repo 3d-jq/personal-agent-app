@@ -212,7 +212,7 @@ class TaskPlanView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 3),
+            padding: const EdgeInsets.only(top: 4),
             child: Icon(
               isDone
                   ? Icons.check_circle
@@ -227,7 +227,7 @@ class TaskPlanView extends StatelessWidget {
               color: isDone
                   ? nc.success
                   : isInProgress
-                  ? nc.warning
+                  ? nc.primary
                   : isFailed
                   ? nc.error
                   : nc.textSecondary.withValues(alpha: 0.4),

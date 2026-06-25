@@ -89,6 +89,7 @@ class _NotesPageState extends State<NotesPage> {
           : _notes.isEmpty
           ? _emptyState(nc)
           : ListView.builder(
+              physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               itemCount: _notes.length,
               itemBuilder: (_, i) => _noteCard(_notes[i], nc),
@@ -98,7 +99,7 @@ class _NotesPageState extends State<NotesPage> {
         child: FloatingActionButton(
           onPressed: null,
           backgroundColor: nc.success,
-          child: Icon(Icons.add, color: Colors.white),
+          child: Icon(Icons.add, color: nc.surface),
         ),
       ),
     );
@@ -152,9 +153,9 @@ class _NotesPageState extends State<NotesPage> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
+              color: Colors.black.withValues(alpha: 0.08),
               blurRadius: 8,
-              offset: const Offset(0, 1),
+              offset: const Offset(0, 2),
             ),
           ],
         ),

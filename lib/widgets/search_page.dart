@@ -121,6 +121,7 @@ class _SearchPageState extends State<SearchPage> {
               ),
             )
           : ListView.builder(
+              physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               itemCount: _results.length,
               itemBuilder: (_, i) {
