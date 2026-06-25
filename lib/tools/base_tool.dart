@@ -80,4 +80,28 @@ class ToolResult {
     required this.content,
     this.toolCallId,
   });
+
+  /// Whether this result indicates a failure.
+  /// Checks the content prefix against known failure patterns
+  /// and also considers the tool context to avoid false positives.
+  bool get failed {
+    // Exception caught by ToolRegistry.execute()
+    if (content.startsWith('执行失败')) return true;
+    // Tool not found
+    if (content.endsWith('不存在')) return true;
+    // Explicit failure markers (tools should use these conventions)
+    if (content.startsWith('错误')) return true;
+    // Tool-specific failure patterns — includes the tool name to avoid ambiguity
+    if (toolName == 'generate_image' &&
+        (content.startsWith('图片生成失败') || content.startsWith('图片生成错误')))
+      return true;
+    if (toolName == 'generate_video' &&
+        (content.startsWith('视频生成失败') ||
+            content.startsWith('视频任务创建失败') ||
+            content.startsWith('视频生成超时')))
+      return true;
+    if (content.startsWith('创建提醒失败')) return true;
+    if (content.startsWith('定位失败')) return true;
+    return false;
+  }
 }

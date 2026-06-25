@@ -46,9 +46,27 @@ class FileTool extends AgentTool {
 
     try {
       final baseDir = await _getBaseDir();
-      final fullPath =
-          '${baseDir.path}/${path.replaceAll(RegExp(r'^[/\\]'), '')}';
-      final file = File(fullPath);
+      // Normalize to prevent path traversal (../../etc/passwd)
+      final sanitized = path
+          .replaceAll(RegExp(r'^[/\\]+'), '')
+          .replaceAll('../', '')
+          .replaceAll('..\\', '');
+      final fullPath = '${baseDir.path}/$sanitized';
+      // Verify canonical path stays within baseDir
+      try {
+        final resolved = File(fullPath).resolveSymbolicLinksSync();
+        if (!resolved.startsWith(baseDir.path)) {
+          return '错误: 不允许访问该路径';
+        }
+      } catch (_) {
+        // File doesn't exist yet (for write/mkdir) — check parent
+        final parentDir = File(fullPath).parent;
+        if (!parentDir.existsSync()) return '错误: 父目录不存在，请先创建目录';
+        final parentResolved = parentDir.resolveSymbolicLinksSync();
+        if (!parentResolved.startsWith(baseDir.path)) {
+          return '错误: 不允许访问该路径';
+        }
+      }
       final dir = Directory(fullPath);
 
       switch (action) {

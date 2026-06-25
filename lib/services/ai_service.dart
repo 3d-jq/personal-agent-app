@@ -51,25 +51,6 @@ class AIService {
     ),
   );
 
-  /// Known tool failure prefixes — centralized to avoid scattered hardcoded checks.
-  static const _failurePrefixes = [
-    '执行失败',
-    '错误',
-    '创建提醒失败',
-    '视频生成失败',
-    '视频任务创建失败',
-    '视频生成超时',
-    '图片生成失败',
-    '图片生成错误',
-  ];
-
-  static bool _isToolFailed(String toolName, String content) {
-    for (final prefix in _failurePrefixes) {
-      if (content.startsWith(prefix)) return true;
-    }
-    return false;
-  }
-
   AIService({
     required this.baseUrl,
     required this.apiKey,
@@ -228,6 +209,67 @@ class AIService {
     }
   }
 
+  /// Shared tool execution engine. Returns events via [sink] and results via Future.
+  Future<List<ToolResult>> _executeAllTools(
+    List<ToolCall> toolCalls,
+    EventSink<ChatStreamEvent> sink,
+  ) async {
+    final count = toolCalls.length;
+    for (final tc in toolCalls) {
+      sink.add(ToolStartEvent(tc.name, concurrentCount: count));
+    }
+
+    final planCalls = toolCalls.where((tc) => tc.name == 'task_plan').toList();
+    final otherCalls = toolCalls.where((tc) => tc.name != 'task_plan').toList();
+    final results = <String, ToolResult>{};
+
+    await Future.wait(
+      otherCalls.map((tc) async {
+        results[tc.id] = await toolRegistry.execute(tc);
+      }),
+    );
+
+    for (final tc in planCalls) {
+      results[tc.id] = await toolRegistry.execute(tc);
+    }
+
+    final ordered = <ToolResult>[];
+    for (final tc in toolCalls) {
+      final result = results[tc.id]!;
+      ordered.add(result);
+      if (result.failed) {
+        sink.add(ToolErrorEvent(tc.name, result.content));
+      } else {
+        sink.add(ToolDoneEvent(tc.name));
+      }
+      if ((tc.name == 'generate_image' || tc.name == 'generate_video') &&
+          result.content.isNotEmpty && !result.failed) {
+        sink.add(ToolMediaEvent(result.content));
+      }
+      if (tc.name == 'task_plan' && result.content.isNotEmpty && !result.failed) {
+        final plan = TaskPlanTool.currentPlan;
+        if (plan != null) {
+          sink.add(TaskPlanEvent(
+            title: plan.title,
+            verified: plan.verified,
+            tasks: plan.tasks
+                .map((t) => TaskPlanItem(
+                      id: t.id,
+                      title: t.title,
+                      done: t.status == TaskStatus.done,
+                      inProgress: t.status == TaskStatus.inProgress,
+                    ))
+                .toList(),
+          ));
+        }
+      }
+    }
+
+    return ordered;
+  }
+
+  // ── OpenAI format ──
+
   Stream<ChatStreamEvent> _processToolCalls(
     List<Map<String, dynamic>> messages,
     List<ToolCall> toolCalls,
@@ -235,102 +277,36 @@ class AIService {
   ) async* {
     final assistantMsg = {
       'role': 'assistant',
-      'content':
-          assistantText, // Always string — some providers reject null content
+      'content': assistantText,
       'tool_calls': toolCalls
-          .map(
-            (tc) => {
-              'id': tc.id,
-              'type': 'function',
-              'function': {
-                'name': tc.name,
-                'arguments': jsonEncode(tc.arguments),
-              },
-            },
-          )
+          .map((tc) => {
+                'id': tc.id,
+                'type': 'function',
+                'function': {'name': tc.name, 'arguments': jsonEncode(tc.arguments)},
+              })
           .toList(),
     };
     messages.add(assistantMsg);
 
-    // 先发出所有 ToolStartEvent（确保 ask_user 等阻塞性工具能在 UI 显示）
-    final count = toolCalls.length;
-    for (final tc in toolCalls) {
-      yield ToolStartEvent(tc.name, concurrentCount: count);
+    final controller = StreamController<ChatStreamEvent>();
+    final resultsFuture = _executeAllTools(toolCalls, controller.sink);
+    await for (final event in controller.stream) {
+      yield event;
     }
+    final results = await resultsFuture;
 
-    // task_plan 操作共享可变计划状态，必须串行执行；其他独立工具可以并行。
-    final planCalls = toolCalls.where((tc) => tc.name == 'task_plan').toList();
-    final otherCalls = toolCalls.where((tc) => tc.name != 'task_plan').toList();
-
-    final resultsById = <String, Map<String, dynamic>>{};
-
-    // 非 task_plan 工具并行执行
-    await Future.wait(
-      otherCalls.map((tc) async {
-        final result = await toolRegistry.execute(tc);
-        resultsById[tc.id] = {'tc': tc, 'result': result};
-      }),
-    );
-
-    // task_plan 调用串行执行，避免共享状态竞态
-    for (final tc in planCalls) {
-      final result = await toolRegistry.execute(tc);
-      resultsById[tc.id] = {'tc': tc, 'result': result};
-    }
-
-    // 按原始 tool call 顺序重组结果
-    final results = toolCalls.map((tc) => resultsById[tc.id]!).toList();
-
-    // Yield done/error events and add results to messages in original order
-    for (final entry in results) {
-      final tc = entry['tc'] as ToolCall;
-      final result = entry['result'] as ToolResult;
-      final failed = _isToolFailed(tc.name, result.content);
-      if (failed) {
-        yield ToolErrorEvent(tc.name, result.content);
-      } else {
-        yield ToolDoneEvent(tc.name);
-      }
-      if ((tc.name == 'generate_image' || tc.name == 'generate_video') &&
-          result.content.isNotEmpty &&
-          !failed) {
-        yield ToolMediaEvent(result.content);
-      }
-      if (tc.name == 'task_plan' && result.content.isNotEmpty && !failed) {
-        final plan = TaskPlanTool.currentPlan;
-        if (plan != null) {
-          yield TaskPlanEvent(
-            title: plan.title,
-            verified: plan.verified,
-            tasks: plan.tasks
-                .map(
-                  (t) => TaskPlanItem(
-                    id: t.id,
-                    title: t.title,
-                    done: t.status == TaskStatus.done,
-                    inProgress: t.status == TaskStatus.inProgress,
-                  ),
-                )
-                .toList(),
-          );
-        }
-      }
+    for (var i = 0; i < toolCalls.length; i++) {
       messages.add({
         'role': 'tool',
-        'tool_call_id': tc.id,
-        'content': result.content,
+        'tool_call_id': toolCalls[i].id,
+        'content': results[i].content,
       });
     }
 
-    // 持久化事件：输出本轮完整的工具交互记录
     yield ToolInteractionEvent(
-      toolCalls: (assistantMsg['tool_calls'] as List)
-          .cast<Map<String, dynamic>>(),
-      toolResults: results.map((e) {
-        final tc = e['tc'] as ToolCall;
-        final result = e['result'] as ToolResult;
-        return {'id': tc.id, 'name': tc.name, 'content': result.content};
-      }).toList(),
+      toolCalls: (assistantMsg['tool_calls'] as List).cast<Map<String, dynamic>>(),
+      toolResults: List.generate(results.length,
+          (i) => {'id': toolCalls[i].id, 'name': results[i].toolName, 'content': results[i].content}),
     );
   }
 
@@ -485,7 +461,7 @@ class AIService {
       yield* _streamAnthropicOnce(currentMessages, outToolCalls: toolCalls);
 
       if (toolCalls.isNotEmpty) {
-        // Build tool use message for Anthropic
+        // Build tool_use message in Anthropic format
         final content = <Map<String, dynamic>>[];
         for (final tc in toolCalls) {
           content.add({
@@ -497,76 +473,21 @@ class AIService {
         }
         currentMessages.add({'role': 'assistant', 'content': content});
 
-        // task_plan 操作共享可变计划状态，必须串行执行；其他独立工具可以并行。
-        final planCalls = toolCalls
-            .where((tc) => tc.name == 'task_plan')
-            .toList();
-        final otherCalls = toolCalls
-            .where((tc) => tc.name != 'task_plan')
-            .toList();
-
-        final resultsById = <String, Map<String, dynamic>>{};
-
-        // 非 task_plan 工具并行执行
-        await Future.wait(
-          otherCalls.map((tc) async {
-            final toolResult = await toolRegistry.execute(tc);
-            resultsById[tc.id] = {'tc': tc, 'result': toolResult};
-          }),
-        );
-
-        // task_plan 调用串行执行，避免共享状态竞态
-        for (final tc in planCalls) {
-          final toolResult = await toolRegistry.execute(tc);
-          resultsById[tc.id] = {'tc': tc, 'result': toolResult};
+        // Execute tools via shared engine
+        final controller = StreamController<ChatStreamEvent>();
+        final resultsFuture = _executeAllTools(toolCalls, controller.sink);
+        await for (final event in controller.stream) {
+          yield event;
         }
+        final results = await resultsFuture;
 
-        // 按原始 tool call 顺序重组结果
-        final results = toolCalls.map((tc) => resultsById[tc.id]!).toList();
-
-        // Yield events and collect results in original order
+        // Add tool results in Anthropic format
         final toolResults = <Map<String, dynamic>>[];
-        final count = results.length;
-        for (final entry in results) {
-          final tc = entry['tc'] as ToolCall;
-          final toolResult = entry['result'] as ToolResult;
-          yield ToolStartEvent(tc.name, concurrentCount: count);
-          final failed = _isToolFailed(tc.name, toolResult.content);
-          if (failed) {
-            yield ToolErrorEvent(tc.name, toolResult.content);
-          } else {
-            yield ToolDoneEvent(tc.name);
-          }
-          if ((tc.name == 'generate_image' || tc.name == 'generate_video') &&
-              toolResult.content.isNotEmpty &&
-              !failed) {
-            yield ToolMediaEvent(toolResult.content);
-          }
-          if (tc.name == 'task_plan' &&
-              toolResult.content.isNotEmpty &&
-              !failed) {
-            final plan = TaskPlanTool.currentPlan;
-            if (plan != null) {
-              yield TaskPlanEvent(
-                title: plan.title,
-                verified: plan.verified,
-                tasks: plan.tasks
-                    .map(
-                      (t) => TaskPlanItem(
-                        id: t.id,
-                        title: t.title,
-                        done: t.status == TaskStatus.done,
-                        inProgress: t.status == TaskStatus.inProgress,
-                      ),
-                    )
-                    .toList(),
-              );
-            }
-          }
+        for (var i = 0; i < toolCalls.length; i++) {
           toolResults.add({
             'type': 'tool_result',
-            'tool_use_id': tc.id,
-            'content': toolResult.content,
+            'tool_use_id': toolCalls[i].id,
+            'content': results[i].content,
           });
         }
         currentMessages.add({'role': 'user', 'content': toolResults});

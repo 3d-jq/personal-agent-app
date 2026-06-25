@@ -224,7 +224,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         }
       }
     } finally {
-      setState(() => _busy = false);
+      if (mounted) setState(() => _busy = false);
       await _saveGroup();
     }
   }
@@ -288,9 +288,11 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
         if (event is TextChunkEvent) buf.write(event.text);
       }
       final choice = buf.toString().trim();
-      // 匹配候选名字
+      // Match candidate names exactly (not substring)
       for (final c in candidates) {
-        if (choice.contains(c.name)) return c.name;
+        if (choice == c.name || choice.contains(RegExp('\\b${RegExp.escape(c.name)}\\b'))) {
+          return c.name;
+        }
       }
       if (choice.toUpperCase().contains('STOP')) return 'STOP';
       return null;

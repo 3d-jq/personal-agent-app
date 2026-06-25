@@ -9,6 +9,7 @@ class ConnectivityService {
   Stream<bool> get onConnectivityChanged => _controller.stream;
   bool _isOnline = true;
   bool get isOnline => _isOnline;
+  StreamSubscription<List<ConnectivityResult>>? _sub;
 
   /// connectivity_plus 6.x 起，checkConnectivity() 和 onConnectivityChanged
   /// 都返回 List<ConnectivityResult>。只要存在任一非 none 的连接即视为在线。
@@ -18,9 +19,9 @@ class ConnectivityService {
   Future<void> init() async {
     final result = await _connectivity.checkConnectivity();
     _isOnline = _isConnected(result);
-    _connectivity.onConnectivityChanged.listen((result) {
+    _sub = _connectivity.onConnectivityChanged.listen((result) {
       _isOnline = _isConnected(result);
-      _controller.add(_isOnline);
+      if (!_controller.isClosed) _controller.add(_isOnline);
     });
   }
 
@@ -30,5 +31,8 @@ class ConnectivityService {
     return _isOnline;
   }
 
-  void dispose() => _controller.close();
+  void dispose() {
+    _sub?.cancel();
+    _controller.close();
+  }
 }

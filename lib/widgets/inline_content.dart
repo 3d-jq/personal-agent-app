@@ -283,13 +283,13 @@ Widget mdBlock(String text, AgentColors nc, [BuildContext? context]) {
       ),
       code: TextStyle(
         fontSize: 13,
-        color: const Color(0xFF24292F),
-        backgroundColor: const Color(0xFFAFB8C1).withValues(alpha: 0.2),
+        color: nc.textPrimary,
+        backgroundColor: nc.divider.withValues(alpha: 0.5),
         fontFamily: 'monospace',
       ),
       codeblockDecoration: BoxDecoration(
-        color: const Color(0xFFF6F8FA),
-        border: Border.all(color: const Color(0xFFD0D7DE), width: 0.5),
+        color: nc.primarySurface,
+        border: Border.all(color: nc.divider, width: 0.5),
         borderRadius: BorderRadius.circular(10),
       ),
       codeblockPadding: const EdgeInsets.all(14),
@@ -333,9 +333,9 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF6F8FA),
+        color: nc.primarySurface,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFD0D7DE), width: 0.5),
+        border: Border.all(color: nc.divider, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -345,12 +345,12 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: const Color(0xFFD0D7DE), width: 0.5),
+                bottom: BorderSide(color: nc.divider, width: 0.5),
               ),
             ),
             child: Row(
               children: [
-                Icon(Icons.code, size: 13, color: const Color(0xFF656D76)),
+                Icon(Icons.code, size: 13, color: nc.textSecondary),
                 const SizedBox(width: 6),
                 Text(
                   element.attributes['class']?.toString().replaceAll(
@@ -358,7 +358,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
                         '',
                       ) ??
                       'code',
-                  style: TextStyle(fontSize: 11, color: const Color(0xFF656D76)),
+                  style: TextStyle(fontSize: 11, color: nc.textSecondary),
                 ),
                 const Spacer(),
                 GestureDetector(
@@ -377,11 +377,11 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.copy, size: 13, color: const Color(0xFF656D76)),
+                      Icon(Icons.copy, size: 13, color: nc.textSecondary),
                       const SizedBox(width: 4),
                       Text(
                         '复制',
-                        style: TextStyle(fontSize: 11, color: const Color(0xFF656D76)),
+                        style: TextStyle(fontSize: 11, color: nc.textSecondary),
                       ),
                     ],
                   ),
@@ -394,9 +394,9 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
             padding: const EdgeInsets.all(14),
             child: Text(
               code,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF24292F),
+                color: nc.textPrimary,
                 fontFamily: 'monospace',
                 height: 1.5,
               ),
