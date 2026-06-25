@@ -25,10 +25,11 @@ class ThinkingChunkEvent extends ChatStreamEvent {
 /// 工具调用开始。
 class ToolStartEvent extends ChatStreamEvent {
   final String name;
-
   /// 本轮并发执行的工具总数（>1 时表示并行执行）。
   final int concurrentCount;
-  const ToolStartEvent(this.name, {this.concurrentCount = 1});
+  /// 工具调用参数，用于生成更具体的标签（如 context_doc 的 action/doc）。
+  final Map<String, dynamic>? arguments;
+  const ToolStartEvent(this.name, {this.concurrentCount = 1, this.arguments});
 }
 
 /// 工具调用成功完成。

@@ -17,7 +17,7 @@ void main() {
       }
     });
 
-    test('checkFrequencyLimit returns warning at 11th call', () {
+    test('checkFrequencyLimit blocks at 11th call', () {
       for (var i = 0; i < 10; i++) {
         registry.checkFrequencyLimit('clipboard');
       }
@@ -26,14 +26,14 @@ void main() {
       expect(msg, contains('11'));
     });
 
-    test('checkFrequencyWarning returns null at 7 calls', () {
+    test('checkFrequencyWarning null at 7 calls', () {
       for (var i = 0; i < 7; i++) {
         registry.checkFrequencyLimit('clipboard');
       }
       expect(registry.checkFrequencyWarning('clipboard'), isNull);
     });
 
-    test('checkFrequencyWarning returns warning at 8th call (threshold - 2)', () {
+    test('checkFrequencyWarning warns at 8th call', () {
       for (var i = 0; i < 8; i++) {
         registry.checkFrequencyLimit('clipboard');
       }
@@ -43,16 +43,16 @@ void main() {
       expect(warn, contains('10'));
     });
 
-    test('checkFrequencyWarning returns warning at 9th and 10th call', () {
+    test('checkFrequencyWarning warns at 9th and 10th call', () {
       for (var i = 0; i < 9; i++) {
         registry.checkFrequencyLimit('clipboard');
       }
       expect(registry.checkFrequencyWarning('clipboard'), isNotNull);
-      registry.checkFrequencyLimit('clipboard'); // 10th
+      registry.checkFrequencyLimit('clipboard');
       expect(registry.checkFrequencyWarning('clipboard'), isNotNull);
     });
 
-    test('resetCallCounts clears all counters', () {
+    test('resetCallCounts clears all', () {
       for (var i = 0; i < 5; i++) {
         registry.checkFrequencyLimit('clipboard');
       }
@@ -61,14 +61,10 @@ void main() {
       expect(registry.checkFrequencyWarning('clipboard'), isNull);
     });
 
-    test('counters are per-tool', () {
-      final toolB = ClipboardTool();
-      // Register a second instance with a different name by using a subclass
-      // Just test that counters don't cross-contaminate
+    test('counters per-tool', () {
       for (var i = 0; i < 10; i++) {
         registry.checkFrequencyLimit('clipboard');
       }
-      // A different tool name should not be affected
       expect(registry.checkFrequencyLimit('nonexistent'), isNull);
     });
   });

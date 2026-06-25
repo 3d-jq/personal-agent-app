@@ -4,10 +4,10 @@
 /// Tool description for `context_doc_tool`.
 const String contextDocToolDescription = r'''
 读取或更新上下文文档（SOUL.md / USER.md / AGENT.md / MEMORY.md）或知识库文件。
-- read：查看指定文档的当前内容。AGENT.md / MEMORY.md 不会自动加载，需要时必须先 read。
-- update：覆盖写入指定文档的完整内容。
+- read：读取指定文档的当前完整内容。
+- update：覆盖写入指定文档的完整内容。写入前应先 read 获取当前内容，修改后全量写回。用于记录新的用户信息、偏好、记忆等。
 注意：
-- SOUL.md / USER.md / MEMORY.md 可直接更新，但 update 只能写入用户明确陈述的内容。
-- AGENT.md 写入前需要 review 确认。
+- update 是覆盖写入，写入前应保留原文中仍有效的内容。
+- SOUL.md 建议由用户直接编辑或使用 update 覆盖写入。
 - knowledge 文档只读，不支持 update。
 ''';
