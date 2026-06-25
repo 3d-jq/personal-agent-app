@@ -476,7 +476,7 @@ class _BubbleColorPicker extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Text(
-              '气泡颜色',
+              '气泡',
               style: TextStyle(
                 fontSize: 15,
                 color: nc.textPrimary,

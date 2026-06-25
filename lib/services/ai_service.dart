@@ -37,15 +37,6 @@ String _friendlyError(DioException e) {
   return '请求失败${code != null ? ' ($code)' : ''}，请检查网络连接';
 }
 
-/// Result of one AI request cycle
-class AiResponse {
-  final String text;
-  final String reasoning;
-  final List<ToolCall>? toolCalls;
-
-  const AiResponse({required this.text, this.reasoning = '', this.toolCalls});
-}
-
 class AIService {
   final String baseUrl;
   final String apiKey;
@@ -212,49 +203,28 @@ class AIService {
       round++;
       if (round > safetyLimit) return;
 
-      // For Anthropic, we do non-streaming tool calling (simpler)
+      // For Anthropic, always streaming with tool-call collection
       if (_isAnthropic) {
         yield* _streamAnthropicWithTools(conversation);
         return;
       }
 
-      // OpenAI-compatible: streaming for normal responses, non-streaming for tool calls
+      // OpenAI-compatible: always use streaming, collect tool calls from deltas
       final tools = hasTools ? toolRegistry.functionDefinitions : null;
+      final outToolCalls = <ToolCall>[];
+      yield* _streamOpenAI(conversation, tools: tools, outToolCalls: outToolCalls);
 
-      // If no tools or last round, do streaming
-      if (tools == null) {
-        yield* _streamOpenAI(conversation);
-        return;
-      }
-
-      // Try non-streaming first to check for tool calls
-      final response = await _callOpenAINonStreaming(conversation, tools);
-
-      if (response.toolCalls != null && response.toolCalls!.isNotEmpty) {
-        // Yield any thinking/text before the tool calls
-        if (response.reasoning.isNotEmpty) {
-          yield ThinkingChunkEvent(response.reasoning);
-        }
-        if (response.text.isNotEmpty) yield TextChunkEvent(response.text);
-        // Execute tools and add results to conversation
+      if (outToolCalls.isNotEmpty) {
+        // Collect the assistant text that was yielded before tool calls
         yield* _processToolCalls(
           conversation,
-          response.toolCalls!,
-          response.text,
+          outToolCalls,
+          '', // assistant text already streamed; pass empty for the tool_calls message
         );
         continue;
       }
 
-      // No tool calls — yield non-streaming reasoning/text directly; fallback to streaming if empty
-      if (response.reasoning.isNotEmpty) {
-        yield ThinkingChunkEvent(response.reasoning);
-      }
-      if (response.text.isNotEmpty) {
-        yield TextChunkEvent(response.text);
-        return;
-      }
-      yield* _streamOpenAI(conversation, tools: tools);
-      return;
+      return; // No tool calls — all text already streamed, done
     }
   }
 
@@ -364,57 +334,12 @@ class AIService {
     );
   }
 
-  Future<AiResponse> _callOpenAINonStreaming(
-    List<Map<String, dynamic>> messages,
-    List<Map<String, dynamic>> tools,
-  ) async {
-    final url = '${_normalizeUrl(baseUrl)}/chat/completions';
-    try {
-      final response = await _retryPost(
-        url,
-        headers: _authHeaders,
-        data: {
-          'model': model,
-          'messages': messages,
-          'tools': tools,
-          'max_tokens': _effectiveMaxTokens,
-          if (thinkingEffort != 'low')
-            'chat_template_kwargs': {'enable_thinking': true},
-          if (thinkingEffort.isNotEmpty) 'reasoning_effort': thinkingEffort,
-        },
-      );
 
-      final data = response.data;
-      final choice = data['choices']?[0];
-      if (choice == null || choice['message'] == null) {
-        return const AiResponse(text: '');
-      }
-
-      final message = choice['message'];
-      final reasoning = message['reasoning_content'] as String? ?? '';
-      final text =
-          (message['content'] as String? ?? '') +
-          (choice['finish_reason'] == 'length'
-              ? '\n\n[回复被长度限制截断，请简化问题或分多次询问]'
-              : '');
-      final toolCallsRaw = message['tool_calls'] as List?;
-      final toolCalls = toolCallsRaw
-          ?.map((tc) => ToolCall.fromJson(tc))
-          .toList();
-
-      return AiResponse(text: text, reasoning: reasoning, toolCalls: toolCalls);
-    } on DioException catch (e) {
-      return AiResponse(text: _friendlyError(e));
-    } catch (e) {
-      return AiResponse(text: '请求异常: $e');
-    }
-  }
-
-  // ── OpenAI-compatible streaming ──
-
+  /// Streams text chunks in real-time and collects tool calls into [outToolCalls].
   Stream<ChatStreamEvent> _streamOpenAI(
     List<Map<String, dynamic>> messages, {
     List<Map<String, dynamic>>? tools,
+    List<ToolCall>? outToolCalls,
   }) async* {
     final url = '${_normalizeUrl(baseUrl)}/chat/completions';
     try {
@@ -439,6 +364,12 @@ class AIService {
 
       final stream = response.data.stream as Stream<List<int>>;
       String buffer = '';
+
+      // Tool-call accumulation state (OpenAI streams tool calls via deltas)
+      final toolCallArgs = <int, StringBuffer>{};
+      final toolCallIds = <int, String>{};
+      final toolCallNames = <int, String>{};
+
       await for (final chunk in stream) {
         buffer += utf8.decode(chunk, allowMalformed: true);
         final lines = buffer.split('\n');
@@ -455,21 +386,47 @@ class AIService {
             }
             final delta = choice?['delta'];
             if (delta == null) continue;
+
+            // Reasoning content
             final reasoning = delta['reasoning_content'] as String?;
             if (reasoning != null && reasoning.isNotEmpty)
               yield ThinkingChunkEvent(reasoning);
+
+            // Tool calls — accumulated from streaming deltas
+            final toolCallsDelta = delta['tool_calls'] as List?;
+            if (toolCallsDelta != null && outToolCalls != null) {
+              for (final tc in toolCallsDelta) {
+                final idx = tc['index'] as int;
+                // First chunk for this tool call: id + name
+                final id = tc['id'] as String?;
+                if (id != null) toolCallIds[idx] = id;
+                final func = tc['function'] as Map<String, dynamic>?;
+                if (func != null) {
+                  final name = func['name'] as String?;
+                  if (name != null) toolCallNames[idx] = name;
+                  final args = func['arguments'] as String?;
+                  if (args != null) {
+                    toolCallArgs.putIfAbsent(idx, () => StringBuffer());
+                    toolCallArgs[idx]!.write(args);
+                  }
+                }
+              }
+            }
+
+            // Text content (only yield if not a tool-call delta)
             final content = delta['content'] as String?;
             if (content != null && content.isNotEmpty)
               yield TextChunkEvent(content);
           } catch (_) {}
         }
       }
+
       // Process any remaining buffer content
-      if (buffer.trim().isNotEmpty && !buffer.trim().startsWith('[DONE]')) {
-        try {
-          final data = buffer.trim();
-          if (data.startsWith('data: ')) {
-            final choice = jsonDecode(data.substring(6))['choices']?[0];
+      final remaining = buffer.trim();
+      if (remaining.isNotEmpty && !remaining.startsWith('[DONE]')) {
+        if (remaining.startsWith('data: ')) {
+          try {
+            final choice = jsonDecode(remaining.substring(6))['choices']?[0];
             final finishReason = choice?['finish_reason'] as String?;
             if (finishReason == 'length') {
               yield ErrorEvent('回复被长度限制截断，请简化问题或分多次询问');
@@ -483,8 +440,26 @@ class AIService {
               if (content != null && content.isNotEmpty)
                 yield TextChunkEvent(content);
             }
+          } catch (_) {}
+        }
+      }
+
+      // Collect completed tool calls (sorted by index for deterministic order)
+      if (outToolCalls != null && toolCallIds.isNotEmpty) {
+        final indices = toolCallIds.keys.toList()..sort();
+        for (final idx in indices) {
+          final id = toolCallIds[idx];
+          final name = toolCallNames[idx];
+          if (id == null || name == null) continue;
+          Map<String, dynamic> args = {};
+          final argsBuf = toolCallArgs[idx];
+          if (argsBuf != null && argsBuf.isNotEmpty) {
+            try {
+              args = Map<String, dynamic>.from(jsonDecode(argsBuf.toString()));
+            } catch (_) {}
           }
-        } catch (_) {}
+          outToolCalls.add(ToolCall(id: id, name: name, arguments: args));
+        }
       }
     } on DioException catch (e) {
       yield ErrorEvent(_friendlyError(e));

@@ -614,18 +614,6 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
                     ),
                   ),
                 ),
-                if (_loading)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(nc.textPrimary),
-                      ),
-                    ),
-                  ),
                 if (!_loading)
                   GestureDetector(
                     onTap: _fetch,
@@ -650,33 +638,47 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
               ),
             ),
           Flexible(
-            child: ListView(
-              physics: const BouncingScrollPhysics(),
-              children: [
-                ..._models.map((m) {
-                  final sel = m == _current;
-                  return ListTile(
-                    title: Text(
-                      m,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
-                        color: sel ? nc.success : nc.textPrimary,
-                      ),
-                    ),
-                    trailing: sel
-                        ? Icon(Icons.check_circle, size: 20, color: nc.success)
-                        : null,
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      widget.settings.setVendorModel(widget.vendor.id, m);
-                      widget.onChanged();
-                      Navigator.pop(context);
-                    },
-                  );
-                }),
-              ],
-            ),
+            child: _loading
+                ? _ModelSkeletonList(nc: nc)
+                : ListView(
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      ..._models.map((m) {
+                        final sel = m == _current;
+                        return ListTile(
+                          title: Text(
+                            m,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight:
+                                  sel ? FontWeight.w600 : FontWeight.w400,
+                              color: sel ? nc.success : nc.textPrimary,
+                            ),
+                          ),
+                          trailing: sel
+                              ? Icon(Icons.check_circle,
+                                  size: 20, color: nc.success)
+                              : null,
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            widget.settings
+                                .setVendorModel(widget.vendor.id, m);
+                            widget.onChanged();
+                            Navigator.pop(context);
+                          },
+                        );
+                      }),
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            _error!,
+                            style: TextStyle(fontSize: 13, color: nc.error),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -685,6 +687,63 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
 }
 
 // ── Widgets ──
+
+/// 模型列表加载时的骨架屏（渐变脉冲效果）
+class _ModelSkeletonList extends StatefulWidget {
+  final AgentColors nc;
+  const _ModelSkeletonList({required this.nc});
+
+  @override
+  State<_ModelSkeletonList> createState() => _ModelSkeletonListState();
+}
+
+class _ModelSkeletonListState extends State<_ModelSkeletonList>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.nc;
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) => ListView(
+        physics: const NeverScrollableScrollPhysics(),
+        children: List.generate(5, (i) {
+          final w = 0.4 + 0.35 * (i % 3) / 2; // varied widths
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Opacity(
+              opacity: 0.25 + 0.15 * _ctrl.value,
+              child: Container(
+                width: MediaQuery.of(context).size.width * w,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: c.textSecondary,
+                  borderRadius: BorderRadius.circular(7),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
 
 class _VendorTile extends StatelessWidget {
   final VendorConfig vendor;

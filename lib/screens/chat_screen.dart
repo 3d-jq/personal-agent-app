@@ -98,6 +98,29 @@ class _ChatScreenState extends State<ChatScreen> {
     _inputFocus.unfocus();
   }
 
+  Widget _buildNewChatButton(AgentColors nc) {
+    return GestureDetector(
+      onTap: () async {
+        HapticFeedback.lightImpact();
+        _resetInput();
+        await _controller.saveSession();
+        _controller.newSession();
+        _controller.clearSessions();
+        await _controller.refreshSessions();
+      },
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: nc.primarySurface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: nc.divider, width: 0.5),
+        ),
+        child: Icon(Icons.edit_square, size: 18, color: nc.textPrimary),
+      ),
+    );
+  }
+
   Widget _buildIdentityButton(AgentColors nc) {
     return Theme(
       data: Theme.of(context).copyWith(
@@ -312,7 +335,14 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           appBar: AgentTopBar(
             afterMenu: _buildModelChip(nc),
-            trailing: _buildIdentityButton(nc),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildNewChatButton(nc),
+                const SizedBox(width: 8),
+                _buildIdentityButton(nc),
+              ],
+            ),
           ),
           resizeToAvoidBottomInset: true,
           body: Column(

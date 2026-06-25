@@ -1,73 +1,49 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/agent.dart';
 import '../widgets/agent_group/agent_group_theme.dart' show filterAgentTools;
-import 'async_lock.dart';
+import 'storage/cached_repository.dart';
+import 'storage/json_file_data_source.dart';
 
 /// Agent 库：管理所有用户可见的 Agent（内置 + 自定义）
 class AgentStorage {
-  AgentStorage();
+  AgentStorage()
+    : _repo = CachedRepository<Agent>(
+        dataSource: JsonFileDataSource<Agent>(
+          relativePath: 'agents.json',
+          fromJson: (list) =>
+              list
+                  .map((j) => Agent.fromJson(j as Map<String, dynamic>))
+                  .toList()
+                ..sort((a, b) => a.name.compareTo(b.name)),
+          toJson: (items) => items.map((e) => e.toJson()).toList(),
+        ),
+      );
 
-  final _lock = AsyncLock();
-  List<Agent>? _cache;
-
-  Future<File> _file() async {
-    final dir = await getApplicationDocumentsDirectory();
-    return File('${dir.path}/agents.json');
-  }
+  final CachedRepository<Agent> _repo;
 
   Future<List<Agent>> loadAll() async {
-    if (_cache != null) return _cache!;
-    try {
-      final file = await _file();
-      if (!await file.exists()) {
-        await _seedIfEmpty();
-        return _cache!;
-      }
-      final list = jsonDecode(await file.readAsString()) as List;
-      _cache =
-          list.map((j) => Agent.fromJson(j as Map<String, dynamic>)).toList()
-            ..sort((a, b) => a.name.compareTo(b.name));
-      await _migrate();
-      return _cache!;
-    } catch (_) {
-      await _backupCorruptedFile();
+    final all = await _repo.loadAll();
+    if (all.isEmpty) {
       await _seedIfEmpty();
-      return _cache!;
+      return _repo.current;
     }
+    await _migrate(all);
+    return _repo.current;
   }
 
-  /// 方案 A 数据迁移：剔除已存 Agent 里的写操作类工具（不影响 Agent 本身）
-  Future<void> _migrate() async {
-    final all = _cache ?? [];
+  /// 方案 A 数据迁移：剔除已存 Agent 里的写操作类工具
+  Future<void> _migrate(List<Agent> all) async {
     var changed = false;
     for (var i = 0; i < all.length; i++) {
-      final a = all[i];
-      final filtered = filterAgentTools(a.allowedToolNames);
-      if (filtered.length != a.allowedToolNames.length) {
-        all[i] = a.copyWith(allowedToolNames: filtered);
+      final filtered = filterAgentTools(all[i].allowedToolNames);
+      if (filtered.length != all[i].allowedToolNames.length) {
+        all[i] = all[i].copyWith(allowedToolNames: filtered);
         changed = true;
       }
     }
-    if (changed) {
-      _cache = all;
-      await _saveAll(all);
-    }
-  }
-
-  Future<void> _backupCorruptedFile() async {
-    try {
-      final file = await _file();
-      if (await file.exists()) {
-        final backup = File(
-          '${file.path}.bak.${DateTime.now().millisecondsSinceEpoch}',
-        );
-        await file.rename(backup.path);
-      }
-    } catch (_) {}
+    if (changed) await _repo.saveAll(all);
   }
 
   /// 首次启动时种入 7 个内置 Agent（Prompt 从 assets/agents/*.md 加载）
@@ -189,11 +165,9 @@ class AgentStorage {
         ],
       ),
     ];
-    _cache = seeds;
-    await _saveAll(seeds);
+    await _repo.saveAll(seeds);
   }
 
-  /// 从 assets/agents/ 目录加载 Agent 的 system prompt
   static Future<String> _loadPrompt(String filename) async {
     try {
       return await rootBundle.loadString('assets/agents/$filename');
@@ -203,48 +177,26 @@ class AgentStorage {
   }
 
   Future<Agent> add(Agent a) async {
-    return _lock.run(() async {
-      final all = await loadAll();
-      all.add(a);
-      await _saveAll(all);
-      return a;
-    });
+    await _repo.mutate((all) => all.add(a));
+    return a;
   }
 
   Future<void> update(Agent a) async {
-    await _lock.run(() async {
-      final all = await loadAll();
+    await _repo.mutate((all) {
       final idx = all.indexWhere((x) => x.id == a.id);
-      if (idx >= 0) {
-        all[idx] = a;
-        await _saveAll(all);
-      }
+      if (idx >= 0) all[idx] = a;
     });
   }
 
   Future<void> remove(String id) async {
-    await _lock.run(() async {
-      final all = await loadAll();
-      all.removeWhere((x) => x.id == id);
-      await _saveAll(all);
-    });
+    await _repo.mutate((all) => all.removeWhere((x) => x.id == id));
   }
 
-  Agent? byId(String id) {
-    final all = _cache ?? const [];
-    return all.where((a) => a.id == id).firstOrNull;
-  }
+  Agent? byId(String id) =>
+      _repo.current.where((a) => a.id == id).firstOrNull;
 
-  Agent? byName(String name) {
-    final all = _cache ?? const [];
-    return all.where((a) => a.name == name).firstOrNull;
-  }
+  Agent? byName(String name) =>
+      _repo.current.where((a) => a.name == name).firstOrNull;
 
-  Future<void> _saveAll(List<Agent> all) async {
-    _cache = all;
-    final file = await _file();
-    await file.writeAsString(jsonEncode(all.map((e) => e.toJson()).toList()));
-  }
-
-  void clearCache() => _cache = null;
+  void clearCache() => _repo.clearCache();
 }
