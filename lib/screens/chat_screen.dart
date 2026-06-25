@@ -202,15 +202,9 @@ class _ChatScreenState extends State<ChatScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: nc.surface,
+            color: nc.primarySurface,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 1),
-              ),
-            ],
+            border: Border.all(color: nc.divider, width: 0.5),
           ),
           child: Icon(Icons.badge_outlined, size: 18, color: nc.textPrimary),
         ),
@@ -227,35 +221,38 @@ class _ChatScreenState extends State<ChatScreen> {
         showModelPicker(context, _controller.aiSettings, () => setState(() {}));
       },
       child: Container(
-        height: 40,
+        height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: nc.surface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 1),
-            ),
-          ],
+          color: nc.primarySurface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: nc.divider, width: 0.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: nc.success,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 6),
             Text(
               vendor.model,
               style: TextStyle(
-                fontSize: 12,
-                color: nc.textSecondary,
+                fontSize: 13,
+                color: nc.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(width: 2),
             Icon(
               Icons.keyboard_arrow_down_rounded,
-              size: 14,
+              size: 16,
               color: nc.textSecondary,
             ),
           ],
@@ -289,7 +286,7 @@ class _ChatScreenState extends State<ChatScreen> {
           key: _scaffoldKey,
           backgroundColor: nc.background,
           drawerEnableOpenDragGesture: false,
-          drawerScrimColor: Colors.black38,
+          drawerScrimColor: Colors.black.withValues(alpha: 0.38),
           drawer: AgentSideDrawer(
             sessions: _controller.sessions,
             currentSessionId: _controller.currentSessionId,
@@ -325,6 +322,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   children: [
                     ListView.builder(
                       controller: _scrollCtrl,
+                      physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
@@ -353,9 +351,10 @@ class _ChatScreenState extends State<ChatScreen> {
                             decoration: BoxDecoration(
                               color: nc.surface,
                               shape: BoxShape.circle,
+                              border: Border.all(color: nc.divider, width: 0.5),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.12),
+                                  color: Colors.black.withValues(alpha: 0.08),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),

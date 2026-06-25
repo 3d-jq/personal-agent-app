@@ -22,7 +22,15 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Container(
-      color: colors.background,
+      decoration: BoxDecoration(
+        color: colors.background,
+        border: Border(
+          bottom: BorderSide(
+            color: colors.divider,
+            width: 0.5,
+          ),
+        ),
+      ),
       padding: EdgeInsets.only(top: topPadding),
       child: SizedBox(
         height: 56,
@@ -43,15 +51,9 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: colors.surface,
+                        color: colors.primarySurface,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 6,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
+                        border: Border.all(color: colors.divider, width: 0.5),
                       ),
                       child: Icon(
                         Icons.menu_rounded,

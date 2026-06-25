@@ -126,13 +126,13 @@ class _RoundedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 1),
-          ),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
       ),
       child: Column(children: children),
     );
@@ -221,7 +221,7 @@ class _SettingItem extends StatelessWidget {
         onTap: onTap ?? () {},
         borderRadius: BorderRadius.zero,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
               Icon(icon, size: 20, color: nc.textPrimary),

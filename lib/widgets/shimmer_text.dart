@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/app_animations.dart';
 
 /// 文字上的微光扫过效果
 class ShimmerText extends StatefulWidget {

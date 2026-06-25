@@ -46,6 +46,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
   void initState() {
     super.initState();
     widget.controller.addListener(() => setState(() {}));
+    widget.focusNode.addListener(() => setState(() {}));
   }
 
   @override
@@ -53,6 +54,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
     final nc = AgentColors.of(context);
     final hasFile = widget.pendingFile != null;
     final hasText = widget.controller.text.isNotEmpty;
+    final isFocused = widget.focusNode.hasFocus;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -60,13 +62,18 @@ class _ChatInputBarState extends State<ChatInputBar> {
         if (hasFile) _buildPreview(nc),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
               color: nc.surface,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: hasFile ? nc.success.withValues(alpha: 0.4) : nc.divider,
-                width: hasFile ? 1 : 0.5,
+                color: hasFile
+                    ? nc.success.withValues(alpha: 0.4)
+                    : isFocused
+                    ? nc.primary.withValues(alpha: 0.4)
+                    : nc.divider,
+                width: isFocused ? 1.5 : 1,
               ),
             ),
             child: Column(
@@ -174,9 +181,9 @@ class _ChatInputBarState extends State<ChatInputBar> {
         height: 40,
         decoration: BoxDecoration(
           color: widget.isLoading
-              ? Colors.red.withValues(alpha: 0.1)
+              ? nc.error.withValues(alpha: 0.1)
               : isActive
-              ? nc.textPrimary
+              ? nc.primary
               : nc.primarySurface,
           shape: BoxShape.circle,
         ),
@@ -184,7 +191,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
           widget.isLoading ? Icons.stop_rounded : Icons.arrow_upward_rounded,
           size: 18,
           color: widget.isLoading
-              ? Colors.red
+              ? nc.error
               : isActive
               ? nc.surface
               : nc.textSecondary,
@@ -265,7 +272,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 4),
                   Text(
                     isImage ? '图片 · 点击加号更换' : '文档 · 点击加号更换',
                     style: TextStyle(fontSize: 11, color: nc.textSecondary),

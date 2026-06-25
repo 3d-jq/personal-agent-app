@@ -118,7 +118,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               minimumSize: const Size(double.infinity, 52),
               backgroundColor: nc.success,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
             child: const Text(
@@ -241,7 +241,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               backgroundColor: nc.success,
               disabledBackgroundColor: nc.divider,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(20),
               ),
             ),
             child: const Text(

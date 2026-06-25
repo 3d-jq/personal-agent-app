@@ -5,6 +5,8 @@ import '../models/chat_message.dart';
 import '../core/agent_colors.dart';
 import '../core/app_animations.dart';
 import '../core/app_router.dart';
+import '../core/service_locator.dart';
+import '../services/theme_service.dart';
 import 'inline_content.dart';
 import 'timeline_view.dart';
 import 'shimmer_text.dart';
@@ -22,7 +24,8 @@ class ChatBubble extends StatelessWidget {
 
   Widget _userBubble(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bgColor = isDark ? const Color(0xFF2A4A42) : const Color(0xFFD4EDE5);
+    final (lightColor, darkColor) = getIt<ThemeService>().bubbleColor;
+    final bgColor = isDark ? darkColor : lightColor;
     final hasImage =
         msg.attachmentType == 'image' && msg.attachmentPath != null;
     final hasDoc =
@@ -444,7 +447,7 @@ if (isError) {
       context: context,
       backgroundColor: nc.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (ctx) => SafeArea(
         child: Padding(

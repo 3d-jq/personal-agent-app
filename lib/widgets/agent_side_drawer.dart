@@ -54,9 +54,10 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                 child: Text(
                   'DWeis',
                   style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
                     color: nc.textPrimary,
+                    letterSpacing: -0.5,
                     height: 1.2,
                   ),
                 ),
@@ -210,31 +211,24 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                           vertical: 10,
                         ),
                         decoration: BoxDecoration(
-                          color: nc.surface,
+                          color: nc.primary,
                           borderRadius: BorderRadius.circular(22),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.06),
-                              blurRadius: 8,
-                              offset: const Offset(0, 1),
-                            ),
-                          ],
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.edit_outlined,
                               size: 18,
-                              color: nc.textPrimary,
+                              color: Colors.white,
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              '聊天',
+                            const Text(
+                              '新对话',
                               style: TextStyle(
                                 fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: nc.textPrimary,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
                               ),
                             ),
                           ],
@@ -288,13 +282,13 @@ class _Card extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 1),
-          ),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
       ),
       child: Column(children: children),
     );
@@ -333,7 +327,7 @@ class _CardItem extends StatelessWidget {
         onLongPress: onLongPress,
         borderRadius: BorderRadius.zero,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
               if (icon != null) ...[
@@ -398,15 +392,9 @@ class _Pill extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: nc.surface,
+        color: nc.primarySurface,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        border: Border.all(color: nc.divider, width: 0.5),
       ),
       child: Icon(icon, size: 18, color: nc.textPrimary),
     );

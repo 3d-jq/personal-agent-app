@@ -69,6 +69,7 @@ class _RemindersViewState extends State<RemindersView> {
           : _reminders.isEmpty
           ? _emptyState(nc)
           : ListView.builder(
+              physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               itemCount: _reminders.length,
               itemBuilder: (_, i) => _reminderCard(_reminders[i], nc),
@@ -127,13 +128,13 @@ class _RemindersViewState extends State<RemindersView> {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 1),
-          ),
-        ],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

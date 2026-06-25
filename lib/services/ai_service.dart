@@ -40,9 +40,10 @@ String _friendlyError(DioException e) {
 /// Result of one AI request cycle
 class AiResponse {
   final String text;
+  final String reasoning;
   final List<ToolCall>? toolCalls;
 
-  const AiResponse({required this.text, this.toolCalls});
+  const AiResponse({required this.text, this.reasoning = '', this.toolCalls});
 }
 
 class AIService {
@@ -230,7 +231,10 @@ class AIService {
       final response = await _callOpenAINonStreaming(conversation, tools);
 
       if (response.toolCalls != null && response.toolCalls!.isNotEmpty) {
-        // Yield any text before the tool calls
+        // Yield any thinking/text before the tool calls
+        if (response.reasoning.isNotEmpty) {
+          yield ThinkingChunkEvent(response.reasoning);
+        }
         if (response.text.isNotEmpty) yield TextChunkEvent(response.text);
         // Execute tools and add results to conversation
         yield* _processToolCalls(
@@ -241,7 +245,10 @@ class AIService {
         continue;
       }
 
-      // No tool calls — yield non-streaming text directly; only fallback to streaming if empty
+      // No tool calls — yield non-streaming reasoning/text directly; fallback to streaming if empty
+      if (response.reasoning.isNotEmpty) {
+        yield ThinkingChunkEvent(response.reasoning);
+      }
       if (response.text.isNotEmpty) {
         yield TextChunkEvent(response.text);
         return;
@@ -384,6 +391,7 @@ class AIService {
       }
 
       final message = choice['message'];
+      final reasoning = message['reasoning_content'] as String? ?? '';
       final text =
           (message['content'] as String? ?? '') +
           (choice['finish_reason'] == 'length'
@@ -394,7 +402,7 @@ class AIService {
           ?.map((tc) => ToolCall.fromJson(tc))
           .toList();
 
-      return AiResponse(text: text, toolCalls: toolCalls);
+      return AiResponse(text: text, reasoning: reasoning, toolCalls: toolCalls);
     } on DioException catch (e) {
       return AiResponse(text: _friendlyError(e));
     } catch (e) {

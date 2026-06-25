@@ -58,6 +58,7 @@ class _MediaViewState extends State<MediaView> {
           : _items.isEmpty
           ? _emptyState(nc)
           : GridView.builder(
+              physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
@@ -122,9 +123,9 @@ class _MediaViewState extends State<MediaView> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 8,
-                offset: const Offset(0, 1),
+                offset: const Offset(0, 2),
               ),
             ],
           ),
