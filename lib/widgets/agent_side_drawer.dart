@@ -392,9 +392,7 @@ class _Pill extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-        color: nc.primarySurface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: nc.divider, width: 0.5),
       ),
       child: Icon(icon, size: 18, color: nc.textPrimary),
     );

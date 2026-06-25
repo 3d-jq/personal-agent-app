@@ -311,6 +311,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ts.setMode(next);
                 },
               ),
+              _ThemePicker(nc: nc),
               _BubbleColorPicker(nc: nc),
               _SettingItem(
                 icon: Icons.layers_outlined,
@@ -453,6 +454,60 @@ class _SettingItem extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ThemePicker extends StatelessWidget {
+  final AgentColors nc;
+  const _ThemePicker({required this.nc});
+
+  @override
+  Widget build(BuildContext context) {
+    final ts = getIt<ThemeService>();
+    final currentKey = ts.themeKey;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Icon(Icons.palette_outlined, size: 20, color: nc.textPrimary),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              '主题',
+              style: TextStyle(
+                fontSize: 15,
+                color: nc.textPrimary,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ),
+          ...ts.themeKeys.map((key) {
+            final isSelected = key == currentKey;
+            final color = ts.themeColor(key);
+            return GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                ts.setTheme(key);
+              },
+              child: Container(
+                width: 28,
+                height: 28,
+                margin: const EdgeInsets.only(left: 6),
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? nc.primary : nc.divider,
+                    width: isSelected ? 2 : 1,
+                  ),
+                ),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }

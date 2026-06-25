@@ -169,7 +169,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
     final isActive = hasText || hasFile || widget.isLoading;
     return GestureDetector(
       onTap: () {
-        HapticFeedback.lightImpact();
+        HapticFeedback.mediumImpact();
         if (widget.isLoading) {
           widget.onStop();
         } else {

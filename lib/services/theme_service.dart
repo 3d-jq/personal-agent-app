@@ -6,11 +6,30 @@ import 'package:path_provider/path_provider.dart';
 class ThemeService extends ChangeNotifier {
   ThemeMode _mode = ThemeMode.light;
   String _bubbleColorKey = 'mint';
+  String _themeKey = 'neutral';
 
   ThemeMode get mode => _mode;
   String get bubbleColorKey => _bubbleColorKey;
+  String get themeKey => _themeKey;
+
+  Color get seedColor => _themes[_themeKey]?.color ?? _themes['neutral']!.color;
 
   ThemeService();
+
+  /// 预设主题
+  static const Map<String, _ThemePreset> _themes = {
+    'teal': _ThemePreset(Color(0xFF009688), '青绿'),
+    'ocean': _ThemePreset(Color(0xFF1565C0), '海蓝'),
+    'lavender': _ThemePreset(Color(0xFF6750A4), '薰衣草'),
+    'rose': _ThemePreset(Color(0xFFC2185B), '玫瑰'),
+    'neutral': _ThemePreset(Color(0xFF607D8B), '素白'),
+  };
+
+  List<String> get themeKeys => _themes.keys.toList();
+
+  String themeLabel(String key) => _themes[key]?.label ?? key;
+
+  Color themeColor(String key) => _themes[key]?.color ?? _themes['teal']!.color;
 
   /// 预设气泡颜色：key → (light, dark)
   static const Map<String, (Color, Color)> bubbleColors = {
@@ -54,6 +73,10 @@ class ThemeService extends ChangeNotifier {
         if (!bubbleColors.containsKey(_bubbleColorKey)) {
           _bubbleColorKey = 'mint';
         }
+        _themeKey = data['theme'] as String? ?? 'neutral';
+        if (!_themes.containsKey(_themeKey)) {
+          _themeKey = 'teal';
+        }
         notifyListeners();
       }
     } catch (_) {}
@@ -61,6 +84,13 @@ class ThemeService extends ChangeNotifier {
 
   Future<void> setMode(ThemeMode mode) async {
     _mode = mode;
+    notifyListeners();
+    _save();
+  }
+
+  Future<void> setTheme(String key) async {
+    if (!_themes.containsKey(key)) return;
+    _themeKey = key;
     notifyListeners();
     _save();
   }
@@ -77,12 +107,13 @@ class ThemeService extends ChangeNotifier {
       final file = await _file();
       await file.writeAsString(
         jsonEncode({
-          'mode': mode == ThemeMode.dark
+          'mode': _mode == ThemeMode.dark
               ? 'dark'
-              : mode == ThemeMode.system
+              : _mode == ThemeMode.system
               ? 'system'
               : 'light',
           'bubbleColor': _bubbleColorKey,
+          'theme': _themeKey,
         }),
       );
     } catch (_) {}
@@ -93,4 +124,10 @@ class ThemeService extends ChangeNotifier {
       : _mode == ThemeMode.system
       ? '跟随系统'
       : '浅色';
+}
+
+class _ThemePreset {
+  final Color color;
+  final String label;
+  const _ThemePreset(this.color, this.label);
 }
