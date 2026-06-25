@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Global animated background color, driven by theme transition in App.
-final ValueNotifier<Color> animatedBgNotifier = ValueNotifier<Color>(
-  const Color(0xFFF2F2F7),
-);
-
-/// iOS-inspired color system.
+/// Material 3 color system — derived from ColorScheme.fromSeed.
 class AgentColors extends ThemeExtension<AgentColors> {
   // ── Text ──
   final Color textPrimary;
@@ -29,7 +24,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
   // ── Dividers & borders ──
   final Color divider;
 
-  Color get inputBg => surface;
+  Color get inputBg => primarySurface;
   Color get chipBg => primarySurface;
   Color get chipBorder => divider;
   Color get navBg => surface;
@@ -51,40 +46,36 @@ class AgentColors extends ThemeExtension<AgentColors> {
     required this.divider,
   }) : _background = background;
 
-  /// Returns the animated background color (smooth theme transition).
-  Color get background => animatedBgNotifier.value;
+  /// Returns the background color from the current theme.
+  Color get background => _background;
 
-  /// Raw static background color, bypassing animation. Used by theme switcher.
-  Color get staticBackground => _background;
+  /// Build from a generated ColorScheme.
+  factory AgentColors.fromScheme(ColorScheme scheme) {
+    final isDark = scheme.brightness == Brightness.dark;
+    return AgentColors._(
+      background: scheme.surface,
+      textPrimary: scheme.onSurface,
+      textSecondary: scheme.onSurface.withValues(alpha: 0.55),
+      textDisabled: scheme.onSurface.withValues(alpha: 0.25),
+      surface: scheme.surface,
+      primarySurface: scheme.surfaceContainerLow,
+      cardBackground: scheme.surface,
+      primary: scheme.primary,
+      success: Colors.green.shade700,
+      warning: Colors.orange.shade900,
+      error: scheme.error,
+      divider: scheme.outlineVariant,
+    );
+  }
 
-  factory AgentColors.light() => const AgentColors._(
-    background: Color(0xFFF2F2F7), // iOS System Gray 6
-    textPrimary: Color(0xFF000000),
-    textSecondary: Color.fromRGBO(0, 0, 0, 0.55),
-    textDisabled: Color.fromRGBO(0, 0, 0, 0.25),
-    surface: Color(0xFFFFFFFF),
-    primarySurface: Color(0xFFF2F2F7),
-    cardBackground: Color(0xFFFFFFFF),
-    primary: Color(0xFF007AFF), // iOS System Blue
-    success: Color(0xFF34C759), // iOS System Green
-    warning: Color(0xFFFF9500), // iOS System Orange
-    error: Color(0xFFFF3B30), // iOS System Red
-    divider: Color.fromRGBO(60, 60, 67, 0.12),
+  /// Default light theme (teal). Prefer fromScheme() with a ColorScheme.
+  factory AgentColors.light() => AgentColors.fromScheme(
+    ColorScheme.fromSeed(seedColor: const Color(0xFF009688), brightness: Brightness.light),
   );
 
-  factory AgentColors.dark() => const AgentColors._(
-    background: Color(0xFF000000),
-    textPrimary: Color(0xFFFFFFFF),
-    textSecondary: Color.fromRGBO(255, 255, 255, 0.55),
-    textDisabled: Color.fromRGBO(255, 255, 255, 0.25),
-    surface: Color.fromRGBO(28, 28, 30, 0.95),
-    primarySurface: Color.fromRGBO(28, 28, 30, 0.95),
-    cardBackground: Color.fromRGBO(28, 28, 30, 0.95),
-    primary: Color(0xFF0A84FF), // iOS Dark Blue
-    success: Color(0xFF30D158), // iOS Dark Green
-    warning: Color(0xFFFF9F0A), // iOS Dark Orange
-    error: Color(0xFFFF453A), // iOS Dark Red
-    divider: Color.fromRGBO(84, 84, 88, 0.12),
+  /// Default dark theme (teal). Prefer fromScheme() with a ColorScheme.
+  factory AgentColors.dark() => AgentColors.fromScheme(
+    ColorScheme.fromSeed(seedColor: const Color(0xFF009688), brightness: Brightness.dark),
   );
 
   static AgentColors of(BuildContext context) =>

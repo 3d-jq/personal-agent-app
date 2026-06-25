@@ -268,10 +268,33 @@ class _NotesPageState extends State<NotesPage> {
   }
 }
 
-class _NoteDetail extends StatelessWidget {
+class _NoteDetail extends StatefulWidget {
   final Note note;
   final VoidCallback? onEdit;
   const _NoteDetail({required this.note, this.onEdit});
+
+  @override
+  State<_NoteDetail> createState() => _NoteDetailState();
+}
+
+class _NoteDetailState extends State<_NoteDetail> {
+  List<Widget>? _contentWidgets;
+
+  @override
+  void initState() {
+    super.initState();
+    // Defer Markdown parsing to avoid blocking the page transition
+    Future.microtask(() {
+      if (!mounted) return;
+      setState(() {
+        _contentWidgets = buildInlineContent(
+          widget.note.content,
+          AgentColors.of(context),
+          context,
+        );
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -286,7 +309,7 @@ class _NoteDetail extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          note.title,
+          widget.note.title,
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
@@ -295,13 +318,13 @@ class _NoteDetail extends StatelessWidget {
         ),
         centerTitle: true,
         actions: [
-          if (onEdit != null)
+          if (widget.onEdit != null)
             IconButton(
               icon: Icon(Icons.edit_outlined, color: nc.textPrimary),
               onPressed: () {
                 HapticFeedback.lightImpact();
                 Navigator.pop(context);
-                onEdit!();
+                widget.onEdit!();
               },
             ),
           IconButton(
@@ -309,7 +332,7 @@ class _NoteDetail extends StatelessWidget {
             onPressed: () async {
               HapticFeedback.lightImpact();
               try {
-                await NoteExportService.exportToWord(note);
+                await NoteExportService.exportToWord(widget.note);
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(
@@ -327,15 +350,18 @@ class _NoteDetail extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${note.createdAt.year}/${note.createdAt.month.toString().padLeft(2, '0')}/${note.createdAt.day.toString().padLeft(2, '0')} '
-              '${note.createdAt.hour.toString().padLeft(2, '0')}:${note.createdAt.minute.toString().padLeft(2, '0')} 创建',
+              '${widget.note.createdAt.year}/${widget.note.createdAt.month.toString().padLeft(2, '0')}/${widget.note.createdAt.day.toString().padLeft(2, '0')} '
+              '${widget.note.createdAt.hour.toString().padLeft(2, '0')}:${widget.note.createdAt.minute.toString().padLeft(2, '0')} 创建',
               style: TextStyle(
                 fontSize: 12,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),
             ),
             const SizedBox(height: 16),
-            ...buildInlineContent(note.content, nc, context),
+            if (_contentWidgets != null)
+              ..._contentWidgets!
+            else
+              const Center(child: CircularProgressIndicator()),
           ],
         ),
       ),

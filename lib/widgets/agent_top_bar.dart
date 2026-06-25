@@ -33,7 +33,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       padding: EdgeInsets.only(top: topPadding),
       child: SizedBox(
-        height: 56,
+        height: 64,
         child: Stack(
           children: [
             Positioned(
@@ -51,9 +51,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: colors.primarySurface,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: colors.divider, width: 0.5),
                       ),
                       child: Icon(
                         Icons.menu_rounded,
@@ -125,5 +123,5 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(56 + 48);
+  Size get preferredSize => const Size.fromHeight(64 + 48);
 }

@@ -23,7 +23,7 @@ void main() {
     test('light and dark themes have different backgrounds', () {
       final light = AgentColors.light();
       final dark = AgentColors.dark();
-      expect(light.staticBackground, isNot(equals(dark.staticBackground)));
+      expect(light.background, isNot(equals(dark.background)));
     });
   });
 }

@@ -32,6 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
   late final ChatController _controller;
   Timer? _scrollTimer;
   bool _showScrollBottom = false;
+  bool _userScrolledUp = false;
 
   @override
   void initState() {
@@ -63,26 +64,32 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!_scrollCtrl.hasClients) return;
     final max = _scrollCtrl.position.maxScrollExtent;
     final current = _scrollCtrl.position.pixels;
-    final shouldShow = (max - current) > 120;
+    final distFromBottom = max - current;
+    // Show "scroll to bottom" button when > 120px from bottom
+    final shouldShow = distFromBottom > 120;
     if (shouldShow != _showScrollBottom) {
       setState(() => _showScrollBottom = shouldShow);
+    }
+    // Track if user manually scrolled up
+    if (distFromBottom > 60) {
+      _userScrolledUp = true;
     }
   }
 
   void _scrollDown() {
+    // Don't force-scroll if user is reading older messages
+    if (_userScrolledUp) return;
     _scrollTimer?.cancel();
-    _scrollTimer = Timer(const Duration(milliseconds: 80), () {
+    _scrollTimer = Timer(const Duration(milliseconds: 50), () {
       if (_scrollCtrl.hasClients) {
-        _scrollCtrl.animateTo(
-          _scrollCtrl.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
-        );
+        _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
       }
     });
   }
 
   void _handleSend() {
+    // User sending a message = they want to be at the bottom again
+    _userScrolledUp = false;
     final text = _inputCtrl.text;
     if (_controller.isWaitingUserPrompt) {
       _resetInput();
@@ -112,9 +119,7 @@ class _ChatScreenState extends State<ChatScreen> {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: nc.primarySurface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: nc.divider, width: 0.5),
         ),
         child: Icon(Icons.edit_square, size: 18, color: nc.textPrimary),
       ),
@@ -225,9 +230,7 @@ class _ChatScreenState extends State<ChatScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: nc.primarySurface,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: nc.divider, width: 0.5),
           ),
           child: Icon(Icons.badge_outlined, size: 18, color: nc.textPrimary),
         ),
@@ -248,9 +251,8 @@ class _ChatScreenState extends State<ChatScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: nc.primarySurface,
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: nc.divider, width: 0.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

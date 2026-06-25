@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 
-/// 统一动画时长 token（Apple HIG 对齐）
+/// 统一动画时长 token（Material 3 Expressive）
 class AppDurations {
   AppDurations._();
 
@@ -10,17 +11,23 @@ class AppDurations {
   /// 标准：页面转场、列表项出现、展开收起（300ms）
   static const standard = Duration(milliseconds: 300);
 
-  /// Sheet 弹出（350ms）
-  static const sheet = Duration(milliseconds: 350);
+  /// Sheet 弹出（350ms）→ Expressive 延长至 400ms
+  static const sheet = Duration(milliseconds: 400);
+
+  /// 消息气泡入场（350ms，Expressive 弹簧）
+  static const bubble = Duration(milliseconds: 350);
 
   /// 慢速：主题切换、Hero 过渡、复杂动画（500ms）
   static const slow = Duration(milliseconds: 500);
 
   /// 骨架屏闪烁（1500ms 循环）
   static const shimmer = Duration(milliseconds: 1500);
+
+  /// FAB 展开 / 开关切换（250ms，Expressive 弹簧）
+  static const expressive = Duration(milliseconds: 250);
 }
 
-/// 统一动画曲线 token（Apple HIG 对齐）
+/// 统一动画曲线 token（Material 3 Expressive）
 class AppCurves {
   AppCurves._();
 
@@ -44,7 +51,26 @@ class AppCurves {
   static const expand = Curves.easeInOut;
 }
 
-/// 按压缩放包装器
+/// Material 3 Expressive 弹簧参数
+class ExpressiveSpring {
+  ExpressiveSpring._();
+
+  /// Expressive 弹簧：明显回弹，用于按钮反馈、消息入场、FAB
+  static final SpringDescription expressive = SpringDescription(
+    mass: 1.0,
+    stiffness: 300.0,
+    damping: 15.0,
+  );
+
+  /// Standard 弹簧：平滑自然，用于页面转场、列表项
+  static final SpringDescription standard = SpringDescription(
+    mass: 1.0,
+    stiffness: 200.0,
+    damping: 25.0,
+  );
+}
+
+/// 按压缩放包装器（Expressive 弹簧回弹）
 class PressableScale extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -73,7 +99,7 @@ class _PressableScaleState extends State<PressableScale>
     _anim = Tween<double>(
       begin: 1.0,
       end: widget.scale,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: AppCurves.press));
+    ).animate(_ctrl);
   }
 
   @override
@@ -87,10 +113,31 @@ class _PressableScaleState extends State<PressableScale>
     return GestureDetector(
       onTapDown: (_) => _ctrl.forward(),
       onTapUp: (_) {
-        _ctrl.reverse();
+        // Expressive spring release — natural bounce back
+        _ctrl
+          ..duration = AppDurations.expressive
+          ..animateWith(
+            SpringSimulation(
+              ExpressiveSpring.expressive,
+              1.0, // from
+              widget.scale, // to
+              _ctrl.velocity,
+            ),
+          );
         widget.onTap?.call();
       },
-      onTapCancel: () => _ctrl.reverse(),
+      onTapCancel: () {
+        _ctrl
+          ..duration = AppDurations.expressive
+          ..animateWith(
+            SpringSimulation(
+              ExpressiveSpring.expressive,
+              1.0,
+              widget.scale,
+              _ctrl.velocity,
+            ),
+          );
+      },
       child: AnimatedBuilder(
         animation: _anim,
         builder: (_, child) =>
@@ -101,7 +148,7 @@ class _PressableScaleState extends State<PressableScale>
   }
 }
 
-/// 自定义页面转场：从右侧滑入 + 淡入（300ms easeInOut）
+/// 自定义页面转场：从右侧滑入 + 淡入（Standard 弹簧）
 class SlideFadeRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
 
@@ -111,18 +158,13 @@ class SlideFadeRoute<T> extends PageRouteBuilder<T> {
         reverseTransitionDuration: AppDurations.standard,
         pageBuilder: (_, __, ___) => page,
         transitionsBuilder: (_, animation, __, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: AppCurves.page,
-            reverseCurve: AppCurves.page,
-          );
           return FadeTransition(
-            opacity: curved,
+            opacity: animation,
             child: SlideTransition(
               position: Tween<Offset>(
                 begin: const Offset(0.06, 0),
                 end: Offset.zero,
-              ).animate(curved),
+              ).animate(animation),
               child: child,
             ),
           );
@@ -130,7 +172,7 @@ class SlideFadeRoute<T> extends PageRouteBuilder<T> {
       );
 }
 
-/// 自定义 BottomSheet 转场：从底部滑入 + 淡入（350ms easeOut）
+/// 自定义 BottomSheet 转场：从底部滑入 + 淡入（Expressive 弹簧，400ms）
 class SlideUpRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
 
@@ -141,18 +183,13 @@ class SlideUpRoute<T> extends PageRouteBuilder<T> {
         pageBuilder: (_, __, ___) => page,
         opaque: false,
         transitionsBuilder: (_, animation, __, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: AppCurves.appear,
-            reverseCurve: AppCurves.disappear,
-          );
           return FadeTransition(
-            opacity: curved,
+            opacity: animation,
             child: SlideTransition(
               position: Tween<Offset>(
                 begin: const Offset(0, 0.1),
                 end: Offset.zero,
-              ).animate(curved),
+              ).animate(animation),
               child: child,
             ),
           );
