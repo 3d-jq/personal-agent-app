@@ -214,58 +214,62 @@ class AIService {
     List<ToolCall> toolCalls,
     EventSink<ChatStreamEvent> sink,
   ) async {
-    final count = toolCalls.length;
-    for (final tc in toolCalls) {
-      sink.add(ToolStartEvent(tc.name, concurrentCount: count));
-    }
+    try {
+      final count = toolCalls.length;
+      for (final tc in toolCalls) {
+        sink.add(ToolStartEvent(tc.name, concurrentCount: count, arguments: tc.arguments));
+      }
 
-    final planCalls = toolCalls.where((tc) => tc.name == 'task_plan').toList();
-    final otherCalls = toolCalls.where((tc) => tc.name != 'task_plan').toList();
-    final results = <String, ToolResult>{};
+      final planCalls = toolCalls.where((tc) => tc.name == 'task_plan').toList();
+      final otherCalls = toolCalls.where((tc) => tc.name != 'task_plan').toList();
+      final results = <String, ToolResult>{};
 
-    await Future.wait(
-      otherCalls.map((tc) async {
+      await Future.wait(
+        otherCalls.map((tc) async {
+          results[tc.id] = await toolRegistry.execute(tc);
+        }),
+      );
+
+      for (final tc in planCalls) {
         results[tc.id] = await toolRegistry.execute(tc);
-      }),
-    );
-
-    for (final tc in planCalls) {
-      results[tc.id] = await toolRegistry.execute(tc);
-    }
-
-    final ordered = <ToolResult>[];
-    for (final tc in toolCalls) {
-      final result = results[tc.id]!;
-      ordered.add(result);
-      if (result.failed) {
-        sink.add(ToolErrorEvent(tc.name, result.content));
-      } else {
-        sink.add(ToolDoneEvent(tc.name));
       }
-      if ((tc.name == 'generate_image' || tc.name == 'generate_video') &&
-          result.content.isNotEmpty && !result.failed) {
-        sink.add(ToolMediaEvent(result.content));
-      }
-      if (tc.name == 'task_plan' && result.content.isNotEmpty && !result.failed) {
-        final plan = TaskPlanTool.currentPlan;
-        if (plan != null) {
-          sink.add(TaskPlanEvent(
-            title: plan.title,
-            verified: plan.verified,
-            tasks: plan.tasks
-                .map((t) => TaskPlanItem(
-                      id: t.id,
-                      title: t.title,
-                      done: t.status == TaskStatus.done,
-                      inProgress: t.status == TaskStatus.inProgress,
-                    ))
-                .toList(),
-          ));
+
+      final ordered = <ToolResult>[];
+      for (final tc in toolCalls) {
+        final result = results[tc.id]!;
+        ordered.add(result);
+        if (result.failed) {
+          sink.add(ToolErrorEvent(tc.name, result.content));
+        } else {
+          sink.add(ToolDoneEvent(tc.name));
+        }
+        if ((tc.name == 'generate_image' || tc.name == 'generate_video') &&
+            result.content.isNotEmpty && !result.failed) {
+          sink.add(ToolMediaEvent(result.content));
+        }
+        if (tc.name == 'task_plan' && result.content.isNotEmpty && !result.failed) {
+          final plan = TaskPlanTool.currentPlan;
+          if (plan != null) {
+            sink.add(TaskPlanEvent(
+              title: plan.title,
+              verified: plan.verified,
+              tasks: plan.tasks
+                  .map((t) => TaskPlanItem(
+                        id: t.id,
+                        title: t.title,
+                        done: t.status == TaskStatus.done,
+                        inProgress: t.status == TaskStatus.inProgress,
+                      ))
+                  .toList(),
+            ));
+          }
         }
       }
-    }
 
-    return ordered;
+      return ordered;
+    } finally {
+      sink.close();
+    }
   }
 
   // ── OpenAI format ──

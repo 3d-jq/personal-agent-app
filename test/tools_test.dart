@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_agent_app/tools/clipboard_tool.dart';
+import 'package:personal_agent_app/tools/context_doc_tool.dart';
 import 'package:personal_agent_app/tools/tools.dart';
 import 'package:personal_agent_app/tools/weather_tool.dart';
 
@@ -31,6 +32,17 @@ void main() {
       registry.register(ClipboardTool());
 
       expect(registry.all.length, 1);
+    });
+  });
+
+  group('ContextDocTool', () {
+    test('declares read and update actions', () {
+      final tool = ContextDocTool();
+      final action = tool.parameters['properties']['action'] as Map;
+      final actions = (action['enum'] as List).cast<String>();
+
+      expect(actions, contains('read'));
+      expect(actions, contains('update'));
     });
   });
 

@@ -142,13 +142,12 @@ class ToolRegistry {
 
     try {
       final result = await tool.execute(toolCall.arguments);
-      // 频率预警附加到结果中（不阻止执行）
       final warning = checkFrequencyWarning(toolCall.name);
-      final content = _truncator.truncate(result);
       return ToolResult(
         toolName: toolCall.name,
-        content: warning != null ? '$warning\n\n$content' : content,
+        content: _truncator.truncate(result),
         toolCallId: toolCall.id,
+        warning: warning,
       );
     } catch (e) {
       return ToolResult(

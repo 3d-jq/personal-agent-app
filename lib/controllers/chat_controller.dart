@@ -370,15 +370,15 @@ class ChatController extends ChangeNotifier {
         }
         state.buf.write(text);
         break;
-      case ToolStartEvent(:final name, :final concurrentCount):
+      case ToolStartEvent(:final name, :final concurrentCount, :final arguments):
         state.hasToolCalls = true;
         _captureThinkingDetail(state);
-        // 只结束思考步骤，不影响正在并行执行的工具步骤
         _finishThinkingSteps(state.steps);
+        final detailLabel = toolLabel(name, arguments: arguments, detailed: true);
         final suffix = concurrentCount > 1 ? ' ×$concurrentCount' : '';
         state.steps.add(
           TimelineStep(
-            label: '${_toolLabel(name)}$suffix',
+            label: '$detailLabel$suffix',
             type: TimelineStepType.tool,
             status: TimelineStepStatus.running,
             detail: '工具: $name',

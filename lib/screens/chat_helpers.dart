@@ -56,9 +56,22 @@ void registerAllTools(ToolRegistry registry) {
   registry.registerDiscoverable(CalendarTool());
 }
 
-/// 工具名称 → 中文标签
-String toolLabel(String name) {
+/// 工具名称 → 中文标签，支持通过 arguments 显示具体操作。
+/// [detailed] 为 true 时显示更具体的信息（如文档名），用于时间线。
+String toolLabel(String name, {Map<String, dynamic>? arguments, bool detailed = false}) {
   switch (name) {
+    case 'context_doc':
+      final action = arguments?['action'] as String?;
+      final doc = arguments?['doc'] as String?;
+      final verb = switch (action) {
+        'read' => '读',
+        'update' => '写',
+        _ => '',
+      };
+      if (detailed && doc != null) {
+        return '上下文文档 · $verb ${_docLabel(doc)}';
+      }
+      return verb.isNotEmpty ? '上下文文档 · $verb' : '上下文文档';
     case 'weather':
       return '查询天气';
     case 'location':
@@ -78,21 +91,35 @@ String toolLabel(String name) {
     case 'save_note':
       return '保存笔记';
     case 'manage_notes':
-      return '管理笔记';
+      final a = arguments?['action'] as String?;
+      return switch (a) { 'list' => '查看笔记', 'update' => '更新笔记', 'delete' => '删除笔记', _ => '管理笔记' };
     case 'create_rich_note':
       return '图文笔记';
     case 'calendar':
-      return '日历';
+      final a = arguments?['action'] as String?;
+      return switch (a) { 'query' => '查看日历', 'add' => '添加日历', 'delete' => '删除日历', _ => '日历' };
     case 'ai_daily':
       return 'AI日报';
     case 'context_doc':
       return '上下文文档';
     case 'virtual_fs':
-      return '文件系统';
+      final a = arguments?['action'] as String?;
+      return switch (a) { 'ls' => '列出目录', 'read' => '读取文件', 'write' => '写入文件', 'mkdir' => '创建目录', 'rm' => '删除', 'walk' => '遍历目录', _ => '文件系统' };
     case 'skill_manage':
-      return '技能管理';
+      final a = arguments?['action'] as String?;
+      return switch (a) { 'list' => '查看技能', 'activate' => '激活技能', 'deactivate' => '停用技能', 'match' => '匹配技能', _ => '技能管理' };
     case 'task_plan':
-      return '任务计划';
+      final action = arguments?['action'] as String?;
+      final verb = switch (action) {
+        'create' => '创建',
+        'update' => '更新',
+        'advance' => '推进',
+        'status' => '查看',
+        'verify' => '校验',
+        'clear' => '清除',
+        _ => '',
+      };
+      return verb.isNotEmpty ? '任务计划 · $verb' : '任务计划';
     case 'tool_search':
       return '发现工具';
     case 'defer_execute_tool':
@@ -105,6 +132,15 @@ String toolLabel(String name) {
       return name;
   }
 }
+
+String _docLabel(String? doc) => switch (doc) {
+  'soul' => 'SOUL',
+  'user' => 'USER',
+  'agent' => 'AGENT',
+  'memory' => 'MEMORY',
+  'knowledge' => '知识库',
+  _ => doc ?? '',
+};
 
 /// 根据文件扩展名推断 MIME 类型
 String _guessMimeType(String path) {

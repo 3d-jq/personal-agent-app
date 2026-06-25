@@ -39,7 +39,7 @@ class ContextDocTool extends AgentTool {
       },
       'content': {
         'type': 'string',
-        'description': 'update 时使用，覆盖写入的完整 Markdown 内容',
+        'description': 'update 时使用的 Markdown 内容',
       },
       'reviewed': {'type': 'boolean', 'description': '仅对 agent 文档有效'},
     },

@@ -369,19 +369,19 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
             case TextChunkEvent(:final text):
               buf.write(text);
               break;
-            case ToolStartEvent(:final name, :final concurrentCount):
+            case ToolStartEvent(:final name, :final concurrentCount, :final arguments):
               currentSteps ??= [];
-              // 只结束思考步骤，不影响正在并行执行的工具步骤
               for (final s in currentSteps!) {
                 if (s.type == TimelineStepType.thinking &&
                     s.status == TimelineStepStatus.running) {
                   s.status = TimelineStepStatus.done;
                 }
               }
+              final detailLabel = toolLabel(name, arguments: arguments, detailed: true);
               final suffix = concurrentCount > 1 ? ' ×$concurrentCount' : '';
               currentSteps!.add(
                 TimelineStep(
-                  label: '${toolLabel(name)}$suffix',
+                  label: '$detailLabel$suffix',
                   type: TimelineStepType.tool,
                   status: TimelineStepStatus.running,
                   detail: '工具: $name',

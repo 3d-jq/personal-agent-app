@@ -74,11 +74,14 @@ class ToolResult {
   final String toolName;
   final String content;
   final String? toolCallId;
+  /// 频率预警（不混入 content，由 UI 单独展示）
+  final String? warning;
 
   const ToolResult({
     required this.toolName,
     required this.content,
     this.toolCallId,
+    this.warning,
   });
 
   /// Whether this result indicates a failure.

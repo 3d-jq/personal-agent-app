@@ -136,6 +136,39 @@ class ContextDocService {
     _cache[doc] = content;
   }
 
+  /// 追加文档内容。
+  ///
+  /// 用于新增记忆/偏好/经验，避免模型为了保留旧内容而 read → update 整篇文档。
+  Future<void> append(
+    ContextDoc doc,
+    String content, {
+    bool reviewed = false,
+  }) async {
+    if (doc == ContextDoc.knowledge) {
+      throw ArgumentError('knowledge 文档只读，不支持 append');
+    }
+    if (doc == ContextDoc.soul) {
+      throw ArgumentError('SOUL.md 不支持 append，请由用户直接编辑或使用 update 覆盖写入');
+    }
+    if (doc == ContextDoc.agent && !reviewed) {
+      throw ContextDocReviewRequiredException(
+        '修改 AGENT.md 前需要确认：请检查本次追加不会覆盖 SOUL.md 中的人格设定。'
+        '确认后请再次调用并设置 reviewed=true。',
+      );
+    }
+
+    final current = await read(doc);
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) return;
+
+    final next = current.trimRight().isEmpty
+        ? '$trimmed\n'
+        : '${current.trimRight()}\n\n$trimmed\n';
+    final file = await _file(doc);
+    await file.writeAsString(next);
+    _cache[doc] = next;
+  }
+
   static String _fallbackContent(ContextDoc doc) {
     switch (doc) {
       case ContextDoc.soul:
@@ -176,22 +209,6 @@ class ContextDocService {
             '### 通用工具技巧\n\n'
             '- {跨场景的工具使用技巧}\n'
             '- 说明：不限于某个场景的通用操作规范。\n';
-            '- 来源：{哪次对话 / 任务}\n'
-            '- 内容：{经验描述}\n'
-            '- 适用场景：{...}\n\n'
-            '## 场景规范\n\n'
-            '### {任务场景名}\n\n'
-            '- {经验证的方法 / 模式}\n'
-            '- 说明：特定场景下的行为准则。\n\n'
-            '## 通用规范\n\n'
-            '### 通用工具技巧\n\n'
-            '- {跨场景的工具使用技巧}\n'
-            '- 说明：不限于某个场景的通用操作规范。\n\n'
-            '## 已废弃区\n\n'
-            '> 被推翻 / 过时的经验保留在此，避免重复犯同样错误。\n\n'
-            '### [{YYYY-MM-DD}] {经验标题}（已废弃）\n\n'
-            '- 原内容：{...}\n'
-            '- 废弃原因：{...}\n';
       case ContextDoc.memory:
         return '# MEMORY\n\n'
             '跨场景长期记忆。\n\n'
