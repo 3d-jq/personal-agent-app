@@ -18,17 +18,20 @@ class ToolResultTruncator {
   String truncate(String content) {
     if (content.length <= maxChars) return content;
 
-    // 优先在双换行（段落）处截断，保留语义完整性
-    var cut = content.substring(0, maxChars - _tailChars);
-    final lastBreak = cut.lastIndexOf('\n\n');
-    if (lastBreak > cut.length * 0.7) {
-      cut = content.substring(0, lastBreak);
-    }
+    // Build: prefix (maxChars - _tailChars) + tail (_tailChars)
+    final prefixCut = content.substring(0, maxChars - _tailChars);
+    final tailCut = content.substring(content.length - _tailChars);
 
-    final remaining = content.length - cut.length;
+    // Try to break at paragraph boundary within prefix
+    final lastBreak = prefixCut.lastIndexOf('\n\n');
+    final cut = lastBreak > prefixCut.length * 0.7 ? prefixCut.substring(0, lastBreak) : prefixCut;
+
+    final remaining = content.length - cut.length - _tailChars;
     return '$cut\n\n'
         '---\n'
-        '[工具返回内容过长，已截断；剩余约 $remaining 字符未展示。'
-        '如需分析剩余部分，请让我继续读取。]';
+        '[工具返回内容过长，已截断；剩余约 $remaining 字符未展示。]\n'
+        '---\n'
+        '$tailCut\n'
+        '[如需分析完整内容，请让我继续读取。]';
   }
 }

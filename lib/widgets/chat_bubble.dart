@@ -211,15 +211,18 @@ class _AIBubbleState extends State<_AIBubble>
   String _lastText = '';
   int _lastTextLength = 0;
   List<Widget> _cachedContent = [];
+  DateTime _lastRenderTime = DateTime(2000); // far in the past
   late AnimationController _fadeCtrl;
   late Animation<double> _fadeAnim;
+
+  static const _renderThrottle = Duration(milliseconds: 80);
 
   @override
   void initState() {
     super.initState();
     _fadeCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 120),
+      duration: const Duration(milliseconds: 200),
     );
     _fadeAnim = Tween<double>(
       begin: 0.55,
@@ -238,6 +241,7 @@ class _AIBubbleState extends State<_AIBubble>
       _lastText = '';
       _lastTextLength = 0;
       _cachedContent = [];
+      _lastRenderTime = DateTime(2000);
     }
   }
 
@@ -265,12 +269,18 @@ class _AIBubbleState extends State<_AIBubble>
     final steps = msg.steps;
     final hasSteps = steps != null && steps.isNotEmpty;
     final textContent = msg.cleanText;
+    final isStreaming = msg.isStreaming;
 
     final showProcessLine =
-        hasSteps || (msg.isStreaming && textContent.isEmpty);
+        hasSteps || (isStreaming && textContent.isEmpty);
 
-    if (textContent != _lastText) {
+    // Throttle expensive Markdown parsing during streaming
+    final now = DateTime.now();
+    final shouldRender = textContent != _lastText &&
+        (!isStreaming || now.difference(_lastRenderTime) >= _renderThrottle);
+    if (shouldRender) {
       _lastText = textContent;
+      _lastRenderTime = now;
       _cachedContent = buildInlineContent(textContent, nc, context);
     }
 

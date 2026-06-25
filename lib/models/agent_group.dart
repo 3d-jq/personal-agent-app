@@ -49,14 +49,7 @@ class AgentGroup {
     agentIds: (j['agentIds'] as List?)?.cast<String>() ?? [],
     messages:
         (j['messages'] as List?)
-            ?.map(
-              (m) => ChatMessage(
-                text: (m as Map)['text'] as String? ?? '',
-                isUser: m['isUser'] as bool? ?? false,
-                speakerId: m['speakerId'] as String?,
-                mentions: (m['mentions'] as List?)?.cast<String>() ?? const [],
-              ),
-            )
+            ?.map((m) => ChatMessage.fromJson(m as Map<String, dynamic>))
             .toList() ??
         [],
     createdAt: DateTime.fromMillisecondsSinceEpoch(j['createdAt'] as int? ?? 0),
