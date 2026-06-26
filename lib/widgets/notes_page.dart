@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../core/agent_colors.dart';
-import '../core/app_animations.dart';
 import '../core/app_router.dart';
 import '../models/note.dart';
 import '../services/export_service.dart';
@@ -41,7 +40,11 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   Future<void> _load() async {
-    _notes = await _storage.loadAll();
+    try {
+      _notes = await _storage.loadAll();
+    } catch (_) {
+      _notes = [];
+    }
     if (!mounted) return;
     setState(() => _loaded = true);
   }
@@ -88,19 +91,59 @@ class _NotesPageState extends State<NotesPage> {
           ? const Center(child: CircularProgressIndicator())
           : _notes.isEmpty
           ? _emptyState(nc)
-          : ListView.builder(
+          : ListView.separated(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               itemCount: _notes.length,
-              itemBuilder: (_, i) => _noteCard(_notes[i], nc),
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, i) {
+                final note = _notes[i];
+                return Material(
+                  color: nc.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: nc.divider, width: 0.8),
+                    ),
+                    title: Text(
+                      note.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: nc.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    subtitle: Text(
+                      note.summary.isEmpty ? _formatTime(note.updatedAt) : note.summary,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: nc.textSecondary),
+                    ),
+                    trailing: IconButton(
+                      icon: Icon(Icons.close_rounded, color: nc.textSecondary),
+                      onPressed: () => _confirmDelete(note),
+                    ),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      AppRouter.push(
+                        context,
+                        _NoteDetail(note: note, onEdit: () => _openEditor(note)),
+                      );
+                    },
+                  ),
+                );
+              },
             ),
-      floatingActionButton: PressableScale(
-        onTap: () => _openEditor(null),
-        child: FloatingActionButton(
-          onPressed: null,
-          backgroundColor: nc.success,
-          child: Icon(Icons.add, color: nc.surface),
-        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          _openEditor(null);
+        },
+        backgroundColor: nc.primary,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -132,86 +175,6 @@ class _NotesPageState extends State<NotesPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _noteCard(Note note, AgentColors nc) {
-    return PressableScale(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        AppRouter.push(
-          context,
-          _NoteDetail(note: note, onEdit: () => _openEditor(note)),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: nc.surface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    note.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: nc.textPrimary,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    _confirmDelete(note);
-                  },
-                  child: Icon(
-                    Icons.close_rounded,
-                    size: 18,
-                    color: nc.textSecondary.withValues(alpha: 0.5),
-                  ),
-                ),
-              ],
-            ),
-            if (note.summary.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                note.summary,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: nc.textSecondary,
-                  height: 1.5,
-                ),
-              ),
-            ],
-            const SizedBox(height: 8),
-            Text(
-              _formatTime(note.updatedAt),
-              style: TextStyle(
-                fontSize: 11,
-                color: nc.textSecondary.withValues(alpha: 0.5),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -261,40 +224,17 @@ class _NotesPageState extends State<NotesPage> {
           } else {
             await _storage.add(note);
           }
-          _load();
+          await _load();
         },
       ),
     );
   }
 }
 
-class _NoteDetail extends StatefulWidget {
+class _NoteDetail extends StatelessWidget {
   final Note note;
   final VoidCallback? onEdit;
   const _NoteDetail({required this.note, this.onEdit});
-
-  @override
-  State<_NoteDetail> createState() => _NoteDetailState();
-}
-
-class _NoteDetailState extends State<_NoteDetail> {
-  List<Widget>? _contentWidgets;
-
-  @override
-  void initState() {
-    super.initState();
-    // Defer Markdown parsing to avoid blocking the page transition
-    Future.microtask(() {
-      if (!mounted) return;
-      setState(() {
-        _contentWidgets = buildInlineContent(
-          widget.note.content,
-          AgentColors.of(context),
-          context,
-        );
-      });
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -309,7 +249,7 @@ class _NoteDetailState extends State<_NoteDetail> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.note.title,
+          note.title,
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
@@ -318,13 +258,13 @@ class _NoteDetailState extends State<_NoteDetail> {
         ),
         centerTitle: true,
         actions: [
-          if (widget.onEdit != null)
+          if (onEdit != null)
             IconButton(
               icon: Icon(Icons.edit_outlined, color: nc.textPrimary),
               onPressed: () {
                 HapticFeedback.lightImpact();
                 Navigator.pop(context);
-                widget.onEdit!();
+                onEdit!();
               },
             ),
           IconButton(
@@ -332,7 +272,7 @@ class _NoteDetailState extends State<_NoteDetail> {
             onPressed: () async {
               HapticFeedback.lightImpact();
               try {
-                await NoteExportService.exportToWord(widget.note);
+                await NoteExportService.exportToWord(note);
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(
@@ -350,18 +290,15 @@ class _NoteDetailState extends State<_NoteDetail> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${widget.note.createdAt.year}/${widget.note.createdAt.month.toString().padLeft(2, '0')}/${widget.note.createdAt.day.toString().padLeft(2, '0')} '
-              '${widget.note.createdAt.hour.toString().padLeft(2, '0')}:${widget.note.createdAt.minute.toString().padLeft(2, '0')} 创建',
+              '${note.createdAt.year}/${note.createdAt.month.toString().padLeft(2, '0')}/${note.createdAt.day.toString().padLeft(2, '0')} '
+              '${note.createdAt.hour.toString().padLeft(2, '0')}:${note.createdAt.minute.toString().padLeft(2, '0')} 创建',
               style: TextStyle(
                 fontSize: 12,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),
             ),
             const SizedBox(height: 16),
-            if (_contentWidgets != null)
-              ..._contentWidgets!
-            else
-              const Center(child: CircularProgressIndicator()),
+            ...buildInlineContent(note.content, nc, context),
           ],
         ),
       ),
@@ -373,7 +310,7 @@ class _NoteDetailState extends State<_NoteDetail> {
 
 class _NoteEditor extends StatefulWidget {
   final Note? note;
-  final Function(Note) onSaved;
+  final Future<void> Function(Note) onSaved;
 
   const _NoteEditor({this.note, required this.onSaved});
 
@@ -487,7 +424,7 @@ class _NoteEditorState extends State<_NoteEditor> {
     );
   }
 
-  void _save() {
+  void _save() async {
     final title = _titleCtrl.text.trim();
     final content = _contentCtrl.text.trim();
 
@@ -510,8 +447,16 @@ class _NoteEditorState extends State<_NoteEditor> {
             updatedAt: now,
           );
 
-    widget.onSaved(note);
-    Navigator.pop(context);
+    try {
+      await widget.onSaved(note);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败: $e')),
+        );
+      }
+    }
   }
 
   void _confirmDiscard(AgentColors nc) {

@@ -59,7 +59,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
       textDisabled: scheme.onSurface.withValues(alpha: 0.25),
       surface: scheme.surface,
       primarySurface: scheme.surfaceContainerLow,
-      cardBackground: scheme.surface,
+      cardBackground: scheme.surfaceContainerLow,
       primary: scheme.primary,
       success: Colors.green.shade700,
       warning: Colors.orange.shade900,

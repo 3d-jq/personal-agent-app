@@ -45,8 +45,32 @@ class _ChatInputBarState extends State<ChatInputBar> {
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(() => setState(() {}));
-    widget.focusNode.addListener(() => setState(() {}));
+    widget.controller.addListener(_handleInputChanged);
+    widget.focusNode.addListener(_handleInputChanged);
+  }
+
+  @override
+  void didUpdateWidget(ChatInputBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_handleInputChanged);
+      widget.controller.addListener(_handleInputChanged);
+    }
+    if (oldWidget.focusNode != widget.focusNode) {
+      oldWidget.focusNode.removeListener(_handleInputChanged);
+      widget.focusNode.addListener(_handleInputChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_handleInputChanged);
+    widget.focusNode.removeListener(_handleInputChanged);
+    super.dispose();
+  }
+
+  void _handleInputChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
@@ -169,6 +193,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
     final isActive = hasText || hasFile || widget.isLoading;
     return GestureDetector(
       onTap: () {
+        if (!isActive) return;
         HapticFeedback.mediumImpact();
         if (widget.isLoading) {
           widget.onStop();
