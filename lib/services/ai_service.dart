@@ -37,6 +37,14 @@ String _friendlyError(DioException e) {
   return '请求失败${code != null ? ' ($code)' : ''}，请检查网络连接';
 }
 
+class AiResponse {
+  final String text;
+  final String reasoning;
+  final List<ToolCall>? toolCalls;
+
+  const AiResponse({required this.text, this.reasoning = '', this.toolCalls});
+}
+
 class AIService {
   final String baseUrl;
   final String apiKey;
@@ -169,6 +177,49 @@ class AIService {
     }
   }
 
+  Future<AiResponse> _callOpenAINonStreaming(
+    List<Map<String, dynamic>> messages,
+    List<Map<String, dynamic>> tools,
+  ) async {
+    final url = '${_normalizeUrl(baseUrl)}/chat/completions';
+    try {
+      final response = await _retryPost(
+        url,
+        headers: _authHeaders,
+        data: {
+          'model': model,
+          'messages': messages,
+          'tools': tools,
+          'max_tokens': _effectiveMaxTokens,
+          if (thinkingEffort != 'low')
+            'chat_template_kwargs': {'enable_thinking': true},
+          if (thinkingEffort.isNotEmpty) 'reasoning_effort': thinkingEffort,
+        },
+      );
+
+      final choice = response.data['choices']?[0];
+      if (choice == null || choice['message'] == null) {
+        return const AiResponse(text: '');
+      }
+      final message = choice['message'];
+      final reasoning = message['reasoning_content'] as String? ?? '';
+      final text =
+          (message['content'] as String? ?? '') +
+          (choice['finish_reason'] == 'length'
+              ? '\n\n[回复被长度限制截断，请简化问题或分多次询问]'
+              : '');
+      final toolCallsRaw = message['tool_calls'] as List?;
+      final toolCalls = toolCallsRaw
+          ?.map((tc) => ToolCall.fromJson(tc as Map<String, dynamic>))
+          .toList();
+      return AiResponse(text: text, reasoning: reasoning, toolCalls: toolCalls);
+    } on DioException catch (e) {
+      return AiResponse(text: _friendlyError(e));
+    } catch (e) {
+      return AiResponse(text: '请求异常: $e');
+    }
+  }
+
   // ── Tool-calling aware streaming ──
 
   Stream<ChatStreamEvent> _sendMessageWithTools(
@@ -190,22 +241,36 @@ class AIService {
         return;
       }
 
-      // OpenAI-compatible: always use streaming, collect tool calls from deltas
+      // OpenAI-compatible: use non-streaming first to reliably detect tool calls.
       final tools = hasTools ? toolRegistry.functionDefinitions : null;
-      final outToolCalls = <ToolCall>[];
-      yield* _streamOpenAI(conversation, tools: tools, outToolCalls: outToolCalls);
+      if (tools == null || tools.isEmpty) {
+        yield* _streamOpenAI(conversation);
+        return;
+      }
 
-      if (outToolCalls.isNotEmpty) {
-        // Collect the assistant text that was yielded before tool calls
-        yield* _processToolCalls(
-          conversation,
-          outToolCalls,
-          '', // assistant text already streamed; pass empty for the tool_calls message
-        );
+      final response = await _callOpenAINonStreaming(conversation, tools);
+
+      if (response.toolCalls != null && response.toolCalls!.isNotEmpty) {
+        if (response.reasoning.isNotEmpty) {
+          yield ThinkingChunkEvent(response.reasoning);
+        }
+        if (response.text.isNotEmpty) {
+          yield TextChunkEvent(response.text);
+        }
+        yield* _processToolCalls(conversation, response.toolCalls!, response.text);
         continue;
       }
 
-      return; // No tool calls — all text already streamed, done
+      if (response.reasoning.isNotEmpty) {
+        yield ThinkingChunkEvent(response.reasoning);
+      }
+      if (response.text.isNotEmpty) {
+        yield TextChunkEvent(response.text);
+        return;
+      }
+
+      yield* _streamOpenAI(conversation, tools: tools);
+      return;
     }
   }
 

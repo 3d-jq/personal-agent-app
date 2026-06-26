@@ -92,7 +92,11 @@ class _PressableScaleState extends State<PressableScale>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: AppDurations.fast);
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: AppDurations.fast,
+      value: 1.0,
+    );
   }
 
   @override
@@ -143,13 +147,18 @@ class SlideFadeRoute<T> extends PageRouteBuilder<T> {
         reverseTransitionDuration: AppDurations.standard,
         pageBuilder: (_, __, ___) => page,
         transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
           return FadeTransition(
-            opacity: animation,
+            opacity: curved,
             child: SlideTransition(
               position: Tween<Offset>(
                 begin: const Offset(0.04, 0),
                 end: Offset.zero,
-              ).animate(animation),
+              ).animate(curved),
               child: child,
             ),
           );
@@ -168,13 +177,18 @@ class SlideUpRoute<T> extends PageRouteBuilder<T> {
         pageBuilder: (_, __, ___) => page,
         opaque: false,
         transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
           return FadeTransition(
-            opacity: animation,
+            opacity: curved,
             child: SlideTransition(
               position: Tween<Offset>(
                 begin: const Offset(0, 0.08),
                 end: Offset.zero,
-              ).animate(animation),
+              ).animate(curved),
               child: child,
             ),
           );

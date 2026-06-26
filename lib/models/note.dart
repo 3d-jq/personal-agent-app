@@ -22,15 +22,23 @@ class Note {
     'updatedAt': updatedAt.toIso8601String(),
   };
 
-  factory Note.fromJson(Map<String, dynamic> json) => Note(
-    id: json['id'] as String,
-    title: json['title'] as String? ?? '',
-    content: json['content'] as String? ?? '',
-    createdAt:
-        DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
-    updatedAt:
-        DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
-  );
+  factory Note.fromJson(Map<String, dynamic> json) {
+    String asText(Object? value, String fallback) {
+      if (value == null) return fallback;
+      if (value is String) return value;
+      return value.toString();
+    }
+
+    return Note(
+      id: asText(json['id'], DateTime.now().millisecondsSinceEpoch.toString()),
+      title: asText(json['title'], ''),
+      content: asText(json['content'], ''),
+      createdAt:
+          DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+      updatedAt:
+          DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
+    );
+  }
 
   String get summary {
     final plain = content

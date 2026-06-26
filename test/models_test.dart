@@ -66,6 +66,20 @@ void main() {
       expect(restored.content, 'Note content');
     });
 
+    test('fromJson tolerates non-string fields from older or corrupted note data', () {
+      final note = Note.fromJson({
+        'id': 12,
+        'title': 34,
+        'content': ['a', 'b'],
+        'createdAt': 'bad-date',
+        'updatedAt': null,
+      });
+
+      expect(note.id, '12');
+      expect(note.title, '34');
+      expect(note.content, '[a, b]');
+    });
+
     test('summary is derived from content', () {
       final note = Note(id: 'note-2', title: 'T', content: '这是一段正文内容');
       expect(note.summary, contains('正文'));

@@ -29,10 +29,12 @@ class AgentSideDrawer extends StatefulWidget {
 }
 
 class _AgentSideDrawerState extends State<AgentSideDrawer> {
-  void _closeAnd(VoidCallback action) {
+  void _closeAnd(void Function(BuildContext rootContext) action) {
     HapticFeedback.lightImpact();
-    Navigator.of(context).pop();
-    action();
+    final navigator = Navigator.of(context);
+    final rootContext = navigator.context;
+    navigator.pop();
+    WidgetsBinding.instance.addPostFrameCallback((_) => action(rootContext));
   }
 
   @override
@@ -83,20 +85,20 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                       icon: Icons.note_outlined,
                       label: '笔记',
                       nc: nc,
-                      onTap: () => _closeAnd(() => AppRouter.toNotes(context)),
+                      onTap: () => _closeAnd((ctx) => AppRouter.toNotes(ctx)),
                     ),
                     _CardItem(
                       icon: Icons.photo_library_outlined,
                       label: '图视',
                       nc: nc,
-                      onTap: () => _closeAnd(() => AppRouter.toMedia(context)),
+                      onTap: () => _closeAnd((ctx) => AppRouter.toMedia(ctx)),
                     ),
                     _CardItem(
                       icon: Icons.alarm_outlined,
                       label: '定时任务',
                       nc: nc,
                       onTap: () =>
-                          _closeAnd(() => AppRouter.toReminders(context)),
+                          _closeAnd((ctx) => AppRouter.toReminders(ctx)),
                     ),
                     _CardItem(
                       icon: Icons.groups_outlined,
@@ -104,7 +106,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                       nc: nc,
                       isLast: true,
                       onTap: () =>
-                          _closeAnd(() => AppRouter.toGroupList(context)),
+                          _closeAnd((ctx) => AppRouter.toGroupList(ctx)),
                     ),
                   ],
                 ),
@@ -176,13 +178,13 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                 child: Row(
                   children: [
                     GestureDetector(
-                      onTap: () => _closeAnd(() => AppRouter.toSearch(context)),
+                      onTap: () => _closeAnd((ctx) => AppRouter.toSearch(ctx)),
                       child: _Pill(icon: Icons.search_rounded, nc: nc),
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () =>
-                          _closeAnd(() => AppRouter.toSettings(context)),
+                          _closeAnd((ctx) => AppRouter.toSettings(ctx)),
                       child: _Pill(icon: Icons.person_rounded, nc: nc),
                     ),
                     const SizedBox(width: 8),

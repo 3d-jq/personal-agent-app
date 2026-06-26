@@ -9,9 +9,16 @@ class NoteStorage extends ChangeNotifier {
     : _repo = CachedRepository<Note>(
         dataSource: JsonFileDataSource<Note>(
           relativePath: 'notes.json',
-          fromJson: (list) =>
-              list.map((j) => Note.fromJson(j as Map<String, dynamic>)).toList()
-                ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)),
+          fromJson: (list) {
+            final notes = <Note>[];
+            for (final item in list) {
+              if (item is Map) {
+                notes.add(Note.fromJson(Map<String, dynamic>.from(item)));
+              }
+            }
+            notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+            return notes;
+          },
           toJson: (items) => items.map((e) => e.toJson()).toList(),
         ),
       ) {
@@ -50,4 +57,6 @@ class NoteStorage extends ChangeNotifier {
   Future<void> remove(String id) async {
     await _repo.mutate((all) => all.removeWhere((n) => n.id == id));
   }
+
+  void clearCache() => _repo.clearCache();
 }
