@@ -120,14 +120,8 @@ class _MediaViewState extends State<MediaView> {
         child: Container(
           decoration: BoxDecoration(
             color: nc.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: nc.divider),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -221,7 +215,7 @@ class _MediaViewState extends State<MediaView> {
               await _storage.remove(item.id);
               _load();
             },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            child: Text('删除', style: TextStyle(color: AgentColors.of(ctx).error)),
           ),
         ],
       ),

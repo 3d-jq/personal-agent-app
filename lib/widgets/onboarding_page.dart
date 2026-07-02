@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import '../core/service_locator.dart';
 import '../widgets/ai_settings_sheet.dart';
@@ -109,17 +110,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
           ),
           const Spacer(flex: 3),
-          FilledButton(
+          ElevatedButton(
             onPressed: () {
               HapticFeedback.lightImpact();
               setState(() => _step = 1);
             },
-            style: FilledButton.styleFrom(
+            style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 52),
-              backgroundColor: nc.success,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
             ),
             child: const Text(
               '开始设置',
@@ -152,7 +149,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           IconButton(
             onPressed: () => setState(() => _step = 0),
             icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
+              PhosphorIconsRegular.caretLeft,
               size: 20,
               color: nc.textPrimary,
             ),
@@ -216,9 +213,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
             decoration: InputDecoration(
               labelText: 'API Key *',
               hintText: 'sk-...',
-              border: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-              ),
               labelStyle: TextStyle(color: nc.textSecondary),
             ),
           ),
@@ -227,22 +221,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
             controller: _urlCtrl,
             decoration: InputDecoration(
               labelText: 'Base URL',
-              border: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-              ),
               labelStyle: TextStyle(color: nc.textSecondary),
             ),
           ),
           const SizedBox(height: 32),
-          FilledButton(
+          ElevatedButton(
             onPressed: _keyCtrl.text.trim().isEmpty ? null : _complete,
-            style: FilledButton.styleFrom(
+            style: ElevatedButton.styleFrom(
               minimumSize: const Size(double.infinity, 52),
-              backgroundColor: nc.success,
-              disabledBackgroundColor: nc.divider,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
             ),
             child: const Text(
               '完成设置',

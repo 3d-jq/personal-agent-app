@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import '../core/service_locator.dart';
 import 'ai_settings_sheet.dart';
@@ -78,7 +79,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
                   style: TextStyle(fontSize: 12, color: nc.textSecondary),
                 ),
                 trailing: _aiSettings.thinkingEffort == o.$1
-                    ? Icon(Icons.check, color: nc.success)
+                    ? Icon(PhosphorIconsRegular.check, color: nc.success)
                     : null,
                 onTap: () {
                   setState(() => _aiSettings.thinkingEffort = o.$1);
@@ -110,7 +111,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -132,8 +133,8 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
             nc: nc,
             children: [
               _SettingItem(
-                icon: Icons.check_circle_outline,
-                label: '当前厂商',
+                icon: PhosphorIconsRegular.checkCircle,
+                label: '推理模型',
                 trailing: vendor?.name ?? '未配置',
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -145,8 +146,8 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
                 },
               ),
               _SettingItem(
-                icon: Icons.smart_toy_outlined,
-                label: '当前模型',
+                icon: PhosphorIconsRegular.robot,
+                label: '对话模型',
                 trailing: vendor?.model.isNotEmpty == true
                     ? vendor!.model
                     : '未设置',
@@ -161,8 +162,8 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
                 },
               ),
               _SettingItem(
-                icon: Icons.psychology_outlined,
-                label: '思考强度',
+                icon: PhosphorIconsRegular.brain,
+                label: '系统提示词',
                 trailing: _thinkingLabel(_aiSettings.thinkingEffort),
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -177,7 +178,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
             nc: nc,
             children: [
               _SettingItem(
-                icon: Icons.settings_outlined,
+                icon: PhosphorIconsRegular.slidersHorizontal,
                 label: '管理厂商配置',
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -224,14 +225,8 @@ class _RoundedCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: nc.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: nc.divider),
       ),
       child: Column(children: children),
     );
@@ -281,7 +276,7 @@ class _SettingItem extends StatelessWidget {
                 ),
               const SizedBox(width: 4),
               Icon(
-                Icons.chevron_right,
+                PhosphorIconsRegular.caretRight,
                 size: 18,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),

@@ -713,7 +713,7 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 color: _busy
-                                    ? Colors.red.withValues(alpha: 0.1)
+                                    ? nc.error.withValues(alpha: 0.1)
                                     : _inputCtrl.text.trim().isEmpty
                                     ? nc.primarySurface
                                     : nc.textPrimary,
@@ -725,7 +725,7 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
                                     : Icons.arrow_upward_rounded,
                                 size: 18,
                                 color: _busy
-                                    ? Colors.red
+                                    ? nc.error
                                     : _inputCtrl.text.trim().isEmpty
                                     ? nc.textSecondary
                                     : nc.surface,

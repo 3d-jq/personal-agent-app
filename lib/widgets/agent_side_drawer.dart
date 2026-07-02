@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import '../core/app_router.dart';
 import '../models/chat_session.dart';
@@ -82,26 +83,26 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                   nc: nc,
                   children: [
                     _CardItem(
-                      icon: Icons.note_outlined,
+                      icon: PhosphorIconsRegular.notebook,
                       label: '笔记',
                       nc: nc,
                       onTap: () => _closeAnd((ctx) => AppRouter.toNotes(ctx)),
                     ),
                     _CardItem(
-                      icon: Icons.photo_library_outlined,
+                      icon: PhosphorIconsRegular.images,
                       label: '图视',
                       nc: nc,
                       onTap: () => _closeAnd((ctx) => AppRouter.toMedia(ctx)),
                     ),
                     _CardItem(
-                      icon: Icons.alarm_outlined,
+                      icon: PhosphorIconsRegular.alarm,
                       label: '定时任务',
                       nc: nc,
                       onTap: () =>
                           _closeAnd((ctx) => AppRouter.toReminders(ctx)),
                     ),
                     _CardItem(
-                      icon: Icons.groups_outlined,
+                      icon: PhosphorIconsRegular.users,
                       label: 'Agent 群',
                       nc: nc,
                       isLast: true,
@@ -180,13 +181,13 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                   children: [
                     GestureDetector(
                       onTap: () => _closeAnd((ctx) => AppRouter.toSearch(ctx)),
-                      child: _Pill(icon: Icons.search_rounded, nc: nc),
+                      child: _Pill(icon: PhosphorIconsRegular.magnifyingGlass, nc: nc),
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () =>
                           _closeAnd((ctx) => AppRouter.toSettings(ctx)),
-                      child: _Pill(icon: Icons.person_rounded, nc: nc),
+                      child: _Pill(icon: PhosphorIconsRegular.user, nc: nc),
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
@@ -199,7 +200,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                           'dewis_chats.json',
                         );
                       },
-                      child: _Pill(icon: Icons.file_download_outlined, nc: nc),
+                      child: _Pill(icon: PhosphorIconsRegular.downloadSimple, nc: nc),
                     ),
                     const Spacer(),
                     GestureDetector(
@@ -284,14 +285,8 @@ class _Card extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: nc.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: nc.divider),
       ),
       child: Column(children: children),
     );
@@ -370,7 +365,7 @@ class _CardItem extends StatelessWidget {
                 ),
               ),
               Icon(
-                Icons.chevron_right,
+                PhosphorIconsRegular.caretRight,
                 size: 18,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),

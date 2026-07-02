@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 
 class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
@@ -93,7 +94,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                             ),
                             const SizedBox(width: 4),
                             Icon(
-                              Icons.keyboard_arrow_down,
+                              PhosphorIconsRegular.caretDown,
                               size: 18,
                               color: colors.textPrimary,
                             ),

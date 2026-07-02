@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'core/agent_colors.dart';
 import 'core/service_locator.dart';
 import 'screens/chat_screen.dart';
@@ -41,6 +42,25 @@ class _AppState extends State<App> {
     super.dispose();
   }
 
+  TextTheme _buildTextTheme(Color textColor) {
+    final poppins = GoogleFonts.poppins(color: textColor);
+    final lora = GoogleFonts.lora(color: textColor);
+    return TextTheme(
+      headlineLarge: poppins.copyWith(fontSize: 28, fontWeight: FontWeight.w500, height: 1.2),
+      headlineMedium: poppins.copyWith(fontSize: 22, fontWeight: FontWeight.w500, height: 1.3),
+      headlineSmall: poppins.copyWith(fontSize: 20, fontWeight: FontWeight.w500, height: 1.3),
+      titleLarge: poppins.copyWith(fontSize: 18, fontWeight: FontWeight.w500, height: 1.3),
+      titleMedium: poppins.copyWith(fontSize: 16, fontWeight: FontWeight.w500, height: 1.4),
+      titleSmall: poppins.copyWith(fontSize: 14, fontWeight: FontWeight.w500, height: 1.4),
+      bodyLarge: lora.copyWith(fontSize: 16, fontWeight: FontWeight.w400, height: 1.7),
+      bodyMedium: lora.copyWith(fontSize: 14, fontWeight: FontWeight.w400, height: 1.7),
+      bodySmall: lora.copyWith(fontSize: 12, fontWeight: FontWeight.w400, height: 1.6),
+      labelLarge: poppins.copyWith(fontSize: 14, fontWeight: FontWeight.w500, height: 1.3),
+      labelMedium: poppins.copyWith(fontSize: 12, fontWeight: FontWeight.w500, height: 1.3),
+      labelSmall: poppins.copyWith(fontSize: 11, fontWeight: FontWeight.w500, height: 1.2, letterSpacing: 0.1),
+    );
+  }
+
   ThemeData _buildTheme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
     final agentColors = isDark ? AgentColors.dark() : AgentColors.light();
@@ -59,74 +79,78 @@ class _AppState extends State<App> {
       surfaceContainerHighest: agentColors.primarySurface,
     );
 
+    final textTheme = _buildTextTheme(agentColors.textPrimary);
+
     return ThemeData(
       useMaterial3: true,
-      fontFamily: 'Roboto',
       colorScheme: colorScheme,
       scaffoldBackgroundColor: agentColors.background,
-      textTheme: const TextTheme(
-        headlineLarge: TextStyle(
-          fontSize: 28,
-          fontWeight: FontWeight.bold,
-          height: 1.2,
-        ),
-        headlineMedium: TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.bold,
-          height: 1.3,
-        ),
-        headlineSmall: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          height: 1.3,
-        ),
-        titleLarge: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          height: 1.3,
-        ),
-        titleMedium: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          height: 1.4,
-        ),
-        titleSmall: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          height: 1.4,
-        ),
-        bodyLarge: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w400,
-          height: 1.5,
-        ),
-        bodyMedium: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          height: 1.5,
-        ),
-        bodySmall: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w400,
-          height: 1.4,
-        ),
-        labelLarge: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          height: 1.3,
-        ),
-        labelMedium: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          height: 1.3,
-        ),
-        labelSmall: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          height: 1.2,
+      textTheme: textTheme,
+      fontFamily: GoogleFonts.lora().fontFamily,
+      appBarTheme: AppBarTheme(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        backgroundColor: agentColors.background,
+        foregroundColor: agentColors.textPrimary,
+        titleTextStyle: textTheme.titleLarge,
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: agentColors.primary,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: agentColors.divider),
+          ),
+          textStyle: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500),
+        ).copyWith(
+          overlayColor: WidgetStatePropertyAll(agentColors.primary.withValues(alpha: 0.08)),
         ),
       ),
-      appBarTheme: const AppBarTheme(elevation: 0, scrolledUnderElevation: 0),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: agentColors.primary,
+          side: BorderSide(color: agentColors.divider),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          textStyle: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500),
+        ).copyWith(
+          overlayColor: WidgetStatePropertyAll(agentColors.primary.withValues(alpha: 0.08)),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: agentColors.primary,
+          textStyle: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: false,
+        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+        border: UnderlineInputBorder(borderSide: BorderSide(color: agentColors.divider)),
+        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: agentColors.divider)),
+        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: agentColors.primary, width: 1.5)),
+        errorBorder: UnderlineInputBorder(borderSide: BorderSide(color: agentColors.error)),
+        labelStyle: textTheme.bodyMedium?.copyWith(color: agentColors.textSecondary),
+        hintStyle: textTheme.bodyMedium?.copyWith(color: agentColors.textDisabled),
+      ),
+      dividerTheme: DividerThemeData(
+        color: agentColors.divider,
+        thickness: 1,
+        space: 1,
+      ),
+      cardTheme: CardThemeData(
+        color: agentColors.cardBackground,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: agentColors.divider),
+        ),
+        margin: EdgeInsets.zero,
+      ),
       extensions: [agentColors],
     );
   }

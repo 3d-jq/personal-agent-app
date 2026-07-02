@@ -37,34 +37,34 @@ class ErrorHandler {
   static Widget buildErrorWidget(FlutterErrorDetails details) {
     return Material(
       child: Container(
-        color: const Color(0xFFF2F2F7),
+        color: const Color(0xFFFAF9F5),
         padding: const EdgeInsets.all(24),
         alignment: Alignment.center,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Color(0xFFFF3B30), size: 48),
+            const Icon(Icons.error_outline, color: Color(0xFFC1633F), size: 48),
             const SizedBox(height: 16),
             const Text(
               '页面出错了',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF000000),
+                color: Color(0xFF141413),
               ),
             ),
             const SizedBox(height: 8),
             const Text(
               '请重启应用或返回上一页重试。',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Color(0xFF8E8E93)),
+              style: TextStyle(fontSize: 14, color: Color(0xFF55524D)),
             ),
             if (kDebugMode) ...[
               const SizedBox(height: 24),
               Text(
                 details.exception.toString(),
                 textAlign: TextAlign.left,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF636366)),
+                style: const TextStyle(fontSize: 12, color: Color(0xFF55524D)),
               ),
             ],
           ],

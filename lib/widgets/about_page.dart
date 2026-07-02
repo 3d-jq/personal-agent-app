@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import '../core/app_config.dart';
 
@@ -16,7 +17,7 @@ class AboutView extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -66,27 +67,27 @@ class AboutView extends StatelessWidget {
             nc: nc,
             children: [
               _CapabilityItem(
-                icon: Icons.chat_bubble_outline,
+                icon: PhosphorIconsRegular.chatTeardropText,
                 label: 'AI 对话',
                 nc: nc,
               ),
               _CapabilityItem(
-                icon: Icons.image_outlined,
+                icon: PhosphorIconsRegular.image,
                 label: '图片生成',
                 nc: nc,
               ),
               _CapabilityItem(
-                icon: Icons.videocam_outlined,
+                icon: PhosphorIconsRegular.videoCamera,
                 label: '视频生成',
                 nc: nc,
               ),
-              _CapabilityItem(icon: Icons.language, label: '网页搜索', nc: nc),
+              _CapabilityItem(icon: PhosphorIconsRegular.globe, label: '网页搜索', nc: nc),
               _CapabilityItem(
-                icon: Icons.bookmark_border,
+                icon: PhosphorIconsRegular.bookmarkSimple,
                 label: '记忆系统',
                 nc: nc,
               ),
-              _CapabilityItem(icon: Icons.note_outlined, label: '笔记管理', nc: nc),
+              _CapabilityItem(icon: PhosphorIconsRegular.notebook, label: '笔记管理', nc: nc),
             ],
           ),
           const SizedBox(height: 20),
@@ -95,7 +96,7 @@ class AboutView extends StatelessWidget {
             nc: nc,
             children: [
               _SettingItem(
-                icon: Icons.description_outlined,
+                icon: PhosphorIconsRegular.fileText,
                 label: '查看开源许可',
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -125,14 +126,8 @@ class _RoundedCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: nc.surface,
-        borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: nc.divider),
       ),
       child: Column(children: children),
     );
@@ -237,7 +232,7 @@ class _SettingItem extends StatelessWidget {
                 ),
               ),
               Icon(
-                Icons.chevron_right,
+                PhosphorIconsRegular.caretRight,
                 size: 18,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),

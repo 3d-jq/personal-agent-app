@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../controllers/chat_controller.dart';
 import '../core/agent_colors.dart';
 import '../widgets/agent_side_drawer.dart';
@@ -192,16 +193,9 @@ class _ChatScreenState extends State<ChatScreen> {
                             decoration: BoxDecoration(
                               color: nc.surface,
                               shape: BoxShape.circle,
-                              border: Border.all(color: nc.divider, width: 0.5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.08),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
+                              border: Border.all(color: nc.divider),
                             ),
-                            child: Icon(Icons.keyboard_double_arrow_down_rounded, size: 22, color: nc.textPrimary),
+                            child: Icon(PhosphorIconsRegular.caretDoubleDown, size: 22, color: nc.textPrimary),
                           ),
                         ),
                       ),

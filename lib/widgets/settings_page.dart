@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import '../core/app_router.dart';
 import '../core/app_config.dart';
@@ -126,7 +127,7 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: nc.surface,
         title: Row(
           children: [
-            Icon(Icons.system_update, color: nc.success, size: 24),
+            Icon(PhosphorIconsRegular.cloudArrowUp, color: nc.success, size: 24),
             const SizedBox(width: 8),
             Text(
               '发现新版本 v${info.version}',
@@ -274,7 +275,7 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -297,7 +298,7 @@ class _SettingsPageState extends State<SettingsPage> {
             nc: nc,
             children: [
               _SettingItem(
-                icon: Icons.brightness_6_outlined,
+                icon: PhosphorIconsRegular.sun,
                 label: '主题',
                 trailing: getIt<ThemeService>().label,
                 onTap: () {
@@ -312,7 +313,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
               _SettingItem(
-                icon: Icons.layers_outlined,
+                icon: PhosphorIconsRegular.stack,
                 label: '模型',
                 trailing: '管理',
                 onTap: () {
@@ -386,14 +387,8 @@ class _RoundedCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: nc.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: nc.divider),
       ),
       child: Column(children: children),
     );
@@ -445,7 +440,7 @@ class _SettingItem extends StatelessWidget {
                 ),
               const SizedBox(width: 4),
               Icon(
-                Icons.chevron_right,
+                PhosphorIconsRegular.caretRight,
                 size: 18,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),

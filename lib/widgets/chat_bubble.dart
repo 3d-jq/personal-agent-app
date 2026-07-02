@@ -152,7 +152,7 @@ class ChatBubble extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: nc.primarySurface,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
@@ -394,7 +394,7 @@ class _AIBubbleState extends State<_AIBubble>
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.close, size: 16, color: Colors.red.shade400),
+          Icon(Icons.close, size: 16, color: nc.error),
           const SizedBox(width: 6),
           Flexible(
             child: Text(

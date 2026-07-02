@@ -481,7 +481,7 @@ class _NoteEditorState extends State<_NoteEditor> {
               Navigator.pop(ctx);
               Navigator.pop(context);
             },
-            child: const Text('放弃', style: TextStyle(color: Colors.red)),
+            child: Text('放弃', style: TextStyle(color: nc.error)),
           ),
         ],
       ),

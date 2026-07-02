@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 
 class AgentBottomNav extends StatefulWidget {
@@ -20,18 +21,18 @@ class _AgentBottomNavState extends State<AgentBottomNav>
     with TickerProviderStateMixin {
   final List<_NavData> _items = const [
     _NavData(
-      icon: Icons.home_outlined,
-      activeIcon: Icons.home_rounded,
+      icon: PhosphorIconsRegular.house,
+      activeIcon: PhosphorIconsFill.house,
       label: '主页',
     ),
     _NavData(
-      icon: Icons.explore_outlined,
-      activeIcon: Icons.explore_rounded,
+      icon: PhosphorIconsRegular.compass,
+      activeIcon: PhosphorIconsFill.compass,
       label: '探索',
     ),
     _NavData(
-      icon: Icons.layers_outlined,
-      activeIcon: Icons.layers_rounded,
+      icon: PhosphorIconsRegular.stack,
+      activeIcon: PhosphorIconsFill.stack,
       label: '库',
     ),
   ];
@@ -215,7 +216,7 @@ class _AgentBottomNavState extends State<AgentBottomNav>
       ),
       child: Row(
         children: [
-          _CircleBtn(icon: Icons.add),
+          _CircleBtn(icon: PhosphorIconsRegular.plus),
           const SizedBox(width: 4),
           Expanded(
             child: TextField(
@@ -232,7 +233,7 @@ class _AgentBottomNavState extends State<AgentBottomNav>
             ),
           ),
           const SizedBox(width: 4),
-          _CircleBtn(icon: Icons.mic),
+          _CircleBtn(icon: PhosphorIconsRegular.microphone),
         ],
       ),
     );
@@ -252,7 +253,7 @@ class _AgentBottomNavState extends State<AgentBottomNav>
           borderRadius: BorderRadius.circular(26),
         ),
         child: Center(
-          child: Icon(Icons.edit_outlined, size: 22, color: colors.textPrimary),
+          child: Icon(PhosphorIconsRegular.pencilSimple, size: 22, color: colors.textPrimary),
         ),
       ),
     );
@@ -270,7 +271,7 @@ class _AgentBottomNavState extends State<AgentBottomNav>
           borderRadius: BorderRadius.circular(26),
         ),
         child: Center(
-          child: Icon(Icons.close, size: 22, color: colors.textPrimary),
+          child: Icon(PhosphorIconsRegular.x, size: 22, color: colors.textPrimary),
         ),
       ),
     );

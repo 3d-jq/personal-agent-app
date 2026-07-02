@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import 'ai_settings_sheet.dart';
 import 'attachment_picker.dart';
@@ -181,7 +182,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
           shape: BoxShape.circle,
         ),
         child: Icon(
-          hasFile ? Icons.check_rounded : Icons.add_rounded,
+          hasFile ? PhosphorIconsRegular.check : PhosphorIconsRegular.plus,
           size: 20,
           color: hasFile ? nc.success : nc.textPrimary,
         ),
@@ -213,7 +214,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
           shape: BoxShape.circle,
         ),
         child: Icon(
-          widget.isLoading ? Icons.stop_rounded : Icons.arrow_upward_rounded,
+          widget.isLoading ? PhosphorIconsRegular.stop : PhosphorIconsRegular.arrowUp,
           size: 18,
           color: widget.isLoading
               ? nc.error
@@ -259,7 +260,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      Icons.image_outlined,
+                      PhosphorIconsRegular.image,
                       size: 18,
                       color: nc.textSecondary,
                     ),
@@ -318,7 +319,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                   color: nc.surface,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.close, size: 14, color: nc.textSecondary),
+                child: Icon(PhosphorIconsRegular.x, size: 14, color: nc.textSecondary),
               ),
             ),
           ],

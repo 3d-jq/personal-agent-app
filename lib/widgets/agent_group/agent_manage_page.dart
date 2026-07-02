@@ -164,14 +164,8 @@ class _RoundedCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: nc.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: nc.divider),
       ),
       child: Column(children: children),
     );
@@ -382,13 +376,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
             minLines: 4,
             maxLines: 10,
             style: TextStyle(fontSize: 14, color: nc.textPrimary),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: nc.surface,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
+            decoration: const InputDecoration(
               hintText: '描述 Agent 的角色、风格、回答方式...',
             ),
           ),
@@ -487,13 +475,7 @@ class _Field extends StatelessWidget {
             onChanged: onChanged,
             style: TextStyle(fontSize: 14, color: nc.textPrimary),
             decoration: InputDecoration(
-              filled: true,
-              fillColor: nc.surface,
               hintText: hint,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
             ),
           ),
         ],
@@ -771,16 +753,10 @@ class _AgentModelPickerState extends State<_AgentModelPicker> {
           onChanged: (v) => widget.onChanged(v.trim()),
           style: TextStyle(fontSize: 14, color: nc.textPrimary),
           decoration: InputDecoration(
-            filled: true,
-            fillColor: nc.surface,
             hintText: '例如：gpt-4o、claude-3-opus',
             hintStyle: TextStyle(
               color: nc.textSecondary.withValues(alpha: 0.5),
               fontSize: 13,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
