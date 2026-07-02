@@ -17,6 +17,7 @@ import '../services/connectivity_service.dart';
 import '../services/context_doc_service.dart';
 import '../services/history_manager.dart';
 import '../services/notification_service.dart';
+import '../services/typewriter_buffer.dart';
 import '../tools/task_plan_tool.dart';
 import '../tools/tools.dart';
 import '../widgets/ai_settings_sheet.dart';
@@ -316,6 +317,8 @@ class ChatController extends ChangeNotifier {
   void stopStream() {
     _aiStream?.cancel();
     _aiStream = null;
+    _streamState?.typewriterTimer?.cancel();
+    _streamState?.typewriterTimer = null;
     _completeUserPrompt('用户取消了当前操作');
     if (_currentSteps != null) {
       finishRunningSteps(_currentSteps!);
@@ -369,6 +372,7 @@ class ChatController extends ChangeNotifier {
           );
         }
         state.buf.write(text);
+        _appendTypewriterText(state, aiMsg, text);
         break;
       case ToolStartEvent(:final name, :final concurrentCount, :final arguments):
         state.hasToolCalls = true;
@@ -431,7 +435,9 @@ class ChatController extends ChangeNotifier {
         }
         break;
       case ToolMediaEvent(:final url):
-        state.buf.write('\n$url\n');
+        final text = '\n$url\n';
+        state.buf.write(text);
+        _appendTypewriterText(state, aiMsg, text);
         break;
       case ToolInteractionEvent(:final toolCalls, :final toolResults):
         state.toolInteractions.add({
@@ -459,13 +465,42 @@ class ChatController extends ChangeNotifier {
         );
         break;
       case ErrorEvent(:final message):
-        state.buf.write('\n\n$message');
+        final text = '\n\n$message';
+        state.buf.write(text);
+        _appendTypewriterText(state, aiMsg, text);
         break;
     }
-    aiMsg.text = state.buf.toString();
+    aiMsg.text = state.typewriter.visibleText;
     aiMsg.steps = List.unmodifiable(state.steps);
     _notify();
     onNeedScroll?.call();
+  }
+
+  void _appendTypewriterText(
+    _StreamState state,
+    ChatMessage aiMsg,
+    String text,
+  ) {
+    state.typewriter.append(text);
+    _ensureTypewriterTimer(state, aiMsg);
+  }
+
+  void _ensureTypewriterTimer(_StreamState state, ChatMessage aiMsg) {
+    if (state.typewriterTimer != null) return;
+    state.typewriterTimer = Timer.periodic(const Duration(milliseconds: 24), (_) {
+      if (!state.typewriter.hasPending) {
+        state.typewriterTimer?.cancel();
+        state.typewriterTimer = null;
+        if (state.streamEnded && !state.finalized) {
+          _finalizeStreamDone(state, aiMsg);
+        }
+        return;
+      }
+      state.typewriter.revealNext();
+      aiMsg.text = state.typewriter.visibleText;
+      _notify();
+      onNeedScroll?.call();
+    });
   }
 
   // ═══ Ask user handling ═══
@@ -551,6 +586,20 @@ class ChatController extends ChangeNotifier {
     // 如果 ask_user 正在等待用户输入，流不能算结束
     if (state.isWaitingUserInput) return;
 
+    state.streamEnded = true;
+    if (state.typewriter.hasPending) {
+      _ensureTypewriterTimer(state, aiMsg);
+      return;
+    }
+    _finalizeStreamDone(state, aiMsg);
+  }
+
+  void _finalizeStreamDone(_StreamState state, ChatMessage aiMsg) {
+    if (state.finalized) return;
+    state.finalized = true;
+    state.typewriterTimer?.cancel();
+    state.typewriterTimer = null;
+
     _captureThinkingDetail(state);
     finishRunningSteps(state.steps);
     final plan = currentPlan;
@@ -577,6 +626,7 @@ class ChatController extends ChangeNotifier {
     _currentSteps = null;
     _streamState = null;
     aiMsg.isStreaming = false;
+    aiMsg.text = state.typewriter.visibleText;
     aiMsg.steps = state.steps.isEmpty ? null : List.unmodifiable(state.steps);
     // 持久化工具交互记录到消息历史
     if (state.toolInteractions.isNotEmpty) {
@@ -593,6 +643,9 @@ class ChatController extends ChangeNotifier {
   }
 
   void _onStreamError(Object e, _StreamState state, ChatMessage aiMsg) {
+    state.typewriterTimer?.cancel();
+    state.typewriterTimer = null;
+    state.typewriter.revealAll();
     _captureThinkingDetail(state);
     finishRunningSteps(state.steps);
     _currentSteps = null;
@@ -622,6 +675,10 @@ class ChatController extends ChangeNotifier {
 /// 一次流式响应的临时状态，避免在闭包里维护大量局部变量。
 class _StreamState {
   final StringBuffer buf = StringBuffer();
+  final TypewriterBuffer typewriter = TypewriterBuffer(charsPerTick: 4);
+  Timer? typewriterTimer;
+  bool streamEnded = false;
+  bool finalized = false;
 
   /// 大模型内部推理内容（reasoning_content），不显示在正文中。
   final StringBuffer reasoningBuf = StringBuffer();
