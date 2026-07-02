@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../controllers/chat_controller.dart';
 import '../core/agent_colors.dart';
 
@@ -23,7 +24,7 @@ class ChatNewChatButton extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
-        child: Icon(Icons.edit_square, size: 18, color: AgentColors.of(context).textPrimary),
+        child: Icon(PhosphorIconsRegular.notePencil, size: 18, color: AgentColors.of(context).textPrimary),
       ),
     );
   }

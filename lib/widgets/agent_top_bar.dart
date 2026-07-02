@@ -55,7 +55,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Icon(
-                        Icons.menu_rounded,
+                        PhosphorIconsRegular.list,
                         size: 18,
                         color: colors.textPrimary,
                       ),

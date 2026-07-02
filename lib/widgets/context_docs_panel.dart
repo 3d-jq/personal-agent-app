@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../core/agent_colors.dart';
 import '../core/service_locator.dart';
@@ -23,11 +24,11 @@ class ContextDocViewerPage extends StatelessWidget {
 
   static IconData iconFor(ContextDoc doc) {
     return switch (doc) {
-      ContextDoc.soul => Icons.psychology_alt_outlined,
-      ContextDoc.user => Icons.person_outline,
-      ContextDoc.agent => Icons.lightbulb_outline,
-      ContextDoc.memory => Icons.bookmark_outline,
-      ContextDoc.knowledge => Icons.menu_book_outlined,
+      ContextDoc.soul => PhosphorIconsRegular.brain,
+      ContextDoc.user => PhosphorIconsRegular.user,
+      ContextDoc.agent => PhosphorIconsRegular.lightbulb,
+      ContextDoc.memory => PhosphorIconsRegular.bookmarkSimple,
+      ContextDoc.knowledge => PhosphorIconsRegular.bookOpen,
     };
   }
 
@@ -52,7 +53,7 @@ class ContextDocViewerPage extends StatelessWidget {
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back_ios_new,
+            PhosphorIconsRegular.arrowLeft,
             size: 18,
             color: colors.textPrimary,
           ),
