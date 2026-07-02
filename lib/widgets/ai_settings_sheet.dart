@@ -319,9 +319,6 @@ class _AddVendorBodyState extends State<_AddVendorBody> {
               decoration: const InputDecoration(
                 labelText: '厂商名称',
                 hintText: '例如: DeepSeek, OpenAI',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -330,9 +327,6 @@ class _AddVendorBodyState extends State<_AddVendorBody> {
               decoration: const InputDecoration(
                 labelText: 'API Key',
                 hintText: 'sk-...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -341,13 +335,10 @@ class _AddVendorBodyState extends State<_AddVendorBody> {
               decoration: const InputDecoration(
                 labelText: 'Base URL（可选）',
                 hintText: 'https://api.openai.com/v1',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                ),
               ),
             ),
             const SizedBox(height: 24),
-            FilledButton(
+            ElevatedButton(
               onPressed: () {
                 final n = widget.nameCtrl.text.trim(),
                     k = widget.keyCtrl.text.trim();
@@ -456,9 +447,6 @@ class _EditVendorBodyState extends State<_EditVendorBody> {
                 controller: widget.nameCtrl,
                 decoration: InputDecoration(
                   labelText: '厂商名称',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
                   labelStyle: TextStyle(color: nc.textSecondary),
                 ),
               ),
@@ -467,9 +455,6 @@ class _EditVendorBodyState extends State<_EditVendorBody> {
                 controller: widget.urlCtrl,
                 decoration: InputDecoration(
                   labelText: 'Base URL（可选）',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(12)),
-                  ),
                   labelStyle: TextStyle(color: nc.textSecondary),
                 ),
               ),
@@ -479,14 +464,11 @@ class _EditVendorBodyState extends State<_EditVendorBody> {
               controller: widget.keyCtrl,
               decoration: InputDecoration(
                 labelText: isBuiltIn ? 'Agnes API Key' : 'API Key',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                ),
                 labelStyle: TextStyle(color: nc.textSecondary),
               ),
             ),
             const SizedBox(height: 24),
-            FilledButton(
+            ElevatedButton(
               onPressed: () {
                 final k = widget.keyCtrl.text.trim();
                 if (k.isEmpty) return;

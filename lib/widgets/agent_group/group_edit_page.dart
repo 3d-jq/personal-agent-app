@@ -179,14 +179,8 @@ class _RoundedCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: nc.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: nc.divider),
       ),
       child: Column(children: children),
     );
@@ -221,14 +215,8 @@ class _FieldRow extends StatelessWidget {
             TextField(
               controller: ctrl,
               style: TextStyle(fontSize: 14, color: nc.textPrimary),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: nc.primarySurface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
+              decoration: const InputDecoration(
+                contentPadding: EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 10,
                 ),

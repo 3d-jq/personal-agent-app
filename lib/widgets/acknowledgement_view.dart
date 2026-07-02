@@ -37,14 +37,8 @@ class AcknowledgementView extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: nc.surface,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: nc.divider),
               ),
               child: Column(
                 children: [
@@ -131,21 +125,15 @@ class AcknowledgementView extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: nc.surface,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: nc.divider),
               ),
               child: Column(
                 children: [
                   Icon(
                     Icons.favorite,
                     size: 28,
-                    color: const Color(0xFFEB5757).withValues(alpha: 0.6),
+                    color: nc.error.withValues(alpha: 0.7),
                   ),
                   const SizedBox(height: 12),
                   Text(

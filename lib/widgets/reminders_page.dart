@@ -127,14 +127,8 @@ class _RemindersViewState extends State<RemindersView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: nc.surface,
-        borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: nc.divider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,14 +206,14 @@ class _RemindersViewState extends State<RemindersView> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.08),
+                      color: nc.error.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Text(
+                    child: Text(
                       '取消',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.red,
+                        color: nc.error,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -249,7 +243,7 @@ class _RemindersViewState extends State<RemindersView> {
               await ReminderTool.cancelReminder(r.id);
               _load();
             },
-            child: const Text('取消提醒', style: TextStyle(color: Colors.red)),
+            child: Text('取消提醒', style: TextStyle(color: AgentColors.of(ctx).error)),
           ),
         ],
       ),
