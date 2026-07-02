@@ -131,43 +131,44 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: _Card(
                     nc: nc,
-                    children: widget.sessions.isEmpty
-                        ? [
-                            Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 20,
-                                ),
-                                child: Text(
-                                  '暂无对话',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: nc.textSecondary.withValues(
-                                      alpha: 0.5,
-                                    ),
-                                  ),
-                                ),
+                    children: [
+                      if (widget.sessions.isEmpty)
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              '暂无对话',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: nc.textSecondary.withValues(alpha: 0.5),
                               ),
                             ),
-                          ]
-                        : List.generate(widget.sessions.length, (i) {
-                            final s = widget.sessions[i];
-                            return _CardItem(
-                              label: s.title,
-                              isActive: s.id == widget.currentSessionId,
-                              isCurrentLoading:
-                                  widget.isLoading &&
-                                  s.id == widget.currentSessionId,
-                              nc: nc,
-                              isLast: i == widget.sessions.length - 1,
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                Navigator.of(context).pop();
-                                widget.onSessionTap(s.id);
-                              },
-                              onLongPress: () => _confirmDelete(s),
-                            );
-                          }),
+                          ),
+                        )
+                      else
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: widget.sessions.length,
+                            itemBuilder: (context, i) {
+                              final s = widget.sessions[i];
+                              return _CardItem(
+                                label: s.title,
+                                isActive: s.id == widget.currentSessionId,
+                                isCurrentLoading:
+                                    widget.isLoading &&
+                                    s.id == widget.currentSessionId,
+                                nc: nc,
+                                isLast: i == widget.sessions.length - 1,
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  Navigator.of(context).pop();
+                                  widget.onSessionTap(s.id);
+                                },
+                                onLongPress: () => _confirmDelete(s),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -284,13 +285,13 @@ class _Card extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(children: children),
     );
@@ -393,9 +394,7 @@ class _Pill extends StatelessWidget {
     return Container(
       width: 40,
       height: 40,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
       child: Icon(icon, size: 18, color: nc.textPrimary),
     );
   }
