@@ -90,16 +90,16 @@ class _ChatInputBarState extends State<ChatInputBar> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
-              color: nc.primarySurface,
+              color: nc.surface,
               borderRadius: BorderRadius.circular(20),
-              border: isFocused || hasFile
-                  ? Border.all(
-                      color: hasFile
-                          ? nc.success.withValues(alpha: 0.4)
-                          : nc.primary.withValues(alpha: 0.4),
-                      width: 1.5,
-                    )
-                  : null,
+              border: Border.all(
+                color: hasFile
+                    ? nc.success.withValues(alpha: 0.4)
+                    : isFocused
+                    ? nc.primary.withValues(alpha: 0.4)
+                    : nc.divider,
+                width: isFocused ? 1.5 : 1,
+              ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -128,6 +128,11 @@ class _ChatInputBarState extends State<ChatInputBar> {
                         height: 1.5,
                       ),
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
                     ),
@@ -276,7 +281,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  PhosphorIconsRegular.fileText,
+                  Icons.insert_drive_file_outlined,
                   size: 18,
                   color: nc.textSecondary,
                 ),
