@@ -5,8 +5,6 @@ import '../models/chat_message.dart';
 import '../core/agent_colors.dart';
 import '../core/app_animations.dart';
 import '../core/app_router.dart';
-import '../core/service_locator.dart';
-import '../services/theme_service.dart';
 import 'inline_content.dart';
 import 'timeline_view.dart';
 import 'shimmer_text.dart';
@@ -23,9 +21,7 @@ class ChatBubble extends StatelessWidget {
   }
 
   Widget _userBubble(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final (lightColor, darkColor) = getIt<ThemeService>().bubbleColor;
-    final bgColor = isDark ? darkColor : lightColor;
+    final bgColor = nc.primarySurface;
     final hasImage =
         msg.attachmentType == 'image' && msg.attachmentPath != null;
     final hasDoc =
@@ -271,12 +267,12 @@ class _AIBubbleState extends State<_AIBubble>
     final textContent = msg.cleanText;
     final isStreaming = msg.isStreaming;
 
-    final showProcessLine =
-        hasSteps || (isStreaming && textContent.isEmpty);
+    final showProcessLine = hasSteps || (isStreaming && textContent.isEmpty);
 
     // Throttle expensive Markdown parsing during streaming
     final now = DateTime.now();
-    final shouldRender = textContent != _lastText &&
+    final shouldRender =
+        textContent != _lastText &&
         (!isStreaming || now.difference(_lastRenderTime) >= _renderThrottle);
     if (shouldRender) {
       _lastText = textContent;
@@ -394,15 +390,11 @@ class _AIBubbleState extends State<_AIBubble>
       );
     }
 
-if (isError) {
+    if (isError) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.close,
-            size: 16,
-            color: Colors.red.shade400,
-          ),
+          Icon(Icons.close, size: 16, color: Colors.red.shade400),
           const SizedBox(width: 6),
           Flexible(
             child: Text(

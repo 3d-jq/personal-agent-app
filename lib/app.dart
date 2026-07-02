@@ -41,57 +41,103 @@ class _AppState extends State<App> {
     super.dispose();
   }
 
+  ThemeData _buildTheme(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
+    final agentColors = isDark ? AgentColors.dark() : AgentColors.light();
+    final colorScheme = ColorScheme(
+      brightness: brightness,
+      primary: agentColors.primary,
+      onPrimary: Colors.white,
+      secondary: agentColors.primary,
+      onSecondary: Colors.white,
+      error: agentColors.error,
+      onError: Colors.white,
+      surface: agentColors.surface,
+      onSurface: agentColors.textPrimary,
+      outline: agentColors.divider,
+      outlineVariant: agentColors.divider,
+      surfaceContainerHighest: agentColors.primarySurface,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      fontFamily: 'Roboto',
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: agentColors.background,
+      textTheme: const TextTheme(
+        headlineLarge: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          height: 1.2,
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.bold,
+          height: 1.3,
+        ),
+        headlineSmall: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          height: 1.3,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          height: 1.3,
+        ),
+        titleMedium: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          height: 1.4,
+        ),
+        titleSmall: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          height: 1.4,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          height: 1.5,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          height: 1.5,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          height: 1.4,
+        ),
+        labelLarge: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          height: 1.3,
+        ),
+        labelMedium: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          height: 1.3,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          height: 1.2,
+        ),
+      ),
+      appBarTheme: const AppBarTheme(elevation: 0, scrolledUnderElevation: 0),
+      extensions: [agentColors],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final seed = _themeService.seedColor;
-    final lightScheme = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light);
-    final darkScheme = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.dark);
-
     return MaterialApp(
       title: 'DWeis',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'Roboto',
-        colorScheme: lightScheme,
-        textTheme: const TextTheme(
-          headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, height: 1.2),
-          headlineMedium: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, height: 1.3),
-          headlineSmall: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, height: 1.3),
-          titleLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.3),
-          titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, height: 1.4),
-          titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, height: 1.4),
-          bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, height: 1.5),
-          bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.5),
-          bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, height: 1.4),
-          labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, height: 1.3),
-          labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, height: 1.3),
-          labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, height: 1.2),
-        ),
-        appBarTheme: const AppBarTheme(elevation: 0, scrolledUnderElevation: 0),
-        extensions: [AgentColors.fromScheme(lightScheme)],
-      ),
-      darkTheme: ThemeData(
-        useMaterial3: true,
-        fontFamily: 'Roboto',
-        colorScheme: darkScheme,
-        textTheme: const TextTheme(
-          headlineLarge: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, height: 1.2),
-          headlineMedium: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, height: 1.3),
-          headlineSmall: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, height: 1.3),
-          titleLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, height: 1.3),
-          titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, height: 1.4),
-          titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, height: 1.4),
-          bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, height: 1.5),
-          bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, height: 1.5),
-          bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, height: 1.4),
-          labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, height: 1.3),
-          labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, height: 1.3),
-          labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, height: 1.2),
-        ),
-        appBarTheme: const AppBarTheme(elevation: 0, scrolledUnderElevation: 0),
-        extensions: [AgentColors.fromScheme(darkScheme)],
-      ),
+      theme: _buildTheme(Brightness.light),
+      darkTheme: _buildTheme(Brightness.dark),
       themeMode: _loaded ? _themeService.mode : ThemeMode.light,
       home: _showOnboarding
           ? OnboardingPage(
