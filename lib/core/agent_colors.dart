@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Material 3 color system — derived from ColorScheme.fromSeed.
+/// Claude Design System v1.2 配色封装。
+///
+/// 仅保留一套风格：浅色 / 深色模式，均使用 Claude 的暖色调与强调色。
 class AgentColors extends ThemeExtension<AgentColors> {
   // ── Text ──
   final Color textPrimary;
@@ -13,8 +15,9 @@ class AgentColors extends ThemeExtension<AgentColors> {
   final Color primarySurface;
   final Color cardBackground;
 
-  // ── Brand ──
+  // ── Brand / Accent ──
   final Color primary;
+  final Color primaryHover;
 
   // ── Functional ──
   final Color success;
@@ -24,7 +27,8 @@ class AgentColors extends ThemeExtension<AgentColors> {
   // ── Dividers & borders ──
   final Color divider;
 
-  Color get inputBg => primarySurface;
+  Color get background => _background;
+  Color get inputBg => surface;
   Color get chipBg => primarySurface;
   Color get chipBorder => divider;
   Color get navBg => surface;
@@ -40,46 +44,54 @@ class AgentColors extends ThemeExtension<AgentColors> {
     required this.primarySurface,
     required this.cardBackground,
     required this.primary,
+    required this.primaryHover,
     required this.success,
     required this.warning,
     required this.error,
     required this.divider,
   }) : _background = background;
 
-  /// Returns the background color from the current theme.
-  Color get background => _background;
+  /// Claude Design System 浅色模式。
+  factory AgentColors.light() => const AgentColors._(
+    background: Color(0xFFFAF9F5),
+    textPrimary: Color(0xFF141413),
+    textSecondary: Color(0xFF55524D),
+    textDisabled: Color(0xFFB0AEA5),
+    surface: Color(0xFFFAF9F5),
+    primarySurface: Color(0xFFF3F0EA),
+    cardBackground: Color(0xFFFAF9F5),
+    primary: Color(0xFFD97757),
+    primaryHover: Color(0xFFC1633F),
+    success: Color(0xFF788C5D),
+    warning: Color(0xFFD97757),
+    error: Color(0xFFC1633F),
+    divider: Color(0xFFE8E6DC),
+  );
 
-  /// Build from a generated ColorScheme.
-  factory AgentColors.fromScheme(ColorScheme scheme) {
-    final isDark = scheme.brightness == Brightness.dark;
-    return AgentColors._(
-      background: scheme.surface,
-      textPrimary: scheme.onSurface,
-      textSecondary: scheme.onSurface.withValues(alpha: 0.55),
-      textDisabled: scheme.onSurface.withValues(alpha: 0.25),
-      surface: scheme.surface,
-      primarySurface: scheme.surfaceContainerLow,
-      cardBackground: scheme.surfaceContainerLow,
-      primary: scheme.primary,
-      success: Colors.green.shade700,
-      warning: Colors.orange.shade900,
-      error: scheme.error,
-      divider: scheme.outlineVariant,
-    );
+  /// Claude Design System 深色模式。
+  factory AgentColors.dark() => const AgentColors._(
+    background: Color(0xFF141413),
+    textPrimary: Color(0xFFFAF9F5),
+    textSecondary: Color(0xFFB5B2AB),
+    textDisabled: Color(0xFF6E6B63),
+    surface: Color(0xFF141413),
+    primarySurface: Color(0xFF252522),
+    cardBackground: Color(0xFF141413),
+    primary: Color(0xFFD97757),
+    primaryHover: Color(0xFFE08C6D),
+    success: Color(0xFF788C5D),
+    warning: Color(0xFFD97757),
+    error: Color(0xFFE08C6D),
+    divider: Color(0xFF2E2C28),
+  );
+
+  static AgentColors of(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    return Theme.of(context).extension<AgentColors>() ??
+        (brightness == Brightness.dark
+            ? AgentColors.dark()
+            : AgentColors.light());
   }
-
-  /// Default light theme (teal). Prefer fromScheme() with a ColorScheme.
-  factory AgentColors.light() => AgentColors.fromScheme(
-    ColorScheme.fromSeed(seedColor: const Color(0xFF009688), brightness: Brightness.light),
-  );
-
-  /// Default dark theme (teal). Prefer fromScheme() with a ColorScheme.
-  factory AgentColors.dark() => AgentColors.fromScheme(
-    ColorScheme.fromSeed(seedColor: const Color(0xFF009688), brightness: Brightness.dark),
-  );
-
-  static AgentColors of(BuildContext context) =>
-      Theme.of(context).extension<AgentColors>() ?? AgentColors.light();
 
   @override
   AgentColors copyWith({
@@ -91,6 +103,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
     Color? primarySurface,
     Color? cardBackground,
     Color? primary,
+    Color? primaryHover,
     Color? success,
     Color? warning,
     Color? error,
@@ -105,6 +118,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
       primarySurface: primarySurface ?? this.primarySurface,
       cardBackground: cardBackground ?? this.cardBackground,
       primary: primary ?? this.primary,
+      primaryHover: primaryHover ?? this.primaryHover,
       success: success ?? this.success,
       warning: warning ?? this.warning,
       error: error ?? this.error,
@@ -124,6 +138,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
       primarySurface: Color.lerp(primarySurface, other.primarySurface, t)!,
       cardBackground: Color.lerp(cardBackground, other.cardBackground, t)!,
       primary: Color.lerp(primary, other.primary, t)!,
+      primaryHover: Color.lerp(primaryHover, other.primaryHover, t)!,
       success: Color.lerp(success, other.success, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       error: Color.lerp(error, other.error, t)!,
