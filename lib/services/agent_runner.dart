@@ -132,7 +132,10 @@ class AgentRunner {
   }
 
   /// 消息序列化：所有消息都标注 name 字段
-  /// 窗口截断：保留最近 50 条
+  /// 构建 Agent 的独立对话历史视图
+  ///
+  /// 原则：每个 Agent 只看到自己和用户的消息作为"对话"，
+  /// 其他 Agent 的消息作为"上下文"（system 角色），避免身份混淆。
   List<Map<String, dynamic>> _buildHistory(
     List<_GroupMsg> msgs,
     String systemPrompt,
@@ -148,13 +151,20 @@ class AgentRunner {
     ];
     for (final m in window) {
       if (m.isUser) {
+        // 用户消息：保持 user 角色
         history.add({'role': 'user', 'content': m.text, 'name': '群主'});
-      } else {
-        // 所有 Agent 消息都标记为 assistant，用 name 字段区分身份
+      } else if (m.speakerLabel == selfLabel) {
+        // 自己的消息：保持 assistant 角色
         history.add({
           'role': 'assistant',
           'content': m.text,
           'name': m.speakerLabel,
+        });
+      } else {
+        // 其他 Agent 的消息：转为 system 角色（作为上下文），不混淆身份
+        history.add({
+          'role': 'system',
+          'content': '[${m.speakerLabel}的发言] ${m.text}',
         });
       }
     }
