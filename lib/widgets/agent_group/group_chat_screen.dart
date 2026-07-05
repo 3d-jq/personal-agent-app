@@ -98,6 +98,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         .map((id) => allAgents.where((a) => a.id == id).firstOrNull)
         .whereType<Agent>()
         .toList();
+    
+    // 自动清理：移除不存在的 Agent
+    final validIds = ms.map((a) => a.id).toSet();
+    final invalidIds = g.agentIds.where((id) => !validIds.contains(id)).toList();
+    if (invalidIds.isNotEmpty) {
+      g.agentIds.removeWhere((id) => !validIds.contains(id));
+      await getIt<AgentGroupStorage>().save(g);
+    }
+    
     if (!mounted) return;
     setState(() {
       _group = g;
