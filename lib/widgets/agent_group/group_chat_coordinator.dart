@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../../models/agent.dart';
+import '../../models/agent_group.dart';
 import '../../models/chat_message.dart';
 import '../../services/ai_service.dart';
 import '../../services/chat_stream_event.dart';
