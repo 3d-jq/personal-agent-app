@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 /// 全局错误处理入口。
 ///
@@ -43,7 +44,7 @@ class ErrorHandler {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, color: Color(0xFFC1633F), size: 48),
+            const Icon(PhosphorIconsRegular.warningCircle, color: Color(0xFFC1633F), size: 48),
             const SizedBox(height: 16),
             const Text(
               '页面出错了',
