@@ -90,51 +90,62 @@ class _ChatInputBarState extends State<ChatInputBar> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
-              color: nc.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: hasFile
-                    ? nc.success.withValues(alpha: 0.4)
-                    : isFocused
-                    ? nc.primary.withValues(alpha: 0.4)
-                    : nc.divider,
-                width: isFocused ? 1.5 : 0.5,
-              ),
+              color: nc.primarySurface,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-                  child: TextField(
-                    controller: widget.controller,
-                    focusNode: widget.focusNode,
-                    maxLines: 6,
-                    minLines: 1,
-                    keyboardType: TextInputType.multiline,
-                    textInputAction: TextInputAction.newline,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: nc.textPrimary,
-                      height: 1.5,
+                  child: Theme(
+                    data: Theme.of(context).copyWith(
+                      inputDecorationTheme: const InputDecorationTheme(
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                      ),
                     ),
-                    decoration: InputDecoration(
-                      hintText: widget.isAwaitingReply
-                          ? '回复以继续…'
-                          : (hasFile ? '添加描述（可选）' : '给 DWeis 发消息'),
-                      hintStyle: TextStyle(
-                        color: nc.textSecondary.withValues(alpha: 0.6),
+                    child: TextField(
+                      controller: widget.controller,
+                      focusNode: widget.focusNode,
+                      maxLines: 6,
+                      minLines: 1,
+                      keyboardType: TextInputType.multiline,
+                      textInputAction: TextInputAction.newline,
+                      style: TextStyle(
                         fontSize: 15,
+                        color: nc.textPrimary,
                         height: 1.5,
                       ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
+                      decoration: InputDecoration(
+                        hintText: widget.isAwaitingReply
+                            ? '回复以继续…'
+                            : (hasFile ? '添加描述（可选）' : '给 DWeis 发消息'),
+                        hintStyle: TextStyle(
+                          color: nc.textSecondary.withValues(alpha: 0.6),
+                          fontSize: 15,
+                          height: 1.5,
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
                     ),
                   ),
                 ),
@@ -160,7 +171,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
             '大模型也会出错，请谨慎核对内容',
             style: TextStyle(
               fontSize: 11,
-              color: nc.textSecondary.withValues(alpha: 0.45),
+              color: nc.textDisabled,
             ),
           ),
         ),
@@ -177,21 +188,21 @@ class _ChatInputBarState extends State<ChatInputBar> {
           AttachmentPicker.show(context, nc, widget.onAttachment!);
         }
       },
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: hasFile
-              ? nc.success.withValues(alpha: 0.1)
-              : nc.primarySurface,
-          shape: BoxShape.circle,
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: hasFile
+                ? nc.success.withValues(alpha: 0.1)
+                : nc.primarySurface,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Icon(
+            hasFile ? PhosphorIconsRegular.check : PhosphorIconsRegular.plus,
+            size: 20,
+            color: hasFile ? nc.success : nc.textPrimary,
+          ),
         ),
-        child: Icon(
-          hasFile ? PhosphorIconsRegular.check : PhosphorIconsRegular.plus,
-          size: 20,
-          color: hasFile ? nc.success : nc.textPrimary,
-        ),
-      ),
     );
   }
 
@@ -207,17 +218,17 @@ class _ChatInputBarState extends State<ChatInputBar> {
           widget.onSend();
         }
       },
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: widget.isLoading
-              ? nc.error.withValues(alpha: 0.1)
-              : isActive
-              ? nc.primary
-              : nc.primarySurface,
-          shape: BoxShape.circle,
-        ),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: widget.isLoading
+                ? nc.error.withValues(alpha: 0.1)
+                : isActive
+                ? nc.primary
+                : nc.primarySurface,
+            borderRadius: BorderRadius.circular(20),
+          ),
         child: Icon(
           widget.isLoading ? PhosphorIconsRegular.stop : PhosphorIconsRegular.arrowUp,
           size: 18,
@@ -244,8 +255,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
           color: nc.primarySurface,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: nc.divider, width: 0.5),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [

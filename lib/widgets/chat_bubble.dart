@@ -57,6 +57,7 @@ class ChatBubble extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: bgColor,
                   borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: nc.divider, width: 0.5),
                 ),
                 child: Text(
                   cleanText,
@@ -96,6 +97,7 @@ class ChatBubble extends StatelessWidget {
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: nc.divider, width: 0.5),
           ),
           clipBehavior: Clip.antiAlias,
           child: Image.file(
@@ -145,6 +147,7 @@ class ChatBubble extends StatelessWidget {
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: nc.divider, width: 0.5),
           ),
           child: Row(
         mainAxisSize: MainAxisSize.min,
