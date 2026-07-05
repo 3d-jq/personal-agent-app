@@ -106,16 +106,15 @@ class AgentRunner {
 
     // 对话历史格式说明
     buf.writeln('<history_format>');
-    buf.writeln('每条消息带 name 字段标注发言人：');
-    buf.writeln('- name="${agent.name}" → 这是你本人发出的消息');
+    buf.writeln('对话历史中每条消息带 name 字段：');
+    buf.writeln('- name="${agent.name}" → 这是你（${agent.name}）发出的消息');
     buf.writeln('- name="群主" → 这是用户说的话');
-    buf.writeln('- name="其他名字" → 那是其他 Agent 说的话');
+    buf.writeln('- name="其他名字" → 那是其他 Agent 说的话，不是你说的');
     buf.writeln();
-    buf.writeln('【身份锁定提醒】');
-    buf.writeln('- 你的身份是：${agent.name}，角色：${agent.role}');
-    buf.writeln('- 看到其他 Agent 的消息时，不要模仿他们的身份或风格');
-    buf.writeln('- 如果用户问你关于其他 Agent 的职责，你只能说"请咨询${agent.name}"');
-    buf.writeln('- 你只能以 ${agent.name} 的身份发言，绝对禁止冒充其他成员');
+    buf.writeln('【关键规则】');
+    buf.writeln('1. name="${agent.name}" 的消息才是你写的，其他 name 的消息都是别人写的');
+    buf.writeln('2. 你只能以「${agent.name}」的身份回复，不要模仿其他 name 的风格');
+    buf.writeln('3. 如果用户问你关于其他 name 的职责，你只能说"请咨询${agent.name}"');
     buf.writeln('</history_format>');
     buf.writeln();
 
@@ -148,16 +147,10 @@ class AgentRunner {
       {'role': 'system', 'content': systemPrompt},
     ];
     for (final m in window) {
-      final isSelf = !m.isUser && m.speakerLabel == selfLabel;
       if (m.isUser) {
         history.add({'role': 'user', 'content': m.text, 'name': '群主'});
-      } else if (isSelf) {
-        history.add({
-          'role': 'assistant',
-          'content': m.text,
-          'name': m.speakerLabel,
-        });
       } else {
+        // 所有 Agent 消息都标记为 assistant，用 name 字段区分身份
         history.add({
           'role': 'assistant',
           'content': m.text,
