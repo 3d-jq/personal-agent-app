@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
@@ -80,7 +81,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      Icons.play_arrow_rounded,
+                      PhosphorIconsRegular.play,
                       size: 30,
                       color: Colors.white,
                     ),
@@ -95,7 +96,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xAA000000),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
                         '视频',
@@ -137,7 +138,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.broken_image_outlined,
+                            PhosphorIconsRegular.imageBroken,
                             size: 32,
                             color: nc.textSecondary.withValues(alpha: 0.3),
                           ),
@@ -172,7 +173,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.image_outlined,
+                              PhosphorIconsRegular.image,
                               size: 28,
                               color: nc.textSecondary.withValues(alpha: 0.25),
                             ),
@@ -201,7 +202,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.broken_image_outlined,
+                            PhosphorIconsRegular.imageBroken,
                             size: 32,
                             color: nc.textSecondary.withValues(alpha: 0.3),
                           ),
@@ -290,7 +291,7 @@ Widget mdBlock(String text, AgentColors nc, [BuildContext? context]) {
       codeblockDecoration: BoxDecoration(
         color: nc.primarySurface,
         border: Border.all(color: nc.divider, width: 0.5),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
       ),
       codeblockPadding: const EdgeInsets.all(14),
       blockquoteDecoration: BoxDecoration(
@@ -334,7 +335,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: nc.primarySurface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: nc.divider, width: 0.5),
       ),
       child: Column(
@@ -350,7 +351,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
             ),
             child: Row(
               children: [
-                Icon(Icons.code, size: 13, color: nc.textSecondary),
+                Icon(PhosphorIconsRegular.code, size: 13, color: nc.textSecondary),
                 const SizedBox(width: 6),
                 Text(
                   element.attributes['class']?.toString().replaceAll(
@@ -377,7 +378,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.copy, size: 13, color: nc.textSecondary),
+                      Icon(PhosphorIconsRegular.copy, size: 13, color: nc.textSecondary),
                       const SizedBox(width: 4),
                       Text(
                         '复制',
@@ -487,7 +488,7 @@ class _FullscreenImageState extends State<_FullscreenImage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.broken_image, size: 48, color: Colors.white38),
+            Icon(PhosphorIconsRegular.imageBroken, size: 48, color: Colors.white38),
             SizedBox(height: 12),
             Text('加载失败', style: TextStyle(color: Colors.white38)),
           ],
@@ -516,7 +517,7 @@ class _FullscreenImageState extends State<_FullscreenImage> {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.download_rounded),
+                : const Icon(PhosphorIconsRegular.downloadSimple),
             tooltip: '保存',
           ),
         ],
@@ -592,7 +593,7 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.download_rounded),
+                : const Icon(PhosphorIconsRegular.downloadSimple),
             tooltip: '保存',
           ),
         ],
@@ -607,7 +608,7 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.videocam_outlined,
+                      PhosphorIconsRegular.videoCamera,
                       size: 64,
                       color: Colors.white38,
                     ),
@@ -648,13 +649,13 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
                       Icon(
-                        Icons.play_arrow_rounded,
+                        PhosphorIconsRegular.play,
                         color: Colors.white,
                         size: 24,
                       ),

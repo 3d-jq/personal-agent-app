@@ -16,7 +16,7 @@ class ChatIdentityButton extends StatelessWidget {
       data: Theme.of(context).copyWith(
         popupMenuTheme: PopupMenuThemeData(
           color: nc.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           elevation: 4,
           shadowColor: Colors.black.withValues(alpha: 0.04),
           surfaceTintColor: Colors.transparent,
@@ -75,7 +75,7 @@ class ChatIdentityButton extends StatelessWidget {
         child: Container(
           width: 40,
           height: 40,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
           child: Icon(PhosphorIconsRegular.identificationCard, size: 18, color: nc.textPrimary),
         ),
       ),

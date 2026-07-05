@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Claude Design System v1.2 配色封装。
+/// Apple Human Interface Guidelines 设计风格配色。
 ///
-/// 仅保留一套风格：浅色 / 深色模式，均使用 Claude 的暖色调与强调色。
+/// 浅色 / 深色模式，遵循 Apple 原生系统设计。
 class AgentColors extends ThemeExtension<AgentColors> {
   // ── Text ──
   final Color textPrimary;
@@ -51,38 +51,38 @@ class AgentColors extends ThemeExtension<AgentColors> {
     required this.divider,
   }) : _background = background;
 
-  /// Claude Design System 浅色模式。
+  /// Apple HIG 浅色模式。
   factory AgentColors.light() => const AgentColors._(
-    background: Color(0xFFFAF9F5),
-    textPrimary: Color(0xFF141413),
-    textSecondary: Color(0xFF55524D),
-    textDisabled: Color(0xFFB0AEA5),
-    surface: Color(0xFFFAF9F5),
-    primarySurface: Color(0xFFF3F0EA),
-    cardBackground: Color(0xFFFAF9F5),
-    primary: Color(0xFFD97757),
-    primaryHover: Color(0xFFC1633F),
-    success: Color(0xFF788C5D),
-    warning: Color(0xFFD97757),
-    error: Color(0xFFC1633F),
-    divider: Color(0xFFE8E6DC),
+    background: Color(0xFFF2F2F7),
+    textPrimary: Color(0xFF1C1C1E),
+    textSecondary: Color(0x993C3C43),
+    textDisabled: Color(0x333C3C43),
+    surface: Color(0xFFFFFFFF),
+    primarySurface: Color(0xFFF2F2F7),
+    cardBackground: Color(0xFFFFFFFF),
+    primary: Color(0xFF007AFF),
+    primaryHover: Color(0xFF0056CC),
+    success: Color(0xFF34C759),
+    warning: Color(0xFFFF9500),
+    error: Color(0xFFFF3B30),
+    divider: Color(0x333C3C43),
   );
 
-  /// Claude Design System 深色模式。
+  /// Apple HIG 深色模式。
   factory AgentColors.dark() => const AgentColors._(
-    background: Color(0xFF141413),
-    textPrimary: Color(0xFFFAF9F5),
-    textSecondary: Color(0xFFB5B2AB),
-    textDisabled: Color(0xFF6E6B63),
-    surface: Color(0xFF141413),
-    primarySurface: Color(0xFF252522),
-    cardBackground: Color(0xFF141413),
-    primary: Color(0xFFD97757),
-    primaryHover: Color(0xFFE08C6D),
-    success: Color(0xFF788C5D),
-    warning: Color(0xFFD97757),
-    error: Color(0xFFE08C6D),
-    divider: Color(0xFF2E2C28),
+    background: Color(0xFF000000),
+    textPrimary: Color(0xFFF2F2F7),
+    textSecondary: Color(0x99EBEBF5),
+    textDisabled: Color(0x33EBEBF5),
+    surface: Color(0xFF1C1C1E),
+    primarySurface: Color(0xFF2C2C2E),
+    cardBackground: Color(0xFF1C1C1E),
+    primary: Color(0xFF0A84FF),
+    primaryHover: Color(0xFF409CFF),
+    success: Color(0xFF30D158),
+    warning: Color(0xFFFF9F0A),
+    error: Color(0xFFFF453A),
+    divider: Color(0x33EBEBF5),
   );
 
   static AgentColors of(BuildContext context) {

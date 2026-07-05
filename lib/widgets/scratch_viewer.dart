@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../core/service_locator.dart';
 import '../services/virtual_fs.dart';
+import 'state_placeholder.dart';
 
 /// AI 草稿纸查看页。
 ///
@@ -67,7 +69,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
       isScrollControlled: true,
       backgroundColor: nc.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (c) {
         final bottom = MediaQuery.of(c).padding.bottom;
@@ -96,7 +98,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.close, size: 18, color: nc.textSecondary),
+                          icon: Icon(PhosphorIconsRegular.x, size: 18, color: nc.textSecondary),
                           onPressed: () => Navigator.pop(c),
                         ),
                       ],
@@ -163,7 +165,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, size: 18, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.caretLeft, size: 18, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -176,7 +178,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh, size: 20, color: nc.textSecondary),
+            icon: Icon(PhosphorIconsRegular.arrowsClockwise, size: 20, color: nc.textSecondary),
             onPressed: _load,
           ),
         ],
@@ -187,49 +189,21 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
 
   Widget _buildBody(AgentColors nc) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+      return StatePlaceholder.loading();
     }
 
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 40, color: nc.textSecondary),
-            const SizedBox(height: 12),
-            Text(
-              _error!,
-              style: TextStyle(fontSize: 14, color: nc.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            TextButton.icon(
-              onPressed: _load,
-              icon: Icon(Icons.refresh, size: 16, color: nc.primary),
-              label: Text('重试', style: TextStyle(color: nc.primary)),
-            ),
-          ],
-        ),
+      return StatePlaceholder.error(
+        title: _error,
+        onRetry: _load,
       );
     }
 
     if (_files.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.auto_stories_outlined, size: 48, color: nc.textSecondary.withValues(alpha: 0.4)),
-            const SizedBox(height: 12),
-            Text(
-              '草稿纸是空的',
-              style: TextStyle(fontSize: 15, color: nc.textSecondary),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'AI 执行复杂任务时，中间结果会写到这里',
-              style: TextStyle(fontSize: 13, color: nc.textSecondary.withValues(alpha: 0.6)),
-            ),
-          ],
-        ),
+      return StatePlaceholder.empty(
+        icon: PhosphorIconsRegular.bookOpen,
+        title: '草稿纸是空的',
+        subtitle: 'AI 执行复杂任务时，中间结果会写到这里',
       );
     }
 
@@ -252,7 +226,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.description_outlined, size: 18, color: nc.textSecondary),
+                  Icon(PhosphorIconsRegular.fileText, size: 18, color: nc.textSecondary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -260,7 +234,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
                       style: TextStyle(fontSize: 14, color: nc.textPrimary),
                     ),
                   ),
-                  Icon(Icons.chevron_right, size: 16, color: nc.textSecondary.withValues(alpha: 0.5)),
+                  Icon(PhosphorIconsRegular.caretRight, size: 16, color: nc.textSecondary.withValues(alpha: 0.5)),
                 ],
               ),
             ),

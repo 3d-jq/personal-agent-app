@@ -127,7 +127,7 @@ class _RoundedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: nc.divider),
+        border: Border.all(color: nc.divider, width: 0.5),
       ),
       child: Column(children: children),
     );

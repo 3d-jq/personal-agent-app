@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import 'ai_settings_sheet.dart';
@@ -26,7 +27,7 @@ class ChatModelChip extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -39,7 +40,7 @@ class ChatModelChip extends StatelessWidget {
             Text(vendor.model,
                 style: TextStyle(fontSize: 13, color: nc.textPrimary, fontWeight: FontWeight.w500)),
             const SizedBox(width: 2),
-            Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: nc.textSecondary),
+            Icon(PhosphorIconsRegular.caretDown, size: 16, color: nc.textSecondary),
           ],
         ),
       ),

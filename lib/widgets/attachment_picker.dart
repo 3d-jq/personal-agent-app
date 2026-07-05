@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 
 class AttachmentPicker extends StatelessWidget {
@@ -18,7 +19,7 @@ class AttachmentPicker extends StatelessWidget {
       context: context,
       backgroundColor: nc.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (_) => AttachmentPicker(nc: nc, onPicked: onPicked),
     );
@@ -55,19 +56,19 @@ class AttachmentPicker extends StatelessWidget {
             decoration: BoxDecoration(
               color: nc.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: nc.divider),
+              border: Border.all(color: nc.divider, width: 0.5),
             ),
             child: Column(
               children: [
                 _PickerItem(
-                  icon: Icons.image_outlined,
+                  icon: PhosphorIconsRegular.image,
                   label: '图片',
                   nc: nc,
                   onTap: () => _pickFile(context, FileType.image, 'image'),
                 ),
                 Divider(height: 1, thickness: 0.5, color: nc.divider),
                 _PickerItem(
-                  icon: Icons.insert_drive_file_outlined,
+                  icon: PhosphorIconsRegular.fileText,
                   label: '文档',
                   nc: nc,
                   isLast: true,
@@ -141,7 +142,7 @@ class _PickerItem extends StatelessWidget {
                 ),
               ),
               Icon(
-                Icons.chevron_right,
+                PhosphorIconsRegular.caretRight,
                 size: 18,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),

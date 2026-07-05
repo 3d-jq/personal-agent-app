@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 
 class AcknowledgementView extends StatelessWidget {
@@ -13,7 +14,7 @@ class AcknowledgementView extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -38,7 +39,7 @@ class AcknowledgementView extends StatelessWidget {
               decoration: BoxDecoration(
                 color: nc.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: nc.divider),
+                border: Border.all(color: nc.divider, width: 0.5),
               ),
               child: Column(
                 children: [
@@ -131,7 +132,7 @@ class AcknowledgementView extends StatelessWidget {
               child: Column(
                 children: [
                   Icon(
-                    Icons.favorite,
+                    PhosphorIconsRegular.heart,
                     size: 28,
                     color: nc.error.withValues(alpha: 0.7),
                   ),

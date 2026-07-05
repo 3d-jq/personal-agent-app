@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/agent_colors.dart';
 import '../../models/agent.dart';
@@ -78,7 +79,7 @@ class _GroupEditPageState extends State<GroupEditPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -180,7 +181,7 @@ class _RoundedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: nc.divider),
+        border: Border.all(color: nc.divider, width: 0.5),
       ),
       child: Column(children: children),
     );
@@ -311,7 +312,7 @@ class _AgentPickRow extends StatelessWidget {
                 ),
               ),
               Icon(
-                selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                selected ? PhosphorIconsRegular.checkCircle : PhosphorIconsRegular.circle,
                 color: selected ? nc.success : nc.textDisabled,
                 size: 20,
               ),

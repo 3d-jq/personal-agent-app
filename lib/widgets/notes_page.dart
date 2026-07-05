@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../core/agent_colors.dart';
@@ -9,6 +10,7 @@ import '../services/note_export_service.dart';
 import '../core/service_locator.dart';
 import '../services/note_storage.dart';
 import 'inline_content.dart';
+import 'state_placeholder.dart';
 
 class NotesPage extends StatefulWidget {
   const NotesPage({super.key});
@@ -59,7 +61,7 @@ class _NotesPageState extends State<NotesPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -75,7 +77,7 @@ class _NotesPageState extends State<NotesPage> {
           if (_notes.isNotEmpty)
             IconButton(
               icon: Icon(
-                Icons.file_download_outlined,
+                PhosphorIconsRegular.downloadSimple,
                 color: nc.textPrimary,
                 size: 22,
               ),
@@ -88,9 +90,13 @@ class _NotesPageState extends State<NotesPage> {
         ],
       ),
       body: !_loaded
-          ? const Center(child: CircularProgressIndicator())
+          ? StatePlaceholder.loading()
           : _notes.isEmpty
-          ? _emptyState(nc)
+          ? StatePlaceholder.empty(
+              icon: PhosphorIconsRegular.notePencil,
+              title: '还没有笔记',
+              subtitle: '点击右下角 + 创建，或在聊天中让 DWeis 帮你记录',
+            )
           : ListView.separated(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -100,11 +106,11 @@ class _NotesPageState extends State<NotesPage> {
                 final note = _notes[i];
                 return Material(
                   color: nc.surface,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   child: ListTile(
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: nc.divider, width: 0.8),
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: nc.divider, width: 0.5),
                     ),
                     title: Text(
                       note.title,
@@ -122,7 +128,7 @@ class _NotesPageState extends State<NotesPage> {
                       style: TextStyle(color: nc.textSecondary),
                     ),
                     trailing: IconButton(
-                      icon: Icon(Icons.close_rounded, color: nc.textSecondary),
+                      icon: Icon(PhosphorIconsRegular.x, color: nc.textSecondary),
                       onPressed: () => _confirmDelete(note),
                     ),
                     onTap: () {
@@ -143,38 +149,7 @@ class _NotesPageState extends State<NotesPage> {
         },
         backgroundColor: nc.primary,
         foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  Widget _emptyState(AgentColors nc) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.note_add_outlined,
-            size: 48,
-            color: nc.textSecondary.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '还没有笔记',
-            style: TextStyle(
-              fontSize: 15,
-              color: nc.textSecondary.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '点击右下角 + 创建，或在聊天中让 DWeis 帮你记录',
-            style: TextStyle(
-              fontSize: 13,
-              color: nc.textSecondary.withValues(alpha: 0.4),
-            ),
-          ),
-        ],
+        child: const Icon(PhosphorIconsRegular.plus),
       ),
     );
   }
@@ -245,7 +220,7 @@ class _NoteDetail extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -260,7 +235,7 @@ class _NoteDetail extends StatelessWidget {
         actions: [
           if (onEdit != null)
             IconButton(
-              icon: Icon(Icons.edit_outlined, color: nc.textPrimary),
+              icon: Icon(PhosphorIconsRegular.pencilSimple, color: nc.textPrimary),
               onPressed: () {
                 HapticFeedback.lightImpact();
                 Navigator.pop(context);
@@ -268,7 +243,7 @@ class _NoteDetail extends StatelessWidget {
               },
             ),
           IconButton(
-            icon: Icon(Icons.share_outlined, color: nc.textPrimary),
+            icon: Icon(PhosphorIconsRegular.shareNetwork, color: nc.textPrimary),
             onPressed: () async {
               HapticFeedback.lightImpact();
               try {
@@ -349,7 +324,7 @@ class _NoteEditorState extends State<_NoteEditor> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => _confirmDiscard(nc),
         ),
         title: Text(

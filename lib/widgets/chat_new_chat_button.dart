@@ -20,12 +20,12 @@ class ChatNewChatButton extends StatelessWidget {
         controller.newSession();
         await controller.refreshSessions();
       },
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
-        child: Icon(PhosphorIconsRegular.notePencil, size: 18, color: AgentColors.of(context).textPrimary),
-      ),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+          child: Icon(PhosphorIconsRegular.notePencil, size: 18, color: AgentColors.of(context).textPrimary),
+        ),
     );
   }
 }

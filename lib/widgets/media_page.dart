@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../core/app_animations.dart';
@@ -7,6 +8,7 @@ import '../core/app_router.dart';
 import '../models/media_item.dart';
 import '../core/service_locator.dart';
 import '../services/media_storage.dart';
+import 'state_placeholder.dart';
 
 class MediaView extends StatefulWidget {
   const MediaView({super.key});
@@ -40,7 +42,7 @@ class _MediaViewState extends State<MediaView> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -54,9 +56,13 @@ class _MediaViewState extends State<MediaView> {
         centerTitle: true,
       ),
       body: !_loaded
-          ? const Center(child: CircularProgressIndicator())
+          ? StatePlaceholder.loading()
           : _items.isEmpty
-          ? _emptyState(nc)
+          ? StatePlaceholder.empty(
+              icon: PhosphorIconsRegular.images,
+              title: '还没有图片和视频',
+              subtitle: '在聊天中让 DWeis 帮你生成',
+            )
           : GridView.builder(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.all(16),
@@ -69,37 +75,6 @@ class _MediaViewState extends State<MediaView> {
               itemCount: _items.length,
               itemBuilder: (_, i) => _mediaCard(_items[i], nc),
             ),
-    );
-  }
-
-  Widget _emptyState(AgentColors nc) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.photo_library_outlined,
-            size: 48,
-            color: nc.textSecondary.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '还没有图片和视频',
-            style: TextStyle(
-              fontSize: 15,
-              color: nc.textSecondary.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '在聊天中让 DWeis 帮你生成',
-            style: TextStyle(
-              fontSize: 13,
-              color: nc.textSecondary.withValues(alpha: 0.4),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -121,7 +96,7 @@ class _MediaViewState extends State<MediaView> {
           decoration: BoxDecoration(
             color: nc.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: nc.divider),
+            border: Border.all(color: nc.divider, width: 0.5),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -146,13 +121,13 @@ class _MediaViewState extends State<MediaView> {
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xAA000000),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.play_arrow_rounded,
+                          PhosphorIconsRegular.play,
                           size: 12,
                           color: Colors.white,
                         ),
@@ -177,7 +152,7 @@ class _MediaViewState extends State<MediaView> {
       color: nc.primarySurface,
       child: Center(
         child: Icon(
-          Icons.videocam_outlined,
+          PhosphorIconsRegular.videoCamera,
           size: 32,
           color: nc.textSecondary.withValues(alpha: 0.3),
         ),
@@ -190,7 +165,7 @@ class _MediaViewState extends State<MediaView> {
       color: nc.primarySurface,
       child: Center(
         child: Icon(
-          Icons.image_outlined,
+          PhosphorIconsRegular.image,
           size: 32,
           color: nc.textSecondary.withValues(alpha: 0.3),
         ),
@@ -264,7 +239,7 @@ class _MediaDetail extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  Icons.play_circle_outline_rounded,
+                                  PhosphorIconsRegular.playCircle,
                                   size: 64,
                                   color: nc.textSecondary.withValues(
                                     alpha: 0.5,

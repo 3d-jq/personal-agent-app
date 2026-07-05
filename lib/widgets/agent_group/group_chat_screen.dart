@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import '../../core/agent_colors.dart';
 import '../../core/app_router.dart';
@@ -18,6 +19,7 @@ import '../../services/connectivity_service.dart';
 import '../../tools/tools.dart';
 import '../../widgets/ai_settings_sheet.dart';
 import '../chat_bubble.dart';
+import '../state_placeholder.dart';
 import '../../screens/chat_helpers.dart';
 import 'agent_group_theme.dart';
 
@@ -563,7 +565,7 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
     if (_group == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(body: StatePlaceholder.loading());
     }
 
     return Scaffold(
@@ -572,7 +574,7 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -586,7 +588,7 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.edit_outlined, color: nc.textPrimary),
+            icon: Icon(PhosphorIconsRegular.pencilSimple, color: nc.textPrimary),
             onPressed: _editGroup,
           ),
         ],
@@ -629,7 +631,7 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
               child: Container(
                 decoration: BoxDecoration(
                   color: nc.surface,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: nc.divider, width: 0.5),
                 ),
                 child: Column(
@@ -721,8 +723,8 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
                               ),
                               child: Icon(
                                 _busy
-                                    ? Icons.stop_rounded
-                                    : Icons.arrow_upward_rounded,
+                                    ? PhosphorIconsRegular.stop
+                                    : PhosphorIconsRegular.arrowUp,
                                 size: 18,
                                 color: _busy
                                     ? nc.error

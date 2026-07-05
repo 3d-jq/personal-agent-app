@@ -88,7 +88,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               color: nc.success.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.smart_toy_outlined, size: 44, color: nc.success),
+            child: Icon(PhosphorIconsRegular.robot, size: 44, color: nc.success),
           ),
           const SizedBox(height: 24),
           Text(
@@ -188,7 +188,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     color: sel
                         ? nc.success.withValues(alpha: 0.12)
                         : nc.surface,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: sel ? nc.success : nc.divider,
                       width: 1.2,

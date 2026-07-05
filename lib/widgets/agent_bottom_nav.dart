@@ -166,7 +166,7 @@ class _AgentBottomNavState extends State<AgentBottomNav>
                       height: 44,
                       decoration: BoxDecoration(
                         color: colors.primarySurface,
-                        borderRadius: BorderRadius.circular(22),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                     ),
                   );

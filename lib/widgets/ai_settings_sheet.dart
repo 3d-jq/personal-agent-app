@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
@@ -175,11 +176,11 @@ class AISettings {
 
 void showBackendPicker(BuildContext context, AISettings s, VoidCallback cb) {
   final nc = AgentColors.of(context);
-  showModalBottomSheet(
-    context: context,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-    ),
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
     builder: (ctx) => Padding(
       padding: const EdgeInsets.only(bottom: 32),
       child: Column(
@@ -266,7 +267,7 @@ void _showAddVendor(BuildContext context, AISettings s, VoidCallback cb) {
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (ctx) => _AddVendorBody(
       nameCtrl: nCtrl,
@@ -380,7 +381,7 @@ void _showEditVendor(
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (ctx) => _EditVendorBody(
       vendor: v,
@@ -504,7 +505,7 @@ void showModelPicker(BuildContext context, AISettings s, VoidCallback cb) {
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (_) => _ModelPickBody(vendor: v, settings: s, onChanged: cb),
   );
@@ -602,7 +603,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
                     child: Padding(
                       padding: const EdgeInsets.all(8),
                       child: Icon(
-                        Icons.refresh_rounded,
+                        PhosphorIconsRegular.arrowsClockwise,
                         size: 18,
                         color: nc.textSecondary,
                       ),
@@ -638,7 +639,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
                             ),
                           ),
                           trailing: sel
-                              ? Icon(Icons.check_circle,
+                              ? Icon(PhosphorIconsRegular.checkCircle,
                                   size: 20, color: nc.success)
                               : null,
                           onTap: () {
@@ -716,7 +717,7 @@ class _ModelSkeletonListState extends State<_ModelSkeletonList>
                 height: 14,
                 decoration: BoxDecoration(
                   color: c.textSecondary,
-                  borderRadius: BorderRadius.circular(7),
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
             ),
@@ -743,7 +744,7 @@ class _VendorTile extends StatelessWidget {
     final nc = AgentColors.of(context);
     return ListTile(
       leading: Icon(
-        isSelected ? Icons.check_circle : Icons.circle_outlined,
+        isSelected ? PhosphorIconsRegular.checkCircle : PhosphorIconsRegular.circle,
         color: isSelected ? nc.success : nc.textSecondary,
         size: 22,
       ),
@@ -765,7 +766,7 @@ class _VendorTile extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: nc.success.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 '内置',
@@ -787,7 +788,7 @@ class _VendorTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: Icon(Icons.edit_outlined, size: 18, color: nc.textSecondary),
+            icon: Icon(PhosphorIconsRegular.pencilSimple, size: 18, color: nc.textSecondary),
             onPressed: () {
               HapticFeedback.lightImpact();
               onEdit();
@@ -795,7 +796,7 @@ class _VendorTile extends StatelessWidget {
           ),
           if (!vendor.isBuiltIn)
             IconButton(
-              icon: Icon(Icons.delete_outline, size: 18, color: nc.error),
+              icon: Icon(PhosphorIconsRegular.trash, size: 18, color: nc.error),
               onPressed: () {
                 HapticFeedback.lightImpact();
                 onDelete();
@@ -819,7 +820,7 @@ class _AddVendorTile extends StatelessWidget {
     final nc = AgentColors.of(context);
     return ListTile(
       leading: Icon(
-        Icons.add_circle_outline,
+        PhosphorIconsRegular.plusCircle,
         color: nc.textSecondary,
         size: 22,
       ),
