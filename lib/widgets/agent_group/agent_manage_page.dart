@@ -125,13 +125,34 @@ class _AgentManagePageState extends State<AgentManagePage> {
                       agent: a,
                       nc: nc,
                       isLast: i == _agents.length - 1,
-                      onTap: () => _editOrCreate(existing: a),
+                      onTap: () => _showAgentCard(a),
                       onDelete: () => _delete(a),
                     );
                   }),
                 ),
               ],
             ),
+    );
+  }
+
+  void _showAgentCard(Agent agent) {
+    final nc = AgentColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _AgentCard(
+        agent: agent,
+        nc: nc,
+        onEdit: () {
+          Navigator.pop(context);
+          _editOrCreate(existing: agent);
+        },
+        onDelete: () {
+          Navigator.pop(context);
+          _delete(agent);
+        },
+      ),
     );
   }
 }
@@ -245,29 +266,9 @@ class _AgentItem extends StatelessWidget {
                               ),
                             ),
                           ),
-                        const SizedBox(height: 2),
-                        Text(
-                          toolOptionsLabel(agent.allowedToolNames),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 11, color: nc.textDisabled),
-                        ),
                       ],
                     ),
                   ),
-                  if (onDelete != null)
-                    GestureDetector(
-                      onTap: onDelete,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 12),
-                        child: Icon(
-                          PhosphorIconsRegular.trash,
-                          size: 18,
-                          color: nc.textSecondary.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(width: 4),
                   Icon(
                     PhosphorIconsRegular.caretRight,
                     size: 18,
@@ -280,6 +281,185 @@ class _AgentItem extends StatelessWidget {
         ),
         if (!isLast)
           Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 66),
+      ],
+    );
+  }
+}
+
+/// Agent 信息工牌
+class _AgentCard extends StatelessWidget {
+  final Agent agent;
+  final AgentColors nc;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _AgentCard({
+    required this.agent,
+    required this.nc,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+      ),
+      decoration: BoxDecoration(
+        color: nc.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: nc.divider, width: 0.5),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 头部拖拽指示器
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: nc.divider,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          // Agent 头像和名字
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: nc.primarySurface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: nc.divider, width: 0.5),
+                  ),
+                  child: Text(
+                    agent.avatar.isNotEmpty ? agent.avatar : agent.name.characters.first,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: nc.textPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  agent.name,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: nc.textPrimary,
+                  ),
+                ),
+                if (agent.role.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    agent.role,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: nc.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // 信息区域
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: nc.primarySurface,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                _InfoRow(label: '可用工具', value: toolOptionsLabel(agent.allowedToolNames), nc: nc),
+                if (agent.systemPrompt.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _InfoRow(label: 'System Prompt', value: _truncate(agent.systemPrompt, 60), nc: nc),
+                ],
+              ],
+            ),
+          ),
+          // 操作按钮
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onDelete,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: nc.error,
+                      side: BorderSide(color: nc.error.withValues(alpha: 0.3)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('删除'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onEdit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: nc.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('编辑'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _truncate(String text, int maxLen) {
+    if (text.length <= maxLen) return text;
+    return '${text.substring(0, maxLen)}...';
+  }
+}
+
+/// 工牌信息行
+class _InfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final AgentColors nc;
+  const _InfoRow({required this.label, required this.value, required this.nc});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$label：',
+          style: TextStyle(fontSize: 13, color: nc.textSecondary),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(fontSize: 13, color: nc.textPrimary),
+          ),
+        ),
       ],
     );
   }
