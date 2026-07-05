@@ -4,6 +4,7 @@ import '../models/agent.dart';
 import '../models/agent_group.dart';
 import '../screens/agent_chat_screen.dart';
 import '../screens/agent_contact_page.dart';
+import '../screens/agent_home_page.dart';
 import '../screens/chat_screen.dart';
 import '../screens/message_list_page.dart';
 import '../services/context_doc_service.dart';
@@ -80,6 +81,9 @@ class AppRouter {
       push(context, const AcknowledgementView());
 
   // ── Agent 群 ──
+  static Future<void> toAgentHome(BuildContext context) =>
+      push(context, const AgentHomePage());
+
   static Future<void> toAgentManage(BuildContext context) =>
       push(context, const AgentManagePage());
 

@@ -107,7 +107,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                       nc: nc,
                       isLast: true,
                       onTap: () =>
-                          _closeAnd((ctx) => AppRouter.toGroupList(ctx)),
+                          _closeAnd((ctx) => AppRouter.toAgentHome(ctx)),
                     ),
                   ],
                 ),
