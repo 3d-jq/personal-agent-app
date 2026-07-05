@@ -153,21 +153,21 @@ class _MessageListPageState extends State<MessageListPage> {
     );
   }
 
-  void _openChat(_ChatItem item) {
+  void _openChat(_ChatItem item) async {
     if (item.isGroup) {
-      AppRouter.toGroupChat(context, groupId: item.id);
+      await AppRouter.toGroupChat(context, groupId: item.id);
     } else if (item.agentId != null) {
-      // 查找 Agent 并进入单聊
-      _openAgentChat(item.agentId!);
+      await _openAgentChat(item.agentId!);
     }
-    _load();
+    // 返回后刷新数据
+    if (mounted) _load();
   }
 
   Future<void> _openAgentChat(String agentId) async {
     final agents = await getIt<AgentStorage>().loadAll();
     final agent = agents.where((a) => a.id == agentId).firstOrNull;
     if (agent != null && mounted) {
-      AppRouter.toAgentChat(context, agent);
+      await AppRouter.toAgentChat(context, agent);
     }
   }
 
