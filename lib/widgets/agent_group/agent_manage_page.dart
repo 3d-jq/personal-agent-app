@@ -152,6 +152,10 @@ class _AgentManagePageState extends State<AgentManagePage> {
           Navigator.pop(context);
           _delete(agent);
         },
+        onChat: () {
+          Navigator.pop(context);
+          AppRouter.toAgentChat(context, agent);
+        },
       ),
     );
   }
@@ -292,12 +296,14 @@ class _AgentCard extends StatelessWidget {
   final AgentColors nc;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onChat;
 
   const _AgentCard({
     required this.agent,
     required this.nc,
     required this.onEdit,
     required this.onDelete,
+    required this.onChat,
   });
 
   @override
@@ -448,37 +454,60 @@ class _AgentCard extends StatelessWidget {
           ),
           // 操作按钮
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
               children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onDelete,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: nc.error,
-                      side: BorderSide(color: nc.error.withValues(alpha: 0.3)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text('删除'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onEdit,
+                // 开始聊天按钮
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: onChat,
+                    icon: const Icon(PhosphorIconsRegular.chatCircle, size: 18),
+                    label: const Text('开始聊天'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: nc.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: const Text('编辑'),
                   ),
+                ),
+                const SizedBox(height: 10),
+                // 编辑和删除按钮
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onDelete,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: nc.error,
+                          side: BorderSide(color: nc.error.withValues(alpha: 0.3)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text('删除'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onEdit,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: nc.textPrimary,
+                          side: BorderSide(color: nc.divider),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text('编辑'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
