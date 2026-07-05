@@ -8,6 +8,7 @@ import '../core/service_locator.dart';
 import '../models/agent.dart';
 import '../services/agent_storage.dart';
 import '../widgets/ai_settings_sheet.dart';
+import '../widgets/agent_group/agent_group_theme.dart';
 
 /// Agent 编辑页面
 class AgentEditPage extends StatefulWidget {
@@ -178,8 +179,227 @@ class _AgentEditPageState extends State<AgentEditPage> {
               ),
             ),
           ),
+          const SizedBox(height: 20),
+          // AI 后端
+          Text(
+            'AI 后端',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: nc.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: nc.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: nc.divider, width: 0.5),
+            ),
+            child: Column(
+              children: [
+                _VendorOption(
+                  label: '跟随全局默认',
+                  selected: _vendorId.isEmpty,
+                  nc: nc,
+                  isFirst: true,
+                  onTap: () => setState(() => _vendorId = ''),
+                ),
+                ...List.generate(_vendors.length, (i) {
+                  final v = _vendors[i];
+                  return _VendorOption(
+                    label: v.name,
+                    selected: _vendorId == v.id,
+                    nc: nc,
+                    isLast: i == _vendors.length - 1,
+                    onTap: () => setState(() => _vendorId = v.id),
+                  );
+                }),
+              ],
+            ),
+          ),
+          if (_vendorId.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              '模型',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: nc.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Theme(
+              data: Theme.of(context).copyWith(
+                inputDecorationTheme: const InputDecorationTheme(
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  disabledBorder: InputBorder.none,
+                  errorBorder: InputBorder.none,
+                  focusedErrorBorder: InputBorder.none,
+                ),
+              ),
+              child: TextField(
+                controller: TextEditingController(text: _model),
+                onChanged: (v) => _model = v,
+                style: TextStyle(fontSize: 15, color: nc.textPrimary),
+                decoration: InputDecoration(
+                  hintText: '例如：gpt-4o、claude-3-opus',
+                  hintStyle: TextStyle(color: nc.textDisabled, fontSize: 15),
+                  filled: true,
+                  fillColor: nc.primarySurface,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          // 可用工具
+          Text(
+            '可用工具',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: nc.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '选择 Agent 可以使用的工具',
+            style: TextStyle(fontSize: 12, color: nc.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: nc.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: nc.divider, width: 0.5),
+            ),
+            child: Column(
+              children: List.generate(kAgentToolOptions.length, (i) {
+                final o = kAgentToolOptions[i];
+                final sel = _tools.contains(o.name);
+                return Column(
+                  children: [
+                    if (i > 0)
+                      Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 48),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          setState(() {
+                            if (sel) {
+                              _tools.remove(o.name);
+                            } else {
+                              _tools.add(o.name);
+                            }
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 20,
+                                height: 20,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: sel ? nc.success : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: sel ? nc.success : nc.divider,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: sel
+                                    ? const Icon(PhosphorIconsRegular.check, size: 14, color: Colors.white)
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                o.label,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: sel ? nc.textPrimary : nc.textSecondary,
+                                  fontWeight: sel ? FontWeight.w500 : FontWeight.w400,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ),
+          const SizedBox(height: 20),
         ],
       ),
+    );
+  }
+}
+
+/// AI 后端选择选项
+class _VendorOption extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final AgentColors nc;
+  final bool isFirst;
+  final bool isLast;
+  final VoidCallback onTap;
+
+  const _VendorOption({
+    required this.label,
+    required this.selected,
+    required this.nc,
+    this.isFirst = false,
+    this.isLast = false,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (!isFirst)
+          Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 48),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: selected ? nc.textPrimary : nc.textSecondary,
+                        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  Icon(
+                    selected ? PhosphorIconsRegular.checkCircle : PhosphorIconsRegular.circle,
+                    color: selected ? nc.success : nc.textDisabled,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
