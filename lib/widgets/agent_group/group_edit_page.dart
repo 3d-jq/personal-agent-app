@@ -328,7 +328,7 @@ class _AgentPickRow extends StatelessWidget {
                                   ),
                                   decoration: BoxDecoration(
                                     color: nc.success.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(6),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     '默认',

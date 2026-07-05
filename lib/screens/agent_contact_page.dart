@@ -432,7 +432,7 @@ class _AgentCardSheet extends StatelessWidget {
                     onPressed: onEdit,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: nc.textPrimary,
-                      side: BorderSide(color: nc.divider),
+                      side: BorderSide(color: nc.divider, width: 0.5),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),

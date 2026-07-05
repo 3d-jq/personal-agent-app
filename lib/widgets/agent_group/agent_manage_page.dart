@@ -483,7 +483,7 @@ class _AgentCard extends StatelessWidget {
                         onPressed: onDelete,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: nc.error,
-                          side: BorderSide(color: nc.error.withValues(alpha: 0.3)),
+                          side: BorderSide(color: nc.error.withValues(alpha: 0.3), width: 0.5),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -498,7 +498,7 @@ class _AgentCard extends StatelessWidget {
                         onPressed: onEdit,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: nc.textPrimary,
-                          side: BorderSide(color: nc.divider),
+                          side: BorderSide(color: nc.divider, width: 0.5),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -1017,7 +1017,7 @@ class _ToolOption extends StatelessWidget {
                     margin: const EdgeInsets.only(right: 12),
                     decoration: BoxDecoration(
                       color: selected ? nc.success : Colors.transparent,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: selected ? nc.success : nc.divider,
                         width: selected ? 0 : 1,
