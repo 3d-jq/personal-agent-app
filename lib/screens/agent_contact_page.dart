@@ -110,7 +110,12 @@ class _AgentContactPageState extends State<AgentContactPage> {
         },
         onEdit: () {
           Navigator.pop(context);
-          AppRouter.toAgentManage(context);
+          AppRouter.editAgent(context, existing: agent).then((result) {
+            if (result != null) {
+              getIt<AgentStorage>().update(result);
+              _load();
+            }
+          });
         },
       ),
     );
