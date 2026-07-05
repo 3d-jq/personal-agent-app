@@ -33,9 +33,15 @@ class _MessageListPageState extends State<MessageListPage> {
   }
 
   Future<void> _load() async {
-    final sessions = await getIt<ChatStorage>().loadAll();
-    final groups = await getIt<AgentGroupStorage>().loadAll();
-    final agents = await getIt<AgentStorage>().loadAll();
+    // 并行加载所有数据
+    final results = await Future.wait([
+      getIt<ChatStorage>().loadAll(),
+      getIt<AgentGroupStorage>().loadAll(),
+      getIt<AgentStorage>().loadAll(),
+    ]);
+    final sessions = results[0] as List<ChatSession>;
+    final groups = results[1] as List<AgentGroup>;
+    final agents = results[2] as List<Agent>;
 
     final items = <_ChatItem>[];
 
@@ -119,25 +125,31 @@ class _MessageListPageState extends State<MessageListPage> {
               ? StatePlaceholder.empty(
                   icon: PhosphorIconsRegular.chatCircle,
                   title: '暂无消息',
-                  subtitle: '点击右上角 + 创建群聊',
+                  subtitle: '点击右上角 + 创建群聊，或到 Agent 页面开始聊天',
                 )
-              : ListView.separated(
-                  itemCount: _items.length,
-                  separatorBuilder: (_, __) => Divider(
-                    height: 1,
-                    thickness: 0.5,
-                    color: nc.divider,
-                    indent: 72,
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    itemCount: _items.length,
+                    separatorBuilder: (_, __) => Divider(
+                      height: 1,
+                      thickness: 0.5,
+                      color: nc.divider,
+                      indent: 72,
+                    ),
+                    itemBuilder: (context, index) {
+                      final item = _items[index];
+                      return _MessageTile(
+                        item: item,
+                        nc: nc,
+                        onTap: () => _openChat(item),
+                      );
+                    },
                   ),
-                  itemBuilder: (context, index) {
-                    final item = _items[index];
-                    return _MessageTile(
-                      item: item,
-                      nc: nc,
-                      onTap: () => _openChat(item),
-                    );
-                  },
-      ),
+                ),
     );
   }
 

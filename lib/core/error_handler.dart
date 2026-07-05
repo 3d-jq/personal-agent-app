@@ -36,39 +36,54 @@ class ErrorHandler {
 
   /// 构建自定义错误占位 widget，替换默认红屏。
   static Widget buildErrorWidget(FlutterErrorDetails details) {
-    return Material(
-      child: Container(
-        color: const Color(0xFFFAF9F5),
-        padding: const EdgeInsets.all(24),
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(PhosphorIconsRegular.warningCircle, color: Color(0xFFC1633F), size: 48),
-            const SizedBox(height: 16),
-            const Text(
-              '页面出错了',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF141413),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Container(
+          color: const Color(0xFFF2F2F7),
+          padding: const EdgeInsets.all(24),
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                PhosphorIconsRegular.warningCircle,
+                color: Color(0xFFFF3B30),
+                size: 48,
               ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              '请重启应用或返回上一页重试。',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Color(0xFF55524D)),
-            ),
-            if (kDebugMode) ...[
-              const SizedBox(height: 24),
-              Text(
-                details.exception.toString(),
-                textAlign: TextAlign.left,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF55524D)),
+              const SizedBox(height: 16),
+              const Text(
+                '页面出错了',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1C1C1E),
+                ),
               ),
+              const SizedBox(height: 8),
+              const Text(
+                '请重启应用或返回上一页重试。',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Color(0xFF3C3C43)),
+              ),
+              if (kDebugMode) ...[
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFFFF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE5E5EA), width: 0.5),
+                  ),
+                  child: Text(
+                    details.exception.toString(),
+                    textAlign: TextAlign.left,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF3C3C43)),
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
