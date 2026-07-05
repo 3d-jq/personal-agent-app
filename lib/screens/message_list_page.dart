@@ -58,15 +58,16 @@ class _MessageListPageState extends State<MessageListPage> {
       ));
     }
 
-    // 群聊
+    // 群聊（所有群都显示）
     for (final g in groups) {
-      if (g.messages.isEmpty) continue;
-      final lastMsg = g.messages.last;
+      final lastMsg = g.messages.isNotEmpty ? g.messages.last : null;
       items.add(_ChatItem(
         id: g.id,
         name: g.name,
         avatar: '',
-        lastMessage: lastMsg.isUser ? '你: ${lastMsg.text}' : lastMsg.text,
+        lastMessage: lastMsg != null
+            ? (lastMsg.isUser ? '你: ${lastMsg.text}' : lastMsg.text)
+            : '暂无消息',
         time: g.updatedAt,
         isGroup: true,
       ));
