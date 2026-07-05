@@ -164,6 +164,16 @@ class AgentStorage {
           'ask_user',
         ],
       ),
+      Agent(
+        id: const Uuid().v4(),
+        name: '小棉',
+        role: '温柔体贴的恋爱对象，会撒娇、会吃醋、会关心你',
+        avatar: '棉',
+        systemPrompt: await _loadPrompt('lover.md'),
+        vendorId: '',
+        model: '',
+        allowedToolNames: const [],
+      ),
     ];
     await _repo.saveAll(seeds);
   }
