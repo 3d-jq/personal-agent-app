@@ -22,13 +22,8 @@ import '../chat_bubble.dart';
 import '../state_placeholder.dart';
 import '../../screens/chat_helpers.dart';
 import 'agent_group_theme.dart';
-
-/// Agent 状态枚举
-enum AgentStatus {
-  idle,      // 待命
-  thinking,  // 思考中
-  replied,   // 已回复
-}
+import 'group_chat_coordinator.dart';
+import 'group_status_bar.dart';
 
 /// 群聊主页
 class GroupChatScreen extends StatefulWidget {
@@ -49,20 +44,20 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     return r;
   }();
   late final AgentRunner _runner = AgentRunner(baseRegistry: _baseRegistry);
+  late GroupChatCoordinator _coordinator;
 
   AgentGroup? _group;
   List<ChatMessage> _messages = [];
   List<Agent> _members = [];
   Map<String, Agent> _byId = {};
   Map<String, Agent> _byName = {};
-  Agent? _coordinator; // 群的协调者 Agent
   bool _busy = false;
   bool _stopped = false;
 
   // ── Agent 状态跟踪 ──
-  Map<String, AgentStatus> _agentStatus = {}; // agentId -> 状态
-  int _discussionRound = 0; // 当前讨论轮次
-  Set<String> _participatedAgents = {}; // 已参与讨论的 Agent
+  Map<String, AgentStatus> _agentStatus = {};
+  int _discussionRound = 0;
+  Set<String> _participatedAgents = {};
 
   // ── Stop 完整取消：管理所有活跃流 ──
   final List<StreamSubscription<ChatStreamEvent>> _activeSubs = [];
@@ -110,7 +105,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       _members = ms;
       _byId = {for (final a in ms) a.id: a};
       _byName = {for (final a in ms) a.name: a};
-      _coordinator = ms.where((a) => a.isCoordinator).firstOrNull;
+      _coordinator = GroupChatCoordinator(
+        aiSettings: _aiSettings,
+        members: ms,
+      );
     });
   }
 
@@ -285,89 +283,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   /// 自动调度：系统判断哪个 Agent 应该回复
-  Future<String?> _autoPickSpeaker() async {
-    // 如果有 coordinator，优先让 coordinator 回复
-    if (_coordinator != null) {
-      return _coordinator!.name;
-    }
-    
-    // 否则用 Manager 模式选人
-    final manager = _members.firstOrNull;
-    if (manager == null) return null;
-    
-    return _managerPickSpeaker(manager, []);
+  Future<String?> _autoPickSpeaker() {
+    return _coordinator.autoPickSpeaker(
+      group: _group,
+      messages: _messages,
+    );
   }
 
   /// 执行一个 Agent（_runOneAgent 已负责消息的创建与渲染）
   Future<void> _runOneAndAppend(Agent agent) async {
     await _runOneAgent(agent);
-  }
-
-  /// Manager 判断下一位发言的 Agent 名字，返回 null / 'STOP' 表示无需再发言。
-  ///
-  /// 用一个轻量 LLM 调用，根据用户消息 + 已有对话 + 各 Agent 的角色描述，
-  /// 选出最适合接下来回复的 Agent。
-  Future<String?> _managerPickSpeaker(
-    Agent manager,
-    List<String> alreadySpoken,
-  ) async {
-    final vendor =
-        _aiSettings.selectedVendor ??
-        (_aiSettings.vendors.isNotEmpty ? _aiSettings.vendors.first : null);
-    if (vendor == null || vendor.apiKey.isEmpty) return null;
-
-    // 排除已发言和 Manager 自己
-    final candidates = _members
-        .where((a) => a.id != manager.id && !alreadySpoken.contains(a.name))
-        .toList();
-    if (candidates.isEmpty) return 'STOP';
-
-    final roleList = candidates
-        .map((a) => '- ${a.name}：${a.role.isNotEmpty ? a.role : '通用助手'}')
-        .join('\n');
-
-    final prompt =
-        '''你是「${manager.name}」，群的协调者。
-根据用户的消息和已有对话，判断哪位成员最适合回复。
-只能从下面列表中选择一人，或回复 STOP 表示不需要更多回复。
-
-【可选成员】
-$roleList
-
-【已有回复的成员】
-${alreadySpoken.isEmpty ? '(暂无)' : alreadySpoken.join('、')}
-
-【用户的消息 + 对话】
-${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}').join('\n')}
-
-请只回复一个名字或 STOP：''';
-
-    try {
-      final ai = AIService(
-        baseUrl: vendor.baseUrl,
-        apiKey: vendor.apiKey,
-        providerName: vendor.name,
-        model: vendor.model,
-        maxTokens: 50,
-      );
-      final buf = StringBuffer();
-      await for (final event in ai.sendMessageStream([
-        {'role': 'user', 'content': prompt},
-      ])) {
-        if (event is TextChunkEvent) buf.write(event.text);
-      }
-      final choice = buf.toString().trim();
-      // Match candidate names exactly (not substring)
-      for (final c in candidates) {
-        if (choice == c.name || choice.contains(RegExp('\\b${RegExp.escape(c.name)}\\b'))) {
-          return c.name;
-        }
-      }
-      if (choice.toUpperCase().contains('STOP')) return 'STOP';
-      return null;
-    } catch (_) {
-      return null;
-    }
   }
 
   /// 批量执行 Agent（串行，每个等完成后再下一个），返回回复文本列表
@@ -664,7 +589,12 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
         children: [
           // ── Agent 状态栏 ──
           if (_busy || _participatedAgents.isNotEmpty)
-            _buildStatusBar(nc),
+            GroupStatusBar(
+              members: _members,
+              agentStatus: _agentStatus,
+              discussionRound: _discussionRound,
+              participatedAgents: _participatedAgents,
+            ),
           Expanded(
             child: _messages.isEmpty
                 ? Center(
@@ -845,107 +775,6 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 构建 Agent 状态栏
-  Widget _buildStatusBar(AgentColors nc) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: nc.surface,
-        border: Border(
-          bottom: BorderSide(color: nc.divider, width: 0.5),
-        ),
-      ),
-      child: Row(
-        children: [
-          // 讨论进度
-          if (_discussionRound > 0) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: nc.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                '第 $_discussionRound 轮',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: nc.primary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          // 参与人数
-          if (_participatedAgents.isNotEmpty) ...[
-            Icon(PhosphorIconsRegular.users, size: 14, color: nc.textSecondary),
-            const SizedBox(width: 4),
-            Text(
-              '${_participatedAgents.length} 人参与',
-              style: TextStyle(fontSize: 12, color: nc.textSecondary),
-            ),
-            const SizedBox(width: 12),
-          ],
-          // Agent 状态指示器
-          Expanded(
-            child: SizedBox(
-              height: 24,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: _members.map((m) {
-                  final status = _agentStatus[m.id] ?? AgentStatus.idle;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: status == AgentStatus.thinking
-                            ? nc.primary.withValues(alpha: 0.2)
-                            : status == AgentStatus.replied
-                            ? nc.success.withValues(alpha: 0.2)
-                            : nc.primarySurface,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: status == AgentStatus.thinking
-                              ? nc.primary
-                              : status == AgentStatus.replied
-                              ? nc.success
-                              : nc.divider,
-                          width: 0.5,
-                        ),
-                      ),
-                      child: status == AgentStatus.thinking
-                          ? SizedBox(
-                              width: 12,
-                              height: 12,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                valueColor: AlwaysStoppedAnimation(nc.primary),
-                              ),
-                            )
-                          : Text(
-                              m.avatar.isNotEmpty ? m.avatar : m.name.characters.first,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: status == AgentStatus.replied
-                                    ? nc.success
-                                    : nc.textSecondary,
-                              ),
-                            ),
-                    ),
-                  );
-                }).toList(),
-              ),
             ),
           ),
         ],
