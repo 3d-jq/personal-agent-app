@@ -4,16 +4,15 @@ import '../models/agent.dart';
 import '../models/agent_group.dart';
 import '../screens/agent_chat_screen.dart';
 import '../screens/agent_contact_page.dart';
+import '../screens/agent_edit_page.dart';
 import '../screens/agent_home_page.dart';
 import '../screens/chat_screen.dart';
+import '../screens/group_edit_page.dart';
 import '../screens/message_list_page.dart';
 import '../services/context_doc_service.dart';
 import '../widgets/about_page.dart';
 import '../widgets/acknowledgement_view.dart';
-import '../widgets/agent_group/agent_manage_page.dart';
 import '../widgets/agent_group/group_chat_screen.dart';
-import '../widgets/agent_group/group_edit_page.dart';
-import '../widgets/agent_group/group_list_page.dart';
 import '../widgets/context_docs_panel.dart';
 import '../widgets/media_page.dart';
 import '../widgets/model_settings_page.dart';
@@ -84,24 +83,16 @@ class AppRouter {
   static Future<void> toAgentHome(BuildContext context) =>
       push(context, const AgentHomePage());
 
-  static Future<void> toAgentManage(BuildContext context) =>
-      push(context, const AgentManagePage());
-
-  static Future<void> toGroupList(BuildContext context) =>
-      push(context, const GroupListPage());
-
   static Future<void> toGroupChat(
     BuildContext context, {
     required String groupId,
   }) => push(context, GroupChatScreen(groupId: groupId));
 
-  static Future<(AgentGroup, List<String>, List<String>)?> editGroup(
-    BuildContext context, {
-    AgentGroup? existing,
-  }) => push(context, GroupEditPage(existing: existing));
-
   static Future<Agent?> editAgent(BuildContext context, {Agent? existing}) =>
       push(context, AgentEditPage(existing: existing));
+
+  static Future<AgentGroup?> editGroup(BuildContext context, {AgentGroup? existing}) =>
+      push(context, GroupEditPage(existing: existing));
 
   // ── 其他 ──
   static Future<void> toContextDocViewer(
