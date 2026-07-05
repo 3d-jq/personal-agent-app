@@ -84,7 +84,9 @@ class ChatController extends ChangeNotifier {
   Future<void> initialize() async {
     await _aiSettings.load();
     await _warmUpCaches();
-    _sessions = await _chatStorage.loadAll();
+    final allSessions = await _chatStorage.loadAll();
+    // 过滤掉 Agent 单聊，只保留普通单聊
+    _sessions = allSessions.where((s) => s.type != 'agent').toList();
     final sid =
         initialSessionId ?? (_sessions.isNotEmpty ? _sessions.first.id : null);
     if (sid != null) {
@@ -168,7 +170,8 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> refreshSessions() async {
-    _sessions = await _chatStorage.loadAll();
+    final allSessions = await _chatStorage.loadAll();
+    _sessions = allSessions.where((s) => s.type != 'agent').toList();
     _notify();
   }
 
