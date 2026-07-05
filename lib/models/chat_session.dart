@@ -6,6 +6,7 @@ class ChatSession {
   List<ChatMessage> messages;
   DateTime createdAt;
   DateTime updatedAt;
+  String type; // 'chat' = 单聊, 'agent' = Agent 单聊
 
   ChatSession({
     required this.id,
@@ -13,6 +14,7 @@ class ChatSession {
     List<ChatMessage>? messages,
     DateTime? createdAt,
     DateTime? updatedAt,
+    this.type = 'chat',
   }) : messages = messages ?? [],
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -23,6 +25,7 @@ class ChatSession {
     'messages': messages.map((m) => m.toJson()).toList(),
     'createdAt': createdAt.millisecondsSinceEpoch,
     'updatedAt': updatedAt.millisecondsSinceEpoch,
+    'type': type,
   };
 
   factory ChatSession.fromJson(Map<String, dynamic> json) {
@@ -40,6 +43,7 @@ class ChatSession {
       updatedAt: DateTime.fromMillisecondsSinceEpoch(
         json['updatedAt'] as int? ?? 0,
       ),
+      type: json['type'] as String? ?? 'chat',
     );
   }
 }

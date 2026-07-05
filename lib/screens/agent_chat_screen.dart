@@ -76,6 +76,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
         id: const Uuid().v4(),
         title: widget.agent.name,
         messages: _messages,
+        type: 'agent',
       );
       await _chatStorage.save(session);
       _sessionId = session.id;
