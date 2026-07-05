@@ -129,23 +129,54 @@ class _MessageListPageState extends State<MessageListPage> {
                 )
               : RefreshIndicator(
                   onRefresh: _load,
-                  child: ListView.separated(
+                  child: ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(
                       parent: BouncingScrollPhysics(),
                     ),
                     itemCount: _items.length,
-                    separatorBuilder: (_, __) => Divider(
-                      height: 1,
-                      thickness: 0.5,
-                      color: nc.divider,
-                      indent: 72,
-                    ),
                     itemBuilder: (context, index) {
                       final item = _items[index];
-                      return _MessageTile(
-                        item: item,
-                        nc: nc,
-                        onTap: () => _openChat(item),
+                      return Dismissible(
+                        key: Key(item.id),
+                        direction: item.isGroup
+                            ? DismissDirection.endToStart
+                            : DismissDirection.none,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          color: nc.error,
+                          child: Icon(
+                            PhosphorIconsRegular.trash,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        confirmDismiss: (direction) async {
+                          return await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              backgroundColor: nc.surface,
+                              title: Text('删除群聊', style: TextStyle(color: nc.textPrimary)),
+                              content: Text('确定删除「${item.name}」？', style: TextStyle(color: nc.textSecondary)),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: Text('取消', style: TextStyle(color: nc.textSecondary)),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: Text('删除', style: TextStyle(color: nc.error)),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        onDismissed: (direction) => _deleteGroup(item.id),
+                        child: _MessageTile(
+                          item: item,
+                          nc: nc,
+                          onTap: () => _openChat(item),
+                        ),
                       );
                     },
                   ),
@@ -169,6 +200,11 @@ class _MessageListPageState extends State<MessageListPage> {
     if (agent != null && mounted) {
       await AppRouter.toAgentChat(context, agent);
     }
+  }
+
+  void _deleteGroup(String groupId) async {
+    await getIt<AgentGroupStorage>().delete(groupId);
+    _load();
   }
 
   void _showAddMenu() {
@@ -213,7 +249,7 @@ class _ChatItem {
 }
 
 /// 消息列表项
-class _MessageTile extends StatelessWidget {
+class _MessageTile extends StatefulWidget {
   final _ChatItem item;
   final AgentColors nc;
   final VoidCallback onTap;
@@ -225,78 +261,121 @@ class _MessageTile extends StatelessWidget {
   });
 
   @override
+  State<_MessageTile> createState() => _MessageTileState();
+}
+
+class _MessageTileState extends State<_MessageTile>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0.02, 0),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              // 头像
-              Container(
-                width: 48,
-                height: 48,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: item.isGroup ? nc.primary : nc.primarySurface,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: item.isGroup
-                    ? Icon(PhosphorIconsRegular.users, size: 24, color: Colors.white)
-                    : Text(
-                        item.avatar.isNotEmpty ? item.avatar : item.name.characters.first,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: nc.textPrimary,
-                        ),
-                      ),
-              ),
-              const SizedBox(width: 12),
-              // 消息内容
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            item.name,
+    final nc = widget.nc;
+    final item = widget.item;
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  // 头像
+                  Container(
+                    width: 48,
+                    height: 48,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: item.isGroup ? nc.primary : nc.primarySurface,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: item.isGroup
+                        ? Icon(PhosphorIconsRegular.users, size: 24, color: Colors.white)
+                        : Text(
+                            item.avatar.isNotEmpty ? item.avatar : item.name.characters.first,
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
                               color: nc.textPrimary,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
+                  ),
+                  const SizedBox(width: 12),
+                  // 消息内容
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                item.name,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: nc.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              _formatTime(item.time),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: nc.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 4),
                         Text(
-                          _formatTime(item.time),
+                          item.lastMessage,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 14,
                             color: nc.textSecondary,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      item.lastMessage,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: nc.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
