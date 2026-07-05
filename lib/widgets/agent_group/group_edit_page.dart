@@ -201,31 +201,55 @@ class _FieldRow extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(fontSize: 12, color: nc.textSecondary),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: ctrl,
-              style: TextStyle(fontSize: 14, color: nc.textPrimary),
-              decoration: const InputDecoration(
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
+    return Column(
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 12, color: nc.textSecondary),
                 ),
-              ),
+                const SizedBox(height: 6),
+                Theme(
+                  data: Theme.of(context).copyWith(
+                    inputDecorationTheme: const InputDecorationTheme(
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                    ),
+                  ),
+                  child: TextField(
+                    controller: ctrl,
+                    style: TextStyle(fontSize: 15, color: nc.textPrimary),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: nc.primarySurface,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        if (!isLast)
+          Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 16),
+      ],
     );
   }
 }
@@ -247,79 +271,100 @@ class _AgentPickRow extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: locked ? null : () => onChanged?.call(!selected),
-        borderRadius: BorderRadius.zero,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: nc.primarySurface,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Text(
-                  agent.avatar.isNotEmpty
-                      ? agent.avatar
-                      : agent.name.characters.first,
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+    return Column(
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: locked ? null : () => onChanged?.call(!selected),
+            borderRadius: BorderRadius.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: nc.primarySurface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: nc.divider, width: 0.5),
+                    ),
+                    child: Text(
+                      agent.avatar.isNotEmpty
+                          ? agent.avatar
+                          : agent.name.characters.first,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: nc.textPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          agent.name,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w400,
-                            color: nc.textPrimary,
-                          ),
-                        ),
-                        if (locked)
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8),
-                            child: Text(
-                              '默认成员',
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              agent.name,
                               style: TextStyle(
-                                fontSize: 11,
-                                color: nc.success,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                color: nc.textPrimary,
                               ),
                             ),
+                            if (locked)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: nc.success.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '默认',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: nc.success,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        if (agent.role.isNotEmpty)
+                          Text(
+                            agent.role,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, color: nc.textSecondary),
                           ),
                       ],
                     ),
-                    if (agent.role.isNotEmpty)
-                      Text(
-                        agent.role,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 12, color: nc.textSecondary),
-                      ),
-                  ],
-                ),
+                  ),
+                  Icon(
+                    selected ? PhosphorIconsRegular.checkCircle : PhosphorIconsRegular.circle,
+                    color: selected ? nc.success : nc.textDisabled,
+                    size: 20,
+                  ),
+                ],
               ),
-              Icon(
-                selected ? PhosphorIconsRegular.checkCircle : PhosphorIconsRegular.circle,
-                color: selected ? nc.success : nc.textDisabled,
-                size: 20,
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+        if (!isLast)
+          Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 66),
+      ],
     );
   }
 }

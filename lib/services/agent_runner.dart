@@ -37,28 +37,40 @@ class AgentRunner {
 
     // 身份声明（最开头，最强语气）
     buf.writeln('<role>');
-    buf.writeln('你是「${agent.name}」。你不是其他任何人。请始终以${agent.name}的身份发言。');
+    buf.writeln('你是「${agent.name}」。');
+    buf.writeln('【核心身份约束】你只能以「${agent.name}」的身份发言，绝对禁止：');
+    buf.writeln('- 冒充其他成员（如产品经理、开发者、美食推荐官等）');
+    buf.writeln('- 以其他成员的口吻或风格说话');
+    buf.writeln('- 声称自己是其他角色');
+    buf.writeln('- 在回复中使用其他成员的身份描述');
+    buf.writeln('你的身份是唯一的：「${agent.name}」，角色定位：${agent.role}');
     if (groupName.isNotEmpty) {
       buf.writeln('你正在「$groupName」项目群中协作。');
       if (groupDesc.isNotEmpty) buf.writeln('项目描述：$groupDesc');
     } else {
       buf.writeln('你正在一个多 Agent 项目群里与其他成员协作讨论。');
     }
-    buf.writeln('群内共 ${memberNames.length} 位成员。');
+    buf.writeln('群内共 ${memberNames.length} 位成员：${memberNames.join("、")}');
     buf.writeln('</role>');
     buf.writeln();
 
     // 发言规则
     buf.writeln('<rules>');
-    buf.writeln('你是「${agent.name}」，你的角色定位是：${agent.role}。请始终以此身份发言，不要冒充他人。');
+    buf.writeln('你是「${agent.name}」，你的角色定位是：${agent.role}。');
+    buf.writeln('【身份锁定】你必须始终以「${agent.name}」的身份发言，不要模仿或冒充其他任何成员。');
+    buf.writeln('如果被问到其他成员的职责，你只能说"这是${agent.name}的职责范围之外，请咨询对应成员"。');
     if (agent.isCoordinator) {
       buf.writeln('你是团队的常驻协调者。用户发送任何消息你都可以主动回复。');
       buf.writeln('你的职责：理解用户意图、分析任务需求，直接回复用户或给出建议。');
-      buf.writeln('群聊系统会自动选择其他合适的成员参与讨论，你不需要 @ 其他成员来派活。');
+      buf.writeln('你可以 @ 其他成员来讨论或征求意见。');
     } else {
-      buf.writeln('你只能回复被 @ 提及的消息。如果消息中没有 @${agent.name}，不要发言。');
+      buf.writeln('你可以回复被 @ 提及的消息，也可以在合适的时候主动发言。');
+      buf.writeln('如果你认为其他成员更适合回答，可以用 @名字 来邀请他们参与讨论。');
     }
     buf.writeln('用户是群主，拥有最终决策权。重要决策必须由群主确认。');
+    buf.writeln(
+      '【协作模式】你可以通过 @名字 来邀请其他成员参与讨论。例如：@产品经理 你觉得这个需求合理吗？',
+    );
     buf.writeln(
       '【禁止幻觉】回答时事、数据、地点、人物、版本等你不能 100% 确定的事实时，必须调用 searxng_search 或 tavily_search 确认，禁止凭训练数据猜测；tavily_search 效果通常更好，当 searxng_search 结果不理想时请换用 tavily_search。',
     );
@@ -84,9 +96,9 @@ class AgentRunner {
         buf.writeln('- @$name${role.isNotEmpty ? "：$role" : ""}');
       }
       if (agent.isCoordinator) {
-        buf.writeln('你了解每位成员的能力。但系统会自动调度合适的成员参与，你只需专注分析和回复用户。');
+        buf.writeln('你了解每位成员的能力。你可以 @ 他们来讨论或征求意见。');
       } else {
-        buf.writeln('完成自己的任务后，优先 @DWeis 汇报进度。');
+        buf.writeln('你可以 @ 其他成员来讨论或征求意见。完成后可以用 @名字 来通知相关成员。');
       }
       buf.writeln('</team>');
       buf.writeln();
@@ -98,7 +110,12 @@ class AgentRunner {
     buf.writeln('- name="${agent.name}" → 这是你本人发出的消息');
     buf.writeln('- name="群主" → 这是用户说的话');
     buf.writeln('- name="其他名字" → 那是其他 Agent 说的话');
-    buf.writeln('你只能以 ${agent.name} 的身份发言。看到其他 Agent 的名字不要冒充他们。');
+    buf.writeln();
+    buf.writeln('【身份锁定提醒】');
+    buf.writeln('- 你的身份是：${agent.name}，角色：${agent.role}');
+    buf.writeln('- 看到其他 Agent 的消息时，不要模仿他们的身份或风格');
+    buf.writeln('- 如果用户问你关于其他 Agent 的职责，你只能说"请咨询${agent.name}"');
+    buf.writeln('- 你只能以 ${agent.name} 的身份发言，绝对禁止冒充其他成员');
     buf.writeln('</history_format>');
     buf.writeln();
 

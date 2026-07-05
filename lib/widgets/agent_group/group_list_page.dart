@@ -197,51 +197,57 @@ class _GroupItem extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        borderRadius: BorderRadius.zero,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              _MemberAvatars(members: members, nc: nc),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      group.name,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w400,
-                        color: nc.textPrimary,
-                      ),
+    return Column(
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            onLongPress: onLongPress,
+            borderRadius: BorderRadius.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  _MemberAvatars(members: members, nc: nc),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          group.name,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                            color: nc.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          members.isEmpty
+                              ? '空群'
+                              : members.map((a) => a.name).join('、'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12, color: nc.textSecondary),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      members.isEmpty
-                          ? '空群'
-                          : members.map((a) => a.name).join('、'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 12, color: nc.textSecondary),
-                    ),
-                  ],
-                ),
+                  ),
+                  Icon(
+                    PhosphorIconsRegular.caretRight,
+                    size: 18,
+                    color: nc.textSecondary.withValues(alpha: 0.5),
+                  ),
+                ],
               ),
-              Icon(
-                PhosphorIconsRegular.caretRight,
-                size: 18,
-                color: nc.textSecondary.withValues(alpha: 0.5),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+        if (!isLast)
+          Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 66),
+      ],
     );
   }
 }
@@ -260,6 +266,7 @@ class _MemberAvatars extends StatelessWidget {
         decoration: BoxDecoration(
           color: nc.primarySurface,
           borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: nc.divider, width: 0.5),
         ),
         child: Icon(PhosphorIconsRegular.users, color: nc.textSecondary, size: 18),
       );
@@ -283,7 +290,11 @@ class _MemberAvatars extends StatelessWidget {
               ),
               child: Text(
                 a.avatar.isNotEmpty ? a.avatar : a.name.characters.first,
-                style: const TextStyle(fontSize: 13),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: nc.textPrimary,
+                ),
               ),
             ),
           );

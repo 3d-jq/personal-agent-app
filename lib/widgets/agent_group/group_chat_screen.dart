@@ -23,6 +23,13 @@ import '../state_placeholder.dart';
 import '../../screens/chat_helpers.dart';
 import 'agent_group_theme.dart';
 
+/// Agent 状态枚举
+enum AgentStatus {
+  idle,      // 待命
+  thinking,  // 思考中
+  replied,   // 已回复
+}
+
 /// 群聊主页
 class GroupChatScreen extends StatefulWidget {
   final String groupId;
@@ -51,6 +58,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   Agent? _coordinator; // 群的协调者 Agent
   bool _busy = false;
   bool _stopped = false;
+
+  // ── Agent 状态跟踪 ──
+  Map<String, AgentStatus> _agentStatus = {}; // agentId -> 状态
+  int _discussionRound = 0; // 当前讨论轮次
+  Set<String> _participatedAgents = {}; // 已参与讨论的 Agent
 
   // ── Stop 完整取消：管理所有活跃流 ──
   final List<StreamSubscription<ChatStreamEvent>> _activeSubs = [];
@@ -117,10 +129,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final (updated, addedNames, removedNames) = result;
     final sysMsgs = <String>[];
     for (final name in addedNames) {
-      sysMsgs.add('🔔 $name 加入了群聊');
+      sysMsgs.add('$name 加入了群聊');
     }
     for (final name in removedNames) {
-      sysMsgs.add('🔔 $name 离开了群聊');
+      sysMsgs.add('$name 离开了群聊');
     }
     if (sysMsgs.isNotEmpty) {
       setState(() {
@@ -189,46 +201,101 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       return;
     }
 
-    // ── 协作引擎（Manager 模式）──
-    setState(() => _busy = true);
+    // ── 混合协作引擎 ──
+    setState(() {
+      _busy = true;
+      _discussionRound = 0;
+      _participatedAgents.clear();
+      // 初始化所有 Agent 状态为 idle
+      _agentStatus = {for (final m in _members) m.id: AgentStatus.idle};
+    });
     _stopped = false;
     try {
       final handled = <String>{};
-      const maxRounds = 3;
+      const maxRounds = 5;
 
       if (hasDirectMentions) {
-        // 有 @ 点名 → 直接让被点的 Agent 回复（不接力）
+        // 有 @ 点名 → 先让被点的 Agent 回复
         for (final a in mentionAgents) {
           if (_stopped) break;
           handled.add(a.id);
+          _discussionRound++;
+          _participatedAgents.add(a.id);
+          setState(() => _agentStatus[a.id] = AgentStatus.thinking);
           await _runOneAndAppend(a);
+          setState(() => _agentStatus[a.id] = AgentStatus.replied);
         }
+        // 然后检查 Agent 回复中是否有 @ 其他 Agent，触发接力
+        await _handleRelay(handled, maxRounds);
       } else {
-        // 没 @ 点名 → Manager 选人
-        final managerAgent = _coordinator ?? mentionAgents.firstOrNull;
-        if (managerAgent == null) return;
-
-        final mentionNames = <String>[];
-        for (var round = 0; round < maxRounds && !_stopped; round++) {
-          // Manager 判断谁该发言
-          final nextName = await _managerPickSpeaker(
-            managerAgent,
-            mentionNames,
-          );
-          if (nextName == null || nextName == 'STOP') break;
-
-          final nextAgent = _byName[nextName];
-          if (nextAgent == null || handled.contains(nextAgent.id)) continue;
-          handled.add(nextAgent.id);
-          mentionNames.add(nextName);
-
-          await _runOneAndAppend(nextAgent);
+        // 没 @ 点名 → 自动调度：系统判断谁该回复
+        final speakerName = await _autoPickSpeaker();
+        if (speakerName != null && speakerName != 'STOP') {
+          final firstAgent = _byName[speakerName];
+          if (firstAgent != null) {
+            handled.add(firstAgent.id);
+            _discussionRound++;
+            _participatedAgents.add(firstAgent.id);
+            setState(() => _agentStatus[firstAgent.id] = AgentStatus.thinking);
+            await _runOneAndAppend(firstAgent);
+            setState(() => _agentStatus[firstAgent.id] = AgentStatus.replied);
+            // 检查是否触发接力
+            await _handleRelay(handled, maxRounds);
+          }
         }
       }
     } finally {
       if (mounted) setState(() => _busy = false);
       await _saveGroup();
     }
+  }
+
+  /// 处理 Agent 接力：检查最新回复中是否有 @ 其他 Agent
+  Future<void> _handleRelay(Set<String> handled, int maxRounds) async {
+    for (var round = 0; round < maxRounds && !_stopped; round++) {
+      // 获取最新的 Agent 回复
+      final lastAgentMsg = _messages.lastWhere(
+        (m) => !m.isUser && m.speakerId != null,
+        orElse: () => ChatMessage(text: '', isUser: false),
+      );
+      
+      if (lastAgentMsg.text.isEmpty) break;
+      
+      // 解析回复中的 @ 提及
+      final relayMentions = parseMentions(lastAgentMsg.text, _members);
+      final relayAgents = relayMentions
+          .map((n) => _byName[n])
+          .whereType<Agent>()
+          .where((a) => !handled.contains(a.id))
+          .toList();
+      
+      if (relayAgents.isEmpty) break;
+      
+      // 让被 @ 的 Agent 回复
+      for (final a in relayAgents) {
+        if (_stopped) break;
+        handled.add(a.id);
+        _discussionRound++;
+        _participatedAgents.add(a.id);
+        setState(() => _agentStatus[a.id] = AgentStatus.thinking);
+        await _runOneAndAppend(a);
+        setState(() => _agentStatus[a.id] = AgentStatus.replied);
+      }
+    }
+  }
+
+  /// 自动调度：系统判断哪个 Agent 应该回复
+  Future<String?> _autoPickSpeaker() async {
+    // 如果有 coordinator，优先让 coordinator 回复
+    if (_coordinator != null) {
+      return _coordinator!.name;
+    }
+    
+    // 否则用 Manager 模式选人
+    final manager = _members.firstOrNull;
+    if (manager == null) return null;
+    
+    return _managerPickSpeaker(manager, []);
   }
 
   /// 执行一个 Agent（_runOneAgent 已负责消息的创建与渲染）
@@ -595,13 +662,16 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
       ),
       body: Column(
         children: [
+          // ── Agent 状态栏 ──
+          if (_busy || _participatedAgents.isNotEmpty)
+            _buildStatusBar(nc),
           Expanded(
             child: _messages.isEmpty
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32),
                       child: Text(
-                        '试着 @ 一个 Agent 开启讨论\n例如：@产品经理 我们该不该做这个功能？',
+                        '直接发消息，系统会自动调度 Agent 回复\n也可以 @名字 指定 Agent 参与讨论',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: nc.textSecondary),
                       ),
@@ -626,119 +696,255 @@ ${_messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}')
           ),
           SafeArea(
             top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: nc.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: nc.divider, width: 0.5),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-                      child: TextField(
-                        controller: _inputCtrl,
-                        focusNode: _inputFocus,
-                        minLines: 1,
-                        maxLines: 6,
-                        keyboardType: TextInputType.multiline,
-                        textInputAction: TextInputAction.newline,
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: nc.textPrimary,
-                          height: 1.5,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    decoration: BoxDecoration(
+                      color: nc.primarySurface,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 12,
+                          offset: const Offset(0, 2),
                         ),
-                        onChanged: (_) => setState(() {}),
-                        decoration: InputDecoration(
-                          hintText: _members.isEmpty
-                              ? '先把 Agent 拉进群再说'
-                              : '说点什么，@名字 来召唤 Agent',
-                          hintStyle: TextStyle(
-                            color: nc.textSecondary.withValues(alpha: 0.6),
-                            fontSize: 15,
-                            height: 1.5,
-                          ),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                      child: Row(
-                        children: [
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              _showMentionSheet(nc);
-                            },
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: nc.primarySurface,
-                                shape: BoxShape.circle,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                          child: Theme(
+                            data: Theme.of(context).copyWith(
+                              inputDecorationTheme: const InputDecorationTheme(
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                focusedErrorBorder: InputBorder.none,
                               ),
-                              child: Text(
-                                '@',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: _members.isNotEmpty
-                                      ? nc.textPrimary
-                                      : nc.textDisabled,
+                            ),
+                            child: TextField(
+                              controller: _inputCtrl,
+                              focusNode: _inputFocus,
+                              minLines: 1,
+                              maxLines: 6,
+                              keyboardType: TextInputType.multiline,
+                              textInputAction: TextInputAction.newline,
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: nc.textPrimary,
+                                height: 1.5,
+                              ),
+                              onChanged: (_) => setState(() {}),
+                              decoration: InputDecoration(
+                                hintText: _members.isEmpty
+                                    ? '先把 Agent 拉进群再说'
+                                    : '说点什么，@名字 来召唤 Agent',
+                                hintStyle: TextStyle(
+                                  color: nc.textSecondary.withValues(alpha: 0.6),
+                                  fontSize: 15,
+                                  height: 1.5,
+                                ),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  _showMentionSheet(nc);
+                                },
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: nc.surface,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    '@',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: _members.isNotEmpty
+                                          ? nc.textPrimary
+                                          : nc.textDisabled,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                          const Spacer(),
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              if (_busy) {
-                                _stop();
-                              } else if (_inputCtrl.text.trim().isNotEmpty) {
-                                _send();
-                              }
-                            },
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: _busy
-                                    ? nc.error.withValues(alpha: 0.1)
-                                    : _inputCtrl.text.trim().isEmpty
-                                    ? nc.primarySurface
-                                    : nc.textPrimary,
-                                shape: BoxShape.circle,
+                              const Spacer(),
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  if (_busy) {
+                                    _stop();
+                                  } else if (_inputCtrl.text.trim().isNotEmpty) {
+                                    _send();
+                                  }
+                                },
+                                child: Container(
+                                  width: 40,
+                                  height: 40,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: _busy
+                                        ? nc.error.withValues(alpha: 0.1)
+                                        : _inputCtrl.text.trim().isEmpty
+                                        ? nc.surface
+                                        : nc.primary,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Icon(
+                                    _busy
+                                        ? PhosphorIconsRegular.stop
+                                        : PhosphorIconsRegular.arrowUp,
+                                    size: 18,
+                                    color: _busy
+                                        ? nc.error
+                                        : _inputCtrl.text.trim().isEmpty
+                                        ? nc.textSecondary
+                                        : Colors.white,
+                                  ),
+                                ),
                               ),
-                              child: Icon(
-                                _busy
-                                    ? PhosphorIconsRegular.stop
-                                    : PhosphorIconsRegular.arrowUp,
-                                size: 18,
-                                color: _busy
-                                    ? nc.error
-                                    : _inputCtrl.text.trim().isEmpty
-                                    ? nc.textSecondary
-                                    : nc.surface,
-                              ),
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
+                const SizedBox(height: 4),
+                Padding(
+                  padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom + 2),
+                  child: Text(
+                    '直接发消息，系统会自动调度 Agent',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: nc.textDisabled,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建 Agent 状态栏
+  Widget _buildStatusBar(AgentColors nc) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: nc.surface,
+        border: Border(
+          bottom: BorderSide(color: nc.divider, width: 0.5),
+        ),
+      ),
+      child: Row(
+        children: [
+          // 讨论进度
+          if (_discussionRound > 0) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: nc.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '第 $_discussionRound 轮',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: nc.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+          // 参与人数
+          if (_participatedAgents.isNotEmpty) ...[
+            Icon(PhosphorIconsRegular.users, size: 14, color: nc.textSecondary),
+            const SizedBox(width: 4),
+            Text(
+              '${_participatedAgents.length} 人参与',
+              style: TextStyle(fontSize: 12, color: nc.textSecondary),
+            ),
+            const SizedBox(width: 12),
+          ],
+          // Agent 状态指示器
+          Expanded(
+            child: SizedBox(
+              height: 24,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: _members.map((m) {
+                  final status = _agentStatus[m.id] ?? AgentStatus.idle;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: status == AgentStatus.thinking
+                            ? nc.primary.withValues(alpha: 0.2)
+                            : status == AgentStatus.replied
+                            ? nc.success.withValues(alpha: 0.2)
+                            : nc.primarySurface,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: status == AgentStatus.thinking
+                              ? nc.primary
+                              : status == AgentStatus.replied
+                              ? nc.success
+                              : nc.divider,
+                          width: 0.5,
+                        ),
+                      ),
+                      child: status == AgentStatus.thinking
+                          ? SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                valueColor: AlwaysStoppedAnimation(nc.primary),
+                              ),
+                            )
+                          : Text(
+                              m.avatar.isNotEmpty ? m.avatar : m.name.characters.first,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: status == AgentStatus.replied
+                                    ? nc.success
+                                    : nc.textSecondary,
+                              ),
+                            ),
+                    ),
+                  );
+                }).toList(),
               ),
             ),
           ),
@@ -777,6 +983,7 @@ class _GroupBubble extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: nc.primarySurface,
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: nc.divider, width: 0.5),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -787,7 +994,8 @@ class _GroupBubble extends StatelessWidget {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: nc.surface,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: nc.divider, width: 0.5),
                       ),
                       child: Text(
                         speaker!.avatar.isNotEmpty

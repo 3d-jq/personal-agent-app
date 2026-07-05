@@ -6,7 +6,7 @@ class Agent {
   final String id;
   String name; // 群内 @ 用的名字（精确匹配）
   String role; // 一句话职能描述
-  String avatar; // emoji 或空字符串（前端回退到色块）
+  String avatar; // 头像文字（取首字母显示）或空字符串
   String systemPrompt;
   String vendorId; // 引用 AISettings.vendors 中的 vendor id
   String model; // 模型名（vendor.model 或自定义）

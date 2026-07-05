@@ -188,88 +188,99 @@ class _AgentItem extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.zero,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: nc.primarySurface,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  agent.avatar.isNotEmpty
-                      ? agent.avatar
-                      : agent.name.characters.first,
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      agent.name,
+    return Column(
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: nc.primarySurface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: nc.divider, width: 0.5),
+                    ),
+                    child: Text(
+                      agent.avatar.isNotEmpty
+                          ? agent.avatar
+                          : agent.name.characters.first,
                       style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w400,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                         color: nc.textPrimary,
                       ),
                     ),
-                    if (agent.role.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          agent.role,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          agent.name,
                           style: TextStyle(
-                            fontSize: 12,
-                            color: nc.textSecondary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                            color: nc.textPrimary,
                           ),
                         ),
-                      ),
-                    const SizedBox(height: 2),
-                    Text(
-                      toolOptionsLabel(agent.allowedToolNames),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 11, color: nc.textDisabled),
-                    ),
-                  ],
-                ),
-              ),
-              if (onDelete != null)
-                GestureDetector(
-                  onTap: onDelete,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 12),
-                    child: Icon(
-                      PhosphorIconsRegular.trash,
-                      size: 18,
-                      color: nc.textSecondary.withValues(alpha: 0.5),
+                        if (agent.role.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              agent.role,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: nc.textSecondary,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 2),
+                        Text(
+                          toolOptionsLabel(agent.allowedToolNames),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 11, color: nc.textDisabled),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              const SizedBox(width: 4),
-              Icon(
-                PhosphorIconsRegular.caretRight,
-                size: 18,
-                color: nc.textSecondary.withValues(alpha: 0.5),
+                  if (onDelete != null)
+                    GestureDetector(
+                      onTap: onDelete,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 12),
+                        child: Icon(
+                          PhosphorIconsRegular.trash,
+                          size: 18,
+                          color: nc.textSecondary.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    PhosphorIconsRegular.caretRight,
+                    size: 18,
+                    color: nc.textSecondary.withValues(alpha: 0.5),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-      ),
+        if (!isLast)
+          Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 66),
+      ],
     );
   }
 }
@@ -285,7 +296,6 @@ class AgentEditPage extends StatefulWidget {
 class _AgentEditPageState extends State<AgentEditPage> {
   late final TextEditingController _name;
   late final TextEditingController _role;
-  late final TextEditingController _avatar;
   late final TextEditingController _prompt;
   late String _vendorId;
   late String _model;
@@ -304,7 +314,6 @@ class _AgentEditPageState extends State<AgentEditPage> {
     final e = widget.existing;
     _name = TextEditingController(text: e?.name ?? '');
     _role = TextEditingController(text: e?.role ?? '');
-    _avatar = TextEditingController(text: e?.avatar ?? '');
     _prompt = TextEditingController(text: e?.systemPrompt ?? '');
     _vendorId = e?.vendorId ?? '';
     _model = e?.model ?? '';
@@ -323,7 +332,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
       id: widget.existing?.id ?? const Uuid().v4(),
       name: _name.text.trim(),
       role: _role.text.trim(),
-      avatar: _avatar.text.trim(),
+      avatar: _name.text.trim().isNotEmpty ? _name.text.trim().characters.first : '',
       systemPrompt: _prompt.text,
       vendorId: _vendorId,
       model: _model.trim(),
@@ -364,7 +373,6 @@ class _AgentEditPageState extends State<AgentEditPage> {
         padding: const EdgeInsets.all(16),
         children: [
           _Field(label: '名字（@用）', ctrl: _name, nc: nc, hint: '例如：产品经理'),
-          _Field(label: '头像 emoji', ctrl: _avatar, nc: nc, hint: '可选，例如 💡'),
           _Field(label: '职能描述', ctrl: _role, nc: nc, hint: '一句话说明擅长什么'),
           const SizedBox(height: 16),
           Text(
@@ -372,13 +380,36 @@ class _AgentEditPageState extends State<AgentEditPage> {
             style: TextStyle(fontSize: 12, color: nc.textSecondary),
           ),
           const SizedBox(height: 6),
-          TextField(
-            controller: _prompt,
-            minLines: 4,
-            maxLines: 10,
-            style: TextStyle(fontSize: 14, color: nc.textPrimary),
-            decoration: const InputDecoration(
-              hintText: '描述 Agent 的角色、风格、回答方式...',
+          Theme(
+            data: Theme.of(context).copyWith(
+              inputDecorationTheme: const InputDecorationTheme(
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+              ),
+            ),
+            child: TextField(
+              controller: _prompt,
+              minLines: 4,
+              maxLines: 10,
+              style: TextStyle(fontSize: 15, color: nc.textPrimary),
+              decoration: InputDecoration(
+                hintText: '描述 Agent 的角色、风格、回答方式...',
+                hintStyle: TextStyle(
+                  color: nc.textDisabled,
+                  fontSize: 15,
+                ),
+                filled: true,
+                fillColor: nc.primarySurface,
+                contentPadding: const EdgeInsets.all(14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 16),
@@ -471,12 +502,38 @@ class _Field extends StatelessWidget {
         children: [
           Text(label, style: TextStyle(fontSize: 12, color: nc.textSecondary)),
           const SizedBox(height: 6),
-          TextField(
-            controller: ctrl,
-            onChanged: onChanged,
-            style: TextStyle(fontSize: 14, color: nc.textPrimary),
-            decoration: InputDecoration(
-              hintText: hint,
+          Theme(
+            data: Theme.of(context).copyWith(
+              inputDecorationTheme: const InputDecorationTheme(
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+              ),
+            ),
+            child: TextField(
+              controller: ctrl,
+              onChanged: onChanged,
+              style: TextStyle(fontSize: 15, color: nc.textPrimary),
+              decoration: InputDecoration(
+                hintText: hint,
+                hintStyle: TextStyle(
+                  color: nc.textDisabled,
+                  fontSize: 15,
+                ),
+                filled: true,
+                fillColor: nc.primarySurface,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
             ),
           ),
         ],
@@ -503,34 +560,40 @@ class _VendorOption extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.zero,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: selected ? nc.textPrimary : nc.textSecondary,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+    return Column(
+      children: [
+        if (!isFirst)
+          Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 48),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: selected ? nc.textPrimary : nc.textSecondary,
+                        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
                   ),
-                ),
+                  Icon(
+                    selected ? PhosphorIconsRegular.checkCircle : PhosphorIconsRegular.circle,
+                    color: selected ? nc.success : nc.textDisabled,
+                    size: 20,
+                  ),
+                ],
               ),
-              Icon(
-                selected ? PhosphorIconsRegular.checkCircle : PhosphorIconsRegular.circle,
-                color: selected ? nc.success : nc.textDisabled,
-                size: 20,
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -553,44 +616,50 @@ class _ToolOption extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.zero,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 20,
-                height: 20,
-                alignment: Alignment.center,
-                margin: const EdgeInsets.only(right: 12),
-                decoration: BoxDecoration(
-                  color: selected ? nc.success : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: selected ? nc.success : nc.divider,
-                    width: selected ? 0 : 1.5,
+    return Column(
+      children: [
+        if (!isFirst)
+          Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 48),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    alignment: Alignment.center,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: selected ? nc.success : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: selected ? nc.success : nc.divider,
+                        width: selected ? 0 : 1,
+                      ),
+                    ),
+                    child: selected
+                        ? const Icon(PhosphorIconsRegular.check, size: 14, color: Colors.white)
+                        : null,
                   ),
-                ),
-                child: selected
-                    ? const Icon(PhosphorIconsRegular.check, size: 14, color: Colors.white)
-                    : null,
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: selected ? nc.textPrimary : nc.textSecondary,
+                      fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: selected ? nc.textPrimary : nc.textSecondary,
-                  fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -730,45 +799,69 @@ class _AgentModelPickerState extends State<_AgentModelPicker> {
             style: TextStyle(fontSize: 12, color: nc.textSecondary),
           ),
           const SizedBox(height: 6),
-          _RoundedCard(
-            nc: nc,
-            children: List.generate(_models.length, (i) {
-              final m = _models[i];
-              final sel = widget.currentModel == m;
-              return _VendorOption(
-                label: m,
-                selected: sel,
-                nc: nc,
-                isFirst: i == 0,
-                isLast: i == _models.length - 1,
-                onTap: () => widget.onChanged(m),
-              );
-            }),
+          Container(
+            decoration: BoxDecoration(
+              color: nc.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: nc.divider, width: 0.5),
+            ),
+            child: Column(
+              children: List.generate(_models.length, (i) {
+                final m = _models[i];
+                final sel = widget.currentModel == m;
+                return _VendorOption(
+                  label: m,
+                  selected: sel,
+                  nc: nc,
+                  isFirst: i == 0,
+                  isLast: i == _models.length - 1,
+                  onTap: () => widget.onChanged(m),
+                );
+              }),
+            ),
           ),
         ],
         const SizedBox(height: 12),
         Text('或手动输入：', style: TextStyle(fontSize: 12, color: nc.textSecondary)),
         const SizedBox(height: 6),
-        TextField(
-          controller: _modelCtrl,
-          onChanged: (v) => widget.onChanged(v.trim()),
-          style: TextStyle(fontSize: 14, color: nc.textPrimary),
-          decoration: InputDecoration(
-            hintText: '例如：gpt-4o、claude-3-opus',
-            hintStyle: TextStyle(
-              color: nc.textSecondary.withValues(alpha: 0.5),
-              fontSize: 13,
+        Theme(
+          data: Theme.of(context).copyWith(
+            inputDecorationTheme: const InputDecorationTheme(
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
             ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
+          ),
+          child: TextField(
+            controller: _modelCtrl,
+            onChanged: (v) => widget.onChanged(v.trim()),
+            style: TextStyle(fontSize: 15, color: nc.textPrimary),
+            decoration: InputDecoration(
+              hintText: '例如：gpt-4o、claude-3-opus',
+              hintStyle: TextStyle(
+                color: nc.textDisabled,
+                fontSize: 15,
+              ),
+              filled: true,
+              fillColor: nc.primarySurface,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              suffixIcon: widget.currentModel.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(PhosphorIconsRegular.x, size: 18, color: nc.textSecondary),
+                      onPressed: () => widget.onChanged(''),
+                    )
+                  : null,
             ),
-            suffixIcon: widget.currentModel.isNotEmpty
-                ? IconButton(
-                    icon: Icon(PhosphorIconsRegular.x, size: 18, color: nc.textSecondary),
-                    onPressed: () => widget.onChanged(''),
-                  )
-                : null,
           ),
         ),
       ],
