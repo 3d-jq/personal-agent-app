@@ -14,6 +14,7 @@ import '../services/agent_runner.dart';
 import '../services/ai_service.dart';
 import '../services/chat_storage.dart';
 import '../services/chat_stream_event.dart';
+import '../services/typewriter_buffer.dart';
 import '../tools/tools.dart';
 import '../widgets/ai_settings_sheet.dart';
 import '../widgets/chat_bubble.dart';
@@ -150,6 +151,8 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
     _scrollDown();
 
     final buf = StringBuffer();
+    final typewriter = TypewriterBuffer(charsPerTick: 4);
+    Timer? typewriterTimer;
     StreamSubscription<ChatStreamEvent>? sub;
     try {
       final stream = _runner.run(
@@ -171,15 +174,42 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
           }
           if (event is TextChunkEvent) {
             buf.write(event.text);
+            typewriter.append(event.text);
           }
-          placeholder.text = buf.toString();
+          placeholder.text = typewriter.visibleText;
           if (mounted) setState(() {});
           _scrollDown();
+
+          // 启动打字机定时器
+          if (typewriterTimer == null) {
+            typewriterTimer = Timer.periodic(const Duration(milliseconds: 24), (_) {
+              if (!typewriter.hasPending) {
+                typewriterTimer?.cancel();
+                typewriterTimer = null;
+                return;
+              }
+              typewriter.revealNext();
+              placeholder.text = typewriter.visibleText;
+              if (mounted) setState(() {});
+              _scrollDown();
+            });
+          }
         },
-        onDone: () => completer.complete(),
+        onDone: () {
+          typewriterTimer?.cancel();
+          typewriterTimer = null;
+          typewriter.revealAll();
+          placeholder.text = typewriter.visibleText;
+          if (mounted) setState(() {});
+          completer.complete();
+        },
         onError: (e) {
+          typewriterTimer?.cancel();
+          typewriterTimer = null;
           buf.write('\n\n[错误: $e]');
-          placeholder.text = buf.toString();
+          typewriter.append('\n\n[错误: $e]');
+          typewriter.revealAll();
+          placeholder.text = typewriter.visibleText;
           completer.complete();
         },
         cancelOnError: true,
@@ -187,6 +217,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
       await completer.future;
     } finally {
       await sub?.cancel();
+      typewriterTimer?.cancel();
       placeholder.isStreaming = false;
       setState(() => _busy = false);
       await _saveSession();
