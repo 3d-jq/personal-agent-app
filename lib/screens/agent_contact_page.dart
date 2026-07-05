@@ -9,6 +9,7 @@ import '../models/agent.dart';
 import '../models/agent_group.dart';
 import '../services/agent_group_storage.dart';
 import '../services/agent_storage.dart';
+import '../widgets/common_widgets.dart';
 import '../widgets/state_placeholder.dart';
 
 /// Agent 通讯录页面（类似微信通讯录）
@@ -143,49 +144,21 @@ class _AgentContactPageState extends State<AgentContactPage> {
 
   void _showAddMenu() {
     final nc = AgentColors.of(context);
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        margin: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: MediaQuery.of(context).padding.bottom + 16,
-        ),
-        decoration: BoxDecoration(
-          color: nc.surface,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 8),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: nc.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            _AddMenuItem(
-              icon: PhosphorIconsRegular.robot,
-              label: '新建 Agent',
-              nc: nc,
-              onTap: () async {
-                Navigator.pop(context);
-                final result = await AppRouter.editAgent(context);
-                if (result != null) {
-                  await getIt<AgentStorage>().add(result);
-                  _load();
-                }
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
+    showAddMenu(context, nc, [
+      AddMenuItem(
+        icon: PhosphorIconsRegular.robot,
+        label: '新建 Agent',
+        nc: nc,
+        onTap: () async {
+          Navigator.pop(context);
+          final result = await AppRouter.editAgent(context);
+          if (result != null) {
+            await getIt<AgentStorage>().add(result);
+            _load();
+          }
+        },
       ),
-    );
+    ]);
   }
 }
 
@@ -485,44 +458,6 @@ class _SectionHeader extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// 添加菜单项
-class _AddMenuItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final AgentColors nc;
-  final VoidCallback onTap;
-
-  const _AddMenuItem({
-    required this.icon,
-    required this.label,
-    required this.nc,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Icon(icon, size: 20, color: nc.primary),
-              const SizedBox(width: 12),
-              Text(
-                label,
-                style: TextStyle(fontSize: 16, color: nc.textPrimary),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

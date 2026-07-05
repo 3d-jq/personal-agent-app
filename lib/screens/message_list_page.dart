@@ -11,6 +11,7 @@ import '../models/chat_session.dart';
 import '../services/agent_group_storage.dart';
 import '../services/agent_storage.dart';
 import '../services/chat_storage.dart';
+import '../widgets/common_widgets.dart';
 import '../widgets/state_placeholder.dart';
 
 /// 消息列表页面（类似微信聊天列表）
@@ -136,7 +137,7 @@ class _MessageListPageState extends State<MessageListPage> {
                       onTap: () => _openChat(item),
                     );
                   },
-                ),
+      ),
     );
   }
 
@@ -160,50 +161,22 @@ class _MessageListPageState extends State<MessageListPage> {
 
   void _showAddMenu() {
     final nc = AgentColors.of(context);
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        margin: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: MediaQuery.of(context).padding.bottom + 16,
-        ),
-        decoration: BoxDecoration(
-          color: nc.surface,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 8),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: nc.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            _AddMenuItem(
-              icon: PhosphorIconsRegular.users,
-              label: '创建群聊',
-              nc: nc,
-              onTap: () async {
-                Navigator.pop(context);
-                final result = await AppRouter.editGroup(context);
-                if (result != null) {
-                  final (group, _, _) = result;
-                  await getIt<AgentGroupStorage>().save(group);
-                  _load();
-                }
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
+    showAddMenu(context, nc, [
+      AddMenuItem(
+        icon: PhosphorIconsRegular.users,
+        label: '创建群聊',
+        nc: nc,
+        onTap: () async {
+          Navigator.pop(context);
+          final result = await AppRouter.editGroup(context);
+          if (result != null) {
+            final (group, _, _) = result;
+            await getIt<AgentGroupStorage>().save(group);
+            _load();
+          }
+        },
       ),
-    );
+    ]);
   }
 }
 
