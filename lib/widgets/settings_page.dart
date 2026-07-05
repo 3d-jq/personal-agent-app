@@ -7,6 +7,7 @@ import '../core/app_config.dart';
 import '../core/service_locator.dart';
 import '../services/theme_service.dart';
 import '../services/update_service.dart';
+import 'common_widgets.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -293,8 +294,8 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           const SizedBox(height: 8),
-          _SectionHeader(title: '应用程序', nc: nc),
-          _RoundedCard(
+          SectionHeader(title: '应用程序', nc: nc),
+          RoundedCard(
             nc: nc,
             children: [
               _SettingItem(
@@ -324,8 +325,8 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ),
           const SizedBox(height: 20),
-          _SectionHeader(title: '关于', nc: nc),
-          _RoundedCard(
+          SectionHeader(title: '关于', nc: nc),
+          RoundedCard(
             nc: nc,
             children: [
               _SettingItem(
