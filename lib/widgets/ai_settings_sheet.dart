@@ -13,8 +13,12 @@ import '../services/crypto_util.dart';
 
 class VendorConfig {
   final String id;
-  String name, apiKey, baseUrl, model;
-  bool isBuiltIn;
+  final String name;
+  final String apiKey;
+  final String baseUrl;
+  final String model;
+  final bool isBuiltIn;
+  
   VendorConfig({
     required this.id,
     required this.name,
@@ -23,6 +27,7 @@ class VendorConfig {
     this.model = '',
     this.isBuiltIn = false,
   });
+  
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
@@ -31,6 +36,7 @@ class VendorConfig {
     'model': model,
     'isBuiltIn': isBuiltIn,
   };
+  
   factory VendorConfig.fromJson(Map<String, dynamic> j) => VendorConfig(
     id: j['id'] as String,
     name: j['name'] as String,
@@ -39,6 +45,7 @@ class VendorConfig {
     model: j['model'] as String? ?? '',
     isBuiltIn: j['isBuiltIn'] as bool? ?? false,
   );
+  
   VendorConfig copyWith({
     String? name,
     String? apiKey,
@@ -100,16 +107,23 @@ class AISettings {
     save();
     final v = vendors.where((x) => x.id == id).firstOrNull;
     if (v != null && v.model.isEmpty) {
-      v.model = id == 'Agnes-2.0-Flash' ? 'agnes-2.0-flash' : 'deepseek-chat';
-      save();
+      final defaultModel = id == 'Agnes-2.0-Flash' ? 'agnes-2.0-flash' : 'deepseek-chat';
+      final index = vendors.indexWhere((x) => x.id == id);
+      if (index >= 0) {
+        vendors[index] = v.copyWith(model: defaultModel);
+        save();
+      }
     }
   }
 
   void setVendorModel(String vid, String m) {
     final v = vendors.where((x) => x.id == vid).firstOrNull;
     if (v != null) {
-      v.model = m;
-      save();
+      final index = vendors.indexWhere((x) => x.id == vid);
+      if (index >= 0) {
+        vendors[index] = v.copyWith(model: m);
+        save();
+      }
     }
   }
 
