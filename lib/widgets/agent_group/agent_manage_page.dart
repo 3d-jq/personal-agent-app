@@ -373,19 +373,75 @@ class _AgentCard extends StatelessWidget {
             ),
           ),
           // 信息区域
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: nc.primarySurface,
-              borderRadius: BorderRadius.circular(12),
-            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _InfoRow(label: '可用工具', value: toolOptionsLabel(agent.allowedToolNames), nc: nc),
+                // 可用工具标签
+                if (agent.allowedToolNames.isNotEmpty) ...[
+                  Text(
+                    '可用工具',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: nc.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: agent.allowedToolNames.map((name) {
+                      final label = _toolLabel(name);
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: nc.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: nc.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+                // System Prompt 摘要
                 if (agent.systemPrompt.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  _InfoRow(label: 'System Prompt', value: _truncate(agent.systemPrompt, 60), nc: nc),
+                  const SizedBox(height: 16),
+                  Text(
+                    'System Prompt',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: nc.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: nc.background,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      _extractPromptSummary(agent.systemPrompt),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: nc.textPrimary,
+                        height: 1.5,
+                      ),
+                      maxLines: 4,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -436,32 +492,29 @@ class _AgentCard extends StatelessWidget {
     if (text.length <= maxLen) return text;
     return '${text.substring(0, maxLen)}...';
   }
-}
 
-/// 工牌信息行
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final AgentColors nc;
-  const _InfoRow({required this.label, required this.value, required this.nc});
+  String _toolLabel(String name) {
+    const labels = {
+      'searxng_search': 'SearXNG搜索',
+      'tavily_search': 'Tavily搜索',
+      'web_fetch': '获取网页',
+      'tool_search': '发现工具',
+      'defer_execute_tool': '延迟工具',
+      'ask_user': '询问用户',
+      'generate_image': '生成图片',
+      'generate_video': '生成视频',
+    };
+    return labels[name] ?? name;
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '$label：',
-          style: TextStyle(fontSize: 13, color: nc.textSecondary),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: TextStyle(fontSize: 13, color: nc.textPrimary),
-          ),
-        ),
-      ],
-    );
+  String _extractPromptSummary(String prompt) {
+    // 提取 <role> 标签内容作为摘要
+    final roleMatch = RegExp(r'<role>(.*?)</role>', dotAll: true).firstMatch(prompt);
+    if (roleMatch != null) {
+      return roleMatch.group(1)!.trim();
+    }
+    // 如果没有 role 标签，取前 100 个字符
+    return _truncate(prompt.replaceAll(RegExp(r'<[^>]*>'), '').trim(), 100);
   }
 }
 
