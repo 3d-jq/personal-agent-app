@@ -104,7 +104,7 @@ class _AgentIndicator extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: _backgroundColor,
-        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _borderColor, width: 0.5),
       ),
       child: status == AgentStatus.thinking

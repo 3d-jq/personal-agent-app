@@ -453,7 +453,7 @@ class _AIBubbleState extends State<_AIBubble>
       context: context,
       backgroundColor: nc.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) => SafeArea(
         child: Padding(

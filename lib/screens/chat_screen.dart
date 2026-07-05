@@ -187,14 +187,14 @@ class _ChatScreenState extends State<ChatScreen> {
                               curve: Curves.easeOut,
                             );
                           },
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: nc.surface,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: nc.divider),
-                            ),
+                              child: Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: nc.surface,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: nc.divider, width: 0.5),
+                                ),
                             child: Icon(PhosphorIconsRegular.caretDoubleDown, size: 22, color: nc.textPrimary),
                           ),
                         ),
