@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
+import '../core/app_config.dart';
 import '../core/app_router.dart';
 import '../models/chat_session.dart';
 import '../core/service_locator.dart';
@@ -55,7 +56,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
                 child: Text(
-                  'DWeis',
+                  AppConfig.appName,
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
