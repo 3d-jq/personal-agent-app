@@ -159,9 +159,13 @@ class _AgentContactPageState extends State<AgentContactPage> {
         group: group,
         memberNames: memberNames,
         nc: nc,
-        onChat: () {
+        onEdit: () async {
           Navigator.pop(context);
-          AppRouter.toGroupChat(context, groupId: group.id);
+          final result = await AppRouter.editGroup(context, existing: group);
+          if (result != null) {
+            await getIt<AgentGroupStorage>().save(result);
+            if (mounted) _load();
+          }
         },
         onDelete: () {
           Navigator.pop(context);
@@ -523,14 +527,14 @@ class _GroupCardSheet extends StatelessWidget {
   final AgentGroup group;
   final String memberNames;
   final AgentColors nc;
-  final VoidCallback onChat;
+  final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _GroupCardSheet({
     required this.group,
     required this.memberNames,
     required this.nc,
-    required this.onChat,
+    required this.onEdit,
     required this.onDelete,
   });
 
@@ -628,18 +632,17 @@ class _GroupCardSheet extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onChat,
-                    icon: const Icon(PhosphorIconsRegular.chatCircle, size: 18),
-                    label: const Text('进入群聊'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: nc.primary,
-                      foregroundColor: Colors.white,
+                  child: OutlinedButton(
+                    onPressed: onEdit,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: nc.textPrimary,
+                      side: BorderSide(color: nc.divider, width: 0.5),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
+                    child: const Text('编辑'),
                   ),
                 ),
               ],
