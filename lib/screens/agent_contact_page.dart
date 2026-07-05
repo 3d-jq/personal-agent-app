@@ -108,14 +108,13 @@ class _AgentContactPageState extends State<AgentContactPage> {
           Navigator.pop(context);
           _deleteAgent(agent);
         },
-        onEdit: () {
+        onEdit: () async {
           Navigator.pop(context);
-          AppRouter.editAgent(context, existing: agent).then((result) {
-            if (result != null) {
-              getIt<AgentStorage>().update(result);
-              _load();
-            }
-          });
+          final result = await AppRouter.editAgent(context, existing: agent);
+          if (result != null) {
+            await getIt<AgentStorage>().update(result);
+            if (mounted) _load();
+          }
         },
       ),
     );
