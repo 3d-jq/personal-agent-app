@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 
 /// 轻量级 XOR + Base64 加解密工具。
 ///
@@ -13,25 +12,8 @@ import 'dart:math';
 class CryptoUtil {
   CryptoUtil._();
 
-  /// 从环境变量或随机生成的混淆密钥。
-  /// 生产环境应通过安全渠道注入，此处作为 fallback。
-  static String? _cachedSecret;
-
-  static String get _secret {
-    if (_cachedSecret != null) return _cachedSecret!;
-    // 尝试从环境变量获取，否则使用随机生成的密钥
-    // 注意：这仍然不是完美的安全方案，但比硬编码好
-    _cachedSecret = _generateSecret();
-    return _cachedSecret!;
-  }
-
-  static String _generateSecret() {
-    // 使用时间戳和随机数生成伪随机密钥
-    // 在实际生产中，应该通过安全渠道注入
-    final random = Random.secure();
-    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
-    return base64Encode(bytes).substring(0, 16);
-  }
+  /// 应用级固定混淆密钥。修改此处需重新加密所有 .env 中的值。
+  static const String _secret = 'DWeisApp2026';
 
   /// 解密 Base64 密文。
   ///
@@ -48,10 +30,5 @@ class CryptoUtil {
     } catch (_) {
       return '';
     }
-  }
-
-  /// 清除缓存的密钥（用于测试）。
-  static void clearCache() {
-    _cachedSecret = null;
   }
 }
