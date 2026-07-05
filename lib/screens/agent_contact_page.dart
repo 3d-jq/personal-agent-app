@@ -133,6 +133,14 @@ class _AgentContactPageState extends State<AgentContactPage> {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
+              // 从所有群中移除该 Agent
+              final groups = await getIt<AgentGroupStorage>().loadAll();
+              for (final g in groups) {
+                if (g.agentIds.contains(agent.id)) {
+                  g.agentIds.remove(agent.id);
+                  await getIt<AgentGroupStorage>().save(g);
+                }
+              }
               await getIt<AgentStorage>().remove(agent.id);
               _load();
             },
