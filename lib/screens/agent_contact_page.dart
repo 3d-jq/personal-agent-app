@@ -76,10 +76,7 @@ class _AgentContactPageState extends State<AgentContactPage> {
                   ..._groups.map((g) => _GroupTile(
                     group: g,
                     nc: nc,
-                    onTap: () {
-                      AppRouter.toGroupChat(context, groupId: g.id);
-                      _load();
-                    },
+                    onTap: () => _showGroupCard(g),
                   )),
                   Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 16),
                 ],
@@ -137,6 +134,60 @@ class _AgentContactPageState extends State<AgentContactPage> {
             onPressed: () async {
               Navigator.pop(ctx);
               await getIt<AgentStorage>().remove(agent.id);
+              _load();
+            },
+            child: Text('删除', style: TextStyle(color: nc.error)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showGroupCard(AgentGroup group) {
+    final nc = AgentColors.of(context);
+    final memberNames = group.agentIds
+        .map((id) => _agents.where((a) => a.id == id).firstOrNull)
+        .whereType<Agent>()
+        .map((a) => a.name)
+        .join('、');
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _GroupCardSheet(
+        group: group,
+        memberNames: memberNames,
+        nc: nc,
+        onChat: () {
+          Navigator.pop(context);
+          AppRouter.toGroupChat(context, groupId: group.id);
+        },
+        onDelete: () {
+          Navigator.pop(context);
+          _deleteGroup(group);
+        },
+      ),
+    );
+  }
+
+  void _deleteGroup(AgentGroup group) {
+    final nc = AgentColors.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: nc.surface,
+        title: Text('删除群聊', style: TextStyle(color: nc.textPrimary)),
+        content: Text('确定删除「${group.name}」？', style: TextStyle(color: nc.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('取消', style: TextStyle(color: nc.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await getIt<AgentGroupStorage>().delete(group.id);
               _load();
             },
             child: Text('删除', style: TextStyle(color: nc.error)),
@@ -461,6 +512,139 @@ class _SectionHeader extends StatelessWidget {
               style: TextStyle(fontSize: 13, color: nc.textDisabled),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// 群聊工牌弹窗
+class _GroupCardSheet extends StatelessWidget {
+  final AgentGroup group;
+  final String memberNames;
+  final AgentColors nc;
+  final VoidCallback onChat;
+  final VoidCallback onDelete;
+
+  const _GroupCardSheet({
+    required this.group,
+    required this.memberNames,
+    required this.nc,
+    required this.onChat,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+      ),
+      decoration: BoxDecoration(
+        color: nc.surface,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: nc.divider,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: nc.primary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(PhosphorIconsRegular.users, size: 28, color: Colors.white),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        group.name,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: nc.textPrimary,
+                        ),
+                      ),
+                      if (memberNames.isNotEmpty)
+                        Text(
+                          memberNames,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: nc.textSecondary,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      Text(
+                        '${group.agentIds.length} 位成员',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: nc.textDisabled,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onDelete,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: nc.error,
+                      side: BorderSide(color: nc.error.withValues(alpha: 0.3), width: 0.5),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('删除'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: onChat,
+                    icon: const Icon(PhosphorIconsRegular.chatCircle, size: 18),
+                    label: const Text('进入群聊'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: nc.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
