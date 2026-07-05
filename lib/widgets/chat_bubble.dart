@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import '../models/chat_message.dart';
 import '../core/agent_colors.dart';
@@ -55,7 +56,7 @@ class ChatBubble extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: bgColor,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Text(
                   cleanText,
@@ -94,7 +95,7 @@ class ChatBubble extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 240),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(14),
           ),
           clipBehavior: Clip.antiAlias,
           child: Image.file(
@@ -104,16 +105,16 @@ class ChatBubble extends StatelessWidget {
             errorBuilder: (_, _, _) => Container(
               width: 240,
               height: 120,
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Center(
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      Icons.broken_image_outlined,
+                      PhosphorIconsRegular.imageBroken,
                       size: 32,
                       color: nc.textSecondary.withValues(alpha: 0.4),
                     ),
@@ -141,11 +142,11 @@ class ChatBubble extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(maxWidth: 240),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
@@ -153,10 +154,10 @@ class ChatBubble extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               color: nc.primarySurface,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
-              Icons.insert_drive_file_outlined,
+              PhosphorIconsRegular.fileText,
               size: 22,
               color: nc.textSecondary,
             ),
@@ -367,7 +368,7 @@ class _AIBubbleState extends State<_AIBubble>
               ),
               const SizedBox(width: 2),
               Icon(
-                Icons.chevron_right,
+                PhosphorIconsRegular.caretRight,
                 size: 16,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),
@@ -394,7 +395,7 @@ class _AIBubbleState extends State<_AIBubble>
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.close, size: 16, color: nc.error),
+          Icon(PhosphorIconsRegular.x, size: 16, color: nc.error),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
@@ -431,7 +432,7 @@ class _AIBubbleState extends State<_AIBubble>
               ),
               const SizedBox(width: 2),
               Icon(
-                Icons.chevron_right,
+                PhosphorIconsRegular.caretRight,
                 size: 16,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),
@@ -449,7 +450,7 @@ class _AIBubbleState extends State<_AIBubble>
       context: context,
       backgroundColor: nc.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => SafeArea(
         child: Padding(

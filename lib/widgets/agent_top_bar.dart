@@ -52,7 +52,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
                         PhosphorIconsRegular.list,
@@ -79,7 +79,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                         decoration: BoxDecoration(
                           color: colors.primarySurface,
                           border: Border.all(color: colors.divider, width: 0.5),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,

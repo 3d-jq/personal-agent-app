@@ -20,7 +20,7 @@ class QuickActionChips extends StatelessWidget {
             padding: const EdgeInsets.only(right: 8),
             child: InkWell(
               onTap: onTap != null ? () => onTap!(actions[index]) : null,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(10),
               child: _Chip(label: actions[index]),
             ),
           );
@@ -42,12 +42,12 @@ class _Chip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: colors.primarySurface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.divider),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: colors.divider, width: 0.5),
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 14, color: colors.textPrimary),
+        style: TextStyle(fontSize: 15, color: colors.textPrimary),
       ),
     );
   }

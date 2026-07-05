@@ -216,13 +216,13 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                         ),
                         decoration: BoxDecoration(
                           color: nc.primary,
-                          borderRadius: BorderRadius.circular(22),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(
-                              Icons.edit_outlined,
+                              PhosphorIconsRegular.pencilSimple,
                               size: 18,
                               color: Colors.white,
                             ),
@@ -286,7 +286,7 @@ class _Card extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: nc.divider),
+        border: Border.all(color: nc.divider, width: 0.5),
       ),
       child: Column(children: children),
     );
@@ -389,7 +389,7 @@ class _Pill extends StatelessWidget {
     return Container(
       width: 40,
       height: 40,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
       child: Icon(icon, size: 18, color: nc.textPrimary),
     );
   }

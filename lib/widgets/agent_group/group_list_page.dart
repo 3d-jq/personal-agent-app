@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../core/agent_colors.dart';
 import '../../core/app_router.dart';
 import '../../models/agent.dart';
@@ -6,6 +7,7 @@ import '../../models/agent_group.dart';
 import '../../services/agent_group_storage.dart';
 import '../../core/service_locator.dart';
 import '../../services/agent_storage.dart';
+import '../state_placeholder.dart';
 
 /// 群列表页
 class GroupListPage extends StatefulWidget {
@@ -83,7 +85,7 @@ class _GroupListPageState extends State<GroupListPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -98,28 +100,20 @@ class _GroupListPageState extends State<GroupListPage> {
         actions: [
           IconButton(
             tooltip: 'Agent 库',
-            icon: Icon(Icons.smart_toy_outlined, color: nc.textPrimary),
+            icon: Icon(PhosphorIconsRegular.robot, color: nc.textPrimary),
             onPressed: () => AppRouter.toAgentManage(context),
           ),
           IconButton(
-            icon: Icon(Icons.add, color: nc.textPrimary),
+            icon: Icon(PhosphorIconsRegular.plus, color: nc.textPrimary),
             onPressed: _createGroup,
           ),
         ],
       ),
       body: _groups.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.groups_outlined, size: 56, color: nc.textDisabled),
-                  const SizedBox(height: 12),
-                  Text(
-                    '还没有群，点击右上角 + 建一个',
-                    style: TextStyle(color: nc.textSecondary),
-                  ),
-                ],
-              ),
+          ? StatePlaceholder.empty(
+              icon: PhosphorIconsRegular.users,
+              title: '还没有群',
+              subtitle: '点击右上角 + 创建一个',
             )
           : ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -179,7 +173,7 @@ class _RoundedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: nc.divider),
+        border: Border.all(color: nc.divider, width: 0.5),
       ),
       child: Column(children: children),
     );
@@ -240,7 +234,7 @@ class _GroupItem extends StatelessWidget {
                 ),
               ),
               Icon(
-                Icons.chevron_right,
+                PhosphorIconsRegular.caretRight,
                 size: 18,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),
@@ -265,9 +259,9 @@ class _MemberAvatars extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: nc.primarySurface,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(Icons.groups_outlined, color: nc.textSecondary, size: 18),
+        child: Icon(PhosphorIconsRegular.users, color: nc.textSecondary, size: 18),
       );
     }
     return SizedBox(
@@ -284,7 +278,7 @@ class _MemberAvatars extends StatelessWidget {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: nc.primarySurface,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: nc.surface, width: 2),
               ),
               child: Text(

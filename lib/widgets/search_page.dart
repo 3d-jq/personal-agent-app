@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import '../services/chat_storage.dart';
 import '../core/service_locator.dart';
 import '../services/note_storage.dart';
+import 'state_placeholder.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -46,7 +48,7 @@ class _SearchPageState extends State<SearchPage> {
             type: '对话',
             title: s.title,
             subtitle: '${s.messages.length} 条消息',
-            icon: Icons.chat_bubble_outline,
+            icon: PhosphorIconsRegular.chatTeardropText,
           ),
         );
       }
@@ -61,7 +63,7 @@ class _SearchPageState extends State<SearchPage> {
             type: '笔记',
             title: n.title,
             subtitle: n.summary,
-            icon: Icons.note_outlined,
+            icon: PhosphorIconsRegular.notebook,
           ),
         );
       }
@@ -83,7 +85,7 @@ class _SearchPageState extends State<SearchPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: TextField(
@@ -101,24 +103,16 @@ class _SearchPageState extends State<SearchPage> {
         ),
       ),
       body: _ctrl.text.isEmpty
-          ? Center(
-              child: Text(
-                '输入关键词搜索',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: nc.textSecondary.withValues(alpha: 0.5),
-                ),
-              ),
+          ? StatePlaceholder.empty(
+              icon: PhosphorIconsRegular.magnifyingGlass,
+              title: '输入关键词搜索',
+              subtitle: '搜索对话、笔记',
             )
           : _results.isEmpty
-          ? Center(
-              child: Text(
-                _loaded ? '没有找到相关内容' : '搜索中...',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: nc.textSecondary.withValues(alpha: 0.5),
-                ),
-              ),
+          ? StatePlaceholder(
+              loading: !_loaded,
+              icon: !_loaded ? null : const Icon(PhosphorIconsRegular.magnifyingGlass, size: 48),
+              title: _loaded ? '没有找到相关内容' : '搜索中...',
             )
           : ListView.builder(
               physics: const BouncingScrollPhysics(),
@@ -146,7 +140,7 @@ class _SearchPageState extends State<SearchPage> {
                               height: 36,
                               decoration: BoxDecoration(
                                 color: nc.primarySurface,
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
                                 r.icon,

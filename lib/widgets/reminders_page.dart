@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../models/reminder.dart';
 import '../core/service_locator.dart';
 import '../services/reminder_storage.dart';
 import '../tools/reminder_tool.dart';
+import 'state_placeholder.dart';
 
 class RemindersView extends StatefulWidget {
   const RemindersView({super.key});
@@ -51,7 +53,7 @@ class _RemindersViewState extends State<RemindersView> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -65,46 +67,19 @@ class _RemindersViewState extends State<RemindersView> {
         centerTitle: true,
       ),
       body: !_loaded
-          ? const Center(child: CircularProgressIndicator())
+          ? StatePlaceholder.loading()
           : _reminders.isEmpty
-          ? _emptyState(nc)
+          ? StatePlaceholder.empty(
+              icon: PhosphorIconsRegular.alarm,
+              title: '没有定时任务',
+              subtitle: '在聊天中让 DWeis 帮你设置提醒',
+            )
           : ListView.builder(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               itemCount: _reminders.length,
               itemBuilder: (_, i) => _reminderCard(_reminders[i], nc),
             ),
-    );
-  }
-
-  Widget _emptyState(AgentColors nc) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.alarm_off_rounded,
-            size: 48,
-            color: nc.textSecondary.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '没有定时任务',
-            style: TextStyle(
-              fontSize: 15,
-              color: nc.textSecondary.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '在聊天中让 DWeis 帮你设置提醒',
-            style: TextStyle(
-              fontSize: 13,
-              color: nc.textSecondary.withValues(alpha: 0.4),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -128,7 +103,7 @@ class _RemindersViewState extends State<RemindersView> {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: nc.divider),
+        border: Border.all(color: nc.divider, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +156,7 @@ class _RemindersViewState extends State<RemindersView> {
           Row(
             children: [
               Icon(
-                Icons.access_time,
+                PhosphorIconsRegular.clock,
                 size: 14,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),

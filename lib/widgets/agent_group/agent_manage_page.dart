@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/agent_colors.dart';
 import '../../core/app_router.dart';
@@ -86,7 +87,7 @@ class _AgentManagePageState extends State<AgentManagePage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -100,7 +101,7 @@ class _AgentManagePageState extends State<AgentManagePage> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.add, color: nc.textPrimary),
+            icon: Icon(PhosphorIconsRegular.plus, color: nc.textPrimary),
             onPressed: () => _editOrCreate(),
           ),
         ],
@@ -165,7 +166,7 @@ class _RoundedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: nc.divider),
+        border: Border.all(color: nc.divider, width: 0.5),
       ),
       child: Column(children: children),
     );
@@ -202,7 +203,7 @@ class _AgentItem extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: nc.primarySurface,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   agent.avatar.isNotEmpty
@@ -253,7 +254,7 @@ class _AgentItem extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.only(left: 12),
                     child: Icon(
-                      Icons.delete_outline,
+                      PhosphorIconsRegular.trash,
                       size: 18,
                       color: nc.textSecondary.withValues(alpha: 0.5),
                     ),
@@ -261,7 +262,7 @@ class _AgentItem extends StatelessWidget {
                 ),
               const SizedBox(width: 4),
               Icon(
-                Icons.chevron_right,
+                PhosphorIconsRegular.caretRight,
                 size: 18,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),
@@ -340,7 +341,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
+          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -522,7 +523,7 @@ class _VendorOption extends StatelessWidget {
                 ),
               ),
               Icon(
-                selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                selected ? PhosphorIconsRegular.checkCircle : PhosphorIconsRegular.circle,
                 color: selected ? nc.success : nc.textDisabled,
                 size: 20,
               ),
@@ -568,14 +569,14 @@ class _ToolOption extends StatelessWidget {
                 margin: const EdgeInsets.only(right: 12),
                 decoration: BoxDecoration(
                   color: selected ? nc.success : Colors.transparent,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: selected ? nc.success : nc.divider,
                     width: selected ? 0 : 1.5,
                   ),
                 ),
                 child: selected
-                    ? const Icon(Icons.check, size: 14, color: Colors.white)
+                    ? const Icon(PhosphorIconsRegular.check, size: 14, color: Colors.white)
                     : null,
               ),
               Text(
@@ -705,7 +706,7 @@ class _AgentModelPickerState extends State<_AgentModelPicker> {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               children: [
-                Icon(Icons.error_outline, size: 14, color: nc.error),
+                Icon(PhosphorIconsRegular.warningCircle, size: 14, color: nc.error),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -764,7 +765,7 @@ class _AgentModelPickerState extends State<_AgentModelPicker> {
             ),
             suffixIcon: widget.currentModel.isNotEmpty
                 ? IconButton(
-                    icon: Icon(Icons.close, size: 18, color: nc.textSecondary),
+                    icon: Icon(PhosphorIconsRegular.x, size: 18, color: nc.textSecondary),
                     onPressed: () => widget.onChanged(''),
                   )
                 : null,

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'core/agent_colors.dart';
 import 'core/service_locator.dart';
 import 'screens/chat_screen.dart';
@@ -43,21 +42,79 @@ class _AppState extends State<App> {
   }
 
   TextTheme _buildTextTheme(Color textColor) {
-    final poppins = GoogleFonts.poppins(color: textColor);
-    final lora = GoogleFonts.lora(color: textColor);
     return TextTheme(
-      headlineLarge: poppins.copyWith(fontSize: 28, fontWeight: FontWeight.w500, height: 1.2),
-      headlineMedium: poppins.copyWith(fontSize: 22, fontWeight: FontWeight.w500, height: 1.3),
-      headlineSmall: poppins.copyWith(fontSize: 20, fontWeight: FontWeight.w500, height: 1.3),
-      titleLarge: poppins.copyWith(fontSize: 18, fontWeight: FontWeight.w500, height: 1.3),
-      titleMedium: poppins.copyWith(fontSize: 16, fontWeight: FontWeight.w500, height: 1.4),
-      titleSmall: poppins.copyWith(fontSize: 14, fontWeight: FontWeight.w500, height: 1.4),
-      bodyLarge: lora.copyWith(fontSize: 16, fontWeight: FontWeight.w400, height: 1.7),
-      bodyMedium: lora.copyWith(fontSize: 14, fontWeight: FontWeight.w400, height: 1.7),
-      bodySmall: lora.copyWith(fontSize: 12, fontWeight: FontWeight.w400, height: 1.6),
-      labelLarge: poppins.copyWith(fontSize: 14, fontWeight: FontWeight.w500, height: 1.3),
-      labelMedium: poppins.copyWith(fontSize: 12, fontWeight: FontWeight.w500, height: 1.3),
-      labelSmall: poppins.copyWith(fontSize: 11, fontWeight: FontWeight.w500, height: 1.2, letterSpacing: 0.1),
+      headlineLarge: TextStyle(
+        fontSize: 34,
+        fontWeight: FontWeight.w700,
+        height: 1.2,
+        color: textColor,
+      ),
+      headlineMedium: TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        height: 1.2,
+        color: textColor,
+      ),
+      headlineSmall: TextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        height: 1.3,
+        color: textColor,
+      ),
+      titleLarge: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        height: 1.3,
+        color: textColor,
+      ),
+      titleMedium: TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        height: 1.4,
+        color: textColor,
+      ),
+      titleSmall: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        height: 1.4,
+        color: textColor,
+      ),
+      bodyLarge: TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w400,
+        height: 1.5,
+        color: textColor,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w400,
+        height: 1.5,
+        color: textColor,
+      ),
+      bodySmall: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w400,
+        height: 1.4,
+        color: textColor,
+      ),
+      labelLarge: TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        height: 1.3,
+        color: textColor,
+      ),
+      labelMedium: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
+        height: 1.3,
+        color: textColor,
+      ),
+      labelSmall: TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w400,
+        height: 1.2,
+        color: textColor,
+      ),
     );
   }
 
@@ -86,7 +143,7 @@ class _AppState extends State<App> {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: agentColors.background,
       textTheme: textTheme,
-      fontFamily: GoogleFonts.lora().fontFamily,
+      fontFamily: '-apple-system',
       appBarTheme: AppBarTheme(
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -96,18 +153,15 @@ class _AppState extends State<App> {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          foregroundColor: agentColors.primary,
+          backgroundColor: agentColors.primary,
+          foregroundColor: Colors.white,
           elevation: 0,
           shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: BorderSide(color: agentColors.divider),
+            borderRadius: BorderRadius.circular(10),
           ),
-          textStyle: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500),
-        ).copyWith(
-          overlayColor: WidgetStatePropertyAll(agentColors.primary.withValues(alpha: 0.08)),
+          textStyle: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -115,39 +169,49 @@ class _AppState extends State<App> {
           foregroundColor: agentColors.primary,
           side: BorderSide(color: agentColors.divider),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500),
-        ).copyWith(
-          overlayColor: WidgetStatePropertyAll(agentColors.primary.withValues(alpha: 0.08)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          textStyle: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: agentColors.primary,
-          textStyle: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w500),
+          textStyle: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
-        filled: false,
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-        border: UnderlineInputBorder(borderSide: BorderSide(color: agentColors.divider)),
-        enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: agentColors.divider)),
-        focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: agentColors.primary, width: 1.5)),
-        errorBorder: UnderlineInputBorder(borderSide: BorderSide(color: agentColors.error)),
-        labelStyle: textTheme.bodyMedium?.copyWith(color: agentColors.textSecondary),
-        hintStyle: textTheme.bodyMedium?.copyWith(color: agentColors.textDisabled),
+        filled: true,
+        fillColor: agentColors.surface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: agentColors.divider),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: agentColors.divider),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: agentColors.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: agentColors.error),
+        ),
+        labelStyle: TextStyle(color: agentColors.textSecondary),
+        hintStyle: TextStyle(color: agentColors.textDisabled),
       ),
       dividerTheme: DividerThemeData(
         color: agentColors.divider,
-        thickness: 1,
-        space: 1,
+        thickness: 0.5,
+        space: 0.5,
       ),
       cardTheme: CardThemeData(
         color: agentColors.cardBackground,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(color: agentColors.divider),
+          borderRadius: BorderRadius.circular(12),
         ),
         margin: EdgeInsets.zero,
       ),
