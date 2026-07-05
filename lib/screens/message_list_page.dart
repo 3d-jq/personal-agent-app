@@ -182,8 +182,7 @@ class _MessageListPageState extends State<MessageListPage> {
           Navigator.pop(context);
           final result = await AppRouter.editGroup(context);
           if (result != null) {
-            final (group, _, _) = result;
-            await getIt<AgentGroupStorage>().save(group);
+            await getIt<AgentGroupStorage>().save(result);
             _load();
           }
         },

@@ -122,23 +122,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   Future<void> _editGroup() async {
     final g = _group;
     if (g == null) return;
-    final result = await AppRouter.editGroup(context, existing: g);
-    if (result == null) return;
-    final (updated, addedNames, removedNames) = result;
-    final sysMsgs = <String>[];
-    for (final name in addedNames) {
-      sysMsgs.add('$name 加入了群聊');
-    }
-    for (final name in removedNames) {
-      sysMsgs.add('$name 离开了群聊');
-    }
-    if (sysMsgs.isNotEmpty) {
-      setState(() {
-        for (final msg in sysMsgs) {
-          _messages.add(ChatMessage(text: msg, isUser: false));
-        }
-      });
-    }
+    final updated = await AppRouter.editGroup(context, existing: g);
+    if (updated == null) return;
     updated.messages = List.from(_messages);
     await getIt<AgentGroupStorage>().save(updated);
     await _load();
