@@ -11,6 +11,7 @@ import '../models/chat_session.dart';
 import '../services/agent_group_storage.dart';
 import '../services/agent_storage.dart';
 import '../services/chat_storage.dart';
+import '../widgets/state_placeholder.dart';
 
 /// 消息列表页面（类似微信聊天列表）
 class MessageListPage extends StatefulWidget {
@@ -112,13 +113,12 @@ class _MessageListPageState extends State<MessageListPage> {
         ],
       ),
       body: !_loaded
-          ? const Center(child: CircularProgressIndicator())
+          ? StatePlaceholder.loading()
           : _items.isEmpty
-              ? Center(
-                  child: Text(
-                    '暂无消息',
-                    style: TextStyle(color: nc.textSecondary),
-                  ),
+              ? StatePlaceholder.empty(
+                  icon: PhosphorIconsRegular.chatCircle,
+                  title: '暂无消息',
+                  subtitle: '点击右上角 + 创建群聊',
                 )
               : ListView.separated(
                   itemCount: _items.length,

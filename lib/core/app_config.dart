@@ -4,7 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 class AppConfig {
   AppConfig._();
 
-  static String _version = '0.8.0';
+  static String _version = '1.0.0';
   static String _buildNumber = '1';
 
   /// 当前应用版本号（来自 pubspec.yaml 的 version 字段）。

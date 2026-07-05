@@ -74,7 +74,6 @@ class PromptBuilder {
     buf.writeln('8. 完成任务或响应用户请求后，必须简短总结你做了什么。');
     buf.writeln();
     buf.writeln('【记忆规则】');
-    buf.writeln('【记忆规则】');
     buf.writeln('9. 用户提供了新的个人信息（称呼/身份/所在地/偏好等），应主动使用 context_doc update 写入 USER.md。写入前先 read 获取当前全文，修改后 update 覆盖。');
     buf.writeln('10. 记住后简短告知用户即可，不要重复写入相同内容。禁止脑补推断。');
     buf.writeln();
