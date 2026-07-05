@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/app_animations.dart';
 import '../models/agent.dart';
 import '../models/agent_group.dart';
+import '../screens/agent_chat_screen.dart';
 import '../services/context_doc_service.dart';
 import '../widgets/about_page.dart';
 import '../widgets/acknowledgement_view.dart';
@@ -47,6 +48,10 @@ class AppRouter {
 
   static Future<void> toGroupList(BuildContext context) =>
       push(context, const GroupListPage());
+
+  /// 与 Agent 单聊
+  static Future<void> toAgentChat(BuildContext context, Agent agent) =>
+      push(context, AgentChatScreen(agent: agent));
 
   static Future<void> toSearch(BuildContext context) =>
       push(context, const SearchPage());
