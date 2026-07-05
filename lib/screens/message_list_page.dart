@@ -33,37 +33,51 @@ class _MessageListPageState extends State<MessageListPage> {
   Future<void> _load() async {
     final sessions = await getIt<ChatStorage>().loadAll();
     final groups = await getIt<AgentGroupStorage>().loadAll();
+    final agents = await getIt<AgentStorage>().loadAll();
 
     final items = <_ChatItem>[];
 
-    // 单聊会话
-    for (final s in sessions) {
-      if (s.messages.isEmpty) continue;
-      final lastMsg = s.messages.last;
+    // 所有 Agent（没有聊天记录的也显示）
+    for (final a in agents) {
+      // 查找是否有对应的聊天记录
+      final session = sessions.where((s) => s.title == a.name).firstOrNull;
+      final lastMsg = session != null && session.messages.isNotEmpty
+          ? session.messages.last
+          : null;
+
       items.add(_ChatItem(
-        id: s.id,
-        name: s.title,
-        lastMessage: lastMsg.isUser ? '你: ${lastMsg.text}' : lastMsg.text,
-        time: DateTime.now(), // 使用当前时间作为占位
+        id: a.id,
+        name: a.name,
+        avatar: a.avatar,
+        lastMessage: lastMsg != null
+            ? (lastMsg.isUser ? '你: ${lastMsg.text}' : lastMsg.text)
+            : a.role,
+        time: session?.updatedAt ?? DateTime(2000),
         isGroup: false,
+        agentId: a.id,
       ));
     }
 
-    // 群聊会话
+    // 群聊
     for (final g in groups) {
       if (g.messages.isEmpty) continue;
       final lastMsg = g.messages.last;
       items.add(_ChatItem(
         id: g.id,
         name: g.name,
+        avatar: '',
         lastMessage: lastMsg.isUser ? '你: ${lastMsg.text}' : lastMsg.text,
-        time: DateTime.now(), // 使用当前时间作为占位
+        time: g.updatedAt,
         isGroup: true,
       ));
     }
 
-    // 按时间排序
-    items.sort((a, b) => b.time.compareTo(a.time));
+    // 按时间排序（有聊天记录的排前面）
+    items.sort((a, b) {
+      if (a.time == DateTime(2000) && b.time != DateTime(2000)) return 1;
+      if (a.time != DateTime(2000) && b.time == DateTime(2000)) return -1;
+      return b.time.compareTo(a.time);
+    });
 
     setState(() {
       _items = items;
@@ -128,11 +142,19 @@ class _MessageListPageState extends State<MessageListPage> {
   void _openChat(_ChatItem item) {
     if (item.isGroup) {
       AppRouter.toGroupChat(context, groupId: item.id);
-    } else {
-      // 单聊暂时跳转到主聊天页
-      AppRouter.toChat(context, sessionId: item.id);
+    } else if (item.agentId != null) {
+      // 查找 Agent 并进入单聊
+      _openAgentChat(item.agentId!);
     }
     _load();
+  }
+
+  Future<void> _openAgentChat(String agentId) async {
+    final agents = await getIt<AgentStorage>().loadAll();
+    final agent = agents.where((a) => a.id == agentId).firstOrNull;
+    if (agent != null && mounted) {
+      AppRouter.toAgentChat(context, agent);
+    }
   }
 
   void _showAddMenu() {
@@ -193,16 +215,20 @@ class _MessageListPageState extends State<MessageListPage> {
 class _ChatItem {
   final String id;
   final String name;
+  final String avatar;
   final String lastMessage;
   final DateTime time;
   final bool isGroup;
+  final String? agentId;
 
   _ChatItem({
     required this.id,
     required this.name,
+    this.avatar = '',
     required this.lastMessage,
     required this.time,
     required this.isGroup,
+    this.agentId,
   });
 }
 
@@ -240,7 +266,7 @@ class _MessageTile extends StatelessWidget {
                 child: item.isGroup
                     ? Icon(PhosphorIconsRegular.users, size: 24, color: Colors.white)
                     : Text(
-                        item.name.characters.first,
+                        item.avatar.isNotEmpty ? item.avatar : item.name.characters.first,
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
