@@ -102,9 +102,9 @@ class _AgentContactPageState extends State<AgentContactPage> {
       builder: (_) => _AgentCardSheet(
         agent: agent,
         nc: nc,
-        onChat: () {
+        onDelete: () {
           Navigator.pop(context);
-          AppRouter.toAgentChat(context, agent);
+          _deleteAgent(agent);
         },
         onEdit: () {
           Navigator.pop(context);
@@ -112,6 +112,10 @@ class _AgentContactPageState extends State<AgentContactPage> {
         },
       ),
     );
+  }
+
+  void _deleteAgent(Agent agent) {
+    // TODO: 实现删除 Agent 逻辑
   }
 
   void _showAddMenu() {
@@ -305,13 +309,13 @@ class _AgentTile extends StatelessWidget {
 class _AgentCardSheet extends StatelessWidget {
   final Agent agent;
   final AgentColors nc;
-  final VoidCallback onChat;
+  final VoidCallback onDelete;
   final VoidCallback onEdit;
 
   const _AgentCardSheet({
     required this.agent,
     required this.nc,
-    required this.onChat,
+    required this.onDelete,
     required this.onEdit,
   });
 
@@ -393,33 +397,32 @@ class _AgentCardSheet extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onChat,
-                    icon: const Icon(PhosphorIconsRegular.chatCircle, size: 18),
-                    label: const Text('发消息'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: nc.primary,
-                      foregroundColor: Colors.white,
+                  child: OutlinedButton(
+                    onPressed: onDelete,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: nc.error,
+                      side: BorderSide(color: nc.error.withValues(alpha: 0.3)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
+                    child: const Text('删除'),
                   ),
                 ),
                 const SizedBox(width: 12),
-                SizedBox(
-                  width: 48,
-                  height: 44,
+                Expanded(
                   child: OutlinedButton(
                     onPressed: onEdit,
                     style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.zero,
+                      foregroundColor: nc.textPrimary,
+                      side: BorderSide(color: nc.divider),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: Icon(PhosphorIconsRegular.pencilSimple, size: 18, color: nc.textPrimary),
+                    child: const Text('编辑'),
                   ),
                 ),
               ],
