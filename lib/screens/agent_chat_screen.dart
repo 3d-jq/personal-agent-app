@@ -3,13 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import '../core/agent_colors.dart';
 import '../core/service_locator.dart';
 import '../models/agent.dart';
 import '../models/chat_message.dart';
+import '../models/chat_session.dart';
 import '../services/agent_runner.dart';
 import '../services/ai_service.dart';
+import '../services/chat_storage.dart';
 import '../services/chat_stream_event.dart';
 import '../tools/tools.dart';
 import '../widgets/ai_settings_sheet.dart';
@@ -31,10 +34,12 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
   final FocusNode _inputFocus = FocusNode();
   final ScrollController _scrollCtrl = ScrollController();
   final AISettings _aiSettings = getIt<AISettings>();
+  final ChatStorage _chatStorage = getIt<ChatStorage>();
   late final AgentRunner _runner;
   late final ToolRegistry _baseRegistry;
 
   List<ChatMessage> _messages = [];
+  String? _sessionId;
   bool _busy = false;
   bool _stopped = false;
   Timer? _scrollTimer;
@@ -46,6 +51,44 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
     if (_baseRegistry.all.isEmpty) registerAllTools(_baseRegistry);
     _runner = AgentRunner(baseRegistry: _baseRegistry);
     _aiSettings.load();
+    _loadSession();
+  }
+
+  Future<void> _loadSession() async {
+    // 查找是否已有会话
+    final sessions = await _chatStorage.loadAll();
+    final existing = sessions.where((s) => s.title == widget.agent.name).firstOrNull;
+    if (existing != null) {
+      setState(() {
+        _sessionId = existing.id;
+        _messages = existing.messages;
+      });
+      _scrollDown();
+    }
+  }
+
+  Future<void> _saveSession() async {
+    if (_messages.isEmpty) return;
+
+    if (_sessionId == null) {
+      // 创建新会话
+      final session = ChatSession(
+        id: const Uuid().v4(),
+        title: widget.agent.name,
+        messages: _messages,
+      );
+      await _chatStorage.save(session);
+      _sessionId = session.id;
+    } else {
+      // 更新现有会话
+      final sessions = await _chatStorage.loadAll();
+      final session = sessions.where((s) => s.id == _sessionId).firstOrNull;
+      if (session != null) {
+        session.messages = _messages;
+        session.updatedAt = DateTime.now();
+        await _chatStorage.save(session);
+      }
+    }
   }
 
   @override
@@ -80,6 +123,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
       _busy = true;
     });
     _scrollDown();
+    await _saveSession();
 
     await _runAgent();
   }
@@ -139,6 +183,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
       await sub?.cancel();
       placeholder.isStreaming = false;
       setState(() => _busy = false);
+      await _saveSession();
     }
   }
 
