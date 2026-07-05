@@ -605,14 +605,63 @@ class _AgentEditPageState extends State<AgentEditPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _Field(label: '名字（@用）', ctrl: _name, nc: nc, hint: '例如：产品经理'),
-          _Field(label: '职能描述', ctrl: _role, nc: nc, hint: '一句话说明擅长什么'),
+          // 头像预览
+          Center(
+            child: Container(
+              width: 80,
+              height: 80,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: nc.primarySurface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: nc.divider, width: 0.5),
+              ),
+              child: Text(
+                _name.text.isNotEmpty
+                    ? _name.text.characters.first
+                    : '?',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w700,
+                  color: nc.textPrimary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          // 名字
+          _EditField(
+            label: '名字',
+            ctrl: _name,
+            nc: nc,
+            hint: '例如：产品经理',
+            onChanged: (_) => setState(() {}),
+          ),
           const SizedBox(height: 16),
+          // 职能描述
+          _EditField(
+            label: '职能描述',
+            ctrl: _role,
+            nc: nc,
+            hint: '一句话说明擅长什么',
+            maxLines: 2,
+          ),
+          const SizedBox(height: 16),
+          // System Prompt
           Text(
             'System Prompt',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: nc.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '定义 Agent 的角色、风格和行为规则',
             style: TextStyle(fontSize: 12, color: nc.textSecondary),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Theme(
             data: Theme.of(context).copyWith(
               inputDecorationTheme: const InputDecorationTheme(
@@ -626,14 +675,15 @@ class _AgentEditPageState extends State<AgentEditPage> {
             ),
             child: TextField(
               controller: _prompt,
-              minLines: 4,
-              maxLines: 10,
-              style: TextStyle(fontSize: 15, color: nc.textPrimary),
+              minLines: 6,
+              maxLines: 15,
+              style: TextStyle(fontSize: 14, color: nc.textPrimary, height: 1.6),
               decoration: InputDecoration(
-                hintText: '描述 Agent 的角色、风格、回答方式...',
+                hintText: '<role>\n你是...\n</role>',
                 hintStyle: TextStyle(
                   color: nc.textDisabled,
-                  fontSize: 15,
+                  fontSize: 14,
+                  fontFamily: 'monospace',
                 ),
                 filled: true,
                 fillColor: nc.primarySurface,
@@ -771,6 +821,75 @@ class _Field extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 编辑页输入字段
+class _EditField extends StatelessWidget {
+  final String label;
+  final String? hint;
+  final TextEditingController ctrl;
+  final AgentColors nc;
+  final int maxLines;
+  final ValueChanged<String>? onChanged;
+
+  const _EditField({
+    required this.label,
+    required this.ctrl,
+    required this.nc,
+    this.hint,
+    this.maxLines = 1,
+    this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: nc.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Theme(
+          data: Theme.of(context).copyWith(
+            inputDecorationTheme: const InputDecorationTheme(
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+            ),
+          ),
+          child: TextField(
+            controller: ctrl,
+            onChanged: onChanged,
+            maxLines: maxLines,
+            style: TextStyle(fontSize: 15, color: nc.textPrimary),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(color: nc.textDisabled, fontSize: 15),
+              filled: true,
+              fillColor: nc.primarySurface,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
