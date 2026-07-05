@@ -100,8 +100,6 @@ String toolLabel(String name, {Map<String, dynamic>? arguments, bool detailed = 
       return switch (a) { 'query' => '查看日历', 'add' => '添加日历', 'delete' => '删除日历', _ => '日历' };
     case 'ai_daily':
       return 'AI日报';
-    case 'context_doc':
-      return '上下文文档';
     case 'virtual_fs':
       final a = arguments?['action'] as String?;
       return switch (a) { 'ls' => '列出目录', 'read' => '读取文件', 'write' => '写入文件', 'mkdir' => '创建目录', 'rm' => '删除', 'walk' => '遍历目录', _ => '文件系统' };

@@ -164,6 +164,11 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
       final completer = Completer<void>();
       sub = stream.listen(
         (event) {
+          if (_stopped) {
+            sub?.cancel();
+            completer.complete();
+            return;
+          }
           if (event is TextChunkEvent) {
             buf.write(event.text);
           }
