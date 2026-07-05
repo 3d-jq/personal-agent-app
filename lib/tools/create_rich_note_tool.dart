@@ -47,7 +47,7 @@ class CreateRichNoteTool extends AgentTool {
   AgnesImageTool _getImageTool() {
     if (_imageTool != null) return _imageTool!;
     final key = CryptoUtil.decrypt(dotenv.env['AGNES_API_KEY'] ?? '');
-    _imageTool = AgnesImageTool()..apiKey = key;
+    _imageTool = AgnesImageTool(apiKey: key);
     return _imageTool!;
   }
 

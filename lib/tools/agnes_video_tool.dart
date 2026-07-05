@@ -10,7 +10,9 @@ import '../tools/base_tool.dart';
 import 'agnes_video_tool.g.dart';
 
 class AgnesVideoTool extends AgentTool {
-  String? apiKey;
+  final String? apiKey;
+
+  AgnesVideoTool({this.apiKey});
 
   final Dio _dio = Dio(
     BaseOptions(

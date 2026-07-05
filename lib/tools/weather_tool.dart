@@ -28,7 +28,9 @@ class WeatherTool extends AgentTool {
     'required': ['city'],
   };
 
-  String? apiKey;
+  final String? apiKey;
+
+  WeatherTool({this.apiKey});
 
   final Dio _dio = Dio(
     BaseOptions(

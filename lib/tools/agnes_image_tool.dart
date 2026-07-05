@@ -11,7 +11,9 @@ import 'agnes_image_tool.g.dart';
 
 class AgnesImageTool extends AgentTool {
   /// API Key for Agnes AI (set via settings)
-  String? apiKey;
+  final String? apiKey;
+
+  AgnesImageTool({this.apiKey});
 
   final Dio _dio = Dio(
     BaseOptions(

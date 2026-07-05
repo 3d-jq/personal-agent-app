@@ -25,15 +25,13 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(TaskPlanTool());
   registry.register(ReminderTool());
   registry.register(WebFetchTool());
-  registry.register(
-    WeatherTool()..apiKey = CryptoUtil.decrypt(_safeEnv('GAODE_API_KEY')),
-  );
+  registry.register(WeatherTool(apiKey: CryptoUtil.decrypt(_safeEnv('GAODE_API_KEY'))));
   registry.register(LocationTool());
   registry.register(SearxngSearchTool());
   registry.register(TavilySearchTool());
   final agnesKey = CryptoUtil.decrypt(_safeEnv('AGNES_API_KEY'));
-  registry.register(AgnesImageTool()..apiKey = agnesKey);
-  registry.register(AgnesVideoTool()..apiKey = agnesKey);
+  registry.register(AgnesImageTool(apiKey: agnesKey));
+  registry.register(AgnesVideoTool(apiKey: agnesKey));
   registry.register(SaveNoteTool());
   registry.register(ManageNoteTool());
   registry.register(CreateRichNoteTool());
