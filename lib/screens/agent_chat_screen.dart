@@ -268,9 +268,23 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(32),
-                      child: Text(
-                        '开始和${widget.agent.name}聊天吧~',
-                        style: TextStyle(color: nc.textSecondary),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            PhosphorIconsRegular.chatCircle,
+                            size: 48,
+                            color: nc.primary.withValues(alpha: 0.3),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '开始和${widget.agent.name}聊天吧~',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: nc.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   )
