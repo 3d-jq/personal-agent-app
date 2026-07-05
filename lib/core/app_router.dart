@@ -3,6 +3,9 @@ import '../core/app_animations.dart';
 import '../models/agent.dart';
 import '../models/agent_group.dart';
 import '../screens/agent_chat_screen.dart';
+import '../screens/agent_contact_page.dart';
+import '../screens/chat_screen.dart';
+import '../screens/message_list_page.dart';
 import '../services/context_doc_service.dart';
 import '../widgets/about_page.dart';
 import '../widgets/acknowledgement_view.dart';
@@ -36,7 +39,21 @@ class AppRouter {
     Navigator.of(context).pop<T>(result);
   }
 
-  // ── 侧边栏主入口 ──
+  // ── 主页面 ──
+  static Future<void> toMessages(BuildContext context) =>
+      push(context, const MessageListPage());
+
+  static Future<void> toAgentContact(BuildContext context) =>
+      push(context, const AgentContactPage());
+
+  static Future<void> toChat(BuildContext context, {String? sessionId}) =>
+      push(context, ChatScreen(sessionId: sessionId));
+
+  /// 与 Agent 单聊
+  static Future<void> toAgentChat(BuildContext context, Agent agent) =>
+      push(context, AgentChatScreen(agent: agent));
+
+  // ── 侧边栏入口 ──
   static Future<void> toNotes(BuildContext context) =>
       push(context, const NotesPage());
 
@@ -45,13 +62,6 @@ class AppRouter {
 
   static Future<void> toReminders(BuildContext context) =>
       push(context, const RemindersView());
-
-  static Future<void> toGroupList(BuildContext context) =>
-      push(context, const GroupListPage());
-
-  /// 与 Agent 单聊
-  static Future<void> toAgentChat(BuildContext context, Agent agent) =>
-      push(context, AgentChatScreen(agent: agent));
 
   static Future<void> toSearch(BuildContext context) =>
       push(context, const SearchPage());
@@ -72,6 +82,9 @@ class AppRouter {
   // ── Agent 群 ──
   static Future<void> toAgentManage(BuildContext context) =>
       push(context, const AgentManagePage());
+
+  static Future<void> toGroupList(BuildContext context) =>
+      push(context, const GroupListPage());
 
   static Future<void> toGroupChat(
     BuildContext context, {
