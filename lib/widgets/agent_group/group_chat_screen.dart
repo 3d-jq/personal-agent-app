@@ -482,63 +482,81 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 8),
-              width: 36,
-              height: 4,
-              decoration: BoxDecoration(
-                color: nc.divider,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                '选择要 @ 的 Agent',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: nc.textPrimary,
+      isScrollControlled: true,
+      builder: (_) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.7,
+        expand: false,
+        builder: (context, scrollCtrl) => SafeArea(
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: nc.divider,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-            ..._members.map(
-              (a) => ListTile(
-                leading: Container(
-                  width: 36,
-                  height: 36,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: nc.primarySurface,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Text(
-                    a.avatar.isNotEmpty ? a.avatar : a.name.characters.first,
-                    style: const TextStyle(fontSize: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  '选择要 @ 的 Agent',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: nc.textPrimary,
                   ),
                 ),
-                title: Text(
-                  a.name,
-                  style: TextStyle(fontSize: 15, color: nc.textPrimary),
-                ),
-                subtitle: a.role.isNotEmpty
-                    ? Text(
-                        a.role,
-                        style: TextStyle(fontSize: 12, color: nc.textSecondary),
-                      )
-                    : null,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.pop(context);
-                  insertAt(a.name);
-                },
               ),
-            ),
-          ],
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollCtrl,
+                  itemCount: _members.length,
+                  itemBuilder: (context, index) {
+                    final a = _members[index];
+                    return ListTile(
+                      leading: Container(
+                        width: 36,
+                        height: 36,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: nc.primarySurface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: nc.divider, width: 0.5),
+                        ),
+                        child: Text(
+                          a.avatar.isNotEmpty ? a.avatar : a.name.characters.first,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: nc.textPrimary,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        a.name,
+                        style: TextStyle(fontSize: 15, color: nc.textPrimary),
+                      ),
+                      subtitle: a.role.isNotEmpty
+                          ? Text(
+                              a.role,
+                              style: TextStyle(fontSize: 12, color: nc.textSecondary),
+                            )
+                          : null,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(context);
+                        insertAt(a.name);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
