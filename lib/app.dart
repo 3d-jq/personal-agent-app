@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'core/agent_colors.dart';
 import 'core/service_locator.dart';
-import 'screens/chat_screen.dart';
+import 'screens/main_screen.dart';
 import 'services/theme_service.dart';
 import 'widgets/ai_settings_sheet.dart';
 import 'widgets/onboarding_page.dart';
@@ -231,7 +231,7 @@ class _AppState extends State<App> {
           ? OnboardingPage(
               onComplete: () => setState(() => _showOnboarding = false),
             )
-          : const ChatScreen(),
+          : const MainScreen(),
     );
   }
 }
