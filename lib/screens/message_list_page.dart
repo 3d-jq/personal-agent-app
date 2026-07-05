@@ -185,22 +185,17 @@ class _MessageListPageState extends State<MessageListPage> {
               ),
             ),
             _AddMenuItem(
-              icon: PhosphorIconsRegular.userPlus,
-              label: '新建 Agent',
-              nc: nc,
-              onTap: () {
-                Navigator.pop(context);
-                AppRouter.toAgentManage(context);
-              },
-            ),
-            Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 16),
-            _AddMenuItem(
               icon: PhosphorIconsRegular.users,
               label: '创建群聊',
               nc: nc,
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                AppRouter.toGroupList(context);
+                final result = await AppRouter.editGroup(context);
+                if (result != null) {
+                  final (group, _, _) = result;
+                  await getIt<AgentGroupStorage>().save(group);
+                  _load();
+                }
               },
             ),
             const SizedBox(height: 8),

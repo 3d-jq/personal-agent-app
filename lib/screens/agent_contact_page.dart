@@ -115,7 +115,29 @@ class _AgentContactPageState extends State<AgentContactPage> {
   }
 
   void _deleteAgent(Agent agent) {
-    // TODO: 实现删除 Agent 逻辑
+    final nc = AgentColors.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: nc.surface,
+        title: Text('删除 Agent', style: TextStyle(color: nc.textPrimary)),
+        content: Text('确定删除「${agent.name}」？', style: TextStyle(color: nc.textSecondary)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('取消', style: TextStyle(color: nc.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await getIt<AgentStorage>().remove(agent.id);
+              _load();
+            },
+            child: Text('删除', style: TextStyle(color: nc.error)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showAddMenu() {
@@ -149,19 +171,13 @@ class _AgentContactPageState extends State<AgentContactPage> {
               icon: PhosphorIconsRegular.robot,
               label: '新建 Agent',
               nc: nc,
-              onTap: () {
+              onTap: () async {
                 Navigator.pop(context);
-                AppRouter.toAgentManage(context);
-              },
-            ),
-            Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 16),
-            _AddMenuItem(
-              icon: PhosphorIconsRegular.users,
-              label: '创建群聊',
-              nc: nc,
-              onTap: () {
-                Navigator.pop(context);
-                AppRouter.toGroupList(context);
+                final result = await AppRouter.editAgent(context);
+                if (result != null) {
+                  await getIt<AgentStorage>().add(result);
+                  _load();
+                }
               },
             ),
             const SizedBox(height: 8),
