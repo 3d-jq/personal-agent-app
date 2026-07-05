@@ -139,7 +139,6 @@ class ChatBubble extends StatelessWidget {
     final file = File(path);
     final name = file.path.split(Platform.pathSeparator).last;
     final shortName = name.length > 24 ? '${name.substring(0, 21)}...' : name;
-    final exists = file.existsSync();
 
     return Container(
       constraints: const BoxConstraints(maxWidth: 240),
@@ -183,7 +182,7 @@ class ChatBubble extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  exists ? '文档附件' : '文件不存在',
+                  '文档附件',
                   style: TextStyle(fontSize: 11, color: nc.textSecondary),
                 ),
               ],
