@@ -189,6 +189,8 @@ class AgentRunner {
         if (!allowed.contains(tool.name)) continue;
         // Agent 群中非协调者 Agent 只能使用只读工具
         if (!agent.isCoordinator && !tool.readOnly) continue;
+        // 禁用 AskUserTool（群聊中没有 onAsk 回调，会卡死）
+        if (tool.name == 'ask_user') continue;
         scoped.register(tool);
       }
 
@@ -197,6 +199,8 @@ class AgentRunner {
       for (final tool in baseRegistry.discoverable) {
         if (!canDiscover && !allowed.contains(tool.name)) continue;
         if (!agent.isCoordinator && !tool.readOnly) continue;
+        // 禁用 AskUserTool
+        if (tool.name == 'ask_user') continue;
         scoped.registerDiscoverable(tool);
       }
 
