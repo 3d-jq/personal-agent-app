@@ -29,6 +29,7 @@ class GroupChatCoordinator {
   Future<String?> autoPickSpeaker({
     required AgentGroup? group,
     required List<ChatMessage> messages,
+    required Map<String, String> speakerNames,
   }) {
     final coordinator = members.where((a) => a.isCoordinator).firstOrNull;
     if (coordinator != null) return Future.value(coordinator.name);
@@ -36,7 +37,7 @@ class GroupChatCoordinator {
     final manager = members.firstOrNull;
     if (manager == null) return Future.value(null);
 
-    return managerPickSpeaker(manager, [], messages: messages);
+    return managerPickSpeaker(manager, [], messages: messages, speakerNames: speakerNames);
   }
 
   /// Manager 判断下一位发言的 Agent
@@ -44,6 +45,7 @@ class GroupChatCoordinator {
     Agent manager,
     List<String> alreadySpoken, {
     required List<ChatMessage> messages,
+    required Map<String, String> speakerNames,
   }) async {
     final vendor = aiSettings.selectedVendor ??
         (aiSettings.vendors.isNotEmpty ? aiSettings.vendors.first : null);
@@ -69,7 +71,11 @@ $roleList
 ${alreadySpoken.isEmpty ? '(暂无)' : alreadySpoken.join('、')}
 
 【用户的消息 + 对话】
-${messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}').join('\n')}
+${messages.map((m) {
+  if (m.isUser) return '群主: ${m.text}';
+  final name = speakerNames[m.speakerId] ?? '未知';
+  return '$name: ${m.text}';
+}).join('\n')}
 
 请只回复一个名字或 STOP：''';
 
@@ -89,8 +95,11 @@ ${messages.map((m) => '${m.isUser ? "群主" : m.speakerId ?? '?'}: ${m.text}').
       }
       final choice = buf.toString().trim();
       for (final c in candidates) {
+        // 中文名精确匹配，英文名使用词边界匹配
         if (choice == c.name ||
-            choice.contains(RegExp('\\b${RegExp.escape(c.name)}\\b'))) {
+            (RegExp(r'[a-zA-Z]').hasMatch(c.name)
+                ? choice.contains(RegExp('\\b${RegExp.escape(c.name)}\\b'))
+                : choice.contains(c.name))) {
           return c.name;
         }
       }
