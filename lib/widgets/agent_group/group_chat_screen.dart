@@ -78,6 +78,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _inputFocus.dispose();
     _scrollCtrl.dispose();
     _scrollTimer?.cancel();
+    // 先设置标记，阻止回调触发 setState
     for (final sub in _activeSubs) {
       sub.cancel();
     }
@@ -207,7 +208,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
     if (!await getIt<ConnectivityService>().check()) {
       setState(() {
-        _messages.add(ChatMessage(text: '当前无网络连接，请检查网络后重试', isUser: false));
+        _messages.add(ChatMessage(text: '当前无网络连接，请检查网络后重试', isUser: false, speakerId: 'system'));
       });
       await _saveGroup();
       _scrollDown();
@@ -216,7 +217,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
     if (!_aiSettings.hasVendor) {
       setState(() {
-        _messages.add(ChatMessage(text: '请先在侧边栏设置中配置 AI 后端', isUser: false));
+        _messages.add(ChatMessage(text: '请先在侧边栏设置中配置 AI 后端', isUser: false, speakerId: 'system'));
       });
       await _saveGroup();
       _scrollDown();
@@ -275,9 +276,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   /// 处理 Agent 接力：检查最新回复中是否有 @ 其他 Agent
   Future<void> _handleRelay(Set<String> handled, int maxRounds) async {
     for (var round = 0; round < maxRounds && !_stopped; round++) {
-      // 获取最新的 Agent 回复
+      // 获取最新的 Agent 回复（排除系统消息）
       final lastAgentMsg = _messages.lastWhere(
-        (m) => !m.isUser && m.speakerId != null,
+        (m) => !m.isUser && m.speakerId != null && m.speakerId != 'system',
         orElse: () => ChatMessage(text: '', isUser: false),
       );
       
@@ -311,22 +312,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     return _coordinator.autoPickSpeaker(
       group: _group,
       messages: _messages,
+      speakerNames: {for (final a in _members) a.id: a.name},
     );
   }
 
   /// 执行一个 Agent（_runOneAgent 已负责消息的创建与渲染）
   Future<void> _runOneAndAppend(Agent agent) async {
     await _runOneAgent(agent);
-  }
-
-  /// 批量执行 Agent（串行，每个等完成后再下一个），返回回复文本列表
-  Future<List<String>> _runBatch(List<Agent> agents) async {
-    final results = <String>[];
-    for (final agent in agents) {
-      if (_stopped) break;
-      results.add(await _runOneAgent(agent));
-    }
-    return results;
+    // 每个 Agent 回复后立即保存，防止中途崩溃丢失数据
+    await _saveGroup();
   }
 
   /// 执行一个 Agent 并返回它的回复文本
