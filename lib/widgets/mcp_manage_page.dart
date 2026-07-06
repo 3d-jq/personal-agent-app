@@ -387,27 +387,40 @@ class _McpManagePageState extends State<McpManagePage> {
     return _loading
         ? const Center(child: CircularProgressIndicator())
         : _servers.isEmpty
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      PhosphorIconsRegular.globe,
-                      size: 48,
-                      color: nc.textSecondary.withValues(alpha: 0.3),
+            ? Stack(
+                children: [
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          PhosphorIconsRegular.globe,
+                          size: 48,
+                          color: nc.textSecondary.withValues(alpha: 0.3),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          '暂无 MCP 服务器',
+                          style: TextStyle(color: nc.textSecondary),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '点击右下角 + 添加服务器',
+                          style: TextStyle(fontSize: 12, color: nc.textDisabled),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '暂无 MCP 服务器',
-                      style: TextStyle(color: nc.textSecondary),
+                  ),
+                  Positioned(
+                    right: 16,
+                    bottom: 16,
+                    child: FloatingActionButton(
+                      onPressed: _showAddServer,
+                      backgroundColor: nc.primary,
+                      child: Icon(PhosphorIconsRegular.plus, color: Colors.white),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '点击右上角 + 添加服务器',
-                      style: TextStyle(fontSize: 12, color: nc.textDisabled),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               )
             : Stack(
                 children: [

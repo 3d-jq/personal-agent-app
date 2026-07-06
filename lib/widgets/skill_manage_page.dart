@@ -5,6 +5,7 @@ import '../core/agent_colors.dart';
 import '../core/service_locator.dart';
 import '../models/skill.dart';
 import '../tools/skill_registry.dart';
+import 'skill_create_page.dart';
 
 /// Skill 管理页面
 class SkillManagePage extends StatefulWidget {
@@ -28,52 +29,75 @@ class _SkillManagePageState extends State<SkillManagePage> {
     final nc = AgentColors.of(context);
     final skills = _skillRegistry.all;
 
-    return skills.isEmpty
-        ? Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+    return Scaffold(
+      backgroundColor: nc.background,
+      body: skills.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    PhosphorIconsRegular.star,
+                    size: 48,
+                    color: nc.textSecondary.withValues(alpha: 0.3),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '暂无 Skill',
+                    style: TextStyle(color: nc.textSecondary),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '点击右上角 + 创建 Skill',
+                    style: TextStyle(fontSize: 12, color: nc.textDisabled),
+                  ),
+                ],
+              ),
+            )
+          : Stack(
               children: [
-                Icon(
-                  PhosphorIconsRegular.star,
-                  size: 48,
-                  color: nc.textSecondary.withValues(alpha: 0.3),
+                ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: skills.length,
+                  itemBuilder: (context, index) {
+                    final skill = skills[index];
+                    return _SkillTile(
+                      skill: skill,
+                      isActive: _skillRegistry.isActive(skill.id),
+                      nc: nc,
+                      onToggle: () {
+                        HapticFeedback.lightImpact();
+                        setState(() {
+                          if (_skillRegistry.isActive(skill.id)) {
+                            _skillRegistry.deactivate(skill.id);
+                          } else {
+                            _skillRegistry.activate(skill.id);
+                          }
+                        });
+                      },
+                      onTap: () => _showSkillDetail(skill),
+                    );
+                  },
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  '暂无 Skill',
-                  style: TextStyle(color: nc.textSecondary),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Skill 是 AI 的能力扩展包',
-                  style: TextStyle(fontSize: 12, color: nc.textDisabled),
+                Positioned(
+                  right: 16,
+                  bottom: 16,
+                  child: FloatingActionButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SkillCreatePage(),
+                        ),
+                      ).then((_) => setState(() {}));
+                    },
+                    backgroundColor: nc.primary,
+                    child: Icon(PhosphorIconsRegular.plus, color: Colors.white),
+                  ),
                 ),
               ],
             ),
-          )
-        : ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: skills.length,
-            itemBuilder: (context, index) {
-              final skill = skills[index];
-              return _SkillTile(
-                skill: skill,
-                isActive: _skillRegistry.isActive(skill.id),
-                nc: nc,
-                onToggle: () {
-                  HapticFeedback.lightImpact();
-                  setState(() {
-                    if (_skillRegistry.isActive(skill.id)) {
-                      _skillRegistry.deactivate(skill.id);
-                    } else {
-                      _skillRegistry.activate(skill.id);
-                    }
-                  });
-                },
-                onTap: () => _showSkillDetail(skill),
-              );
-            },
-          );
+    );
   }
 
   void _showSkillDetail(Skill skill) {
