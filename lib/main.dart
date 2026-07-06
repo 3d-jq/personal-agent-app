@@ -8,6 +8,7 @@ import 'core/app_config.dart';
 import 'core/error_handler.dart';
 import 'core/service_locator.dart';
 import 'services/connectivity_service.dart';
+import 'services/foreground_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,10 @@ Future<void> main() async {
     await dotenv.load();
     await AppConfig.init();
     await getIt<ConnectivityService>().init();
+    
+    // 启动前台服务，保持应用在后台运行
+    await ForegroundService.start();
+    
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
     );
