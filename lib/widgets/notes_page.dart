@@ -97,47 +97,62 @@ class _NotesPageState extends State<NotesPage> {
               title: '还没有笔记',
               subtitle: '点击右下角 + 创建，或在聊天中让 DWeis 帮你记录',
             )
-          : ListView.separated(
+          : ListView.builder(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               itemCount: _notes.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (_, i) {
                 final note = _notes[i];
-                return Material(
-                  color: nc.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  child: ListTile(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: nc.divider, width: 0.5),
-                    ),
-                    title: Text(
-                      note.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: nc.textPrimary,
-                        fontWeight: FontWeight.w700,
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Dismissible(
+                    key: Key(note.id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      decoration: BoxDecoration(
+                        color: nc.error,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        PhosphorIconsRegular.trash,
+                        color: Colors.white,
+                        size: 20,
                       ),
                     ),
-                    subtitle: Text(
-                      note.summary.isEmpty ? _formatTime(note.updatedAt) : note.summary,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: nc.textSecondary),
-                    ),
-                    trailing: IconButton(
-                      icon: Icon(PhosphorIconsRegular.x, color: nc.textSecondary),
-                      onPressed: () => _confirmDelete(note),
-                    ),
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      AppRouter.push(
-                        context,
-                        _NoteDetail(note: note, onEdit: () => _openEditor(note)),
+                    confirmDismiss: (direction) async {
+                      return await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: nc.surface,
+                          title: Text('删除笔记', style: TextStyle(color: nc.textPrimary)),
+                          content: Text('确定删除「${note.title}」？', style: TextStyle(color: nc.textSecondary)),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: Text('取消', style: TextStyle(color: nc.textSecondary)),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: Text('删除', style: TextStyle(color: nc.error)),
+                            ),
+                          ],
+                        ),
                       );
                     },
+                    onDismissed: (direction) => _deleteNote(note),
+                    child: _NoteTile(
+                      note: note,
+                      nc: nc,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        AppRouter.push(
+                          context,
+                          _NoteDetail(note: note, onEdit: () => _openEditor(note)),
+                        );
+                      },
+                    ),
                   ),
                 );
               },
@@ -152,6 +167,11 @@ class _NotesPageState extends State<NotesPage> {
         child: const Icon(PhosphorIconsRegular.plus),
       ),
     );
+  }
+
+  void _deleteNote(Note note) async {
+    await _storage.remove(note.id);
+    _load();
   }
 
   void _confirmDelete(Note note) {
@@ -461,5 +481,128 @@ class _NoteEditorState extends State<_NoteEditor> {
         ],
       ),
     );
+  }
+}
+
+/// 笔记列表项（带动画）
+class _NoteTile extends StatefulWidget {
+  final Note note;
+  final AgentColors nc;
+  final VoidCallback onTap;
+
+  const _NoteTile({
+    required this.note,
+    required this.nc,
+    required this.onTap,
+  });
+
+  @override
+  State<_NoteTile> createState() => _NoteTileState();
+}
+
+class _NoteTileState extends State<_NoteTile>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0.02, 0),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final nc = widget.nc;
+    final note = widget.note;
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: Material(
+          color: nc.surface,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: nc.divider, width: 0.5),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          note.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: nc.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          note.summary.isEmpty
+                              ? _formatTime(note.updatedAt)
+                              : note.summary,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: nc.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    PhosphorIconsRegular.caretRight,
+                    size: 16,
+                    color: nc.textSecondary.withValues(alpha: 0.5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inMinutes < 1) return '刚刚';
+    if (diff.inHours < 1) return '${diff.inMinutes}分钟前';
+    if (diff.inDays < 1) return '${diff.inHours}小时前';
+    if (diff.inDays < 7) return '${diff.inDays}天前';
+    return '${dt.month}/${dt.day}';
   }
 }
