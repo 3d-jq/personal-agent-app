@@ -12,7 +12,8 @@ import '../tools/task_plan_tool.dart';
 /// 可折叠/展开，实时更新任务状态
 class TaskPlanPanel extends StatefulWidget {
   final ChatController controller;
-  const TaskPlanPanel({super.key, required this.controller});
+  final VoidCallback? onClose;
+  const TaskPlanPanel({super.key, required this.controller, this.onClose});
 
   @override
   TaskPlanPanelState createState() => TaskPlanPanelState();
@@ -63,17 +64,19 @@ class TaskPlanPanelState extends State<TaskPlanPanel> {
 
 /// 可复用的任务计划视图
 ///
-/// [plan] 任务计划数据；[expanded] 是否展开；[onToggle] 折叠/展开回调。
+/// [plan] 任务计划数据；[expanded] 是否展开；[onToggle] 折叠/展开回调；[onClose] 关闭回调。
 class TaskPlanView extends StatelessWidget {
   final TaskPlan plan;
   final bool expanded;
   final VoidCallback? onToggle;
+  final VoidCallback? onClose;
 
   const TaskPlanView({
     super.key,
     required this.plan,
     this.expanded = true,
     this.onToggle,
+    this.onClose,
   });
 
   @override
@@ -169,7 +172,26 @@ class TaskPlanView extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (onToggle != null) ...[
+                    // 关闭按钮（任务完成后显示）
+                    if (verified && onClose != null) ...[
+                      const SizedBox(width: 4),
+                      GestureDetector(
+                        onTap: onClose,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: nc.textSecondary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Icon(
+                            PhosphorIconsRegular.x,
+                            size: 14,
+                            color: nc.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (onToggle != null && !verified) ...[
                       const SizedBox(width: 4),
                       Icon(
                         expanded ? PhosphorIconsRegular.caretUp : PhosphorIconsRegular.caretDown,
