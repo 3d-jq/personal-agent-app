@@ -202,7 +202,15 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
               ),
-              TaskPlanPanel(key: _planPanelKey, controller: _controller),
+              TaskPlanPanel(
+                key: _planPanelKey,
+                controller: _controller,
+                onClose: () {
+                  setState(() {
+                    _controller.currentPlan = null;
+                  });
+                },
+              ),
               ChatInputBar(
                 bottomSafe: bottomSafe,
                 controller: _inputCtrl,
