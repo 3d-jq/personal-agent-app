@@ -14,6 +14,7 @@ import '../widgets/about_page.dart';
 import '../widgets/acknowledgement_view.dart';
 import '../widgets/agent_group/group_chat_screen.dart';
 import '../widgets/context_docs_panel.dart';
+import '../widgets/image_cache_page.dart';
 import '../widgets/media_page.dart';
 import '../widgets/model_settings_page.dart';
 import '../widgets/notes_page.dart';
@@ -72,6 +73,9 @@ class AppRouter {
   // ── 设置子页 ──
   static Future<void> toModelSettings(BuildContext context) =>
       push(context, const ModelSettingsView());
+
+  static Future<void> toImageCache(BuildContext context) =>
+      push(context, const ImageCachePage());
 
   static Future<void> toAbout(BuildContext context) =>
       push(context, const AboutView());
