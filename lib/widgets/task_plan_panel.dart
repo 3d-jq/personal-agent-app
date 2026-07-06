@@ -172,8 +172,8 @@ class TaskPlanView extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // 关闭按钮（任务完成后显示）
-                    if (verified && onClose != null) ...[
+                    // 关闭按钮（任务完成后或待校验时显示）
+                    if ((verified || allDoneOrFailed) && onClose != null) ...[
                       const SizedBox(width: 4),
                       GestureDetector(
                         onTap: onClose,
