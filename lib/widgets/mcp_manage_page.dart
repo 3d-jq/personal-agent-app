@@ -6,6 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import '../core/agent_colors.dart';
+import '../core/service_locator.dart';
+import '../services/mcp_client.dart';
+import '../services/mcp_manager.dart';
 
 /// MCP 配置数据模型
 class McpServer {
@@ -177,6 +180,91 @@ class _McpManagePageState extends State<McpManagePage> {
     );
   }
 
+  void _testConnection(McpServer server) async {
+    final nc = AgentColors.of(context);
+    
+    // 显示加载中
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: nc.surface,
+        content: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation(nc.primary),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Text('正在测试连接...', style: TextStyle(color: nc.textPrimary)),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final mcpManager = getIt<McpManager>();
+      final client = await mcpManager.connect(server);
+      
+      // 关闭加载对话框
+      if (mounted) Navigator.pop(context);
+      
+      // 获取工具列表
+      final tools = await client.listTools();
+      
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: nc.surface,
+            title: Text('连接成功', style: TextStyle(color: nc.textPrimary)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('已连接到 ${server.name}', style: TextStyle(color: nc.textSecondary)),
+                const SizedBox(height: 8),
+                Text('发现 ${tools.length} 个工具：', style: TextStyle(color: nc.textSecondary)),
+                const SizedBox(height: 4),
+                ...tools.map((t) => Text('• ${t.name}', style: TextStyle(fontSize: 12, color: nc.textPrimary))),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('确定', style: TextStyle(color: nc.primary)),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      // 关闭加载对话框
+      if (mounted) Navigator.pop(context);
+      
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: nc.surface,
+            title: Text('连接失败', style: TextStyle(color: nc.textPrimary)),
+            content: Text('$e', style: TextStyle(color: nc.textSecondary)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('确定', style: TextStyle(color: nc.primary)),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
   void _showEditServer(McpServer server) {
     final nc = AgentColors.of(context);
     final nameCtrl = TextEditingController(text: server.name);
@@ -296,129 +384,121 @@ class _McpManagePageState extends State<McpManagePage> {
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
 
-    return Scaffold(
-      backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: nc.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'MCP 管理',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(PhosphorIconsRegular.plus, color: nc.textPrimary),
-            onPressed: _showAddServer,
-          ),
-        ],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _servers.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        PhosphorIconsRegular.globe,
-                        size: 48,
-                        color: nc.textSecondary.withValues(alpha: 0.3),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '暂无 MCP 服务器',
-                        style: TextStyle(color: nc.textSecondary),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '点击右上角 + 添加服务器',
-                        style: TextStyle(fontSize: 12, color: nc.textDisabled),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _servers.length,
-                  itemBuilder: (context, index) {
-                    final server = _servers[index];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      decoration: BoxDecoration(
-                        color: nc.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: nc.divider, width: 0.5),
-                      ),
-                      child: ListTile(
-                        leading: Container(
-                          width: 40,
-                          height: 40,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: server.isEnabled
-                                ? nc.success.withValues(alpha: 0.1)
-                                : nc.primarySurface,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                    child: Icon(
+    return _loading
+        ? const Center(child: CircularProgressIndicator())
+        : _servers.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
                       PhosphorIconsRegular.globe,
-                      size: 20,
-                      color: server.isEnabled ? nc.success : nc.textSecondary,
+                      size: 48,
+                      color: nc.textSecondary.withValues(alpha: 0.3),
                     ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '暂无 MCP 服务器',
+                      style: TextStyle(color: nc.textSecondary),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '点击右上角 + 添加服务器',
+                      style: TextStyle(fontSize: 12, color: nc.textDisabled),
+                    ),
+                  ],
+                ),
+              )
+            : Stack(
+                children: [
+                  ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _servers.length,
+                    itemBuilder: (context, index) {
+                      final server = _servers[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: nc.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: nc.divider, width: 0.5),
                         ),
-                        title: Text(
-                          server.name,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            color: nc.textPrimary,
+                        child: ListTile(
+                          leading: Container(
+                            width: 40,
+                            height: 40,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: server.isEnabled
+                                  ? nc.success.withValues(alpha: 0.1)
+                                  : nc.primarySurface,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              PhosphorIconsRegular.globe,
+                              size: 20,
+                              color: server.isEnabled ? nc.success : nc.textSecondary,
+                            ),
+                          ),
+                          title: Text(
+                            server.name,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: nc.textPrimary,
+                            ),
+                          ),
+                          subtitle: Text(
+                            server.url,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: 12, color: nc.textSecondary),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Switch(
+                                value: server.isEnabled,
+                                onChanged: (value) {
+                                  setState(() {
+                                    final index = _servers.indexWhere((s) => s.id == server.id);
+                                    if (index >= 0) {
+                                      _servers[index] = server.copyWith(isEnabled: value);
+                                    }
+                                  });
+                                  _saveServers();
+                                },
+                                activeColor: nc.success,
+                              ),
+                              IconButton(
+                                icon: Icon(PhosphorIconsRegular.plugs, size: 18, color: nc.textSecondary),
+                                onPressed: () => _testConnection(server),
+                                tooltip: '测试连接',
+                              ),
+                              IconButton(
+                                icon: Icon(PhosphorIconsRegular.pencilSimple, size: 18, color: nc.textSecondary),
+                                onPressed: () => _showEditServer(server),
+                              ),
+                              IconButton(
+                                icon: Icon(PhosphorIconsRegular.trash, size: 18, color: nc.error),
+                                onPressed: () => _deleteServer(server),
+                              ),
+                            ],
                           ),
                         ),
-                        subtitle: Text(
-                          server.url,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: 12, color: nc.textSecondary),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Switch(
-                              value: server.isEnabled,
-                              onChanged: (value) {
-                                setState(() {
-                                  final index = _servers.indexWhere((s) => s.id == server.id);
-                                  if (index >= 0) {
-                                    _servers[index] = server.copyWith(isEnabled: value);
-                                  }
-                                });
-                                _saveServers();
-                              },
-                              activeColor: nc.success,
-                            ),
-                            IconButton(
-                              icon: Icon(PhosphorIconsRegular.pencilSimple, size: 18, color: nc.textSecondary),
-                              onPressed: () => _showEditServer(server),
-                            ),
-                            IconButton(
-                              icon: Icon(PhosphorIconsRegular.trash, size: 18, color: nc.error),
-                              onPressed: () => _deleteServer(server),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-    );
+                      );
+                    },
+                  ),
+                  Positioned(
+                    right: 16,
+                    bottom: 16,
+                    child: FloatingActionButton(
+                      onPressed: _showAddServer,
+                      backgroundColor: nc.primary,
+                      child: Icon(PhosphorIconsRegular.plus, color: Colors.white),
+                    ),
+                  ),
+                ],
+              );
   }
 }
