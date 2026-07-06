@@ -14,6 +14,7 @@ import '../../services/agent_runner.dart';
 import '../../services/agent_storage.dart';
 import '../../services/ai_service.dart';
 import '../../services/chat_stream_event.dart';
+import '../../services/typewriter_buffer.dart';
 import '../../core/service_locator.dart';
 import '../../services/connectivity_service.dart';
 import '../../tools/tools.dart';
@@ -360,6 +361,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _scrollDown();
 
     final buf = StringBuffer();
+    final typewriter = TypewriterBuffer(charsPerTick: 4);
+    Timer? typewriterTimer;
     List<TimelineStep>? currentSteps;
     final toolInteractions = <Map<String, dynamic>>[];
     StreamSubscription<ChatStreamEvent>? sub;
@@ -381,10 +384,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         (event) {
           switch (event) {
             case ThinkingChunkEvent(:final text):
-              // 大模型内部推理，群聊中暂不展示细节
               break;
             case TextChunkEvent(:final text):
               buf.write(text);
+              typewriter.append(text);
               break;
             case ToolStartEvent(:final name, :final concurrentCount, :final arguments):
               currentSteps ??= [];
@@ -435,6 +438,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               break;
             case ToolMediaEvent(:final url):
               buf.write('\n$url\n');
+              typewriter.append('\n$url\n');
               break;
             case ToolInteractionEvent(:final toolCalls, :final toolResults):
               toolInteractions.add({
@@ -443,21 +447,46 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               });
               break;
             case TaskPlanEvent():
-              // 群聊中暂不展示任务计划面板
               break;
             case ErrorEvent(:final message):
               buf.write('\n\n[错误: $message]');
+              typewriter.append('\n\n[错误: $message]');
               break;
           }
-          placeholder.text = buf.toString();
+          placeholder.text = typewriter.visibleText;
           placeholder.steps = currentSteps;
           if (mounted) setState(() {});
           _scrollDown();
+
+          // 启动打字机定时器
+          if (typewriterTimer == null) {
+            typewriterTimer = Timer.periodic(const Duration(milliseconds: 24), (_) {
+              if (!typewriter.hasPending) {
+                typewriterTimer?.cancel();
+                typewriterTimer = null;
+                return;
+              }
+              typewriter.revealNext();
+              placeholder.text = typewriter.visibleText;
+              if (mounted) setState(() {});
+              _scrollDown();
+            });
+          }
         },
-        onDone: () => completer.complete(),
+        onDone: () {
+          typewriterTimer?.cancel();
+          typewriterTimer = null;
+          typewriter.revealAll();
+          placeholder.text = typewriter.visibleText;
+          completer.complete();
+        },
         onError: (e) {
+          typewriterTimer?.cancel();
+          typewriterTimer = null;
           buf.write('\n\n[错误: $e]');
-          placeholder.text = buf.toString();
+          typewriter.append('\n\n[错误: $e]');
+          typewriter.revealAll();
+          placeholder.text = typewriter.visibleText;
           completer.complete();
         },
         cancelOnError: true,
@@ -466,6 +495,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       await completer.future;
     } finally {
       await sub?.cancel();
+      typewriterTimer?.cancel();
       if (sub != null) _activeSubs.remove(sub);
       placeholder.isStreaming = false;
       final steps = currentSteps;
