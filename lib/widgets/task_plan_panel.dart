@@ -58,6 +58,7 @@ class TaskPlanPanelState extends State<TaskPlanPanel> {
         HapticFeedback.lightImpact();
         setState(() => _expanded = !_expanded);
       },
+      onClose: widget.onClose,
     );
   }
 }
