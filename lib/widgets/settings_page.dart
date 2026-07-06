@@ -322,6 +322,14 @@ class _SettingsPageState extends State<SettingsPage> {
                   AppRouter.toModelSettings(context);
                 },
               ),
+              _SettingItem(
+                icon: PhosphorIconsRegular.trash,
+                label: '图片缓存',
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  AppRouter.toImageCache(context);
+                },
+              ),
             ],
           ),
           const SizedBox(height: 20),
