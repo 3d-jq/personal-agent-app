@@ -133,8 +133,23 @@ class AgnesImageTool extends AgentTool {
 
       // Fallback to URL
       if (imageResultUrl != null && imageResultUrl.isNotEmpty) {
+        // 下载图片到本地并保存到 MediaStorage
+        final tempDir = await getTemporaryDirectory();
+        final docsDir = await getApplicationDocumentsDirectory();
+        final fileName = 'agnes_img_${DateTime.now().millisecondsSinceEpoch}.png';
+        final tempFile = File('${tempDir.path}/$fileName');
+        await _dio.download(imageResultUrl, tempFile.path);
+        final docsFile = await tempFile.copy('${docsDir.path}/$fileName');
+        await getIt<MediaStorage>().add(
+          MediaItem(
+            id: const Uuid().v4(),
+            type: MediaType.image,
+            filePath: docsFile.path,
+            prompt: prompt,
+          ),
+        );
         final type = imageUrl != null ? '图生图' : '文生图';
-        return '[$type] 图片已生成\n\n![生成的图片]($imageResultUrl)';
+        return '[$type] 图片已生成\n\n![生成的图片](file://${docsFile.path})';
       }
 
       return '图片生成失败：API 未返回图片数据';
