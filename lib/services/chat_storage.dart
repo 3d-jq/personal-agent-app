@@ -20,6 +20,12 @@ class ChatStorage {
 
   Future<List<ChatSession>> loadAll() => _repo.loadAll();
 
+  /// 只加载单聊会话（排除 Agent 单聊）
+  Future<List<ChatSession>> loadChatSessions() async {
+    final all = await _repo.loadAll();
+    return all.where((s) => s.type != 'agent').toList();
+  }
+
   Future<void> save(ChatSession session) async {
     await _repo.mutate((all) {
       final idx = all.indexWhere((s) => s.id == session.id);
