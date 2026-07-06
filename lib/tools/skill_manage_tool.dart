@@ -41,7 +41,13 @@ class SkillManageTool extends AgentTool {
 
     switch (action) {
       case 'list':
-        return registry.listAll();
+        final skills = registry.all;
+        if (skills.isEmpty) return '暂无可用 Skill';
+        final buf = StringBuffer();
+        for (final skill in skills) {
+          buf.writeln('• ${skill.name}: ${skill.description}');
+        }
+        return buf.toString();
 
       case 'activate':
         final skillId = args['skill_id'] as String?;
@@ -56,8 +62,8 @@ class SkillManageTool extends AgentTool {
 
         registry.activate(skillId);
         return '已激活技能「${skill.name}」\n'
-            '包含工具: ${skill.toolNames.join(", ")}\n'
-            '已加载对应的 prompt 模板。';
+            '描述: ${skill.description}\n'
+            '已加载对应的指令内容。';
 
       case 'deactivate':
         final skillId = args['skill_id'] as String?;
@@ -75,19 +81,15 @@ class SkillManageTool extends AgentTool {
         if (text == null) return '错误: match 需要提供 text';
 
         final matched = registry.matchByKeywords(text);
-        if (matched.isEmpty) return '没有匹配到相关技能。';
-
-        final buf = StringBuffer('【匹配到的技能】\n');
-        for (final s in matched) {
-          final status = registry.isActive(s.id) ? '✅ 已激活' : '⬜ 未激活';
-          buf.writeln('${s.id}: ${s.name} — $status');
-          buf.writeln('  ${s.description}');
+        if (matched.isEmpty) return '未找到匹配的 Skill';
+        final buf = StringBuffer();
+        for (final skill in matched) {
+          buf.writeln('• ${skill.name}: ${skill.description}');
         }
-        buf.writeln('\n建议激活以上技能以获得更好的执行效果。');
         return buf.toString();
 
       default:
-        return '错误: 不支持的操作 "$action"';
+        return '错误: 未知操作类型 "$action"';
     }
   }
 }

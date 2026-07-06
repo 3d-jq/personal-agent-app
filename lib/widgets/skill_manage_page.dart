@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import '../core/service_locator.dart';
+import '../models/skill.dart';
 import '../tools/skill_registry.dart';
-import '../tools/skill_manage_tool.dart';
 
 /// Skill 管理页面
 class SkillManagePage extends StatefulWidget {
@@ -28,56 +28,52 @@ class _SkillManagePageState extends State<SkillManagePage> {
     final nc = AgentColors.of(context);
     final skills = _skillRegistry.all;
 
-    return Scaffold(
-      backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: nc.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Skill 管理',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: skills.isEmpty
-          ? Center(
-              child: Text(
-                '暂无 Skill',
-                style: TextStyle(color: nc.textSecondary),
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: skills.length,
-              itemBuilder: (context, index) {
-                final skill = skills[index];
-                return _SkillTile(
-                  skill: skill,
-                  isActive: _skillRegistry.isActive(skill.id),
-                  nc: nc,
-                  onToggle: () {
-                    HapticFeedback.lightImpact();
-                    setState(() {
-                      if (_skillRegistry.isActive(skill.id)) {
-                        _skillRegistry.deactivate(skill.id);
-                      } else {
-                        _skillRegistry.activate(skill.id);
-                      }
-                    });
-                  },
-                  onTap: () => _showSkillDetail(skill),
-                );
-              },
+    return skills.isEmpty
+        ? Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  PhosphorIconsRegular.star,
+                  size: 48,
+                  color: nc.textSecondary.withValues(alpha: 0.3),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '暂无 Skill',
+                  style: TextStyle(color: nc.textSecondary),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Skill 是 AI 的能力扩展包',
+                  style: TextStyle(fontSize: 12, color: nc.textDisabled),
+                ),
+              ],
             ),
-    );
+          )
+        : ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: skills.length,
+            itemBuilder: (context, index) {
+              final skill = skills[index];
+              return _SkillTile(
+                skill: skill,
+                isActive: _skillRegistry.isActive(skill.id),
+                nc: nc,
+                onToggle: () {
+                  HapticFeedback.lightImpact();
+                  setState(() {
+                    if (_skillRegistry.isActive(skill.id)) {
+                      _skillRegistry.deactivate(skill.id);
+                    } else {
+                      _skillRegistry.activate(skill.id);
+                    }
+                  });
+                },
+                onTap: () => _showSkillDetail(skill),
+              );
+            },
+          );
   }
 
   void _showSkillDetail(Skill skill) {
@@ -296,35 +292,6 @@ class _SkillDetailSheet extends StatelessWidget {
                         child: Text(
                           kw,
                           style: TextStyle(fontSize: 12, color: nc.textSecondary),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-                if (skill.toolNames.isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  Text(
-                    '包含工具',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: nc.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: skill.toolNames.map((tool) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: nc.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          tool,
-                          style: TextStyle(fontSize: 12, color: nc.primary),
                         ),
                       );
                     }).toList(),
