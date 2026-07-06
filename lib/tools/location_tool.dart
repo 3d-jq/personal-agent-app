@@ -1,11 +1,16 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'base_tool.dart';
+import '../core/service_locator.dart';
+import '../tools/base_tool.dart';
+import '../tools/weather_tool.dart';
 import 'location_tool.g.dart';
 
-/// 获取设备当前 GPS 定位。
+/// 获取设备当前 GPS 定位，并反向地理编码获取具体地址。
 ///
-/// 返回经度、纬度、精度、城市/区域等信息，用于天气查询、附近搜索等场景。
+/// 返回经度、纬度、精度、具体地址等信息。
 class LocationTool extends AgentTool {
   @override
   String get name => 'location';
@@ -64,7 +69,16 @@ class LocationTool extends AgentTool {
       return '定位失败：无法获取位置。请移动到开阔区域或确保 GPS 已开启后重试。';
     }
 
+    // 5. 反向地理编码：获取具体地址
+    String address = '';
+    try {
+      address = await _reverseGeocode(position.latitude, position.longitude);
+    } catch (_) {}
+
     final buf = StringBuffer();
+    if (address.isNotEmpty) {
+      buf.writeln('地址: $address');
+    }
     buf.writeln('经度: ${position.longitude}');
     buf.writeln('纬度: ${position.latitude}');
     buf.writeln('精度: ${position.accuracy.round()}m');
@@ -74,5 +88,45 @@ class LocationTool extends AgentTool {
     }
 
     return buf.toString();
+  }
+
+  /// 反向地理编码：使用高德地图 API 将经纬度转换为地址
+  Future<String> _reverseGeocode(double latitude, double longitude) async {
+    // 获取高德地图 API Key
+    final weatherTool = getIt<WeatherTool>();
+    final apiKey = weatherTool.apiKey;
+    if (apiKey == null || apiKey.isEmpty) return '';
+
+    try {
+      final dio = Dio();
+      final response = await dio.get(
+        'https://restapi.amap.com/v3/geocode/regeo',
+        queryParameters: {
+          'key': apiKey,
+          'location': '$longitude,$latitude',
+          'extensions': 'base',
+        },
+      );
+
+      if (response.data['status'] == '1') {
+        final regeocode = response.data['regeocode'];
+        if (regeocode != null) {
+          final addressComponent = regeocode['addressComponent'];
+          if (addressComponent != null) {
+            final province = addressComponent['province'] ?? '';
+            final city = addressComponent['city'] ?? '';
+            final district = addressComponent['district'] ?? '';
+            final township = addressComponent['township'] ?? '';
+            
+            final parts = [province, city, district, township]
+                .where((p) => p.isNotEmpty && p != city)
+                .toList();
+            return parts.join('');
+          }
+        }
+      }
+    } catch (_) {}
+
+    return '';
   }
 }
