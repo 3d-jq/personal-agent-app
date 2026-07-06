@@ -40,21 +40,24 @@ class LocationTool extends AgentTool {
       return '定位失败：设备定位服务未开启，请在系统设置中打开 GPS。';
     }
 
-    // 3. 先拿缓存位置
-    Position? position = await Geolocator.getLastKnownPosition();
+    // 3. 获取实时高精度位置
+    Position? position;
+    try {
+      position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.best,
+          timeLimit: Duration(seconds: 30),
+        ),
+      );
+    } catch (_) {
+      // 实时定位失败，尝试获取缓存位置
+    }
 
-    // 4. 尝试获取实时位置
+    // 4. 如果实时定位失败，尝试获取缓存位置
     if (position == null) {
       try {
-        position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.medium,
-            timeLimit: Duration(seconds: 15),
-          ),
-        );
-      } catch (_) {
-        // 实时定位失败
-      }
+        position = await Geolocator.getLastKnownPosition();
+      } catch (_) {}
     }
 
     if (position == null) {
