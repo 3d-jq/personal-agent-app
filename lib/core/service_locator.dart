@@ -5,6 +5,7 @@ import '../services/chat_storage.dart';
 import '../services/connectivity_service.dart';
 import '../services/context_doc_service.dart';
 import '../services/export_service.dart';
+import '../services/mcp_manager.dart';
 import '../services/media_storage.dart';
 import '../services/notification_service.dart';
 import '../services/note_storage.dart';
@@ -27,17 +28,18 @@ void configureDependencies() {
   getIt
     ..registerSingleton<AgentStorage>(AgentStorage())
     ..registerSingleton<AgentGroupStorage>(AgentGroupStorage())
+    ..registerSingleton<AISettings>(AISettings())
     ..registerSingleton<ChatStorage>(ChatStorage())
     ..registerSingleton<ConnectivityService>(ConnectivityService())
     ..registerSingleton<ContextDocService>(ContextDocService())
     ..registerSingleton<ExportService>(ExportService())
+    ..registerSingleton<McpManager>(McpManager())
     ..registerSingleton<MediaStorage>(MediaStorage())
     ..registerSingleton<NotificationService>(NotificationService())
     ..registerSingleton<NoteStorage>(NoteStorage())
     ..registerSingleton<ReminderStorage>(ReminderStorage())
     ..registerSingleton<ThemeService>(ThemeService())
     ..registerSingleton<VirtualFileSystem>(VirtualFileSystem())
-    ..registerSingleton<AISettings>(AISettings())
     ..registerSingleton<SkillRegistry>(SkillRegistry());
 }
 
