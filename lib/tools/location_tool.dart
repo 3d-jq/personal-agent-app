@@ -106,10 +106,25 @@ class LocationTool extends AgentTool {
           'location': '$longitude,$latitude',
           'extensions': 'base',
         },
+        options: Options(
+          headers: {
+            'Accept-Charset': 'utf-8',
+          },
+          responseType: ResponseType.plain,
+        ),
       );
 
-      if (response.data['status'] == '1') {
-        final regeocode = response.data['regeocode'];
+      // 手动解析 JSON，确保中文正确处理
+      final responseBody = response.data;
+      Map<String, dynamic> data;
+      if (responseBody is String) {
+        data = jsonDecode(responseBody) as Map<String, dynamic>;
+      } else {
+        data = responseBody as Map<String, dynamic>;
+      }
+
+      if (data['status'] == '1') {
+        final regeocode = data['regeocode'];
         if (regeocode != null) {
           final addressComponent = regeocode['addressComponent'];
           if (addressComponent != null) {
