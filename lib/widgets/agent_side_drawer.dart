@@ -96,11 +96,10 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                       onTap: () => _closeAnd((ctx) => AppRouter.toMedia(ctx)),
                     ),
                     _CardItem(
-                      icon: PhosphorIconsRegular.alarm,
-                      label: '定时任务',
+                      icon: PhosphorIconsRegular.star,
+                      label: 'Skill & MCP',
                       nc: nc,
-                      onTap: () =>
-                          _closeAnd((ctx) => AppRouter.toReminders(ctx)),
+                      onTap: () => _closeAnd((ctx) => AppRouter.toSkillMcp(ctx)),
                     ),
                     _CardItem(
                       icon: PhosphorIconsRegular.users,
