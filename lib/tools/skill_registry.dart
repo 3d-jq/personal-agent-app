@@ -16,49 +16,24 @@ class SkillRegistry {
 
   /// 注册内置 Skill
   void registerBuiltInSkills() {
-    // 数据分析 Skill
+    // create-skill: 让大模型在对话中创建自定义 Skill
     register(Skill(
-      id: 'data_analysis',
-      name: '数据分析',
-      description: '搜索数据、整理分析、生成图表和报告',
-      instructions: '当用户需要分析数据时：\n1. 使用搜索工具获取相关数据\n2. 整理和清洗数据\n3. 生成可视化图表\n4. 提供分析报告',
-      keywords: ['分析', '数据', '图表', '报告', '统计'],
-    ));
+      id: 'create-skill',
+      name: 'create-skill',
+      description: '创建自定义 Skill。当用户想要创建新的 Skill 时使用此工具。',
+      instructions: '''当用户想要创建新的 Skill 时：
 
-    // 内容创作 Skill
-    register(Skill(
-      id: 'content_creation',
-      name: '内容创作',
-      description: '写作、笔记、图文创作',
-      instructions: '当用户需要创作内容时：\n1. 了解用户需求和目标受众\n2. 构思内容结构\n3. 撰写初稿\n4. 润色和优化',
-      keywords: ['写作', '文章', '文案', '笔记', '创作'],
-    ));
+1. 询问用户 Skill 的名称和描述
+2. 询问 Skill 的触发关键词
+3. 询问 Skill 的指令内容（AI 在什么情况下使用这个 Skill）
+4. 使用 skill_manage 工具注册新的 Skill
+5. 告诉用户 Skill 已创建并启用
 
-    // 媒体生成 Skill
-    register(Skill(
-      id: 'media_generation',
-      name: '媒体生成',
-      description: '生成图片和视频',
-      instructions: '当用户需要生成媒体内容时：\n1. 理解用户需求\n2. 使用图片/视频生成工具\n3. 提供生成的内容',
-      keywords: ['图片', '视频', '生成', '创作', '设计'],
-    ));
-
-    // 知识研究 Skill
-    register(Skill(
-      id: 'knowledge_research',
-      name: '知识研究',
-      description: '深度搜索、知识库查阅、信息整理',
-      instructions: '当用户需要研究知识时：\n1. 使用搜索工具获取相关信息\n2. 整理和归纳信息\n3. 提供结构化的研究报告',
-      keywords: ['研究', '搜索', '知识', '学习', '资料'],
-    ));
-
-    // 生活规划 Skill
-    register(Skill(
-      id: 'life_planning',
-      name: '生活规划',
-      description: '日程管理、提醒设置、生活建议',
-      instructions: '当用户需要生活规划时：\n1. 了解用户需求\n2. 制定计划\n3. 设置提醒\n4. 提供执行建议',
-      keywords: ['计划', '日程', '提醒', '安排', '规划'],
+创建 Skill 时，指令应该清晰描述：
+- 什么情况下激活这个 Skill
+- Skill 需要执行什么步骤
+- 使用哪些工具''',
+      keywords: ['创建skill', '新建skill', '自定义skill', '添加skill'],
     ));
   }
 
