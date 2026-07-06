@@ -149,7 +149,7 @@ class ChatController extends ChangeNotifier {
       ),
     );
     _chatStorage.clearCache();
-    _sessions = await _chatStorage.loadAll();
+    _sessions = await _chatStorage.loadChatSessions();
     _notify();
   }
 
@@ -160,7 +160,7 @@ class ChatController extends ChangeNotifier {
 
   Future<void> deleteSession(String id) async {
     await _chatStorage.delete(id);
-    _sessions = await _chatStorage.loadAll();
+    _sessions = await _chatStorage.loadChatSessions();
     if (id == _sessionId) {
       newSession();
     } else {
