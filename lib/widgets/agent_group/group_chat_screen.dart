@@ -78,7 +78,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _inputFocus.dispose();
     _scrollCtrl.dispose();
     _scrollTimer?.cancel();
-    // 先设置标记，阻止回调触发 setState
+    // 取消所有活跃的流订阅，防止回调触发 setState
+    // 虽然靠 if (mounted) 兜底，但取消订阅是正确的做法
     for (final sub in _activeSubs) {
       sub.cancel();
     }
@@ -269,7 +270,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       }
     } finally {
       if (mounted) setState(() => _busy = false);
-      await _saveGroup();
+      // _saveGroup 已在 _runOneAndAppend 中调用，此处不再重复
     }
   }
 
