@@ -40,11 +40,7 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(VirtualFSTool());
   registry.register(SkillManageTool());
 
-  // 注册内置技能
-  final skillRegistry = getIt<SkillRegistry>();
-  for (final skill in BuiltInSkills.all) {
-    skillRegistry.register(skill);
-  }
+  // 内置技能已通过 SkillRegistry 注册
 
   // 工具发现层（本身也是预加载工具）
   registry.register(ToolSearchTool(registry: registry));
