@@ -15,6 +15,7 @@ import '../widgets/acknowledgement_view.dart';
 import '../widgets/agent_group/group_chat_screen.dart';
 import '../widgets/context_docs_panel.dart';
 import '../widgets/image_cache_page.dart';
+import '../widgets/mcp_manage_page.dart';
 import '../widgets/media_page.dart';
 import '../widgets/model_settings_page.dart';
 import '../widgets/notes_page.dart';
@@ -22,6 +23,8 @@ import '../widgets/reminders_page.dart';
 import '../widgets/scratch_viewer.dart';
 import '../widgets/search_page.dart';
 import '../widgets/settings_page.dart';
+import '../widgets/skill_manage_page.dart';
+import '../widgets/skill_mcp_page.dart';
 
 /// 应用路由管理入口。
 ///
@@ -63,6 +66,9 @@ class AppRouter {
 
   static Future<void> toReminders(BuildContext context) =>
       push(context, const RemindersView());
+
+  static Future<void> toSkillMcp(BuildContext context) =>
+      push(context, const SkillMcpPage());
 
   static Future<void> toSearch(BuildContext context) =>
       push(context, const SearchPage());
