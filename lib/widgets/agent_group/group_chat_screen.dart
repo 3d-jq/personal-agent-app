@@ -131,8 +131,37 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   Future<void> _editGroup() async {
     final g = _group;
     if (g == null) return;
+    final oldMemberIds = Set<String>.from(g.agentIds);
     final updated = await AppRouter.editGroup(context, existing: g);
     if (updated == null) return;
+    final newMemberIds = Set<String>.from(updated.agentIds);
+    
+    // 检测成员变更，添加系统消息通知
+    final addedIds = newMemberIds.difference(oldMemberIds);
+    final removedIds = oldMemberIds.difference(newMemberIds);
+    
+    final allAgents = await getIt<AgentStorage>().loadAll();
+    for (final id in addedIds) {
+      final agent = allAgents.where((a) => a.id == id).firstOrNull;
+      if (agent != null) {
+        _messages.add(ChatMessage(
+          text: '${agent.name} 加入了群聊',
+          isUser: false,
+          speakerId: 'system',
+        ));
+      }
+    }
+    for (final id in removedIds) {
+      final agent = allAgents.where((a) => a.id == id).firstOrNull;
+      if (agent != null) {
+        _messages.add(ChatMessage(
+          text: '${agent.name} 离开了群聊',
+          isUser: false,
+          speakerId: 'system',
+        ));
+      }
+    }
+    
     updated.messages = List.from(_messages);
     await getIt<AgentGroupStorage>().save(updated);
     await _load();
@@ -808,6 +837,29 @@ class _GroupBubble extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
+    // 系统消息（加入/离开通知）
+    if (msg.speakerId == 'system') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: nc.primarySurface,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              msg.text,
+              style: TextStyle(
+                fontSize: 12,
+                color: nc.textSecondary,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final showHeader = speaker != null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
