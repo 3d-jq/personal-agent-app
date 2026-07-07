@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../tools/tools.dart';
 import 'ai_service_base.dart';
@@ -167,7 +168,7 @@ class AIService {
           .map((tc) => {
                 'id': tc.id,
                 'type': 'function',
-                'function': {'name': tc.name, 'arguments': tc.arguments},
+                'function': {'name': tc.name, 'arguments': jsonEncode(tc.arguments)},
               })
           .toList(),
     };
