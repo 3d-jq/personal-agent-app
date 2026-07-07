@@ -6,6 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
+import 'package:url_launcher/url_launcher.dart';
 import '../core/agent_colors.dart';
 import '../core/app_animations.dart';
 import '../core/app_router.dart';
@@ -229,6 +230,14 @@ Widget mdBlock(String text, AgentColors nc, [BuildContext? context]) {
   return MarkdownBody(
     data: text,
     selectable: true,
+    onTapLink: (text, href, title) async {
+      if (href != null) {
+        final uri = Uri.tryParse(href);
+        if (uri != null && await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      }
+    },
     styleSheet: MarkdownStyleSheet(
       p: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.6),
       h1: TextStyle(
