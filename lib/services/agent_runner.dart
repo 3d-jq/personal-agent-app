@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import '../core/prompt_builder.dart';
+import '../core/service_locator.dart';
 import '../models/agent.dart';
 import '../models/chat_message.dart';
+import '../tools/skill_registry.dart';
 import '../tools/tool_registry.dart';
 import '../widgets/ai_settings_sheet.dart' show VendorConfig;
 import 'ai_service.dart';
@@ -129,6 +131,25 @@ class AgentRunner {
       buf.writeln(agent.systemPrompt);
       buf.writeln('</persona>');
       buf.writeln();
+    }
+
+    // 注入 Skill 目录（渐进式披露：只注入第1层 name+description）
+    try {
+      final skillRegistry = getIt<SkillRegistry>();
+      final catalog = skillRegistry.getCatalog();
+      if (catalog.isNotEmpty) {
+        buf.writeln(catalog);
+        buf.writeln();
+        buf.writeln('<skill_usage>');
+        buf.writeln('以上是所有可用 Skills 的目录。当任务匹配某个 Skill 的描述时：');
+        buf.writeln('1. 先调用 skill_manage(action="read", name="技能名") 读取该 Skill 的详细指令');
+        buf.writeln('2. 如果该 Skill 有 cookbook 文件，再用 skill_manage(action="read_cookbook", name="技能名", file="文件名") 读取详细步骤');
+        buf.writeln('3. 按照读取到的指令执行任务');
+        buf.writeln('</skill_usage>');
+        buf.writeln();
+      }
+    } catch (_) {
+      // SkillRegistry 未初始化时忽略
     }
 
     return buf.toString();

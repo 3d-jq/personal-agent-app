@@ -63,7 +63,7 @@ class _GroupEditPageState extends State<GroupEditPage> {
     return Scaffold(
       backgroundColor: nc.background,
       appBar: AppBar(
-        backgroundColor: nc.background,
+        backgroundColor: nc.background.withValues(alpha: 0.85),
         elevation: 0,
         leading: IconButton(
           icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
@@ -98,7 +98,7 @@ class _GroupEditPageState extends State<GroupEditPage> {
           Text(
             '选择 Agent',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: FontWeight.w500,
               color: nc.textPrimary,
             ),
@@ -138,7 +138,7 @@ class _GroupEditPageState extends State<GroupEditPage> {
                           child: Text(
                             a.avatar.isNotEmpty ? a.avatar : a.name.characters.first,
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: nc.textPrimary,
                             ),
@@ -193,7 +193,7 @@ class _EditField extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: FontWeight.w500,
             color: nc.textPrimary,
           ),

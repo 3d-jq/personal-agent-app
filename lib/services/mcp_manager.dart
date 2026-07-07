@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
+import '../services/crypto_util.dart';
 import '../widgets/mcp_manage_page.dart';
 import 'mcp_client.dart';
 
@@ -13,6 +14,9 @@ class McpManager {
   Map<String, McpClient> get clients => Map.unmodifiable(_clients);
 
   /// 连接到 MCP 服务器
+  ///
+  /// 执行完整的 MCP 连接流程：initialize 握手 → 获取工具列表。
+  /// 失败时抛出异常。
   Future<McpClient> connect(McpServer server) async {
     if (_clients.containsKey(server.id)) {
       return _clients[server.id]!;
@@ -21,16 +25,15 @@ class McpManager {
     final client = McpClient(
       serverUrl: server.url,
       apiKey: server.apiKey,
+      endpoint: server.endpoint,
     );
 
-    // 测试连接
-    final connected = await client.testConnection();
-    if (!connected) {
-      throw Exception('无法连接到 MCP 服务器: ${server.name}');
+    // 完整连接流程：initialize + listTools
+    try {
+      await client.connect();
+    } catch (e) {
+      throw Exception('无法连接到 MCP 服务器: ${server.name} ($e)');
     }
-
-    // 获取工具列表
-    await client.listTools();
 
     _clients[server.id] = client;
     return client;
@@ -68,23 +71,91 @@ class McpManager {
     return await client.callTool(toolName, arguments);
   }
 
-  /// 加载保存的服务器配置
+  // ═══ 配置持久化（apiKey 加密存储） ═══
+
+  /// 加载保存的服务器配置（apiKey 自动解密）
   Future<List<McpServer>> loadServers() async {
     try {
       final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/mcp_servers.json');
       if (await file.exists()) {
         final data = jsonDecode(await file.readAsString()) as List;
-        return data.map((j) => McpServer.fromJson(j as Map<String, dynamic>)).toList();
+        return data.map((j) {
+          final map = j as Map<String, dynamic>;
+          // 解密 apiKey
+          final encKey = map['apiKey'] as String?;
+          if (encKey != null && encKey.isNotEmpty) {
+            map['apiKey'] = CryptoUtil.decrypt(encKey);
+          }
+          return McpServer.fromJson(map);
+        }).toList();
       }
     } catch (_) {}
     return [];
   }
 
-  /// 保存服务器配置
+  /// 保存服务器配置（apiKey 加密存储）
   Future<void> saveServers(List<McpServer> servers) async {
     final dir = await getApplicationDocumentsDirectory();
     final file = File('${dir.path}/mcp_servers.json');
-    await file.writeAsString(jsonEncode(servers.map((s) => s.toJson()).toList()));
+    final jsonList = servers.map((s) {
+      final map = s.toJson();
+      // 加密 apiKey
+      final key = map['apiKey'] as String?;
+      if (key != null && key.isNotEmpty) {
+        map['apiKey'] = CryptoUtil.encrypt(key);
+      }
+      return map;
+    }).toList();
+    await file.writeAsString(jsonEncode(jsonList));
+  }
+
+  // ═══ 自动重连 ═══
+
+  /// 启动时加载配置并自动连接所有 isEnabled 的服务器。
+  ///
+  /// 单个服务器连接失败不会中断其他服务器的连接。
+  /// 返回成功连接的服务器数量。
+  Future<int> autoConnect() async {
+    final servers = await loadServers();
+    var connected = 0;
+    for (final s in servers) {
+      if (!s.isEnabled) continue;
+      if (_clients.containsKey(s.id)) {
+        connected++;
+        continue;
+      }
+      try {
+        await connect(s);
+        connected++;
+      } catch (_) {
+        // 单个服务器连接失败，跳过，不影响其他
+      }
+    }
+    return connected;
+  }
+
+  /// 同步服务器状态：连接新启用的、断开已禁用的、刷新已变更的。
+  ///
+  /// 在 UI 上修改服务器配置后调用，确保连接状态与配置一致。
+  Future<void> syncServers(List<McpServer> servers) async {
+    final enabledIds = servers.where((s) => s.isEnabled).map((s) => s.id).toSet();
+
+    // 断开已禁用或已删除的服务器
+    final toDisconnect = _clients.keys
+        .where((id) => !enabledIds.contains(id))
+        .toList();
+    for (final id in toDisconnect) {
+      await disconnect(id);
+    }
+
+    // 连接新启用的服务器（已连接的跳过）
+    for (final s in servers) {
+      if (!s.isEnabled) continue;
+      if (_clients.containsKey(s.id)) continue;
+      try {
+        await connect(s);
+      } catch (_) {}
+    }
   }
 }

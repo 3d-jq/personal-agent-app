@@ -89,7 +89,7 @@ class _ImageCachePageState extends State<ImageCachePage> {
     return Scaffold(
       backgroundColor: nc.background,
       appBar: AppBar(
-        backgroundColor: nc.background,
+        backgroundColor: nc.background.withValues(alpha: 0.85),
         elevation: 0,
         leading: IconButton(
           icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
@@ -138,7 +138,7 @@ class _ImageCachePageState extends State<ImageCachePage> {
                       Text(
                         '$_imageCount 张图片',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 15,
                           color: nc.textSecondary,
                         ),
                       ),
@@ -177,7 +177,7 @@ class _ImageCachePageState extends State<ImageCachePage> {
                       Text(
                         '关于缓存',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: nc.textPrimary,
                         ),

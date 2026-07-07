@@ -134,7 +134,7 @@ class TaskPlanView extends StatelessWidget {
                       child: Text(
                         plan.title,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: nc.textPrimary,
                         ),

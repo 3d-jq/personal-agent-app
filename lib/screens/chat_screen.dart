@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -187,15 +188,21 @@ class _ChatScreenState extends State<ChatScreen> {
                               curve: Curves.easeOut,
                             );
                           },
+                          // Apple HIG：毛玻璃浮动按钮
+                          child: ClipOval(
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                               child: Container(
-                                width: 40,
-                                height: 40,
+                                width: 36,
+                                height: 36,
                                 decoration: BoxDecoration(
-                                  color: nc.surface,
+                                  color: nc.surface.withValues(alpha: 0.85),
                                   shape: BoxShape.circle,
                                   border: Border.all(color: nc.divider, width: 0.5),
                                 ),
-                            child: Icon(PhosphorIconsRegular.caretDoubleDown, size: 22, color: nc.textPrimary),
+                                child: Icon(PhosphorIconsRegular.caretDoubleDown, size: 18, color: nc.textPrimary),
+                              ),
+                            ),
                           ),
                         ),
                       ),

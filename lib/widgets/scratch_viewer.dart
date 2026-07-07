@@ -111,7 +111,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
                             child: Text(
                               '（空文件）',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 15,
                                 color: nc.textSecondary,
                               ),
                             ),
@@ -231,7 +231,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
                   Expanded(
                     child: Text(
                       file,
-                      style: TextStyle(fontSize: 14, color: nc.textPrimary),
+                      style: TextStyle(fontSize: 15, color: nc.textPrimary),
                     ),
                   ),
                   Icon(PhosphorIconsRegular.caretRight, size: 16, color: nc.textSecondary.withValues(alpha: 0.5)),

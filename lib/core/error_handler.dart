@@ -61,7 +61,7 @@ class ErrorHandler {
           const Text(
             '请重启应用或返回上一页重试。',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Color(0xFF3C3C43)),
+            style: TextStyle(fontSize: 15, color: Color(0xFF3C3C43)),
           ),
           if (kDebugMode) ...[
             const SizedBox(height: 24),

@@ -575,7 +575,7 @@ class _NoteTileState extends State<_NoteTile>
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 15,
                             color: nc.textSecondary,
                           ),
                         ),

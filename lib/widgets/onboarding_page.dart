@@ -131,7 +131,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             },
             child: Text(
               '稍后设置',
-              style: TextStyle(fontSize: 14, color: nc.textSecondary),
+              style: TextStyle(fontSize: 15, color: nc.textSecondary),
             ),
           ),
           SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
@@ -166,7 +166,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           const SizedBox(height: 8),
           Text(
             '选择一个服务商并填入 API Key',
-            style: TextStyle(fontSize: 14, color: nc.textSecondary),
+            style: TextStyle(fontSize: 15, color: nc.textSecondary),
           ),
           const SizedBox(height: 24),
           Wrap(
@@ -197,7 +197,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   child: Text(
                     p.$1,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
                       color: sel ? nc.success : nc.textPrimary,
                     ),

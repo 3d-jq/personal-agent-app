@@ -256,7 +256,7 @@ Widget mdBlock(String text, AgentColors nc, [BuildContext? context]) {
         height: 1.4,
       ),
       h5: TextStyle(
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: FontWeight.w700,
         color: nc.textPrimary,
         height: 1.4,
@@ -307,11 +307,11 @@ Widget mdBlock(String text, AgentColors nc, [BuildContext? context]) {
       listBullet: TextStyle(fontSize: 15, color: nc.textPrimary),
       tableBorder: TableBorder.all(color: nc.divider),
       tableHead: TextStyle(
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: FontWeight.w600,
         color: nc.textPrimary,
       ),
-      tableBody: TextStyle(fontSize: 14, color: nc.textPrimary),
+      tableBody: TextStyle(fontSize: 15, color: nc.textPrimary),
       horizontalRuleDecoration: BoxDecoration(
         border: Border(top: BorderSide(color: nc.divider, width: 0.5)),
       ),

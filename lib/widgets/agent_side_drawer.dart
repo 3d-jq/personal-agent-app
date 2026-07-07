@@ -230,7 +230,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                             const Text(
                               '新对话',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
                               ),

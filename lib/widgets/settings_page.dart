@@ -445,7 +445,7 @@ class _SettingItem extends StatelessWidget {
               if (trailing != null)
                 Text(
                   trailing!,
-                  style: TextStyle(fontSize: 14, color: nc.textSecondary),
+                  style: TextStyle(fontSize: 15, color: nc.textSecondary),
                 ),
               const SizedBox(width: 4),
               Icon(

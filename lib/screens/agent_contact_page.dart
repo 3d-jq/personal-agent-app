@@ -48,7 +48,7 @@ class _AgentContactPageState extends State<AgentContactPage> {
     return Scaffold(
       backgroundColor: nc.background,
       appBar: AppBar(
-        backgroundColor: nc.background,
+        backgroundColor: nc.background.withValues(alpha: 0.85),
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(
@@ -439,7 +439,7 @@ class _AgentCardSheet extends StatelessWidget {
                         Text(
                           agent.role,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 15,
                             color: nc.textSecondary,
                           ),
                         ),
@@ -601,7 +601,7 @@ class _GroupCardSheet extends StatelessWidget {
                         Text(
                           memberNames,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 15,
                             color: nc.textSecondary,
                           ),
                           maxLines: 2,

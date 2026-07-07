@@ -82,7 +82,7 @@ class AIService {
   /// Claude 当前输出上限已支持 32K，与其他厂商统一使用外部配置值。
   int get _effectiveMaxTokens => maxTokens;
 
-  /// Retries a request on 429 with exponential backoff.
+  /// Retries a request on 429 / timeout / connection error with exponential backoff.
   /// [maxRetries] attempts total (including the first one).
   /// [receiveTimeout] overrides the default for long-running streaming requests.
   Future<Response> _retryPost(
@@ -106,7 +106,12 @@ class AIService {
         );
         return resp;
       } on DioException catch (e) {
-        if (e.response?.statusCode == 429 && attempt < maxRetries - 1) {
+        final is429 = e.response?.statusCode == 429;
+        final isNetworkError = e.type == DioExceptionType.connectionTimeout ||
+            e.type == DioExceptionType.receiveTimeout ||
+            e.type == DioExceptionType.connectionError;
+        final shouldRetry = attempt < maxRetries - 1 && (is429 || isNetworkError);
+        if (shouldRetry) {
           final delay = Duration(seconds: (1 << attempt) + 1); // 2s, 3s, 5s
           await Future.delayed(delay);
           continue;

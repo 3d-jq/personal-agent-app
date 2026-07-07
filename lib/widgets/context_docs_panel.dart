@@ -111,7 +111,7 @@ class ContextDocViewerPage extends StatelessWidget {
                     color: colors.textPrimary,
                   ),
                   blockquote: TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     color: colors.textSecondary,
                     fontStyle: FontStyle.italic,
                   ),

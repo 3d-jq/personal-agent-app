@@ -226,6 +226,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
 
     // ── 混合协作引擎 ──
+    // 每次发消息前刷新 MCP 工具，确保新连接的服务器能被大模型发现
+    registerMcpTools(_baseRegistry);
     setState(() {
       _busy = true;
       _discussionRound = 0;
@@ -487,7 +489,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         cancelOnError: true,
       );
       _activeSubs.add(sub!);
-      await completer.future;
+      // 超时保护：防止流挂死导致接力永久阻塞
+      await completer.future.timeout(
+        const Duration(minutes: 5),
+        onTimeout: () {
+          buf.write('\n\n[连接超时，请重试]');
+          typewriter.append('\n\n[连接超时，请重试]');
+          typewriter.revealAll();
+          placeholder.text = typewriter.visibleText;
+        },
+      );
     } finally {
       await sub?.cancel();
       typewriterTimer?.cancel();
@@ -553,7 +564,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 child: Text(
                   '选择要 @ 的 Agent',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: nc.textPrimary,
                   ),
@@ -578,7 +589,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         child: Text(
                           a.avatar.isNotEmpty ? a.avatar : a.name.characters.first,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 15,
                             fontWeight: FontWeight.w600,
                             color: nc.textPrimary,
                           ),
@@ -619,6 +630,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     setState(() => _busy = false);
   }
 
+  /// 流式过程中拦截返回：先停止流并存盘，再退出
+  Future<void> _handleBack() async {
+    if (_busy) {
+      _stop();
+      await _saveGroup();
+    }
+    if (mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
@@ -626,19 +646,24 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       return Scaffold(body: StatePlaceholder.loading());
     }
 
-    return Scaffold(
+    return PopScope(
+      canPop: !_busy,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleBack();
+      },
+      child: Scaffold(
       backgroundColor: nc.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _handleBack,
         ),
         title: Text(
           _group!.name,
           style: TextStyle(
-            fontSize: 17,
+            fontSize: 15,
             fontWeight: FontWeight.w600,
             color: nc.textPrimary,
           ),
@@ -697,18 +722,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
+                  child: Container(
                     decoration: BoxDecoration(
-                      color: nc.primarySurface,
+                      color: nc.primarySurface.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 12,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                      // Apple HIG：用 0.5px 边框代替阴影
+                      border: Border.all(color: nc.divider, width: 0.5),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -845,6 +864,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 }

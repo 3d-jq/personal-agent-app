@@ -141,6 +141,9 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
       return;
     }
 
+    // 每次发消息前刷新 MCP 工具
+    registerMcpTools(_baseRegistry);
+
     final placeholder = ChatMessage(
       text: '',
       isUser: false,
@@ -214,7 +217,15 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
         },
         cancelOnError: true,
       );
-      await completer.future;
+      // 超时保护：防止流挂死导致界面永久卡住
+      await completer.future.timeout(
+        const Duration(minutes: 5),
+        onTimeout: () {
+          typewriter.append('\n\n[连接超时，请重试]');
+          typewriter.revealAll();
+          placeholder.text = typewriter.visibleText;
+        },
+      );
     } finally {
       await sub?.cancel();
       typewriterTimer?.cancel();
@@ -229,20 +240,34 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
     setState(() => _busy = false);
   }
 
+  /// 流式过程中拦截返回：先停止流并存盘，再退出
+  Future<void> _handleBack() async {
+    if (_busy) {
+      _stop();
+      await _saveSession();
+    }
+    if (mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
     final bottomSafe = MediaQuery.of(context).padding.bottom;
 
-    return Scaffold(
+    return PopScope(
+      canPop: !_busy,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleBack();
+      },
+      child: Scaffold(
       backgroundColor: nc.background,
       appBar: AppBar(
-        backgroundColor: nc.background,
+        backgroundColor: nc.background.withValues(alpha: 0.85),
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _handleBack,
         ),
         title: Row(
           mainAxisSize: MainAxisSize.min,
@@ -261,7 +286,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
                     ? widget.agent.avatar
                     : widget.agent.name.characters.first,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: nc.textPrimary,
                 ),
@@ -338,6 +363,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 }
