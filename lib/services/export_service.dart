@@ -7,6 +7,7 @@ import '../models/note.dart';
 import '../services/chat_storage.dart';
 import '../core/service_locator.dart';
 import '../services/note_storage.dart';
+import 'log_service.dart';
 
 class ExportService {
   ExportService();
@@ -71,6 +72,8 @@ class ExportService {
         'shareFile',
         {'path': file.path, 'mimeType': 'text/plain', 'title': 'DWeis 导出'},
       );
-    } catch (_) {}
+    } catch (e) {
+      log.e('ExportService', '分享文件失败: $e');
+    }
   }
 }

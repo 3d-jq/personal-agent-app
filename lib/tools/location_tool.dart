@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../tools/base_tool.dart';
+import '../services/log_service.dart';
 import 'location_tool.g.dart';
 
 /// 获取设备当前 GPS 定位，并反向地理编码获取精确地址和附近 POI。
@@ -53,15 +54,17 @@ class LocationTool extends AgentTool {
           timeLimit: Duration(seconds: 30),
         ),
       );
-    } catch (_) {
-      // 实时定位失败，尝试获取缓存位置
+    } catch (e) {
+      log.w('LocationTool', '实时定位失败: $e');
     }
 
     // 4. 如果实时定位失败，尝试获取缓存位置
     if (position == null) {
       try {
         position = await Geolocator.getLastKnownPosition();
-      } catch (_) {}
+      } catch (e) {
+        log.w('LocationTool', '获取缓存位置失败: $e');
+      }
     }
 
     if (position == null) {
@@ -190,7 +193,9 @@ class LocationTool extends AgentTool {
           }
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      log.w('LocationTool', '反向地理编码失败: $e');
+    }
 
     return result;
   }

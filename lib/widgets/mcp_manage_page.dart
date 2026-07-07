@@ -4,6 +4,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import '../core/service_locator.dart';
 import '../services/mcp_manager.dart';
+import '../services/log_service.dart';
 
 /// MCP 配置数据模型
 class McpServer {
@@ -81,7 +82,9 @@ class _McpManagePageState extends State<McpManagePage> {
     setState(() => _loading = true);
     try {
       _servers = await getIt<McpManager>().loadServers();
-    } catch (_) {}
+    } catch (e) {
+      log.e('McpManagePage', '加载MCP服务器列表失败: $e');
+    }
     setState(() => _loading = false);
   }
 
