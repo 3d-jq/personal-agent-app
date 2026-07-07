@@ -50,6 +50,21 @@ class OpenAiProtocol {
         },
       );
 
+      // 检查 HTTP 状态码
+      final statusCode = response.statusCode;
+      if (statusCode == null || statusCode >= 400) {
+        final errorData = response.data;
+        String errorMsg = '请求失败($statusCode)';
+        if (errorData is Map) {
+          final error = errorData['error'];
+          if (error is Map) {
+            errorMsg = error['message']?.toString() ?? errorMsg;
+          }
+        }
+        log.e('OpenAiProtocol', 'Non-streaming request failed: $errorMsg');
+        return AiResponse(text: errorMsg);
+      }
+
       final choice = response.data['choices']?[0];
       if (choice == null || choice['message'] == null) {
         return const AiResponse(text: '');
@@ -97,6 +112,26 @@ class OpenAiProtocol {
           if (thinkingEffort.isNotEmpty) 'reasoning_effort': thinkingEffort,
         },
       );
+
+      // 检查 HTTP 状态码
+      final statusCode = response.statusCode;
+      if (statusCode == null || statusCode >= 400) {
+        // 读取错误响应
+        String errorMsg = '请求失败($statusCode)';
+        try {
+          final errorBody = await response.data.stream.bytesToString();
+          final errorData = jsonDecode(errorBody);
+          if (errorData is Map) {
+            final error = errorData['error'];
+            if (error is Map) {
+              errorMsg = error['message']?.toString() ?? errorMsg;
+            }
+          }
+        } catch (_) {}
+        log.e('OpenAiProtocol', 'Stream request failed: $errorMsg');
+        yield ErrorEvent(errorMsg);
+        return;
+      }
 
       final stream = response.data.stream as Stream<List<int>>;
       String buffer = '';
