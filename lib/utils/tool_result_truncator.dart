@@ -4,8 +4,8 @@
 /// - 工具输出截断到 2000 字符（约 500 token）
 /// - 防止工具结果撑爆上下文
 class ToolResultTruncator {
-  /// 最大字符数（2000 字符 ≈ 500 token）
-  static const int maxChars = 2000;
+  /// 最大字符数（6000 字符 ≈ 1500 token）
+  static const int maxChars = 6000;
 
   const ToolResultTruncator();
 
