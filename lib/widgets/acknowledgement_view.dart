@@ -54,7 +54,7 @@ class AcknowledgementView extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'by Sapiens AI',
-                    style: TextStyle(fontSize: 14, color: nc.textSecondary),
+                    style: TextStyle(fontSize: 15, color: nc.textSecondary),
                   ),
                   const SizedBox(height: 20),
                   Text(
@@ -88,7 +88,7 @@ class AcknowledgementView extends StatelessWidget {
                         Text(
                           '通过 Agnes AI，我们希望降低高质量 AI 技术的使用门槛，让开发者、创作者、创业团队和企业都能够以更简单、更稳定、更低成本的方式，将先进的 AI 能力接入自己的产品与业务中。',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 15,
                             color: nc.textSecondary,
                             height: 1.7,
                           ),
@@ -97,7 +97,7 @@ class AcknowledgementView extends StatelessWidget {
                         Text(
                           '我们相信，世界级 AI 不应该只属于少数大型机构，而应该成为每一位开发者都能使用、每一个产品都能集成、每一个用户都能受益的基础能力。',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 15,
                             color: nc.textSecondary,
                             height: 1.7,
                           ),
@@ -149,7 +149,7 @@ class AcknowledgementView extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     '感谢 Sapiens AI 让世界级 AI 对每一个人开放。',
-                    style: TextStyle(fontSize: 14, color: nc.textSecondary),
+                    style: TextStyle(fontSize: 15, color: nc.textSecondary),
                     textAlign: TextAlign.center,
                   ),
                 ],

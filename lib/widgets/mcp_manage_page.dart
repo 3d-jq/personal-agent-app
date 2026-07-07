@@ -1,13 +1,8 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import '../core/agent_colors.dart';
 import '../core/service_locator.dart';
-import '../services/mcp_client.dart';
 import '../services/mcp_manager.dart';
 
 /// MCP 配置数据模型
@@ -18,12 +13,16 @@ class McpServer {
   final String? apiKey;
   final bool isEnabled;
 
+  /// MCP 服务的请求路径，默认 '/'。有些服务商用 '/mcp'。
+  final String endpoint;
+
   McpServer({
     required this.id,
     required this.name,
     required this.url,
     this.apiKey,
     this.isEnabled = true,
+    this.endpoint = '/',
   });
 
   Map<String, dynamic> toJson() => {
@@ -32,6 +31,7 @@ class McpServer {
     'url': url,
     'apiKey': apiKey,
     'isEnabled': isEnabled,
+    'endpoint': endpoint,
   };
 
   factory McpServer.fromJson(Map<String, dynamic> json) => McpServer(
@@ -40,6 +40,7 @@ class McpServer {
     url: json['url'] as String,
     apiKey: json['apiKey'] as String?,
     isEnabled: json['isEnabled'] as bool? ?? true,
+    endpoint: json['endpoint'] as String? ?? '/',
   );
 
   McpServer copyWith({
@@ -47,12 +48,14 @@ class McpServer {
     String? url,
     String? apiKey,
     bool? isEnabled,
+    String? endpoint,
   }) => McpServer(
     id: id,
     name: name ?? this.name,
     url: url ?? this.url,
     apiKey: apiKey ?? this.apiKey,
     isEnabled: isEnabled ?? this.isEnabled,
+    endpoint: endpoint ?? this.endpoint,
   );
 }
 
@@ -77,46 +80,170 @@ class _McpManagePageState extends State<McpManagePage> {
   Future<void> _loadServers() async {
     setState(() => _loading = true);
     try {
-      final dir = await getApplicationDocumentsDirectory();
-      final file = File('${dir.path}/mcp_servers.json');
-      if (await file.exists()) {
-        final data = jsonDecode(await file.readAsString()) as List;
-        _servers = data.map((j) => McpServer.fromJson(j as Map<String, dynamic>)).toList();
-      }
+      _servers = await getIt<McpManager>().loadServers();
     } catch (_) {}
     setState(() => _loading = false);
   }
 
   Future<void> _saveServers() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/mcp_servers.json');
-    await file.writeAsString(jsonEncode(_servers.map((s) => s.toJson()).toList()));
+    await getIt<McpManager>().saveServers(_servers);
   }
 
-  void _showAddServer() {
+  /// 保存配置并同步连接状态（连接新启用的、断开已禁用的）
+  Future<void> _saveAndSync() async {
+    await _saveServers();
+    await getIt<McpManager>().syncServers(_servers);
+  }
+
+  /// 预置 MCP 服务器模板
+  static const _presetTemplates = [
+    (
+      name: '麦当劳',
+      url: 'https://mcp.mcd.cn',
+      endpoint: '/',
+      hint: '在 https://open.mcd.cn/mcp 申请 MCP Token',
+    ),
+    (
+      name: '瑞幸咖啡',
+      url: 'https://gwmcp.lkcoffee.com',
+      endpoint: '/order/user/mcp',
+      hint: '在瑞幸 AI 开放平台申请 MCP Token',
+    ),
+  ];
+
+  /// 添加服务器入口：选择手动添加或预置模板
+  void _showAddMenu() {
     final nc = AgentColors.of(context);
-    final nameCtrl = TextEditingController();
-    final urlCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: nc.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: nc.divider,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                '添加 MCP 服务器',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: nc.textPrimary,
+                ),
+              ),
+            ),
+            // 预置模板
+            for (final t in _presetTemplates)
+              ListTile(
+                leading: Container(
+                  width: 40,
+                  height: 40,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: nc.primarySurface,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    t.name.characters.first,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: nc.primary,
+                    ),
+                  ),
+                ),
+                title: Text(t.name, style: TextStyle(fontSize: 15, color: nc.textPrimary)),
+                subtitle: Text(
+                  t.url,
+                  style: TextStyle(fontSize: 12, color: nc.textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: Icon(PhosphorIconsRegular.caretRight, size: 18, color: nc.textSecondary),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _showAddServer(
+                    presetName: t.name,
+                    presetUrl: t.url,
+                    presetEndpoint: t.endpoint,
+                    tokenHint: t.hint,
+                  );
+                },
+              ),
+            Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 56),
+            // 手动添加
+            ListTile(
+              leading: Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: nc.primarySurface,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(PhosphorIconsRegular.pencilSimple, size: 18, color: nc.textSecondary),
+              ),
+              title: Text('手动添加', style: TextStyle(fontSize: 15, color: nc.textPrimary)),
+              subtitle: Text(
+                '自定义服务器信息',
+                style: TextStyle(fontSize: 12, color: nc.textSecondary),
+              ),
+              trailing: Icon(PhosphorIconsRegular.caretRight, size: 18, color: nc.textSecondary),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showAddServer();
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddServer({
+    String? presetName,
+    String? presetUrl,
+    String? presetEndpoint,
+    String? tokenHint,
+  }) {
+    final nc = AgentColors.of(context);
+    final nameCtrl = TextEditingController(text: presetName ?? '');
+    final urlCtrl = TextEditingController(text: presetUrl ?? '');
     final keyCtrl = TextEditingController();
+    final endpointCtrl = TextEditingController(text: presetEndpoint ?? '/');
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        margin: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      backgroundColor: nc.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetCtx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 20,
         ),
-        decoration: BoxDecoration(
-          color: nc.surface,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Text(
               '添加 MCP 服务器',
               style: TextStyle(
@@ -145,9 +272,19 @@ class _McpManagePageState extends State<McpManagePage> {
             ),
             const SizedBox(height: 12),
             TextField(
+              controller: endpointCtrl,
+              decoration: InputDecoration(
+                labelText: '请求路径（默认 /）',
+                hintText: '/ 或 /mcp',
+                labelStyle: TextStyle(color: nc.textSecondary),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
               controller: keyCtrl,
               decoration: InputDecoration(
                 labelText: 'API Key（可选）',
+                hintText: tokenHint ?? 'MCP Token',
                 labelStyle: TextStyle(color: nc.textSecondary),
               ),
             ),
@@ -161,9 +298,12 @@ class _McpManagePageState extends State<McpManagePage> {
                       name: nameCtrl.text,
                       url: urlCtrl.text,
                       apiKey: keyCtrl.text.isNotEmpty ? keyCtrl.text : null,
+                      endpoint: endpointCtrl.text.trim().isNotEmpty
+                          ? endpointCtrl.text.trim()
+                          : '/',
                     ));
                   });
-                  _saveServers();
+                  _saveAndSync();
                   Navigator.pop(context);
                 }
               },
@@ -176,6 +316,7 @@ class _McpManagePageState extends State<McpManagePage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -213,8 +354,8 @@ class _McpManagePageState extends State<McpManagePage> {
       // 关闭加载对话框
       if (mounted) Navigator.pop(context);
       
-      // 获取工具列表
-      final tools = await client.listTools();
+      // connect() 内部已完成 initialize + listTools，直接读缓存的工具列表
+      final tools = client.tools;
       
       if (mounted) {
         showDialog(
@@ -270,25 +411,27 @@ class _McpManagePageState extends State<McpManagePage> {
     final nameCtrl = TextEditingController(text: server.name);
     final urlCtrl = TextEditingController(text: server.url);
     final keyCtrl = TextEditingController(text: server.apiKey ?? '');
+    final endpointCtrl = TextEditingController(text: server.endpoint);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        margin: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      backgroundColor: nc.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetCtx) => Padding(
+        padding: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 20,
+          bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 20,
         ),
-        decoration: BoxDecoration(
-          color: nc.surface,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             Text(
               '编辑 MCP 服务器',
               style: TextStyle(
@@ -315,6 +458,15 @@ class _McpManagePageState extends State<McpManagePage> {
             ),
             const SizedBox(height: 12),
             TextField(
+              controller: endpointCtrl,
+              decoration: InputDecoration(
+                labelText: '请求路径（默认 /）',
+                hintText: '/ 或 /mcp',
+                labelStyle: TextStyle(color: nc.textSecondary),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
               controller: keyCtrl,
               decoration: InputDecoration(
                 labelText: 'API Key（可选）',
@@ -332,10 +484,13 @@ class _McpManagePageState extends State<McpManagePage> {
                         name: nameCtrl.text,
                         url: urlCtrl.text,
                         apiKey: keyCtrl.text.isNotEmpty ? keyCtrl.text : null,
+                        endpoint: endpointCtrl.text.trim().isNotEmpty
+                            ? endpointCtrl.text.trim()
+                            : '/',
                       );
                     }
                   });
-                  _saveServers();
+                  _saveAndSync();
                   Navigator.pop(context);
                 }
               },
@@ -348,6 +503,7 @@ class _McpManagePageState extends State<McpManagePage> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -371,7 +527,7 @@ class _McpManagePageState extends State<McpManagePage> {
               setState(() {
                 _servers.removeWhere((s) => s.id == server.id);
               });
-              _saveServers();
+              _saveAndSync();
             },
             child: Text('删除', style: TextStyle(color: nc.error)),
           ),
@@ -415,7 +571,7 @@ class _McpManagePageState extends State<McpManagePage> {
                     right: 16,
                     bottom: 16,
                     child: FloatingActionButton(
-                      onPressed: _showAddServer,
+                      onPressed: _showAddMenu,
                       backgroundColor: nc.primary,
                       child: Icon(PhosphorIconsRegular.plus, color: Colors.white),
                     ),
@@ -429,76 +585,23 @@ class _McpManagePageState extends State<McpManagePage> {
                     itemCount: _servers.length,
                     itemBuilder: (context, index) {
                       final server = _servers[index];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          color: nc.surface,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: nc.divider, width: 0.5),
-                        ),
-                        child: ListTile(
-                          leading: Container(
-                            width: 40,
-                            height: 40,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: server.isEnabled
-                                  ? nc.success.withValues(alpha: 0.1)
-                                  : nc.primarySurface,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(
-                              PhosphorIconsRegular.globe,
-                              size: 20,
-                              color: server.isEnabled ? nc.success : nc.textSecondary,
-                            ),
-                          ),
-                          title: Text(
-                            server.name,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: nc.textPrimary,
-                            ),
-                          ),
-                          subtitle: Text(
-                            server.url,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 12, color: nc.textSecondary),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Switch(
-                                value: server.isEnabled,
-                                onChanged: (value) {
-                                  setState(() {
-                                    final index = _servers.indexWhere((s) => s.id == server.id);
-                                    if (index >= 0) {
-                                      _servers[index] = server.copyWith(isEnabled: value);
-                                    }
-                                  });
-                                  _saveServers();
-                                },
-                                activeColor: nc.success,
-                              ),
-                              IconButton(
-                                icon: Icon(PhosphorIconsRegular.plugs, size: 18, color: nc.textSecondary),
-                                onPressed: () => _testConnection(server),
-                                tooltip: '测试连接',
-                              ),
-                              IconButton(
-                                icon: Icon(PhosphorIconsRegular.pencilSimple, size: 18, color: nc.textSecondary),
-                                onPressed: () => _showEditServer(server),
-                              ),
-                              IconButton(
-                                icon: Icon(PhosphorIconsRegular.trash, size: 18, color: nc.error),
-                                onPressed: () => _deleteServer(server),
-                              ),
-                            ],
-                          ),
-                        ),
+                      final isConnected = getIt<McpManager>().clients.containsKey(server.id);
+                      return _McpServerCard(
+                        server: server,
+                        isConnected: isConnected,
+                        nc: nc,
+                        onToggle: (value) {
+                          setState(() {
+                            final i = _servers.indexWhere((s) => s.id == server.id);
+                            if (i >= 0) {
+                              _servers[i] = server.copyWith(isEnabled: value);
+                            }
+                          });
+                          _saveAndSync();
+                        },
+                        onTest: () => _testConnection(server),
+                        onEdit: () => _showEditServer(server),
+                        onDelete: () => _deleteServer(server),
                       );
                     },
                   ),
@@ -506,12 +609,234 @@ class _McpManagePageState extends State<McpManagePage> {
                     right: 16,
                     bottom: 16,
                     child: FloatingActionButton(
-                      onPressed: _showAddServer,
+                      onPressed: _showAddMenu,
                       backgroundColor: nc.primary,
                       child: Icon(PhosphorIconsRegular.plus, color: Colors.white),
                     ),
                   ),
                 ],
               );
+  }
+}
+
+/// MCP 服务器卡片
+class _McpServerCard extends StatelessWidget {
+  final McpServer server;
+  final bool isConnected;
+  final AgentColors nc;
+  final ValueChanged<bool> onToggle;
+  final VoidCallback onTest;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _McpServerCard({
+    required this.server,
+    required this.isConnected,
+    required this.nc,
+    required this.onToggle,
+    required this.onTest,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = server.isEnabled;
+    // 状态：已连接 > 已启用未连接 > 已禁用
+    final statusColor = isConnected
+        ? nc.success
+        : enabled
+            ? nc.warning
+            : nc.textDisabled;
+    final statusText = isConnected ? '已连接' : enabled ? '未连接' : '已禁用';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: nc.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isConnected ? nc.success.withValues(alpha: 0.3) : nc.divider,
+          width: isConnected ? 1 : 0.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          // ── 主体：图标 + 名称 + 状态 + 开关 ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 10, 8),
+            child: Row(
+              children: [
+                // 图标
+                Container(
+                  width: 42,
+                  height: 42,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: enabled
+                        ? nc.primary.withValues(alpha: 0.08)
+                        : nc.primarySurface,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Text(
+                    server.name.isNotEmpty ? server.name.characters.first : '?',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: enabled ? nc.primary : nc.textSecondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // 名称 + URL
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        server.name,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: nc.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        server.url,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: nc.textSecondary.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 状态标签
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: statusColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 开关
+                SizedBox(
+                  height: 28,
+                  child: Switch(
+                    value: enabled,
+                    onChanged: onToggle,
+                    activeColor: nc.success,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // ── 操作按钮行 ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+            child: Row(
+              children: [
+                _ActionChip(
+                  icon: PhosphorIconsRegular.plugs,
+                  label: '测试',
+                  color: nc.textSecondary,
+                  nc: nc,
+                  onTap: onTest,
+                ),
+                const SizedBox(width: 8),
+                _ActionChip(
+                  icon: PhosphorIconsRegular.pencilSimple,
+                  label: '编辑',
+                  color: nc.textSecondary,
+                  nc: nc,
+                  onTap: onEdit,
+                ),
+                const Spacer(),
+                _ActionChip(
+                  icon: PhosphorIconsRegular.trash,
+                  label: '删除',
+                  color: nc.error,
+                  nc: nc,
+                  onTap: onDelete,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 操作按钮（chip 样式）
+class _ActionChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final AgentColors nc;
+  final VoidCallback onTap;
+
+  const _ActionChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.nc,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

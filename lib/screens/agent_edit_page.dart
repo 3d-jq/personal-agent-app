@@ -66,7 +66,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
     return Scaffold(
       backgroundColor: nc.background,
       appBar: AppBar(
-        backgroundColor: nc.background,
+        backgroundColor: nc.background.withValues(alpha: 0.85),
         elevation: 0,
         leading: IconButton(
           icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
@@ -135,7 +135,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
           Text(
             'System Prompt',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: FontWeight.w500,
               color: nc.textPrimary,
             ),
@@ -161,12 +161,12 @@ class _AgentEditPageState extends State<AgentEditPage> {
               controller: _prompt,
               minLines: 6,
               maxLines: 15,
-              style: TextStyle(fontSize: 14, color: nc.textPrimary, height: 1.6),
+              style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.6),
               decoration: InputDecoration(
                 hintText: '<role>\n你是...\n</role>',
                 hintStyle: TextStyle(
                   color: nc.textDisabled,
-                  fontSize: 14,
+                  fontSize: 15,
                   fontFamily: 'monospace',
                 ),
                 filled: true,
@@ -184,7 +184,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
           Text(
             'AI 后端',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: FontWeight.w500,
               color: nc.textPrimary,
             ),
@@ -223,7 +223,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
             Text(
               '模型',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: FontWeight.w500,
                 color: nc.textPrimary,
               ),
@@ -263,7 +263,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
           Text(
             '可用工具',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 15,
               fontWeight: FontWeight.w500,
               color: nc.textPrimary,
             ),
@@ -430,7 +430,7 @@ class _EditField extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 15,
             fontWeight: FontWeight.w500,
             color: nc.textPrimary,
           ),

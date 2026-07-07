@@ -48,7 +48,7 @@ class AboutView extends StatelessWidget {
           Center(
             child: Text(
               '全能 AI 助手',
-              style: TextStyle(fontSize: 14, color: nc.textSecondary),
+              style: TextStyle(fontSize: 15, color: nc.textSecondary),
             ),
           ),
           const SizedBox(height: 40),
@@ -167,9 +167,9 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Text(label, style: TextStyle(fontSize: 14, color: nc.textSecondary)),
+          Text(label, style: TextStyle(fontSize: 15, color: nc.textSecondary)),
           const Spacer(),
-          Text(value, style: TextStyle(fontSize: 14, color: nc.textPrimary)),
+          Text(value, style: TextStyle(fontSize: 15, color: nc.textPrimary)),
         ],
       ),
     );

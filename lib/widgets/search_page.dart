@@ -181,7 +181,7 @@ class _SearchPageState extends State<SearchPage> {
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontSize: 14,
+                                            fontSize: 15,
                                             fontWeight: FontWeight.w500,
                                             color: nc.textPrimary,
                                           ),

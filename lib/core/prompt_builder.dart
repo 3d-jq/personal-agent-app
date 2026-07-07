@@ -58,7 +58,7 @@ class PromptBuilder {
       buf.writeln();
     }
 
-    // 注入 Skill 目录和激活的 Skill 指令
+    // 注入 Skill 目录（渐进式披露：只注入第1层 name+description）
     try {
       final skillRegistry = getIt<SkillRegistry>();
       final catalog = skillRegistry.getCatalog();
@@ -66,18 +66,11 @@ class PromptBuilder {
         buf.writeln(catalog);
         buf.writeln();
         buf.writeln('<skill_usage>');
-        buf.writeln('以下 Skills 提供了针对特定任务的专门指令。');
-        buf.writeln('当任务匹配某个 Skill 的描述时，请使用 skill_manage 工具激活该 Skill，然后按照指令执行。');
+        buf.writeln('以上是所有可用 Skills 的目录。当任务匹配某个 Skill 的描述时：');
+        buf.writeln('1. 先调用 skill_manage(action="read", name="技能名") 读取该 Skill 的详细指令');
+        buf.writeln('2. 如果该 Skill 有 cookbook 文件，再用 skill_manage(action="read_cookbook", name="技能名", file="文件名") 读取详细步骤');
+        buf.writeln('3. 按照读取到的指令执行任务');
         buf.writeln('</skill_usage>');
-        buf.writeln();
-      }
-
-      // 注入已激活 Skill 的指令
-      final activeInstructions = skillRegistry.getActiveInstructions();
-      if (activeInstructions.isNotEmpty) {
-        buf.writeln('<active_skills>');
-        buf.writeln(activeInstructions);
-        buf.writeln('</active_skills>');
         buf.writeln();
       }
     } catch (_) {

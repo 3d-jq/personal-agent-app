@@ -3,7 +3,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../core/service_locator.dart';
 import '../models/chat_message.dart';
 import '../services/crypto_util.dart';
-import '../tools/skill_registry.dart';
+import '../services/mcp_manager.dart';
+import '../tools/mcp_tool_adapter.dart';
 import '../tools/tools.dart';
 
 /// 安全读取环境变量，测试环境未加载 dotenv 时返回空字符串。
@@ -40,16 +41,52 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(VirtualFSTool());
   registry.register(SkillManageTool());
 
-  // 注册内置技能
-  final skillRegistry = getIt<SkillRegistry>();
-  skillRegistry.registerBuiltInSkills();
-
   // 工具发现层（本身也是预加载工具）
   registry.register(ToolSearchTool(registry: registry));
   registry.register(DeferExecuteTool(registry: registry));
 
   // 低频/场景化工具（按需发现）
   registry.registerDiscoverable(CalendarTool());
+
+  // 注入所有已连接 MCP 服务器的工具
+  registerMcpTools(registry);
+}
+
+/// 把所有已连接 MCP 服务器的工具注册进 ToolRegistry。
+///
+/// 每个 MCP 工具用 [McpToolAdapter] 包装，工具名加 `mcp_{serverId}_` 前缀
+/// 防止多个服务器之间工具重名冲突。
+///
+/// 应在每次发消息前调用，确保用户在 MCP 管理页新连接的服务器
+/// 能被及时注册。
+void registerMcpTools(ToolRegistry registry) {
+  try {
+    final mcpManager = getIt<McpManager>();
+    // 先移除所有旧的 MCP 工具，避免断开的服务器工具残留
+    final oldMcpNames = registry.all
+        .where((t) => t.name.startsWith('mcp_'))
+        .map((t) => t.name)
+        .toList();
+    for (final name in oldMcpNames) {
+      registry.unregister(name);
+    }
+    // 重新注册所有当前已连接的服务器工具
+    for (final entry in mcpManager.clients.entries) {
+      final serverId = entry.key;
+      final client = entry.value;
+      for (final tool in client.tools) {
+        final adapter = McpToolAdapter(
+          serverId: serverId,
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+        );
+        registry.register(adapter);
+      }
+    }
+  } catch (_) {
+    // McpManager 未初始化时忽略
+  }
 }
 
 /// 工具名称 → 中文标签，支持通过 arguments 显示具体操作。
@@ -101,7 +138,7 @@ String toolLabel(String name, {Map<String, dynamic>? arguments, bool detailed = 
       return switch (a) { 'ls' => '列出目录', 'read' => '读取文件', 'write' => '写入文件', 'mkdir' => '创建目录', 'rm' => '删除', 'walk' => '遍历目录', _ => '文件系统' };
     case 'skill_manage':
       final a = arguments?['action'] as String?;
-      return switch (a) { 'list' => '查看技能', 'activate' => '激活技能', 'deactivate' => '停用技能', 'match' => '匹配技能', _ => '技能管理' };
+      return switch (a) { 'list' => '查看技能', 'read' => '读取技能', 'read_cookbook' => '读取步骤', 'create' => '创建技能', 'match' => '匹配技能', _ => '技能管理' };
     case 'task_plan':
       final action = arguments?['action'] as String?;
       final verb = switch (action) {

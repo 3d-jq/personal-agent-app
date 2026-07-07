@@ -3,10 +3,14 @@
 
 /// Tool description for `skill_manage_tool`.
 const String skillManageToolDescription = r'''
-管理 Agent 技能包。技能包是一组相关工具和 prompt 模板的组合。
-- list: 查看所有可用技能
-- activate: 激活一个技能（加载其工具和 prompt）
-- deactivate: 停用一个技能
+管理 Agent 技能包。技能包是一组指令和工作流程的组合，采用渐进式披露：
+- list: 列出所有可用技能（名称+描述）
+- read: 读取某个技能的详细指令正文
+- read_cookbook: 读取技能的 cookbook 详细步骤文件
+- create: 创建新技能（需提供 name、description、instructions，可选 keywords 和 cookbook_files）
 - match: 根据用户输入自动匹配可能需要的技能
-激活技能后，对应的工具和 prompt 模板会自动加载到当前会话中。
+
+渐进式披露：prompt 中只注入技能目录（名称+描述）。需要使用某个技能时，先调 read 读取指令正文，如果该技能有 cookbook 文件再调 read_cookbook 读取详细步骤。这样节省上下文空间。
+
+创建后技能自动生效并持久化到磁盘（SKILL.md 格式），重启后仍然可用。
 ''';

@@ -646,7 +646,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
                           title: Text(
                             m,
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 15,
                               fontWeight:
                                   sel ? FontWeight.w600 : FontWeight.w400,
                               color: sel ? nc.success : nc.textPrimary,

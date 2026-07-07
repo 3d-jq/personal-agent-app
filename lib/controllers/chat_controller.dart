@@ -154,6 +154,8 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> switchSession(String id) async {
+    // 先停止当前流（会触发存盘），再切换，避免流回调往已替换的消息列表写数据
+    if (_isLoading) stopStream();
     await saveSession();
     await loadSession(id);
   }
@@ -201,6 +203,8 @@ class ChatController extends ChangeNotifier {
     if (_sessionId == null) newSession();
 
     _toolRegistry.resetCallCounts();
+    // 每次发消息前刷新 MCP 工具，确保新连接的服务器能被大模型发现
+    registerMcpTools(_toolRegistry);
 
     if (!_aiSettings.hasVendor) {
       _messages.add(ChatMessage(text: '请先配置 AI 后端（点击输入框内存图标）', isUser: false));
@@ -275,14 +279,18 @@ class ChatController extends ChangeNotifier {
     );
 
     // 超过阈值时，对早期对话做摘要压缩，避免滑动窗口直接丢弃信息
-    final compressed = await _historyManager.compressIfNeeded(
-      _messages,
-      ai.summarize,
-    );
-    if (!identical(compressed, _messages)) {
-      // 用摘要消息替换早期消息；最后一条是正在流式回复的 AI 消息，保持不变
-      _messages = [...compressed];
-      _notify();
+    // 摘要失败时用原消息继续，不中断发送流程
+    try {
+      final compressed = await _historyManager.compressIfNeeded(
+        _messages,
+        ai.summarize,
+      );
+      if (!identical(compressed, _messages)) {
+        _messages = [...compressed];
+        _notify();
+      }
+    } catch (_) {
+      // 摘要失败，保持原消息不变
     }
 
     final history = buildMessageHistory(
@@ -337,6 +345,8 @@ class ChatController extends ChangeNotifier {
     _currentSteps = null;
     _isLoading = false;
     _notify();
+    // 停止后立即存盘，保留已生成的内容
+    saveSession();
   }
 
   // ═══ Stream handling ═══
@@ -658,6 +668,8 @@ class ChatController extends ChangeNotifier {
     aiMsg.steps = state.steps.isEmpty ? null : List.unmodifiable(state.steps);
     _isLoading = false;
     _notify();
+    // 出错后也存盘，保留出错前已生成的内容
+    saveSession();
   }
 
   String _toolLabel(String name) => toolLabel(name);

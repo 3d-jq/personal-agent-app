@@ -22,7 +22,8 @@ class ChatBubble extends StatelessWidget {
   }
 
   Widget _userBubble(BuildContext context) {
-    final bgColor = nc.primarySurface;
+    // Apple HIG：用户消息用 system-blue 填充 + 白色文字
+    final bgColor = nc.primary;
     final hasImage =
         msg.attachmentType == 'image' && msg.attachmentPath != null;
     final hasDoc =
@@ -56,15 +57,15 @@ class ChatBubble extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: bgColor,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: nc.divider, width: 0.5),
+                  // Apple HIG：连续曲率圆角，无边框
+                  borderRadius: BorderRadius.circular(18),
                 ),
                 child: Text(
                   cleanText,
                   style: TextStyle(
                     fontSize: 15,
-                    color: nc.textPrimary,
-                    height: 1.47,
+                    color: Colors.white,
+                    height: 1.5,
                   ),
                 ),
               ),
@@ -96,8 +97,7 @@ class ChatBubble extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 240),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: nc.divider, width: 0.5),
+            borderRadius: BorderRadius.circular(18),
           ),
           clipBehavior: Clip.antiAlias,
           child: Image.file(
@@ -109,7 +109,7 @@ class ChatBubble extends StatelessWidget {
               height: 120,
             decoration: BoxDecoration(
               color: bgColor,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(18),
             ),
             child: Center(
                 child: Column(
@@ -145,23 +145,22 @@ class ChatBubble extends StatelessWidget {
       padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: nc.divider, width: 0.5),
+            borderRadius: BorderRadius.circular(18),
           ),
           child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: nc.primarySurface,
-              borderRadius: BorderRadius.circular(12),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
+              child: Icon(
               PhosphorIconsRegular.fileText,
               size: 22,
-              color: nc.textSecondary,
+              color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
           const SizedBox(width: 10),
@@ -176,14 +175,14 @@ class ChatBubble extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 13,
-                    color: nc.textPrimary,
+                    color: Colors.white,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '文档附件',
-                  style: TextStyle(fontSize: 11, color: nc.textSecondary),
+                  style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.7)),
                 ),
               ],
             ),
@@ -475,7 +474,7 @@ class _AIBubbleState extends State<_AIBubble>
               Text(
                 '思考与工具调用',
                 style: TextStyle(
-                  fontSize: 17,
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: nc.textPrimary,
                 ),

@@ -31,4 +31,16 @@ class CryptoUtil {
       return '';
     }
   }
+
+  /// 加密明文为 Base64 密文。与 [decrypt] 互逆。
+  ///
+  /// 用于运行时持久化敏感信息（如 MCP 服务器 API Key）。
+  static String encrypt(String plain) {
+    if (plain.isEmpty) return '';
+    final bytes = <int>[];
+    for (var i = 0; i < plain.length; i++) {
+      bytes.add(plain.codeUnitAt(i) ^ _secret.codeUnitAt(i % _secret.length));
+    }
+    return base64Encode(bytes);
+  }
 }

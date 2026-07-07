@@ -250,7 +250,7 @@ class _MediaDetail extends StatelessWidget {
                                   '视频文件',
                                   style: TextStyle(
                                     color: nc.textSecondary,
-                                    fontSize: 14,
+                                    fontSize: 15,
                                   ),
                                 ),
                               ],

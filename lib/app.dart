@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'core/agent_colors.dart';
 import 'core/service_locator.dart';
@@ -147,9 +149,12 @@ class _AppState extends State<App> {
       appBarTheme: AppBarTheme(
         elevation: 0,
         scrolledUnderElevation: 0,
-        backgroundColor: agentColors.background,
+        // Apple HIG：导航栏毛玻璃材质，半透明背景
+        backgroundColor: agentColors.background.withValues(alpha: 0.85),
         foregroundColor: agentColors.textPrimary,
         titleTextStyle: textTheme.titleLarge,
+        // Apple HIG：0.5px 底部分隔线
+        surfaceTintColor: Colors.transparent,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -158,8 +163,9 @@ class _AppState extends State<App> {
           elevation: 0,
           shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          // Apple HIG：按钮圆角 12px
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
           textStyle: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
@@ -169,7 +175,7 @@ class _AppState extends State<App> {
           foregroundColor: agentColors.primary,
           side: BorderSide(color: agentColors.divider),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
         ),
       ),

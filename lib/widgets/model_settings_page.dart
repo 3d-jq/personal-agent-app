@@ -272,7 +272,7 @@ class _SettingItem extends StatelessWidget {
               if (trailing != null)
                 Text(
                   trailing!,
-                  style: TextStyle(fontSize: 14, color: nc.textSecondary),
+                  style: TextStyle(fontSize: 15, color: nc.textSecondary),
                 ),
               const SizedBox(width: 4),
               Icon(
@@ -321,14 +321,14 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Text(label, style: TextStyle(fontSize: 14, color: nc.textSecondary)),
+          Text(label, style: TextStyle(fontSize: 15, color: nc.textSecondary)),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               value,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 14, color: nc.textPrimary),
+              style: TextStyle(fontSize: 15, color: nc.textPrimary),
             ),
           ),
         ],

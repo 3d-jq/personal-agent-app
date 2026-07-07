@@ -1,33 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import '../core/service_locator.dart';
 import '../models/skill.dart';
 import '../tools/skill_registry.dart';
-import 'skill_create_page.dart';
 
 /// Skill 管理页面
-class SkillManagePage extends StatefulWidget {
+class SkillManagePage extends StatelessWidget {
   const SkillManagePage({super.key});
-
-  @override
-  State<SkillManagePage> createState() => _SkillManagePageState();
-}
-
-class _SkillManagePageState extends State<SkillManagePage> {
-  late final SkillRegistry _skillRegistry;
-
-  @override
-  void initState() {
-    super.initState();
-    _skillRegistry = getIt<SkillRegistry>();
-  }
 
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
-    final skills = _skillRegistry.all;
+    final skills = getIt<SkillRegistry>().all;
 
     return Scaffold(
       backgroundColor: nc.background,
@@ -48,59 +33,28 @@ class _SkillManagePageState extends State<SkillManagePage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '点击右上角 + 创建 Skill',
+                    '在对话中告诉 AI"帮我创建一个 Skill"即可',
                     style: TextStyle(fontSize: 12, color: nc.textDisabled),
                   ),
                 ],
               ),
             )
-          : Stack(
-              children: [
-                ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: skills.length,
-                  itemBuilder: (context, index) {
-                    final skill = skills[index];
-                    return _SkillTile(
-                      skill: skill,
-                      isActive: _skillRegistry.isActive(skill.id),
-                      nc: nc,
-                      onToggle: () {
-                        HapticFeedback.lightImpact();
-                        setState(() {
-                          if (_skillRegistry.isActive(skill.id)) {
-                            _skillRegistry.deactivate(skill.id);
-                          } else {
-                            _skillRegistry.activate(skill.id);
-                          }
-                        });
-                      },
-                      onTap: () => _showSkillDetail(skill),
-                    );
-                  },
-                ),
-                Positioned(
-                  right: 16,
-                  bottom: 16,
-                  child: FloatingActionButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const SkillCreatePage(),
-                        ),
-                      ).then((_) => setState(() {}));
-                    },
-                    backgroundColor: nc.primary,
-                    child: Icon(PhosphorIconsRegular.plus, color: Colors.white),
-                  ),
-                ),
-              ],
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: skills.length,
+              itemBuilder: (context, index) {
+                final skill = skills[index];
+                return _SkillTile(
+                  skill: skill,
+                  nc: nc,
+                      onTap: () => _showSkillDetail(context, skill),
+                );
+              },
             ),
     );
   }
 
-  void _showSkillDetail(Skill skill) {
+  void _showSkillDetail(BuildContext context, Skill skill) {
     final nc = AgentColors.of(context);
     showModalBottomSheet(
       context: context,
@@ -109,17 +63,6 @@ class _SkillManagePageState extends State<SkillManagePage> {
       builder: (_) => _SkillDetailSheet(
         skill: skill,
         nc: nc,
-        isActive: _skillRegistry.isActive(skill.id),
-        onToggle: () {
-          setState(() {
-            if (_skillRegistry.isActive(skill.id)) {
-              _skillRegistry.deactivate(skill.id);
-            } else {
-              _skillRegistry.activate(skill.id);
-            }
-          });
-          Navigator.pop(context);
-        },
       ),
     );
   }
@@ -128,16 +71,12 @@ class _SkillManagePageState extends State<SkillManagePage> {
 /// Skill 列表项
 class _SkillTile extends StatelessWidget {
   final Skill skill;
-  final bool isActive;
   final AgentColors nc;
-  final VoidCallback onToggle;
   final VoidCallback onTap;
 
   const _SkillTile({
     required this.skill,
-    required this.isActive,
     required this.nc,
-    required this.onToggle,
     required this.onTap,
   });
 
@@ -156,13 +95,13 @@ class _SkillTile extends StatelessWidget {
           height: 40,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: isActive ? nc.primary.withValues(alpha: 0.1) : nc.primarySurface,
+            color: nc.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
             PhosphorIconsRegular.star,
             size: 20,
-            color: isActive ? nc.primary : nc.textSecondary,
+            color: nc.primary,
           ),
         ),
         title: Text(
@@ -179,11 +118,6 @@ class _SkillTile extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(fontSize: 12, color: nc.textSecondary),
         ),
-        trailing: Switch(
-          value: isActive,
-          onChanged: (_) => onToggle(),
-          activeColor: nc.primary,
-        ),
         onTap: onTap,
       ),
     );
@@ -194,14 +128,10 @@ class _SkillTile extends StatelessWidget {
 class _SkillDetailSheet extends StatelessWidget {
   final Skill skill;
   final AgentColors nc;
-  final bool isActive;
-  final VoidCallback onToggle;
 
   const _SkillDetailSheet({
     required this.skill,
     required this.nc,
-    required this.isActive,
-    required this.onToggle,
   });
 
   @override
@@ -240,13 +170,13 @@ class _SkillDetailSheet extends StatelessWidget {
                       height: 48,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: isActive ? nc.primary.withValues(alpha: 0.1) : nc.primarySurface,
+                        color: nc.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         PhosphorIconsRegular.star,
                         size: 24,
-                        color: isActive ? nc.primary : nc.textSecondary,
+                        color: nc.primary,
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -263,10 +193,10 @@ class _SkillDetailSheet extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            isActive ? '已启用' : '未启用',
+                            '已启用',
                             style: TextStyle(
                               fontSize: 13,
-                              color: isActive ? nc.success : nc.textSecondary,
+                              color: nc.success,
                             ),
                           ),
                         ],
@@ -278,7 +208,7 @@ class _SkillDetailSheet extends StatelessWidget {
                 Text(
                   '描述',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     fontWeight: FontWeight.w500,
                     color: nc.textPrimary,
                   ),
@@ -287,7 +217,7 @@ class _SkillDetailSheet extends StatelessWidget {
                 Text(
                   skill.description,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 15,
                     color: nc.textSecondary,
                     height: 1.5,
                   ),
@@ -297,7 +227,7 @@ class _SkillDetailSheet extends StatelessWidget {
                   Text(
                     '触发关键词',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 15,
                       fontWeight: FontWeight.w500,
                       color: nc.textPrimary,
                     ),
@@ -321,22 +251,6 @@ class _SkillDetailSheet extends StatelessWidget {
                     }).toList(),
                   ),
                 ],
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: onToggle,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isActive ? nc.error : nc.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: Text(isActive ? '停用' : '启用'),
-                  ),
-                ),
               ],
             ),
           ),

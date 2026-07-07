@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
@@ -79,34 +80,31 @@ class _ChatInputBarState extends State<ChatInputBar> {
     final nc = AgentColors.of(context);
     final hasFile = widget.pendingFile != null;
     final hasText = widget.controller.text.isNotEmpty;
-    final isFocused = widget.focusNode.hasFocus;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (hasFile) _buildPreview(nc),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            decoration: BoxDecoration(
-              color: nc.primarySurface,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 12,
-                  offset: const Offset(0, 2),
+        // Apple HIG：底部输入栏毛玻璃材质
+        ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: nc.primarySurface.withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(20),
+                  // Apple HIG：用 0.5px 边框代替阴影区分空间
+                  border: Border.all(color: nc.divider, width: 0.5),
                 ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-                  child: Theme(
-                    data: Theme.of(context).copyWith(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+                      child: Theme(
+                        data: Theme.of(context).copyWith(
                       inputDecorationTheme: const InputDecorationTheme(
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
@@ -163,6 +161,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
               ],
             ),
           ),
+        ),
+        ),
         ),
         const SizedBox(height: 4),
         Padding(

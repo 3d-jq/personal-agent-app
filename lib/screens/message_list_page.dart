@@ -101,7 +101,7 @@ class _MessageListPageState extends State<MessageListPage> {
     return Scaffold(
       backgroundColor: nc.background,
       appBar: AppBar(
-        backgroundColor: nc.background,
+        backgroundColor: nc.background.withValues(alpha: 0.85),
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Text(
@@ -364,7 +364,7 @@ class _MessageTileState extends State<_MessageTile>
                         Text(
                           item.lastMessage,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 15,
                             color: nc.textSecondary,
                           ),
                           maxLines: 1,

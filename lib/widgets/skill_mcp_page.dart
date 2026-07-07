@@ -35,7 +35,7 @@ class _SkillMcpPageState extends State<SkillMcpPage>
     return Scaffold(
       backgroundColor: nc.background,
       appBar: AppBar(
-        backgroundColor: nc.background,
+        backgroundColor: nc.background.withValues(alpha: 0.85),
         elevation: 0,
         leading: IconButton(
           icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
