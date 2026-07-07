@@ -90,6 +90,12 @@ class AIService {
           'temperature': 0.3,
         },
       );
+      // 检查 HTTP 状态码
+      final statusCode = response.statusCode;
+      if (statusCode == null || statusCode >= 400) {
+        log.e('AIService', 'Summarize failed: HTTP $statusCode');
+        return '';
+      }
       final choice = response.data['choices']?[0];
       final result = (choice?['message']?['content'] as String? ?? '').trim();
       log.i('AIService', 'Summarize success: ${result.length} chars');
@@ -161,7 +167,7 @@ class AIService {
           .map((tc) => {
                 'id': tc.id,
                 'type': 'function',
-                'function': {'name': tc.name, 'arguments': {}},
+                'function': {'name': tc.name, 'arguments': tc.arguments},
               })
           .toList(),
     };
