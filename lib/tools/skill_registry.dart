@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
 import '../models/skill.dart';
+import '../services/log_service.dart';
 
 /// 技能注册表
 ///
@@ -166,7 +167,9 @@ class SkillRegistry {
                 }
               }
               register(skill);
-            } catch (_) {}
+            } catch (e) {
+              log.w('SkillRegistry', '加载技能 ${entry.path} 失败: $e');
+            }
           }
         } else if (entry is File && entry.path.endsWith('.json')) {
           // 旧格式兼容：{id}.json → 自动迁移为目录结构
@@ -180,10 +183,14 @@ class SkillRegistry {
             }
             // 删除旧 JSON 文件
             entry.deleteSync();
-          } catch (_) {}
+          } catch (e) {
+            log.w('SkillRegistry', '迁移旧技能JSON失败: $e');
+          }
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      log.e('SkillRegistry', '从磁盘加载技能失败: $e');
+    }
   }
 
   /// 持久化一个自定义 Skill 到磁盘（目录结构 + SKILL.md 格式）
@@ -196,7 +203,9 @@ class SkillRegistry {
       // 写入 SKILL.md
       final skillMd = File('${skillDir.path}/SKILL.md');
       await skillMd.writeAsString(skill.toMarkdown());
-    } catch (_) {}
+    } catch (e) {
+      log.e('SkillRegistry', '持久化技能失败: $e');
+    }
   }
 
   /// 持久化 cookbook 文件
@@ -207,7 +216,9 @@ class SkillRegistry {
       if (!cookbookDir.existsSync()) cookbookDir.createSync(recursive: true);
       final file = File('${cookbookDir.path}/$fileName');
       await file.writeAsString(content);
-    } catch (_) {}
+    } catch (e) {
+      log.e('SkillRegistry', '持久化cookbook失败: $e');
+    }
   }
 
   /// 删除一个自定义 Skill（磁盘目录 + 内存）
@@ -217,6 +228,8 @@ class SkillRegistry {
       final dir = await _skillDir();
       final skillDir = Directory('${dir.path}/$skillId');
       if (skillDir.existsSync()) skillDir.deleteSync(recursive: true);
-    } catch (_) {}
+    } catch (e) {
+      log.e('SkillRegistry', '删除技能 $skillId 失败: $e');
+    }
   }
 }

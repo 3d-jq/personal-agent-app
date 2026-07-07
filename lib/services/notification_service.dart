@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'log_service.dart';
 
 class NotificationService {
   NotificationService();
@@ -65,6 +66,8 @@ class NotificationService {
   Future<void> _call(String method, Map<String, dynamic> args) async {
     try {
       await _channel.invokeMethod(method, args);
-    } catch (_) {}
+    } catch (e) {
+      log.w('NotificationService', '平台通道调用 $method 失败: $e');
+    }
   }
 }

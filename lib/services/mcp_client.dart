@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'log_service.dart';
 
 /// MCP 工具定义
 class McpTool {
@@ -130,8 +131,8 @@ class McpClient {
         'jsonrpc': '2.0',
         'method': 'notifications/initialized',
       });
-    } catch (_) {
-      // 通知失败不阻塞，有些服务器可能不接收通知
+    } catch (e) {
+      log.w('McpClient', '发送initialized通知失败: $e');
     }
   }
 
@@ -312,7 +313,9 @@ class McpClient {
     try {
       final decoded = jsonDecode(s);
       if (decoded is Map<String, dynamic>) return decoded;
-    } catch (_) {}
+    } catch (e) {
+      log.d('McpClient', 'JSON解析失败: $e');
+    }
     return null;
   }
 

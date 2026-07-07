@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import '../services/crypto_util.dart';
 import '../widgets/mcp_manage_page.dart';
 import 'mcp_client.dart';
+import 'log_service.dart';
 
 /// MCP 服务管理器
 class McpManager {
@@ -90,7 +91,9 @@ class McpManager {
           return McpServer.fromJson(map);
         }).toList();
       }
-    } catch (_) {}
+    } catch (e) {
+      log.e('McpManager', '加载MCP服务器配置失败: $e');
+    }
     return [];
   }
 
@@ -128,8 +131,8 @@ class McpManager {
       try {
         await connect(s);
         connected++;
-      } catch (_) {
-        // 单个服务器连接失败，跳过，不影响其他
+      } catch (e) {
+        log.w('McpManager', '自动连接服务器 ${s.name} 失败: $e');
       }
     }
     return connected;
@@ -155,7 +158,9 @@ class McpManager {
       if (_clients.containsKey(s.id)) continue;
       try {
         await connect(s);
-      } catch (_) {}
+      } catch (e) {
+        log.w('McpManager', '同步连接服务器 ${s.name} 失败: $e');
+      }
     }
   }
 }

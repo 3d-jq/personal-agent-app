@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
+import 'log_service.dart';
 
 /// 主题服务（Claude Design System 版）。
 ///
@@ -31,7 +32,9 @@ class ThemeService extends ChangeNotifier {
             : ThemeMode.light;
         notifyListeners();
       }
-    } catch (_) {}
+    } catch (e) {
+      log.w('ThemeService', '加载主题失败: $e');
+    }
   }
 
   Future<void> setMode(ThemeMode mode) async {
@@ -52,7 +55,9 @@ class ThemeService extends ChangeNotifier {
               : 'light',
         }),
       );
-    } catch (_) {}
+    } catch (e) {
+      log.e('ThemeService', '保存主题失败: $e');
+    }
   }
 
   String get label => _mode == ThemeMode.dark

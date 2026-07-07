@@ -5,6 +5,7 @@ import 'base_tool.dart';
 import 'task_plan_tool.g.dart';
 import 'task_plan_state_machine.dart';
 import '../core/service_locator.dart';
+import '../services/log_service.dart';
 import '../services/virtual_fs.dart';
 
 /// 任务计划工具：帮助大模型在执行复杂多步任务时保持进度。
@@ -331,7 +332,9 @@ class TaskPlanTool extends AgentTool {
       final json = jsonEncode(_currentPlan!.toJson());
       await fs.mkdir('/scratch');
       await fs.write('/scratch/plan.json', json);
-    } catch (_) {}
+    } catch (e) {
+      log.e('TaskPlanTool', '保存任务计划失败: $e');
+    }
   }
 
   Future<void> _loadPlan() async {

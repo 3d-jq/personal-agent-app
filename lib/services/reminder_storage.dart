@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/reminder.dart';
+import 'log_service.dart';
 
 class ReminderStorage extends ChangeNotifier {
   ReminderStorage();
@@ -27,7 +28,8 @@ class ReminderStorage extends ChangeNotifier {
           list.map((j) => Reminder.fromJson(j as Map<String, dynamic>)).toList()
             ..sort((a, b) => b.scheduledTime.compareTo(a.scheduledTime));
       return _cache!;
-    } catch (_) {
+    } catch (e) {
+      log.e('ReminderStorage', '加载提醒数据失败（文件可能已损坏）: $e');
       await _backupCorruptedFile();
       _cache = [];
       return [];
@@ -43,7 +45,9 @@ class ReminderStorage extends ChangeNotifier {
         );
         await file.rename(backup.path);
       }
-    } catch (_) {}
+    } catch (e) {
+      log.e('ReminderStorage', '备份损坏文件失败: $e');
+    }
   }
 
   Future<void> add(Reminder reminder) async {
