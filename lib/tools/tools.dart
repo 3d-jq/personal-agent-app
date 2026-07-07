@@ -22,3 +22,4 @@ export 'virtual_fs_tool.dart';
 export 'skill_registry.dart';
 export 'skill_manage_tool.dart';
 export 'mcp_tool_adapter.dart';
+export 'shell_tool.dart';

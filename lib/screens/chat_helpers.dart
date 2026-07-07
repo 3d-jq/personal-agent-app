@@ -40,6 +40,8 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(ContextDocTool());
   registry.register(VirtualFSTool());
   registry.register(SkillManageTool());
+  registry.register(ShellTool());
+  registry.register(SandboxStatusTool());
 
   // 工具发现层（本身也是预加载工具）
   registry.register(ToolSearchTool(registry: registry));
