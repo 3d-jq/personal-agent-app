@@ -225,6 +225,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 onSend: _handleSend,
                 onStop: _controller.stopStream,
                 isLoading: _controller.isLoading,
+                isCompressing: _controller.isCompressing,
                 isAwaitingReply: _controller.isWaitingUserPrompt,
                 settings: _controller.aiSettings,
                 onChanged: () => setState(() {}),

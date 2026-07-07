@@ -5,6 +5,7 @@ import '../core/agent_colors.dart';
 import '../core/app_router.dart';
 import '../core/app_config.dart';
 import '../core/service_locator.dart';
+import '../services/log_service.dart';
 import '../services/theme_service.dart';
 import '../services/update_service.dart';
 import 'common_widgets.dart';
@@ -333,6 +334,27 @@ class _SettingsPageState extends State<SettingsPage> {
             ],
           ),
           const SizedBox(height: 20),
+          SectionHeader(title: '调试', nc: nc),
+          RoundedCard(
+            nc: nc,
+            children: [
+              SwitchListTile(
+                title: Text('启用日志', style: TextStyle(fontSize: 15, color: nc.textPrimary)),
+                subtitle: Text(
+                  '记录运行日志用于问题排查',
+                  style: TextStyle(fontSize: 12, color: nc.textSecondary),
+                ),
+                value: log.enabled,
+                onChanged: (v) async {
+                  HapticFeedback.lightImpact();
+                  await log.setEnabled(v);
+                  setState(() {});
+                },
+                activeColor: nc.primary,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
           SectionHeader(title: '关于', nc: nc),
           RoundedCard(
             nc: nc,
@@ -341,6 +363,14 @@ class _SettingsPageState extends State<SettingsPage> {
                 label: '检查更新',
                 trailing: AppConfig.displayVersion,
                 onTap: () => _checkUpdate(context, nc),
+              ),
+              _SettingItem(
+                label: '运行日志',
+                trailing: log.enabled ? '已开启' : '已关闭',
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  AppRouter.toLog(context);
+                },
               ),
               _SettingItem(
                 label: '关于',

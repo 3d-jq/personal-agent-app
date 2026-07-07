@@ -47,6 +47,9 @@ class ChatBubble extends StatelessWidget {
               _buildImagePreview(context, msg.attachmentPath!, bgColor, nc),
             // Document card
             if (hasDoc) _buildDocumentCard(msg.attachmentPath!, bgColor, nc),
+            // 附件和文字之间的间距
+            if ((hasImage || hasDoc) && cleanText.isNotEmpty)
+              const SizedBox(height: 6),
             // Text message (if any)
             if (cleanText.isNotEmpty)
               Container(

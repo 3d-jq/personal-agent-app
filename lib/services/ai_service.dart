@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../tools/tools.dart';
 import 'chat_stream_event.dart';
+import 'log_service.dart';
 
 String _normalizeUrl(String url) => url.trim().replaceAll(RegExp(r'/+$'), '');
 
@@ -162,6 +163,7 @@ class AIService {
   /// 非流式摘要，用于 HistoryManager 压缩早期对话历史。
   Future<String> summarize(List<Map<String, dynamic>> messages) async {
     final url = '${_normalizeUrl(baseUrl)}/chat/completions';
+    log.i('AIService', 'Summarize request: ${messages.length} messages');
     try {
       final response = await _retryPost(
         url,
@@ -174,10 +176,14 @@ class AIService {
         },
       );
       final choice = response.data['choices']?[0];
-      return (choice?['message']?['content'] as String? ?? '').trim();
+      final result = (choice?['message']?['content'] as String? ?? '').trim();
+      log.i('AIService', 'Summarize success: ${result.length} chars');
+      return result;
     } on DioException catch (e) {
+      log.e('AIService', 'Summarize failed', e);
       return '';
     } catch (e) {
+      log.e('AIService', 'Summarize error', e);
       return '';
     }
   }

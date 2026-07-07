@@ -1,76 +1,166 @@
 import '../models/chat_message.dart';
+import 'log_service.dart';
 
 /// 对话历史摘要压缩管理器。
 ///
-/// 当消息数超过阈值时，把较早的对话批量生成一段摘要，替换原消息，
-/// 从而避免滑动窗口直接丢弃老消息导致的信息丢失。
-/// 最近几轮对话保持完整，确保当前上下文的连贯性。
+/// 参考 opencode 实现：
+/// - 基于 token 估算触发压缩（而非固定消息数）
+/// - 保留最近 N token 的消息
+/// - 工具输出截断到 2000 字符
+/// - 结构化摘要模板
 class HistoryManager {
-  /// 触发压缩的消息数阈值
-  final int compressThreshold;
+  /// 上下文窗口大小（token 数）
+  final int contextWindowSize;
 
-  /// 保留最近的完整消息数（必须包含当前用户消息和最近回复）
-  final int keepRecentMessages;
+  /// 最大输出 token 数（默认 4096）
+  final int maxOutputTokens;
+
+  /// 缓冲区大小（默认 20000 token）
+  final int bufferTokens;
+
+  /// 保留最近的 token 数（默认 8000）
+  final int keepTokens;
+
+  /// 工具输出最大字符数（约 2000 字符 ≈ 500 token）
+  static const int toolOutputMaxChars = 2000;
 
   const HistoryManager({
-    this.compressThreshold = 30,
-    this.keepRecentMessages = 8,
+    this.contextWindowSize = 256000,
+    this.maxOutputTokens = 4096,
+    this.bufferTokens = 20000,
+    this.keepTokens = 8000,
   });
 
-  /// 如果消息数未超过阈值，直接返回原列表；否则压缩早期消息。
+  /// 估算文本的 token 数
   ///
-  /// [summarize] 是一个异步函数，接收待摘要的消息历史（OpenAI 格式），
-  /// 返回摘要文本。
+  /// 中文约 2 字符 ≈ 1 token，英文约 4 字符 ≈ 1 token
+  static int estimateTokens(String text) {
+    int cn = 0, en = 0;
+    for (final code in text.codeUnits) {
+      if (code > 0x4E00 && code < 0x9FFF) {
+        cn++;
+      } else if (code < 0x80) {
+        en++;
+      } else {
+        cn++;
+      }
+    }
+    return (cn / 2 + en / 4).ceil();
+  }
+
+  /// 估算消息列表的总 token 数
+  int estimateMessagesTokens(List<ChatMessage> messages) {
+    int total = 0;
+    for (final m in messages) {
+      if (m.isStreaming) continue;
+      total += estimateTokens(_serializeMessage(m));
+    }
+    return total;
+  }
+
+  /// 序列化消息为文本（用于 token 估算和摘要输入）
+  String _serializeMessage(ChatMessage m) {
+    if (m.isUser) {
+      return '[User]: ${m.text}';
+    }
+    final buf = StringBuffer();
+    buf.write('[Assistant]: ${m.text}');
+    if (m.toolInteractions != null && m.toolInteractions!.isNotEmpty) {
+      for (final interaction in m.toolInteractions!) {
+        final toolCalls = interaction['toolCalls'] as List? ?? [];
+        final toolResults = interaction['toolResults'] as List? ?? [];
+        for (final call in toolCalls) {
+          final callMap = call as Map?;
+          final name = callMap?['function']?['name'] ?? '';
+          final args = callMap?['function']?['arguments'] ?? '';
+          buf.write('\n[Tool call]: $name($args)');
+        }
+        for (final tr in toolResults) {
+          final content = (tr['content'] ?? '').toString();
+          buf.write('\n[Tool result]: ${_truncateToolOutput(content)}');
+        }
+      }
+    }
+    return buf.toString();
+  }
+
+  /// 截断工具输出到最大字符数
+  String _truncateToolOutput(String content) {
+    if (content.length <= toolOutputMaxChars) return content;
+    return '${content.substring(0, toolOutputMaxChars)}\n[truncated]';
+  }
+
+  /// 检查是否需要压缩
+  bool shouldCompress(List<ChatMessage> messages) {
+    if (messages.length <= 2) return false;
+    final tokens = estimateMessagesTokens(messages);
+    final threshold = contextWindowSize - (maxOutputTokens > bufferTokens ? maxOutputTokens : bufferTokens);
+    final should = tokens > threshold;
+    if (should) {
+      log.i('HistoryManager', 'Should compress: $tokens > $threshold (context: $contextWindowSize)');
+    }
+    return should;
+  }
+
+  /// 如果需要压缩，对早期消息做摘要压缩
   Future<List<ChatMessage>> compressIfNeeded(
     List<ChatMessage> messages,
     Future<String> Function(List<Map<String, dynamic>> messages) summarize,
   ) async {
-    if (messages.length <= compressThreshold) return messages;
+    if (!shouldCompress(messages)) return messages;
 
-    final keepStart = messages.length - keepRecentMessages;
-    if (keepStart <= 0) return messages;
+    log.i('HistoryManager', 'Starting compression for ${messages.length} messages');
 
-    final toCompress = messages.sublist(0, keepStart);
-    final recent = messages.sublist(keepStart);
+    // 从后往前遍历，找到保留 keepTokens 的分割点
+    int totalTokens = 0;
+    int splitIndex = messages.length;
+    for (int i = messages.length - 1; i >= 0; i--) {
+      final msgTokens = estimateTokens(_serializeMessage(messages[i]));
+      if (totalTokens + msgTokens > keepTokens) {
+        splitIndex = i + 1;
+        break;
+      }
+      totalTokens += msgTokens;
+      splitIndex = i;
+    }
+
+    if (splitIndex <= 0) return messages;
+
+    final toCompress = messages.sublist(0, splitIndex);
+    final recent = messages.sublist(splitIndex);
+
+    log.i('HistoryManager', 'Compressing ${toCompress.length} messages, keeping ${recent.length}');
 
     final summaryInput = _buildSummaryInput(toCompress);
     final summaryText = await summarize(summaryInput);
 
-    if (summaryText.trim().isEmpty) return messages;
+    if (summaryText.trim().isEmpty) {
+      log.w('HistoryManager', 'Summary is empty, skipping compression');
+      return messages;
+    }
+
+    log.i('HistoryManager', 'Compression done: ${summaryText.length} chars summary');
 
     final summaryMessage = ChatMessage(
-      text: '[历史摘要] $summaryText',
+      text: '[历史摘要]\n$summaryText',
       isUser: false,
     );
 
     return [summaryMessage, ...recent];
   }
 
+  /// 构建摘要输入（结构化模板）
   List<Map<String, dynamic>> _buildSummaryInput(List<ChatMessage> messages) {
     final buffer = StringBuffer();
-    buffer.writeln(
-      '请对以下对话进行简洁摘要，保留关键事实、用户意图和已完成的操作结果。'
-      '摘要用于替代原始对话进入后续上下文，所以请尽量完整。',
-    );
+    buffer.writeln(SUMMARY_TEMPLATE);
     buffer.writeln();
     buffer.writeln('--- 对话记录 ---');
+    buffer.writeln();
 
     for (final m in messages) {
       if (m.isStreaming) continue;
-      final role = m.isUser ? '用户' : 'AI';
-      var text = m.text;
-      if (m.toolInteractions != null && m.toolInteractions!.isNotEmpty) {
-        final toolNames = m.toolInteractions!
-            .expand((i) => (i['toolCalls'] as List? ?? []))
-            .map((c) => (c as Map?)?['function']?['name'] ?? '')
-            .where((n) => n.isNotEmpty)
-            .toSet();
-        if (toolNames.isNotEmpty) {
-          text = '$text\n[调用工具: ${toolNames.join(', ')}]';
-        }
-      }
-      if (text.trim().isEmpty) continue;
-      buffer.writeln('$role: $text');
+      buffer.writeln(_serializeMessage(m));
+      buffer.writeln();
     }
 
     return [
@@ -78,3 +168,40 @@ class HistoryManager {
     ];
   }
 }
+
+/// 结构化摘要模板（参考 opencode）
+const SUMMARY_TEMPLATE = '''请对以下对话进行结构化摘要，严格按照以下 Markdown 格式输出，保持章节顺序不变。
+
+## Goal
+- [单句话总结任务目标]
+
+## Constraints & Preferences
+- [用户约束、偏好、规格要求，或 "(none)"]
+
+## Progress
+### Done
+- [已完成的工作，或 "(none)"]
+
+### In Progress
+- [当前进行中的工作，或 "(none)"]
+
+### Blocked
+- [阻塞项，或 "(none)"]
+
+## Key Decisions
+- [决策及原因，或 "(none)"]
+
+## Next Steps
+- [有序的下一步行动，或 "(none)"]
+
+## Critical Context
+- [重要的技术事实、错误信息、待解决的问题，或 "(none)"]
+
+## Relevant Files
+- [文件或目录路径：重要性说明，或 "(none)"]
+
+规则：
+- 保留所有章节，即使为空。
+- 使用简洁的要点，不要写段落。
+- 保留准确的文件路径、命令、错误字符串和标识符。
+- 不要提及摘要过程或上下文已被压缩。''';

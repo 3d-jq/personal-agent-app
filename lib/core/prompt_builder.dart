@@ -1,5 +1,6 @@
 /// 统一构建 System Prompt，支持 XML 结构化 + 上下文文档
 import '../core/service_locator.dart';
+import '../services/log_service.dart';
 import '../tools/skill_registry.dart';
 
 class PromptBuilder {
@@ -73,8 +74,8 @@ class PromptBuilder {
         buf.writeln('</skill_usage>');
         buf.writeln();
       }
-    } catch (_) {
-      // SkillRegistry 未初始化时忽略
+    } catch (e) {
+      log.w('PromptBuilder', 'Failed to load SkillRegistry: $e');
     }
 
     buf.writeln('<rules>');

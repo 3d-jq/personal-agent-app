@@ -74,6 +74,9 @@ class AISettings {
   /// 思考强度: low / medium / high，默认 medium
   String thinkingEffort = 'medium';
 
+  /// 上下文窗口大小（token 数），默认 256K
+  int contextWindowSize = 256000;
+
   VendorConfig? get selectedVendor =>
       vendors.where((v) => v.id == selectedVendorId).firstOrNull;
   String get apiKey => selectedVendor?.apiKey ?? '';
@@ -164,6 +167,7 @@ class AISettings {
                 .toList() ??
             [];
         thinkingEffort = d['thinkingEffort'] as String? ?? 'medium';
+        contextWindowSize = d['contextWindowSize'] as int? ?? 256000;
       }
     } catch (_) {}
     _ensureBuiltIn();
@@ -180,6 +184,7 @@ class AISettings {
           'vendor': selectedVendorId,
           'vendors': vendors.map((v) => v.toJson()).toList(),
           'thinkingEffort': thinkingEffort,
+          'contextWindowSize': contextWindowSize,
         }),
       ),
     );

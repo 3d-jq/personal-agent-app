@@ -76,35 +76,33 @@ class ToolResult {
   final String? toolCallId;
   /// 频率预警（不混入 content，由 UI 单独展示）
   final String? warning;
+  /// 显式声明是否成功
+  final bool isSuccess;
 
   const ToolResult({
     required this.toolName,
     required this.content,
     this.toolCallId,
     this.warning,
+    this.isSuccess = true,
   });
 
+  /// 创建成功结果
+  const ToolResult.success({
+    required this.toolName,
+    required this.content,
+    this.toolCallId,
+    this.warning,
+  }) : isSuccess = true;
+
+  /// 创建失败结果
+  const ToolResult.failure({
+    required this.toolName,
+    required this.content,
+    this.toolCallId,
+    this.warning,
+  }) : isSuccess = false;
+
   /// Whether this result indicates a failure.
-  /// Checks the content prefix against known failure patterns
-  /// and also considers the tool context to avoid false positives.
-  bool get failed {
-    // Exception caught by ToolRegistry.execute()
-    if (content.startsWith('执行失败')) return true;
-    // Tool not found
-    if (content.endsWith('不存在')) return true;
-    // Explicit failure markers (tools should use these conventions)
-    if (content.startsWith('错误')) return true;
-    // Tool-specific failure patterns — includes the tool name to avoid ambiguity
-    if (toolName == 'generate_image' &&
-        (content.startsWith('图片生成失败') || content.startsWith('图片生成错误')))
-      return true;
-    if (toolName == 'generate_video' &&
-        (content.startsWith('视频生成失败') ||
-            content.startsWith('视频任务创建失败') ||
-            content.startsWith('视频生成超时')))
-      return true;
-    if (content.startsWith('创建提醒失败')) return true;
-    if (content.startsWith('定位失败')) return true;
-    return false;
-  }
+  bool get failed => !isSuccess;
 }

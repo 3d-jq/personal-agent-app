@@ -13,6 +13,7 @@ import '../services/context_doc_service.dart';
 import '../widgets/about_page.dart';
 import '../widgets/acknowledgement_view.dart';
 import '../widgets/agent_group/group_chat_screen.dart';
+import '../widgets/log_page.dart';
 import '../widgets/context_docs_panel.dart';
 import '../widgets/image_cache_page.dart';
 import '../widgets/mcp_manage_page.dart';
@@ -85,6 +86,9 @@ class AppRouter {
 
   static Future<void> toAbout(BuildContext context) =>
       push(context, const AboutView());
+
+  static Future<void> toLog(BuildContext context) =>
+      push(context, const LogPage());
 
   static Future<void> toAcknowledgement(BuildContext context) =>
       push(context, const AcknowledgementView());

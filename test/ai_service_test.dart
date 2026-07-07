@@ -33,24 +33,16 @@ void main() {
 
   // ── Tool failure detection ─────────────────────────────────────────
 
-  group('_isToolFailed', () {
-    test('detects execution failure prefix', () {
-      expect(_testIsToolFailed('weather', '执行失败: timeout'), isTrue);
+  group('ToolResult.failed', () {
+    test('returns true when isSuccess is false', () {
+      expect(_testIsToolFailed('weather', '任何内容', isSuccess: false), isTrue);
     });
 
-    test('detects error prefix', () {
-      expect(_testIsToolFailed('weather', '错误: invalid param'), isTrue);
+    test('returns false when isSuccess is true', () {
+      expect(_testIsToolFailed('weather', '北京 26°C 晴', isSuccess: true), isFalse);
     });
 
-    test('detects image generation failure', () {
-      expect(_testIsToolFailed('generate_image', '图片生成失败: quota'), isTrue);
-    });
-
-    test('detects video generation failure', () {
-      expect(_testIsToolFailed('generate_video', '视频生成失败'), isTrue);
-    });
-
-    test('returns false for normal result', () {
+    test('returns false by default (isSuccess defaults to true)', () {
       expect(_testIsToolFailed('weather', '北京 26°C 晴'), isFalse);
     });
   });
@@ -205,9 +197,9 @@ String _testNormalizeUrl(String url) {
 String _callNormalize(String url) =>
     url.trim().replaceAll(RegExp(r'/+$'), '');
 
-/// Tests [_isToolFailed] via ToolResult.failed.
-bool _testIsToolFailed(String toolName, String content) {
-  return ToolResult(toolName: toolName, content: content).failed;
+/// Tests ToolResult.failed via isSuccess parameter.
+bool _testIsToolFailed(String toolName, String content, {bool isSuccess = true}) {
+  return ToolResult(toolName: toolName, content: content, isSuccess: isSuccess).failed;
 }
 
 /// Simulates [_friendlyError] logic for a given status code.

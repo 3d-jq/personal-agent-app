@@ -21,9 +21,24 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
     ('high', '高'),
   ];
 
+  static const _contextWindowOptions = [
+    (32000, '32K'),
+    (64000, '64K'),
+    (128000, '128K'),
+    (256000, '256K'),
+    (512000, '512K'),
+    (1000000, '1M'),
+  ];
+
   String _thinkingLabel(String v) {
     return _thinkingOptions
         .firstWhere((o) => o.$1 == v, orElse: () => ('medium', '中'))
+        .$2;
+  }
+
+  String _contextWindowLabel(int v) {
+    return _contextWindowOptions
+        .firstWhere((o) => o.$1 == v, orElse: () => (256000, '256K'))
         .$2;
   }
 
@@ -94,6 +109,144 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
     );
   }
 
+  void _showContextWindowPicker() {
+    final nc = AgentColors.of(context);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.3,
+        maxChildSize: 0.8,
+        expand: false,
+        builder: (ctx, scrollController) => Padding(
+          padding: const EdgeInsets.only(bottom: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: nc.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  '上下文窗口',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: nc.textPrimary,
+                  ),
+                ),
+              ),
+              Text(
+                '设置模型的上下文窗口大小，达到 80% 时自动压缩',
+                style: TextStyle(fontSize: 13, color: nc.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: ListView(
+                  controller: scrollController,
+                  children: [
+                    ..._contextWindowOptions.map(
+                      (o) => ListTile(
+                        title: Text(
+                          o.$2,
+                          style: TextStyle(fontSize: 15, color: nc.textPrimary),
+                        ),
+                        subtitle: Text(
+                          '${o.$1} tokens',
+                          style: TextStyle(fontSize: 12, color: nc.textSecondary),
+                        ),
+                        trailing: _aiSettings.contextWindowSize == o.$1
+                            ? Icon(PhosphorIconsRegular.check, color: nc.success)
+                            : null,
+                        onTap: () {
+                          setState(() => _aiSettings.contextWindowSize = o.$1);
+                          _aiSettings.save();
+                          Navigator.pop(ctx);
+                        },
+                      ),
+                    ),
+                    // 自定义输入
+                    ListTile(
+                      title: Text(
+                        '自定义',
+                        style: TextStyle(fontSize: 15, color: nc.textPrimary),
+                      ),
+                      subtitle: Text(
+                        '输入自定义 token 数',
+                        style: TextStyle(fontSize: 12, color: nc.textSecondary),
+                      ),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _showCustomContextWindowDialog();
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showCustomContextWindowDialog() {
+    final nc = AgentColors.of(context);
+    final controller = TextEditingController(
+      text: _aiSettings.contextWindowSize.toString(),
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: nc.surface,
+        title: Text(
+          '自定义上下文窗口',
+          style: TextStyle(fontSize: 16, color: nc.textPrimary),
+        ),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            hintText: '输入 token 数',
+            hintStyle: TextStyle(color: nc.textSecondary),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          style: TextStyle(color: nc.textPrimary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('取消', style: TextStyle(color: nc.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () {
+              final value = int.tryParse(controller.text);
+              if (value != null && value > 0) {
+                setState(() => _aiSettings.contextWindowSize = value);
+                _aiSettings.save();
+              }
+              Navigator.pop(ctx);
+            },
+            child: Text('确定', style: TextStyle(color: nc.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -134,7 +287,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
             children: [
               _SettingItem(
                 icon: PhosphorIconsRegular.checkCircle,
-                label: '推理模型',
+                label: 'AI 厂商',
                 trailing: vendor?.name ?? '未配置',
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -163,30 +316,20 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
               ),
               _SettingItem(
                 icon: PhosphorIconsRegular.brain,
-                label: '系统提示词',
+                label: '思考强度',
                 trailing: _thinkingLabel(_aiSettings.thinkingEffort),
                 onTap: () {
                   HapticFeedback.lightImpact();
                   _showThinkingPicker();
                 },
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _SectionHeader(title: '管理', nc: nc),
-          _RoundedCard(
-            nc: nc,
-            children: [
               _SettingItem(
-                icon: PhosphorIconsRegular.slidersHorizontal,
-                label: '管理厂商配置',
+                icon: PhosphorIconsRegular.appWindow,
+                label: '上下文窗口',
+                trailing: _contextWindowLabel(_aiSettings.contextWindowSize),
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  showBackendPicker(
-                    context,
-                    _aiSettings,
-                    () => setState(() {}),
-                  );
+                  _showContextWindowPicker();
                 },
               ),
             ],

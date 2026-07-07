@@ -52,12 +52,20 @@ class ChatController extends ChangeNotifier {
   TaskPlan? currentPlan;
 
   /// 对话历史压缩管理器
-  final HistoryManager _historyManager = const HistoryManager();
+  HistoryManager? _historyManager;
+  HistoryManager get _historyManagerInstance =>
+      _historyManager ??= HistoryManager(
+        contextWindowSize: _aiSettings.contextWindowSize,
+        maxOutputTokens: 4096,
+        bufferTokens: 20000,
+        keepTokens: 8000,
+      );
 
   String? _sessionId;
   List<ChatMessage> _messages = [];
   List<ChatSession> _sessions = [];
   bool _isLoading = false;
+  bool _isCompressing = false;
 
   File? _pendingAttachment;
   String _pendingAttachmentType = '';
@@ -74,6 +82,7 @@ class ChatController extends ChangeNotifier {
   List<ChatMessage> get messages => List.unmodifiable(_messages);
   List<ChatSession> get sessions => List.unmodifiable(_sessions);
   bool get isLoading => _isLoading;
+  bool get isCompressing => _isCompressing;
   bool get isWaitingUserPrompt => _streamState?.isWaitingUserInput ?? false;
   File? get pendingAttachment => _pendingAttachment;
   String get pendingAttachmentType => _pendingAttachmentType;
@@ -281,16 +290,20 @@ class ChatController extends ChangeNotifier {
     // 超过阈值时，对早期对话做摘要压缩，避免滑动窗口直接丢弃信息
     // 摘要失败时用原消息继续，不中断发送流程
     try {
-      final compressed = await _historyManager.compressIfNeeded(
+      _isCompressing = true;
+      _notify();
+      final compressed = await _historyManagerInstance.compressIfNeeded(
         _messages,
         ai.summarize,
       );
       if (!identical(compressed, _messages)) {
         _messages = [...compressed];
-        _notify();
       }
     } catch (_) {
       // 摘要失败，保持原消息不变
+    } finally {
+      _isCompressing = false;
+      _notify();
     }
 
     final history = buildMessageHistory(

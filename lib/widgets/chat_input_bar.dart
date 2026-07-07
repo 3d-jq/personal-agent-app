@@ -14,6 +14,7 @@ class ChatInputBar extends StatefulWidget {
   final VoidCallback onSend;
   final VoidCallback onStop;
   final bool isLoading;
+  final bool isCompressing;
   final bool isAwaitingReply;
   final AISettings settings;
   final VoidCallback onChanged;
@@ -30,6 +31,7 @@ class ChatInputBar extends StatefulWidget {
     required this.onSend,
     required this.onStop,
     required this.isLoading,
+    this.isCompressing = false,
     this.isAwaitingReply = false,
     required this.settings,
     required this.onChanged,
@@ -121,17 +123,22 @@ class _ChatInputBarState extends State<ChatInputBar> {
                       minLines: 1,
                       keyboardType: TextInputType.multiline,
                       textInputAction: TextInputAction.newline,
+                      enabled: !widget.isCompressing,
                       style: TextStyle(
                         fontSize: 15,
                         color: nc.textPrimary,
                         height: 1.5,
                       ),
                       decoration: InputDecoration(
-                        hintText: widget.isAwaitingReply
-                            ? '回复以继续…'
-                            : (hasFile ? '添加描述（可选）' : '给 DWeis 发消息'),
+                        hintText: widget.isCompressing
+                            ? '上下文压缩中...'
+                            : widget.isAwaitingReply
+                                ? '回复以继续…'
+                                : (hasFile ? '添加描述（可选）' : '给 DWeis 发消息'),
                         hintStyle: TextStyle(
-                          color: nc.textSecondary.withValues(alpha: 0.6),
+                          color: widget.isCompressing
+                              ? nc.primary
+                              : nc.textSecondary.withValues(alpha: 0.6),
                           fontSize: 15,
                           height: 1.5,
                         ),

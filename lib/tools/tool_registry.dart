@@ -123,7 +123,7 @@ class ToolRegistry {
   Future<ToolResult> execute(ToolCall toolCall) async {
     final tool = get(toolCall.name);
     if (tool == null) {
-      return ToolResult(
+      return ToolResult.failure(
         toolName: toolCall.name,
         content: '工具 "${toolCall.name}" 不存在',
         toolCallId: toolCall.id,
@@ -133,7 +133,7 @@ class ToolRegistry {
     // 频率限制检查（硬阻止）
     final limitMsg = checkFrequencyLimit(toolCall.name);
     if (limitMsg != null) {
-      return ToolResult(
+      return ToolResult.failure(
         toolName: toolCall.name,
         content: limitMsg,
         toolCallId: toolCall.id,
@@ -143,14 +143,14 @@ class ToolRegistry {
     try {
       final result = await tool.execute(toolCall.arguments);
       final warning = checkFrequencyWarning(toolCall.name);
-      return ToolResult(
+      return ToolResult.success(
         toolName: toolCall.name,
         content: _truncator.truncate(result),
         toolCallId: toolCall.id,
         warning: warning,
       );
     } catch (e) {
-      return ToolResult(
+      return ToolResult.failure(
         toolName: toolCall.name,
         content: '执行失败: $e',
         toolCallId: toolCall.id,
