@@ -95,11 +95,15 @@ class ContextDocService {
   bool hasUserProfile() {
     final content = _cache[ContextDoc.user];
     if (content == null || content.trim().isEmpty) return false;
-    // 0.7.3 模板包含"待用户首次指定"标记，有此标记说明未填写
+    // 模板包含"待用户首次指定"标记，有此标记说明未填写
     if (content.contains('（待用户首次指定）')) return false;
     final fallback = _fallbackContent(ContextDoc.user);
     if (content.trim() == fallback.trim()) return false;
-    return true;
+    // 检查必填字段：怎么称呼、语气风格
+    // 如果这两个字段还是空的或默认值，说明首次见面没完成
+    final hasName = RegExp(r'怎么称呼：\s*\S').hasMatch(content);
+    final hasStyle = RegExp(r'语气风格：\s*\S').hasMatch(content);
+    return hasName && hasStyle;
   }
 
   /// 读取指定知识库文件。返回完整 Markdown 内容。
@@ -172,43 +176,45 @@ class ContextDocService {
   static String _fallbackContent(ContextDoc doc) {
     switch (doc) {
       case ContextDoc.soul:
-        return '# SOUL\n\n'
-            '你是 DWeis，用户的个人 AI 助手。\n\n'
-            '## 人格\n\n'
-            '- 简洁直接，结果导向。\n'
-            '- 专业但不刻板，乐于助人。\n'
-            '- 不要自称"AI"。\n\n'
-            '## 语气与风格\n\n'
-            '> 用户的语气偏好统一在 USER.md 的「偏好」中维护，此处仅作为不可被覆盖的硬性底线。\n\n'
-            '- 默认语气：自然、友好、不过度热情。\n';
+        return '# SOUL.md\n'
+            'DWeis 说话、做事的专属风格\n\n'
+            '---\n\n'
+            '## 你的人设\n'
+            '在对话中把它补齐，让它变成你的设定。\n\n'
+            '- 名称：DWeis\n'
+            '- 角色：用户的个人 AI 助手\n'
+            '- 风格：简洁直接，结果导向\n'
+            '- 语气：专业但不刻板，乐于助人\n'
+            '- 特殊要求：不要自称"AI"\n\n'
+            '---\n\n'
+            '这不只是配置项。这是你开始搞清楚"你是谁"的起点。\n';
       case ContextDoc.user:
-        return '# USER\n\n'
-            '记录用户的信息、喜好与习惯。\n\n'
-            '> 写入原则：只能记录用户明确说出来的事实，禁止推断、脑补，禁止写入用户未确认的分析或建议。\n\n'
-            '## 基本资料\n\n'
+        return '# USER.md\n'
+            '记录你的信息、喜好、习惯等\n\n'
+            '---\n\n'
+            '## 关于用户\n'
+            '认识你正在帮助的这个人。边认识边更新。\n\n'
             '- 姓名：\n'
             '- 怎么称呼：（待用户首次指定）\n'
             '- 身份：\n'
             '- 所在地：\n'
             '- 备注：\n\n'
-            '## 偏好\n\n'
-            '- 语气风格：（待用户首次指定，如可爱温柔、简洁专业、幽默轻松等）\n'
-            '- 其他偏好：（由用户在对话中逐步补充）\n\n'
             '## 更多了解\n\n'
-            '（待用户在使用过程中逐步补充：ta 在乎什么？什么事会烦到 ta？什么事会逗 ta 笑？）\n';
+            '（ta 在乎什么？在做什么项目？什么事会烦到 ta？什么事会逗 ta 笑？慢慢把这部分攒起来。）\n\n'
+            '---\n\n'
+            '知道得越多，帮助得越到位。但要记得——你在认识一个人，不是在建档案。\n';
       case ContextDoc.agent:
-        return '# AGENT\n\n'
-            '任务中积累的经验和技巧。\n\n'
-            '> 写入原则：写入前需确认不会覆盖 SOUL.md 中的人格设定；通过 context_doc 工具更新本文件时，第一次 update 会要求 review，确认后需带 reviewed=true 再次调用才会真正写入。\n'
-            '> 以下均为空模板，内容由模型在实际任务中逐步记录，禁止预填默认值。\n\n'
-            '## 场景规范\n\n'
+        return '# AGENT.md\n'
+            '任务中积累的经验和技巧\n\n'
+            '---\n\n'
+            '## 场景规范（针对具体任务场景的操作规则）\n\n'
             '### {任务场景名}\n\n'
             '- {经验证的方法/模式}\n'
-            '- 说明：特定场景下的行为准则。\n\n'
-            '## 通用规范\n\n'
+            '  说明：特定场景下的行为准则。\n\n'
+            '## 通用规范（跨场景的通用规则）\n\n'
             '### 通用工具技巧\n\n'
             '- {跨场景的工具使用技巧}\n'
-            '- 说明：不限于某个场景的通用操作规范。\n';
+            '  说明：不限于某个场景的通用操作规范。\n';
       case ContextDoc.memory:
         return '# MEMORY\n\n'
             '跨场景长期记忆。\n\n'

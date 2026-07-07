@@ -14,6 +14,7 @@ import '../../services/agent_runner.dart';
 import '../../services/agent_storage.dart';
 import '../../services/ai_service.dart';
 import '../../services/chat_stream_event.dart';
+import '../../services/history_manager.dart';
 import '../../services/typewriter_buffer.dart';
 import '../../core/service_locator.dart';
 import '../../services/connectivity_service.dart';
@@ -54,6 +55,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   Map<String, Agent> _byName = {};
   bool _busy = false;
   bool _stopped = false;
+  bool _isCompressing = false;
 
   // ── Agent 状态跟踪 ──
   Map<String, AgentStatus> _agentStatus = {};
@@ -62,6 +64,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   // ── Stop 完整取消：管理所有活跃流 ──
   final List<StreamSubscription<ChatStreamEvent>> _activeSubs = [];
+
+  // ── 上下文压缩管理器 ──
+  HistoryManager? _historyManager;
+  HistoryManager get _historyManagerInstance =>
+      _historyManager ??= HistoryManager(
+        contextWindowSize: _aiSettings.contextWindowSize,
+        maxOutputTokens: 4096,
+        bufferTokens: 20000,
+        keepTokens: 8000,
+      );
 
   // ── 滚动节流 ──
   Timer? _scrollTimer;
@@ -228,6 +240,36 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     // ── 混合协作引擎 ──
     // 每次发消息前刷新 MCP 工具，确保新连接的服务器能被大模型发现
     registerMcpTools(_baseRegistry);
+
+    // 上下文压缩
+    try {
+      _isCompressing = true;
+      setState(() {});
+      final ai = AISettings();
+      await ai.load();
+      final compressed = await _historyManagerInstance.compressIfNeeded(
+        _messages,
+        (messages) async {
+          final response = await AIService(
+            baseUrl: ai.baseUrl,
+            apiKey: ai.apiKey,
+            providerName: ai.selectedVendor?.name ?? '',
+            model: ai.effectiveModel,
+            thinkingEffort: ai.thinkingEffort,
+          ).summarize(messages);
+          return response;
+        },
+      );
+      if (!identical(compressed, _messages)) {
+        _messages = [...compressed];
+      }
+    } catch (_) {
+      // 压缩失败，保持原消息
+    } finally {
+      _isCompressing = false;
+      setState(() {});
+    }
+
     setState(() {
       _busy = true;
       _discussionRound = 0;
@@ -752,6 +794,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                               maxLines: 6,
                               keyboardType: TextInputType.multiline,
                               textInputAction: TextInputAction.newline,
+                              enabled: !_isCompressing && !_busy,
                               style: TextStyle(
                                 fontSize: 15,
                                 color: nc.textPrimary,
@@ -759,11 +802,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                               ),
                               onChanged: (_) => setState(() {}),
                               decoration: InputDecoration(
-                                hintText: _members.isEmpty
-                                    ? '先把 Agent 拉进群再说'
-                                    : '说点什么，@名字 来召唤 Agent',
+                                hintText: _isCompressing
+                                    ? '上下文压缩中...'
+                                    : _members.isEmpty
+                                        ? '先把 Agent 拉进群再说'
+                                        : '说点什么，@名字 来召唤 Agent',
                                 hintStyle: TextStyle(
-                                  color: nc.textSecondary.withValues(alpha: 0.6),
+                                  color: _isCompressing
+                                      ? nc.primary
+                                      : nc.textSecondary.withValues(alpha: 0.6),
                                   fontSize: 15,
                                   height: 1.5,
                                 ),
