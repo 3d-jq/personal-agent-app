@@ -172,8 +172,12 @@ class _ChatScreenState extends State<ChatScreen> {
                       physics: const BouncingScrollPhysics(),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       itemCount: _controller.messages.length,
-                      cacheExtent: 1500,
-                      itemBuilder: (c, i) => ChatBubble(msg: _controller.messages[i], nc: nc),
+                      cacheExtent: 500,
+                      itemBuilder: (c, i) => ChatBubble(
+                        key: ValueKey(_controller.messages[i].text.hashCode),
+                        msg: _controller.messages[i],
+                        nc: nc,
+                      ),
                     ),
                     if (_showScrollBottom)
                       Positioned(

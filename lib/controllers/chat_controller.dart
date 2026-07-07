@@ -116,6 +116,7 @@ class ChatController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _aiStream?.cancel();
+    _streamState?.typewriterTimer?.cancel();
     _completeUserPrompt('对话已中断');
     super.dispose();
   }
