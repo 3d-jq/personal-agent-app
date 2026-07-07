@@ -128,6 +128,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                   File(filePath),
                   fit: BoxFit.contain,
                   width: double.infinity,
+                  cacheWidth: 1080,
                   errorBuilder: (ctx, err, stack) => Container(
                     height: 160,
                     decoration: BoxDecoration(

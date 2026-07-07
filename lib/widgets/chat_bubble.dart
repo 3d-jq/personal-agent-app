@@ -107,6 +107,7 @@ class ChatBubble extends StatelessWidget {
             file,
             fit: BoxFit.cover,
             width: 240,
+            cacheWidth: 480,
             errorBuilder: (_, _, _) => Container(
               width: 240,
               height: 120,
