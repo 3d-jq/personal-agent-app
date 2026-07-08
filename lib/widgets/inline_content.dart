@@ -228,6 +228,113 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context, int maxCac
   );
 }
 
+/// 缓存的 MarkdownStyleSheet（按主题颜色哈希，避免每次渲染重新构建）
+MarkdownStyleSheet? _cachedMdStyle;
+int _cachedMdStyleHash = 0;
+
+MarkdownStyleSheet _mdStyleSheet(AgentColors nc) {
+  final hash = Object.hash(
+    nc.textPrimary,
+    nc.textSecondary,
+    nc.primary,
+    nc.divider,
+    nc.primarySurface,
+    nc.success,
+  );
+  if (_cachedMdStyle != null && _cachedMdStyleHash == hash) {
+    return _cachedMdStyle!;
+  }
+  _cachedMdStyleHash = hash;
+  return _cachedMdStyle = MarkdownStyleSheet(
+    p: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.6),
+    h1: TextStyle(
+      fontSize: 20,
+      fontWeight: FontWeight.w700,
+      color: nc.textPrimary,
+      height: 1.4,
+    ),
+    h2: TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+      color: nc.textPrimary,
+      height: 1.4,
+    ),
+    h3: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w700,
+      color: nc.textPrimary,
+      height: 1.4,
+    ),
+    h4: TextStyle(
+      fontSize: 15,
+      fontWeight: FontWeight.w700,
+      color: nc.textPrimary,
+      height: 1.4,
+    ),
+    h5: TextStyle(
+      fontSize: 15,
+      fontWeight: FontWeight.w700,
+      color: nc.textPrimary,
+      height: 1.4,
+    ),
+    h6: TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+      color: nc.textPrimary,
+      height: 1.4,
+    ),
+    a: TextStyle(
+      fontSize: 15,
+      color: nc.primary,
+      decoration: TextDecoration.underline,
+      decorationColor: nc.primary,
+    ),
+    em: TextStyle(
+      fontSize: 15,
+      fontStyle: FontStyle.italic,
+      color: nc.textPrimary,
+    ),
+    strong: TextStyle(
+      fontSize: 15,
+      fontWeight: FontWeight.w700,
+      color: nc.textPrimary,
+    ),
+    code: TextStyle(
+      fontSize: 13,
+      color: nc.textPrimary,
+      backgroundColor: nc.divider.withValues(alpha: 0.5),
+      fontFamily: 'monospace',
+    ),
+    codeblockDecoration: BoxDecoration(
+      color: nc.primarySurface,
+      border: Border.all(color: nc.divider, width: 0.5),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    codeblockPadding: const EdgeInsets.all(14),
+    blockquoteDecoration: BoxDecoration(
+      border: Border(left: BorderSide(color: nc.success, width: 3)),
+      color: nc.success.withValues(alpha: 0.06),
+    ),
+    blockquotePadding: const EdgeInsets.only(
+      left: 14,
+      right: 14,
+      top: 8,
+      bottom: 8,
+    ),
+    listBullet: TextStyle(fontSize: 15, color: nc.textPrimary),
+    tableBorder: TableBorder.all(color: nc.divider),
+    tableHead: TextStyle(
+      fontSize: 15,
+      fontWeight: FontWeight.w600,
+      color: nc.textPrimary,
+    ),
+    tableBody: TextStyle(fontSize: 15, color: nc.textPrimary),
+    horizontalRuleDecoration: BoxDecoration(
+      border: Border(top: BorderSide(color: nc.divider, width: 0.5)),
+    ),
+  );
+}
+
 Widget mdBlock(String text, AgentColors nc, [BuildContext? context]) {
   return MarkdownBody(
     data: text,
@@ -241,94 +348,7 @@ Widget mdBlock(String text, AgentColors nc, [BuildContext? context]) {
         // 链接无法在当前环境打开时静默失败，避免抛异常中断 UI
       }
     },
-    styleSheet: MarkdownStyleSheet(
-      p: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.6),
-      h1: TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.w700,
-        color: nc.textPrimary,
-        height: 1.4,
-      ),
-      h2: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        color: nc.textPrimary,
-        height: 1.4,
-      ),
-      h3: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w700,
-        color: nc.textPrimary,
-        height: 1.4,
-      ),
-      h4: TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        color: nc.textPrimary,
-        height: 1.4,
-      ),
-      h5: TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        color: nc.textPrimary,
-        height: 1.4,
-      ),
-      h6: TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: nc.textPrimary,
-        height: 1.4,
-      ),
-      a: TextStyle(
-        fontSize: 15,
-        color: nc.primary,
-        decoration: TextDecoration.underline,
-        decorationColor: nc.primary,
-      ),
-      em: TextStyle(
-        fontSize: 15,
-        fontStyle: FontStyle.italic,
-        color: nc.textPrimary,
-      ),
-      strong: TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-        color: nc.textPrimary,
-      ),
-      code: TextStyle(
-        fontSize: 13,
-        color: nc.textPrimary,
-        backgroundColor: nc.divider.withValues(alpha: 0.5),
-        fontFamily: 'monospace',
-      ),
-      codeblockDecoration: BoxDecoration(
-        color: nc.primarySurface,
-        border: Border.all(color: nc.divider, width: 0.5),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      codeblockPadding: const EdgeInsets.all(14),
-      blockquoteDecoration: BoxDecoration(
-        border: Border(left: BorderSide(color: nc.success, width: 3)),
-        color: nc.success.withValues(alpha: 0.06),
-      ),
-      blockquotePadding: const EdgeInsets.only(
-        left: 14,
-        right: 14,
-        top: 8,
-        bottom: 8,
-      ),
-      listBullet: TextStyle(fontSize: 15, color: nc.textPrimary),
-      tableBorder: TableBorder.all(color: nc.divider),
-      tableHead: TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w600,
-        color: nc.textPrimary,
-      ),
-      tableBody: TextStyle(fontSize: 15, color: nc.textPrimary),
-      horizontalRuleDecoration: BoxDecoration(
-        border: Border(top: BorderSide(color: nc.divider, width: 0.5)),
-      ),
-    ),
+    styleSheet: _mdStyleSheet(nc),
     builders: {'code': CodeBlockBuilder(nc: nc, context: context)},
   );
 }

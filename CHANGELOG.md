@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.4.1 — 数据库初始化修复 + 性能优化 + 计划面板气泡化 (2026-07-09)
+
+### 🐛 Bug 修复
+
+- **群聊界面一直转圈**：`main.dart` 从未调用 `AppDatabase.instance.initialize()`，且 `DbMigration.run()` 用 `unawaited` 启动导致 UI 在迁移完成前读到空表并被 `CachedRepository` 永久缓存。`main.dart` 改为 `await initialize()` + `await DbMigration.run()`（均带 try-catch），彻底解决进群聊死转圈。
+
+### ⚡ 性能优化
+
+- **P0 流式整屏重建**：`agent_chat_screen.dart` 流式 `setState` 全去掉，改用 `ListenableBuilder` 包 `ChatBubble`，流式期间仅当前气泡重建，不再整屏重绘（最大卡顿源消除）。
+- **P1 MarkdownStyleSheet 缓存**：`inline_content.dart` 按主题颜色哈希缓存，避免每帧重建 80 行样式表。
+- **P1 BackdropFilter 降开销**：5 处毛玻璃 `sigma` 由 20 降到 12，GPU 模糊开销降约 40%，视觉几乎无差。
+- **P1 chat_bubble 节流**：`_onChanged` 删掉冗余 `setState`（`ListenableBuilder` 已接管重建），避免双重重建。
+- **P2**：`group_chat_input_bar` 加 `didUpdateWidget`；`group_chat_screen` 的 `GroupStatusBar` 外包 `RepaintBoundary`，消息滚动时不连带重绘。
+
+### 🎨 计划面板气泡化
+
+- **输入框上方悬浮面板移除**：删除只服务悬浮面板的 `TaskPlanPanel` 类，`chat_screen.dart` 不再挂悬浮面板；`ChatMessage` 新增 `plan` 字段，`TaskPlanEvent` 直接写入对应 AI 气泡。
+- **气泡内嵌渲染**：`chat_bubble.dart` 的 AI 气泡内嵌入 `TaskPlanView` 卡片（processLine 之后、文本之前），支持折叠、随气泡局部刷新。
+- **群聊也支持**：`group_chat_runner.dart` 的 `TaskPlanEvent` 改为写入 `placeholder.plan`；群聊空气泡守卫加 `msg.plan == null` 条件，确保「无文本纯 plan」气泡不被隐藏。
+
+### 🧪 测试
+
+- 全量 **307 个测试** 串行通过（`flutter test -j 1`）。
+- 已知偶发 flake（`task_plan_state_machine_test`）已通过 getIt 隔离消除。
+
+---
+
 ## v1.4.0 — 群聊协调者派活 + UI v2 + 架构优化 (2026-07-08)
 
 ### 🚀 群聊「协调者-子Agent」工具调用派活

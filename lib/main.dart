@@ -10,6 +10,7 @@ import 'core/service_locator.dart';
 import 'services/connectivity_service.dart';
 import 'services/foreground_service.dart';
 import 'services/mcp_manager.dart';
+import 'services/storage/app_database.dart';
 import 'services/storage/db_migration.dart';
 import 'tools/skill_registry.dart';
 
@@ -18,8 +19,22 @@ Future<void> main() async {
   ErrorHandler.init();
   ErrorWidget.builder = ErrorHandler.buildErrorWidget;
   await configureDependencies();
-  // 从旧 JSON 文件迁移数据到 SQLite（首次启动执行，幂等，失败不阻塞启动）
-  unawaited(DbMigration.run());
+
+  // 初始化 SQLite 数据库（建表等），必须早于任何 storage 读写
+  try {
+    await AppDatabase.instance.initialize();
+  } catch (e) {
+    debugPrint('数据库初始化失败: $e');
+    // 即使数据库初始化失败也不阻塞（某些平台可能不支持 sqflite）
+  }
+
+  // 从旧 JSON 文件迁移数据到 SQLite（须 await 等迁移完成再启动 app，
+  // 否则 CachedRepository 会缓存空数据导致 UI 永远不刷新）
+  try {
+    await DbMigration.run();
+  } catch (e) {
+    debugPrint('数据库迁移失败: $e');
+  }
 
   await runZonedGuarded(() async {
     await dotenv.load();

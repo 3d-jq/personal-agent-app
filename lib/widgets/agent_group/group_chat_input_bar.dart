@@ -45,6 +45,15 @@ class _GroupChatInputBarState extends State<GroupChatInputBar> {
   }
 
   @override
+  void didUpdateWidget(GroupChatInputBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onTextChanged);
+      widget.controller.addListener(_onTextChanged);
+    }
+  }
+
+  @override
   void dispose() {
     widget.controller.removeListener(_onTextChanged);
     super.dispose();
@@ -65,7 +74,7 @@ class _GroupChatInputBarState extends State<GroupChatInputBar> {
       children: [
         ClipRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
                 SpaceToken.lg,

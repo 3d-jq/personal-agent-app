@@ -8,6 +8,7 @@ import '../core/app_router.dart';
 import 'inline_content.dart';
 import 'timeline_view.dart';
 import 'shimmer_text.dart';
+import 'task_plan_panel.dart';
 
 class ChatBubble extends StatelessWidget {
   final ChatMessage msg;
@@ -212,6 +213,7 @@ class _AIBubbleState extends State<_AIBubble>
     with SingleTickerProviderStateMixin {
   String _lastText = '';
   int _lastTextLength = 0;
+  bool _planExpanded = true;
   List<Widget> _cachedContent = [];
   DateTime _lastRenderTime = DateTime(2000); // far in the past
   late AnimationController _fadeCtrl;
@@ -244,6 +246,7 @@ class _AIBubbleState extends State<_AIBubble>
       _lastTextLength = 0;
       _cachedContent = [];
       _lastRenderTime = DateTime(2000);
+      _planExpanded = true;
     }
   }
 
@@ -261,7 +264,7 @@ class _AIBubbleState extends State<_AIBubble>
       _fadeCtrl.forward(from: 0.55);
     }
     _lastTextLength = currentLen;
-    setState(() {});
+    // 不需要 setState：外层 ListenableBuilder 已监听 msg 并触发重建
   }
 
   @override
@@ -295,6 +298,15 @@ class _AIBubbleState extends State<_AIBubble>
             Padding(
               padding: EdgeInsets.only(bottom: textContent.isNotEmpty ? 8 : 0),
               child: _buildProcessLine(steps ?? const [], nc, msg.isStreaming),
+            ),
+          if (msg.plan != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: TaskPlanView(
+                plan: msg.plan!,
+                expanded: _planExpanded,
+                onToggle: () => setState(() => _planExpanded = !_planExpanded),
+              ),
             ),
           if (textContent.isNotEmpty)
             FadeTransition(

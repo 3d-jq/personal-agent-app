@@ -11,7 +11,6 @@ import '../widgets/chat_identity_button.dart';
 import '../widgets/chat_input_bar.dart';
 import '../widgets/chat_model_chip.dart';
 import '../widgets/chat_new_chat_button.dart';
-import '../widgets/task_plan_panel.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sessionId;
@@ -27,7 +26,6 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   final ScrollController _scrollCtrl = ScrollController();
-  final GlobalKey<TaskPlanPanelState> _planPanelKey = GlobalKey<TaskPlanPanelState>();
   late final ChatController _controller;
   Timer? _scrollTimer;
   bool _showScrollBottom = false;
@@ -179,7 +177,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           },
                           child: ClipOval(
                             child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                               child: Container(
                                 width: 36,
                                 height: 36,
@@ -197,7 +195,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
               ),
-              _TaskPlanPanel(controller: _controller, planPanelKey: _planPanelKey),
               _ChatInputBar(
                 controller: _controller,
                 inputController: _inputCtrl,
@@ -284,27 +281,6 @@ class _MessageList extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _TaskPlanPanel extends StatelessWidget {
-  final ChatController controller;
-  final GlobalKey<TaskPlanPanelState> planPanelKey;
-
-  const _TaskPlanPanel({required this.controller, required this.planPanelKey});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, child) => TaskPlanPanel(
-        key: planPanelKey,
-        controller: controller,
-        onClose: () {
-          controller.currentPlan = null;
-        },
-      ),
     );
   }
 }

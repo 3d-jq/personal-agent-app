@@ -47,9 +47,6 @@ class ChatController extends ChangeNotifier {
   /// UI 层传入的滚屏回调，控制器不关心 ScrollController。
   final VoidCallback? onNeedScroll;
 
-  /// 任务计划状态变更通知（供 UI 面板监听）
-  TaskPlan? currentPlan;
-
   /// 对话历史压缩管理器
   HistoryManager? _historyManager;
   HistoryManager get _historyManagerInstance =>
@@ -439,7 +436,7 @@ class ChatController extends ChangeNotifier {
         });
         break;
       case TaskPlanEvent(:final title, :final tasks, :final verified):
-        currentPlan = TaskPlan(
+        aiMsg.plan = TaskPlan(
           title: title,
           verified: verified,
           tasks: tasks
@@ -598,7 +595,7 @@ class ChatController extends ChangeNotifier {
 
     _captureThinkingDetail(state);
     finishRunningSteps(state.steps);
-    final plan = currentPlan;
+    final plan = aiMsg.plan;
     final allDoneOrFailed =
         plan != null &&
         plan.tasks.every(

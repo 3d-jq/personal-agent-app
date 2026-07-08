@@ -178,8 +178,9 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
             buf.write(event.text);
             typewriter.append(event.text);
           }
+          // ChatMessage 是 ChangeNotifier，text 赋值即通知气泡的 ListenableBuilder 局部重建，
+          // 无需整屏 setState。
           placeholder.text = typewriter.visibleText;
-          if (mounted) setState(() {});
           _scrollDown();
 
           // 启动打字机定时器
@@ -191,7 +192,6 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
               }
               typewriter.revealNext();
               placeholder.text = typewriter.visibleText;
-              if (mounted) setState(() {});
               _scrollDown();
             });
         },
@@ -200,7 +200,6 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
           typewriterTimer = null;
           typewriter.revealAll();
           placeholder.text = typewriter.visibleText;
-          if (mounted) setState(() {});
           completer.complete();
         },
         onError: (e) {
@@ -343,7 +342,11 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
                     controller: _scrollCtrl,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     itemCount: _messages.length,
-                    itemBuilder: (c, i) => ChatBubble(msg: _messages[i], nc: nc),
+                    // ChatMessage 是 ChangeNotifier，流式更新时仅对应气泡局部重建
+                    itemBuilder: (c, i) => ListenableBuilder(
+                      listenable: _messages[i],
+                      builder: (_, __) => ChatBubble(msg: _messages[i], nc: nc),
+                    ),
                   ),
           ),
           ChatInputBar(

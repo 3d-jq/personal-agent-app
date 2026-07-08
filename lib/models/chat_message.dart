@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import '../tools/task_plan_tool.dart';
 
 // ── Message ──
 
@@ -28,6 +29,10 @@ class ChatMessage extends ChangeNotifier {
   /// 每个元素代表一轮工具调用：{toolCalls: [...], toolResults: [...]}
   List<Map<String, dynamic>>? toolInteractions;
 
+  /// 任务计划（task_plan 工具触发时），渲染在 AI 气泡内的 plan 卡片。
+  /// 不持久化：会话重载后不恢复（与原输入框上方悬浮面板行为一致）。
+  TaskPlan? _plan;
+
   ChatMessage({
     String? id,
     required String text,
@@ -39,10 +44,12 @@ class ChatMessage extends ChangeNotifier {
     this.attachmentPath,
     this.attachmentType,
     this.toolInteractions,
+    TaskPlan? plan,
   }) : id = id ?? const Uuid().v4(),
        _text = text,
        _isStreaming = isStreaming,
-       _steps = steps;
+       _steps = steps,
+       _plan = plan;
 
   String get text => _text;
   set text(String value) {
@@ -56,6 +63,14 @@ class ChatMessage extends ChangeNotifier {
   set isStreaming(bool value) {
     if (_isStreaming != value) {
       _isStreaming = value;
+      notifyListeners();
+    }
+  }
+
+  TaskPlan? get plan => _plan;
+  set plan(TaskPlan? value) {
+    if (_plan != value) {
+      _plan = value;
       notifyListeners();
     }
   }

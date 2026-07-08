@@ -6,6 +6,7 @@ import 'package:personal_agent_app/screens/chat_helpers.dart';
 import 'package:personal_agent_app/services/agent_runner.dart';
 import 'package:personal_agent_app/services/chat_stream_event.dart';
 import 'package:personal_agent_app/tools/base_tool.dart';
+import 'package:personal_agent_app/tools/task_plan_tool.dart';
 import 'package:personal_agent_app/services/typewriter_buffer.dart';
 import 'package:personal_agent_app/widgets/vendor_config.dart';
 
@@ -147,7 +148,24 @@ Future<String> runGroupAgentMessage({
               'toolResults': toolResults,
             });
             break;
-          case TaskPlanEvent():
+          case TaskPlanEvent(:final title, :final tasks, :final verified):
+            placeholder.plan = TaskPlan(
+              title: title,
+              verified: verified,
+              tasks: tasks
+                  .map(
+                    (t) => TaskNode(
+                      id: t.id,
+                      title: t.title,
+                      status: t.done
+                          ? TaskStatus.done
+                          : t.inProgress
+                          ? TaskStatus.inProgress
+                          : TaskStatus.pending,
+                    ),
+                  )
+                  .toList(),
+            );
             break;
           case ErrorEvent(:final message):
             buf.write('\n\n[错误: $message]');

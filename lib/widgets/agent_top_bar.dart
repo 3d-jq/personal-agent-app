@@ -26,7 +26,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
     // Apple HIG：毛玻璃材质导航栏
     return ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
           decoration: BoxDecoration(
             color: colors.background.withValues(alpha: 0.92),

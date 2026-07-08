@@ -1,65 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
-import '../controllers/chat_controller.dart';
 import '../tools/task_plan_tool.dart';
-
-/// 输入框上方的任务计划悬浮面板
-///
-/// 当 Agent 调用 task_plan 时自动出现，显示当前计划的 checklist
-/// 可折叠/展开，实时更新任务状态
-class TaskPlanPanel extends StatefulWidget {
-  final ChatController controller;
-  final VoidCallback? onClose;
-  const TaskPlanPanel({super.key, required this.controller, this.onClose});
-
-  @override
-  TaskPlanPanelState createState() => TaskPlanPanelState();
-}
-
-class TaskPlanPanelState extends State<TaskPlanPanel> {
-  bool _expanded = true;
-
-  @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_onControllerChanged);
-  }
-
-  @override
-  void didUpdateWidget(TaskPlanPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      oldWidget.controller.removeListener(_onControllerChanged);
-      widget.controller.addListener(_onControllerChanged);
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_onControllerChanged);
-    super.dispose();
-  }
-
-  void _onControllerChanged() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final plan = widget.controller.currentPlan;
-    if (plan == null) return const SizedBox.shrink();
-    return TaskPlanView(
-      plan: plan,
-      expanded: _expanded,
-      onToggle: () {
-        HapticFeedback.lightImpact();
-        setState(() => _expanded = !_expanded);
-      },
-      onClose: widget.onClose,
-    );
-  }
-}
 
 /// 可复用的任务计划视图
 ///
