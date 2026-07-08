@@ -72,3 +72,15 @@ app.*.map.json
 /linux/build/
 /macos/build/
 /windows/build/
+
+# ─── 项目特有：临时文件 / 缓存 / 本地记忆（勿提交） ───
+# 工作区临时脚本与误生成的空设备文件
+_refactor_ui.py
+nul
+
+# 工具链缓存目录
+.gradle/
+.mimocode/
+
+# WorkBuddy 本地项目记忆（含 daily logs 与长期 MEMORY，不入库）
+.workbuddy/
