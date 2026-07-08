@@ -5,14 +5,14 @@ import 'package:personal_agent_app/core/error_handler.dart';
 
 void main() {
   group('ErrorHandler', () {
-    late FlutterExceptionHandler? _original;
+    late FlutterExceptionHandler? original;
 
     setUp(() {
-      _original = FlutterError.onError;
+      original = FlutterError.onError;
     });
 
     tearDown(() {
-      FlutterError.onError = _original;
+      FlutterError.onError = original;
     });
 
     test('init replaces FlutterError.onError', () {

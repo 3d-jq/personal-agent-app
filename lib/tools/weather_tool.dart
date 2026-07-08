@@ -86,8 +86,6 @@ class WeatherTool extends AgentTool {
     }
   }
 
-  String _tempUnit(String units) => units == 'imperial' ? '°F' : '°C';
-
   double _toFahrenheit(double c) => c * 9 / 5 + 32;
 
   String _formatTemp(String? celsius, String units) {
@@ -97,7 +95,7 @@ class WeatherTool extends AgentTool {
     if (units == 'imperial') {
       return '${_toFahrenheit(c).toStringAsFixed(1)}°F';
     }
-    return '${celsius}°C';
+    return '$celsius°C';
   }
 
   String _formatCurrent(Map<String, dynamic> data, String city, String units) {

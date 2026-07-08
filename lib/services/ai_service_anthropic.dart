@@ -177,8 +177,8 @@ class AnthropicProtocol {
                 }
                 outToolCalls.add(
                   ToolCall(
-                    id: currentToolId!,
-                    name: currentToolName!,
+                    id: currentToolId,
+                    name: currentToolName,
                     arguments: args,
                   ),
                 );

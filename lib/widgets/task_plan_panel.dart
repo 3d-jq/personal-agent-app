@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../controllers/chat_controller.dart';
-import '../services/chat_stream_event.dart';
 import '../tools/task_plan_tool.dart';
 
 /// 输入框上方的任务计划悬浮面板
@@ -87,7 +85,6 @@ class TaskPlanView extends StatelessWidget {
         .where((t) => t.status == TaskStatus.done)
         .length;
     final total = plan.tasks.length;
-    final allDone = doneCount == total;
     final allDoneOrFailed = plan.tasks.every(
       (t) => t.status == TaskStatus.done || t.status == TaskStatus.failed,
     );
@@ -118,10 +115,10 @@ class TaskPlanView extends StatelessWidget {
                   children: [
                     Icon(
                       verified
-                          ? PhosphorIconsRegular.checkCircle
+                          ? Icons.check_circle_outline
                           : allDoneOrFailed
-                          ? PhosphorIconsRegular.hourglass
-                          : PhosphorIconsRegular.checkCircle,
+                          ? Icons.hourglass_empty
+                          : Icons.check_circle_outline,
                       size: 18,
                       color: verified
                           ? nc.success
@@ -185,7 +182,7 @@ class TaskPlanView extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Icon(
-                            PhosphorIconsRegular.x,
+                            Icons.close,
                             size: 14,
                             color: nc.textSecondary,
                           ),
@@ -195,7 +192,7 @@ class TaskPlanView extends StatelessWidget {
                     if (onToggle != null && !verified) ...[
                       const SizedBox(width: 4),
                       Icon(
-                        expanded ? PhosphorIconsRegular.caretUp : PhosphorIconsRegular.caretDown,
+                        expanded ? Icons.expand_less : Icons.expand_more,
                         size: 20,
                         color: nc.textSecondary,
                       ),
@@ -239,14 +236,14 @@ class TaskPlanView extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4),
             child: Icon(
               isDone
-                  ? PhosphorIconsRegular.checkCircle
+                  ? Icons.check_circle_outline
                   : isInProgress
-                  ? PhosphorIconsRegular.radioButton
+                  ? Icons.radio_button_unchecked
                   : isFailed
-                  ? PhosphorIconsRegular.warningCircle
+                  ? Icons.warning
                   : isBlocked
-                  ? PhosphorIconsRegular.prohibit
-                  : PhosphorIconsRegular.circle,
+                  ? Icons.block
+                  : Icons.circle_outlined,
               size: 14,
               color: isDone
                   ? nc.success

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/agent_colors.dart';
+import '../core/design_tokens.dart';
 import '../core/service_locator.dart';
+import '../widgets/common_widgets.dart';
 import '../models/agent.dart';
 import '../models/agent_group.dart';
 import '../services/agent_storage.dart';
@@ -62,22 +63,12 @@ class _GroupEditPageState extends State<GroupEditPage> {
     final nc = AgentColors.of(context);
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: nc.background.withValues(alpha: 0.85),
-        elevation: 0,
+      appBar: AppTopBar(
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          widget.existing == null ? '新建群' : '编辑群',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
+        title: widget.existing == null ? '新建群' : '编辑群',
         actions: [
           TextButton(
             onPressed: _save,
@@ -86,36 +77,33 @@ class _GroupEditPageState extends State<GroupEditPage> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: SpaceToken.lg, vertical: SpaceToken.md),
         children: [
           // 群名
           _EditField(label: '群名', ctrl: _name, nc: nc),
-          const SizedBox(height: 16),
+          const SizedBox(height: SpaceToken.lg),
           // 描述
           _EditField(label: '描述（可选）', ctrl: _desc, nc: nc),
-          const SizedBox(height: 24),
+          const SizedBox(height: SpaceToken.x2),
           // 选择 Agent
           Text(
             '选择 Agent',
             style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
+              fontSize: FontToken.body,
+              fontWeight: WeightToken.medium,
               color: nc.textPrimary,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: SpaceToken.md),
           if (_agents.isEmpty)
             Text(
               'Agent 库是空的，先去新建一个',
               style: TextStyle(color: nc.textSecondary),
             )
           else
-            Container(
-              decoration: BoxDecoration(
-                color: nc.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: nc.divider, width: 0.5),
-              ),
+            ElevatedCard(
+              nc: nc,
+              padding: EdgeInsets.zero,
               child: Column(
                 children: List.generate(_agents.length, (i) {
                   final a = _agents[i];
@@ -132,22 +120,22 @@ class _GroupEditPageState extends State<GroupEditPage> {
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
                             color: nc.primarySurface,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(RadiusToken.sm),
                             border: Border.all(color: nc.divider, width: 0.5),
                           ),
                           child: Text(
                             a.avatar.isNotEmpty ? a.avatar : a.name.characters.first,
                             style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
+                              fontSize: FontToken.body,
+                              fontWeight: WeightToken.semibold,
                               color: nc.textPrimary,
                             ),
                           ),
                         ),
                         title: Text(a.name),
-                        subtitle: a.role.isNotEmpty ? Text(a.role, style: TextStyle(fontSize: 12, color: nc.textSecondary)) : null,
+                        subtitle: a.role.isNotEmpty ? Text(a.role, style: TextStyle(fontSize: FontToken.caption, color: nc.textSecondary)) : null,
                         trailing: Icon(
-                          isSelected ? PhosphorIconsRegular.checkCircle : PhosphorIconsRegular.circle,
+                          isSelected ? Icons.check_circle_outline : Icons.circle_outlined,
                           color: isSelected ? nc.success : nc.textDisabled,
                           size: 20,
                         ),
@@ -193,12 +181,12 @@ class _EditField extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
+            fontSize: FontToken.body,
+            fontWeight: WeightToken.medium,
             color: nc.textPrimary,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: SpaceToken.md),
         Theme(
           data: Theme.of(context).copyWith(
             inputDecorationTheme: const InputDecorationTheme(
@@ -212,16 +200,16 @@ class _EditField extends StatelessWidget {
           ),
           child: TextField(
             controller: ctrl,
-            style: TextStyle(fontSize: 15, color: nc.textPrimary),
+            style: TextStyle(fontSize: FontToken.body, color: nc.textPrimary),
             decoration: InputDecoration(
               filled: true,
               fillColor: nc.primarySurface,
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
+                horizontal: SpaceToken.md,
+                vertical: SpaceToken.md,
               ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(RadiusToken.md),
                 borderSide: BorderSide.none,
               ),
             ),

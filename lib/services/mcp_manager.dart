@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
 import '../services/crypto_util.dart';
-import '../widgets/mcp_manage_page.dart';
+import '../models/mcp_server.dart';
 import 'mcp_client.dart';
 import 'log_service.dart';
 
@@ -27,6 +27,7 @@ class McpManager {
       serverUrl: server.url,
       apiKey: server.apiKey,
       endpoint: server.endpoint,
+      queryParams: server.queryParams,
     );
 
     // 完整连接流程：initialize + listTools

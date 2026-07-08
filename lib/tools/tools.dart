@@ -1,4 +1,5 @@
 export 'base_tool.dart';
+export 'delegate_task_tool.dart';
 export 'ask_user_tool.dart';
 export 'context_doc_tool.dart';
 export 'create_rich_note_tool.dart';
@@ -22,4 +23,3 @@ export 'virtual_fs_tool.dart';
 export 'skill_registry.dart';
 export 'skill_manage_tool.dart';
 export 'mcp_tool_adapter.dart';
-export 'shell_tool.dart';

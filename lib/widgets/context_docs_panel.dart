@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-
 import '../core/agent_colors.dart';
+import 'common_widgets.dart';
 import '../core/service_locator.dart';
 import '../services/context_doc_service.dart';
 
 /// Markdown 身份文档查看页。
-class ContextDocViewerPage extends StatelessWidget {
+class ContextDocViewerPage extends StatefulWidget {
   final ContextDoc doc;
 
   const ContextDocViewerPage({super.key, required this.doc});
+
+  @override
+  State<ContextDocViewerPage> createState() => _ContextDocViewerPageState();
 
   static String titleFor(ContextDoc doc) {
     return switch (doc) {
@@ -24,11 +26,11 @@ class ContextDocViewerPage extends StatelessWidget {
 
   static IconData iconFor(ContextDoc doc) {
     return switch (doc) {
-      ContextDoc.soul => PhosphorIconsRegular.brain,
-      ContextDoc.user => PhosphorIconsRegular.user,
-      ContextDoc.agent => PhosphorIconsRegular.lightbulb,
-      ContextDoc.memory => PhosphorIconsRegular.bookmarkSimple,
-      ContextDoc.knowledge => PhosphorIconsRegular.bookOpen,
+      ContextDoc.soul => Icons.psychology,
+      ContextDoc.user => Icons.person,
+      ContextDoc.agent => Icons.lightbulb,
+      ContextDoc.memory => Icons.bookmark_border,
+      ContextDoc.knowledge => Icons.menu_book,
     };
   }
 
@@ -41,35 +43,33 @@ class ContextDocViewerPage extends StatelessWidget {
       ContextDoc.knowledge => '高考志愿知识库',
     };
   }
+}
+
+class _ContextDocViewerPageState extends State<ContextDocViewerPage> {
+  // future 只在 initState 创建一次，避免父级重建（含主题切换）时重复发起磁盘读取。
+  late final Future<String> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = getIt<ContextDocService>().read(widget.doc);
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = AgentColors.of(context);
     return Scaffold(
       backgroundColor: colors.background,
-      appBar: AppBar(
-        backgroundColor: colors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: AppTopBar(
         leading: IconButton(
-          icon: Icon(
-            PhosphorIconsRegular.arrowLeft,
-            size: 18,
-            color: colors.textPrimary,
-          ),
+          icon: Icon(Icons.arrow_back_ios_new, color: colors.textPrimary, size: 22),
           onPressed: () => Navigator.of(context).pop(),
+          tooltip: '返回',
         ),
-        title: Text(
-          titleFor(doc),
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: colors.textPrimary,
-          ),
-        ),
+        title: ContextDocViewerPage.titleFor(widget.doc),
       ),
       body: FutureBuilder<String>(
-        future: getIt<ContextDocService>().read(doc),
+        future: _future,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(

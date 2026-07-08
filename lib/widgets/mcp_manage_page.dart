@@ -1,64 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'mcp_add_server_sheet.dart';
+import 'mcp_edit_server_sheet.dart';
 import '../core/agent_colors.dart';
 import '../core/service_locator.dart';
+import '../models/mcp_server.dart';
 import '../services/mcp_manager.dart';
 import '../services/log_service.dart';
-
-/// MCP 配置数据模型
-class McpServer {
-  final String id;
-  final String name;
-  final String url;
-  final String? apiKey;
-  final bool isEnabled;
-
-  /// MCP 服务的请求路径，默认 '/'。有些服务商用 '/mcp'。
-  final String endpoint;
-
-  McpServer({
-    required this.id,
-    required this.name,
-    required this.url,
-    this.apiKey,
-    this.isEnabled = true,
-    this.endpoint = '/',
-  });
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'url': url,
-    'apiKey': apiKey,
-    'isEnabled': isEnabled,
-    'endpoint': endpoint,
-  };
-
-  factory McpServer.fromJson(Map<String, dynamic> json) => McpServer(
-    id: json['id'] as String,
-    name: json['name'] as String,
-    url: json['url'] as String,
-    apiKey: json['apiKey'] as String?,
-    isEnabled: json['isEnabled'] as bool? ?? true,
-    endpoint: json['endpoint'] as String? ?? '/',
-  );
-
-  McpServer copyWith({
-    String? name,
-    String? url,
-    String? apiKey,
-    bool? isEnabled,
-    String? endpoint,
-  }) => McpServer(
-    id: id,
-    name: name ?? this.name,
-    url: url ?? this.url,
-    apiKey: apiKey ?? this.apiKey,
-    isEnabled: isEnabled ?? this.isEnabled,
-    endpoint: endpoint ?? this.endpoint,
-  );
-}
 
 /// MCP 管理页面
 class McpManagePage extends StatefulWidget {
@@ -105,12 +52,14 @@ class _McpManagePageState extends State<McpManagePage> {
       url: 'https://mcp.mcd.cn',
       endpoint: '/',
       hint: '在 https://open.mcd.cn/mcp 申请 MCP Token',
+      queryParams: <String, String>{},
     ),
     (
       name: '瑞幸咖啡',
       url: 'https://gwmcp.lkcoffee.com',
       endpoint: '/order/user/mcp',
       hint: '在瑞幸 AI 开放平台申请 MCP Token',
+      queryParams: <String, String>{},
     ),
   ];
 
@@ -174,7 +123,7 @@ class _McpManagePageState extends State<McpManagePage> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                trailing: Icon(PhosphorIconsRegular.caretRight, size: 18, color: nc.textSecondary),
+                trailing: Icon(Icons.chevron_right, size: 18, color: nc.textSecondary),
                 onTap: () {
                   Navigator.pop(ctx);
                   _showAddServer(
@@ -182,6 +131,7 @@ class _McpManagePageState extends State<McpManagePage> {
                     presetUrl: t.url,
                     presetEndpoint: t.endpoint,
                     tokenHint: t.hint,
+                    presetQueryParams: t.queryParams,
                   );
                 },
               ),
@@ -196,14 +146,14 @@ class _McpManagePageState extends State<McpManagePage> {
                   color: nc.primarySurface,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(PhosphorIconsRegular.pencilSimple, size: 18, color: nc.textSecondary),
+                child: Icon(Icons.edit, size: 18, color: nc.textSecondary),
               ),
               title: Text('手动添加', style: TextStyle(fontSize: 15, color: nc.textPrimary)),
               subtitle: Text(
                 '自定义服务器信息',
                 style: TextStyle(fontSize: 12, color: nc.textSecondary),
               ),
-              trailing: Icon(PhosphorIconsRegular.caretRight, size: 18, color: nc.textSecondary),
+              trailing: Icon(Icons.chevron_right, size: 18, color: nc.textSecondary),
               onTap: () {
                 Navigator.pop(ctx);
                 _showAddServer();
@@ -221,105 +171,25 @@ class _McpManagePageState extends State<McpManagePage> {
     String? presetUrl,
     String? presetEndpoint,
     String? tokenHint,
+    Map<String, String>? presetQueryParams,
   }) {
-    final nc = AgentColors.of(context);
-    final nameCtrl = TextEditingController(text: presetName ?? '');
-    final urlCtrl = TextEditingController(text: presetUrl ?? '');
-    final keyCtrl = TextEditingController();
-    final endpointCtrl = TextEditingController(text: presetEndpoint ?? '/');
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: nc.surface,
+      backgroundColor: AgentColors.of(context).surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (sheetCtx) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 20,
-          bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 20,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-            Text(
-              '添加 MCP 服务器',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: nc.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: nameCtrl,
-              decoration: InputDecoration(
-                labelText: '名称',
-                hintText: '例如：GitHub MCP',
-                labelStyle: TextStyle(color: nc.textSecondary),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlCtrl,
-              decoration: InputDecoration(
-                labelText: '服务器 URL',
-                hintText: 'https://mcp.example.com',
-                labelStyle: TextStyle(color: nc.textSecondary),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: endpointCtrl,
-              decoration: InputDecoration(
-                labelText: '请求路径（默认 /）',
-                hintText: '/ 或 /mcp',
-                labelStyle: TextStyle(color: nc.textSecondary),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: keyCtrl,
-              decoration: InputDecoration(
-                labelText: 'API Key（可选）',
-                hintText: tokenHint ?? 'MCP Token',
-                labelStyle: TextStyle(color: nc.textSecondary),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                if (nameCtrl.text.isNotEmpty && urlCtrl.text.isNotEmpty) {
-                  setState(() {
-                    _servers.add(McpServer(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      name: nameCtrl.text,
-                      url: urlCtrl.text,
-                      apiKey: keyCtrl.text.isNotEmpty ? keyCtrl.text : null,
-                      endpoint: endpointCtrl.text.trim().isNotEmpty
-                          ? endpointCtrl.text.trim()
-                          : '/',
-                    ));
-                  });
-                  _saveAndSync();
-                  Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: nc.primary,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 48),
-              ),
-              child: const Text('添加'),
-            ),
-          ],
-        ),
-      ),
+      builder: (sheetCtx) => McpAddServerSheet(
+        presetName: presetName,
+        presetUrl: presetUrl,
+        presetEndpoint: presetEndpoint,
+        tokenHint: tokenHint,
+        presetQueryParams: presetQueryParams,
+        onAdd: (server) {
+          setState(() => _servers.add(server));
+          _saveAndSync();
+        },
       ),
     );
   }
@@ -410,103 +280,22 @@ class _McpManagePageState extends State<McpManagePage> {
   }
 
   void _showEditServer(McpServer server) {
-    final nc = AgentColors.of(context);
-    final nameCtrl = TextEditingController(text: server.name);
-    final urlCtrl = TextEditingController(text: server.url);
-    final keyCtrl = TextEditingController(text: server.apiKey ?? '');
-    final endpointCtrl = TextEditingController(text: server.endpoint);
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: nc.surface,
+      backgroundColor: AgentColors.of(context).surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (sheetCtx) => Padding(
-        padding: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          top: 20,
-          bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 20,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-            Text(
-              '编辑 MCP 服务器',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: nc.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: nameCtrl,
-              decoration: InputDecoration(
-                labelText: '名称',
-                labelStyle: TextStyle(color: nc.textSecondary),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlCtrl,
-              decoration: InputDecoration(
-                labelText: '服务器 URL',
-                labelStyle: TextStyle(color: nc.textSecondary),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: endpointCtrl,
-              decoration: InputDecoration(
-                labelText: '请求路径（默认 /）',
-                hintText: '/ 或 /mcp',
-                labelStyle: TextStyle(color: nc.textSecondary),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: keyCtrl,
-              decoration: InputDecoration(
-                labelText: 'API Key（可选）',
-                labelStyle: TextStyle(color: nc.textSecondary),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                if (nameCtrl.text.isNotEmpty && urlCtrl.text.isNotEmpty) {
-                  setState(() {
-                    final index = _servers.indexWhere((s) => s.id == server.id);
-                    if (index >= 0) {
-                      _servers[index] = server.copyWith(
-                        name: nameCtrl.text,
-                        url: urlCtrl.text,
-                        apiKey: keyCtrl.text.isNotEmpty ? keyCtrl.text : null,
-                        endpoint: endpointCtrl.text.trim().isNotEmpty
-                            ? endpointCtrl.text.trim()
-                            : '/',
-                      );
-                    }
-                  });
-                  _saveAndSync();
-                  Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: nc.primary,
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 48),
-              ),
-              child: const Text('保存'),
-            ),
-          ],
-        ),
-      ),
+      builder: (sheetCtx) => McpEditServerSheet(
+        server: server,
+        onSave: (updated) {
+          setState(() {
+            final index = _servers.indexWhere((s) => s.id == server.id);
+            if (index >= 0) _servers[index] = updated;
+          });
+          _saveAndSync();
+        },
       ),
     );
   }
@@ -553,7 +342,7 @@ class _McpManagePageState extends State<McpManagePage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          PhosphorIconsRegular.globe,
+                          Icons.public,
                           size: 48,
                           color: nc.textSecondary.withValues(alpha: 0.3),
                         ),
@@ -576,7 +365,7 @@ class _McpManagePageState extends State<McpManagePage> {
                     child: FloatingActionButton(
                       onPressed: _showAddMenu,
                       backgroundColor: nc.primary,
-                      child: Icon(PhosphorIconsRegular.plus, color: Colors.white),
+                      child: Icon(Icons.add, color: Colors.white),
                     ),
                   ),
                 ],
@@ -614,7 +403,7 @@ class _McpManagePageState extends State<McpManagePage> {
                     child: FloatingActionButton(
                       onPressed: _showAddMenu,
                       backgroundColor: nc.primary,
-                      child: Icon(PhosphorIconsRegular.plus, color: Colors.white),
+                      child: Icon(Icons.add, color: Colors.white),
                     ),
                   ),
                 ],
@@ -754,7 +543,7 @@ class _McpServerCard extends StatelessWidget {
                   child: Switch(
                     value: enabled,
                     onChanged: onToggle,
-                    activeColor: nc.success,
+                    activeThumbColor: nc.success,
                   ),
                 ),
               ],
@@ -766,7 +555,7 @@ class _McpServerCard extends StatelessWidget {
             child: Row(
               children: [
                 _ActionChip(
-                  icon: PhosphorIconsRegular.plugs,
+                  icon: Icons.integration_instructions,
                   label: '测试',
                   color: nc.textSecondary,
                   nc: nc,
@@ -774,7 +563,7 @@ class _McpServerCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 _ActionChip(
-                  icon: PhosphorIconsRegular.pencilSimple,
+                  icon: Icons.edit,
                   label: '编辑',
                   color: nc.textSecondary,
                   nc: nc,
@@ -782,7 +571,7 @@ class _McpServerCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 _ActionChip(
-                  icon: PhosphorIconsRegular.trash,
+                  icon: Icons.delete,
                   label: '删除',
                   color: nc.error,
                   nc: nc,

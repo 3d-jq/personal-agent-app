@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -110,7 +109,6 @@ class AgnesVideoTool extends AgentTool {
         );
 
         final status = queryResp.data['status'] as String?;
-        final progress = queryResp.data['progress'] as int? ?? 0;
 
         if (status == 'completed') {
           // Try multiple possible URL fields from the API response

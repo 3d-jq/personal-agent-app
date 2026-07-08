@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 
+/// 统一底部导航（Apple 胶囊风格，2-tab：消息 / Agent）。
+///
+/// 圆角胶囊 + 滑动指示块 + 阴影 + 半透明毛玻璃感。
 class AgentBottomNav extends StatefulWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -19,291 +21,139 @@ class AgentBottomNav extends StatefulWidget {
 
 class _AgentBottomNavState extends State<AgentBottomNav>
     with TickerProviderStateMixin {
-  final List<_NavData> _items = const [
-    _NavData(
-      icon: PhosphorIconsRegular.house,
-      activeIcon: PhosphorIconsFill.house,
-      label: '主页',
+  final List<_NavItem> _items = const [
+    _NavItem(
+      icon: Icons.chat_bubble_outline,
+      activeIcon: Icons.chat_bubble,
+      label: '消息',
     ),
-    _NavData(
-      icon: PhosphorIconsRegular.compass,
-      activeIcon: PhosphorIconsFill.compass,
-      label: '探索',
-    ),
-    _NavData(
-      icon: PhosphorIconsRegular.stack,
-      activeIcon: PhosphorIconsFill.stack,
-      label: '库',
+    _NavItem(
+      icon: Icons.smart_toy_outlined,
+      activeIcon: Icons.smart_toy,
+      label: 'Agent',
     ),
   ];
 
-  late AnimationController _indicatorCtrl;
-  late Animation<double> _indicatorAnim;
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
   late double _begin;
   late double _end;
-
-  bool _isInputMode = false;
-  final TextEditingController _inputCtrl = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _begin = widget.currentIndex.toDouble();
     _end = _begin;
-    _indicatorCtrl = AnimationController(
-      duration: const Duration(milliseconds: 300),
+    _ctrl = AnimationController(
+      duration: const Duration(milliseconds: 250),
       vsync: this,
     );
-    _indicatorAnim = Tween<double>(begin: _begin, end: _end).animate(
-      CurvedAnimation(parent: _indicatorCtrl, curve: Curves.easeOutCubic),
+    _anim = Tween<double>(begin: _begin, end: _end).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
     );
   }
 
   @override
-  void didUpdateWidget(AgentBottomNav old) {
+  void didUpdateWidget(covariant AgentBottomNav old) {
     super.didUpdateWidget(old);
     if (widget.currentIndex != old.currentIndex) {
       _begin = old.currentIndex.toDouble();
       _end = widget.currentIndex.toDouble();
-      _indicatorAnim = Tween<double>(begin: _begin, end: _end).animate(
-        CurvedAnimation(parent: _indicatorCtrl, curve: Curves.easeOutCubic),
+      _anim = Tween<double>(begin: _begin, end: _end).animate(
+        CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
       );
-      _indicatorCtrl.forward(from: 0);
+      _ctrl.forward(from: 0);
     }
   }
 
   @override
   void dispose() {
-    _indicatorCtrl.dispose();
-    _inputCtrl.dispose();
-    _focusNode.dispose();
+    _ctrl.dispose();
     super.dispose();
   }
 
-  void _toggleInput() {
-    HapticFeedback.lightImpact();
-    setState(() => _isInputMode = !_isInputMode);
-    if (_isInputMode) {
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted) _focusNode.requestFocus();
-      });
-    } else {
-      _focusNode.unfocus();
-      _inputCtrl.clear();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final colors = AgentColors.of(context);
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final nc = AgentColors.of(context);
     final count = _items.length;
-
     return SafeArea(
       top: false,
-      bottom: false,
       child: Padding(
-        padding: EdgeInsets.only(
-          left: 12,
-          right: 12,
-          bottom: 12 + (_isInputMode ? keyboardHeight : 0),
-        ),
-        child: AnimatedCrossFade(
-          duration: const Duration(milliseconds: 400),
-          crossFadeState: _isInputMode
-              ? CrossFadeState.showSecond
-              : CrossFadeState.showFirst,
-          firstCurve: Curves.easeOutCubic,
-          secondCurve: Curves.easeOutCubic,
-          sizeCurve: Curves.easeOutCubic,
-          firstChild: Row(
-            children: [
-              Expanded(child: _buildTabNav(colors, count)),
-              const SizedBox(width: 8),
-              _buildEditBtn(colors),
-            ],
-          ),
-          secondChild: Row(
-            children: [
-              Expanded(child: _buildInputBar(colors)),
-              const SizedBox(width: 8),
-              _buildCloseBtn(colors),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Tab nav ──
-
-  Widget _buildTabNav(AgentColors colors, int count) {
-    return SizedBox(
-      height: 52,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final maxWidth = constraints.maxWidth;
-          final itemWidth = maxWidth / count;
-          return Stack(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  border: Border.all(color: colors.divider, width: 0.5),
-                  borderRadius: BorderRadius.circular(26),
-                ),
-              ),
-              AnimatedBuilder(
-                animation: _indicatorAnim,
-                builder: (context, _) {
-                  final left = _indicatorAnim.value * itemWidth + 4;
-                  return Positioned(
-                    left: left,
-                    top: (constraints.maxHeight - 44) / 2,
-                    child: Container(
-                      width: itemWidth - 8,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: colors.primarySurface,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+        child: SizedBox(
+          height: 56,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth = constraints.maxWidth / count;
+              return Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: nc.surface.withValues(alpha: 0.9),
+                      border: Border.all(color: nc.divider, width: 0.5),
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: nc.shadowMd,
                     ),
-                  );
-                },
-              ),
-              Row(
-                children: List.generate(count, (i) {
-                  final isSelected = widget.currentIndex == i;
-                  return Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        HapticFeedback.lightImpact();
-                        widget.onTap(i);
-                      },
-                      child: Center(
-                        child: Icon(
-                          isSelected ? _items[i].activeIcon : _items[i].icon,
-                          size: 22,
-                          color: isSelected
-                              ? colors.textPrimary
-                              : colors.textSecondary,
+                  ),
+                  AnimatedBuilder(
+                    animation: _anim,
+                    builder: (context, _) {
+                      final left = _anim.value * itemWidth + 4;
+                      return Positioned(
+                        left: left,
+                        top: (constraints.maxHeight - 44) / 2,
+                        child: Container(
+                          width: itemWidth - 8,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: nc.primarySurface,
+                            borderRadius: BorderRadius.circular(22),
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  // ── Input bar ──
-
-  Widget _buildInputBar(AgentColors colors) {
-    return Container(
-      key: const ValueKey('input'),
-      height: 52,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border.all(color: colors.divider, width: 0.5),
-        borderRadius: BorderRadius.circular(26),
-      ),
-      child: Row(
-        children: [
-          _CircleBtn(icon: PhosphorIconsRegular.plus),
-          const SizedBox(width: 4),
-          Expanded(
-            child: TextField(
-              controller: _inputCtrl,
-              focusNode: _focusNode,
-              maxLines: 1,
-              style: TextStyle(fontSize: 16, color: colors.textPrimary),
-              decoration: InputDecoration(
-                hintText: '输入...',
-                hintStyle: TextStyle(color: colors.textSecondary, fontSize: 16),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-              ),
-            ),
+                      );
+                    },
+                  ),
+                  Row(
+                    children: List.generate(count, (i) {
+                      final isSelected = widget.currentIndex == i;
+                      return Expanded(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            widget.onTap(i);
+                          },
+                          child: Center(
+                            child: Icon(
+                              isSelected
+                                  ? _items[i].activeIcon
+                                  : _items[i].icon,
+                              size: 22,
+                              color: isSelected
+                                  ? nc.textPrimary
+                                  : nc.textSecondary,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ],
+              );
+            },
           ),
-          const SizedBox(width: 4),
-          _CircleBtn(icon: PhosphorIconsRegular.microphone),
-        ],
-      ),
-    );
-  }
-
-  // ── Buttons ──
-
-  Widget _buildEditBtn(AgentColors colors) {
-    return GestureDetector(
-      onTap: _toggleInput,
-      child: Container(
-        width: 52,
-        height: 52,
-        decoration: BoxDecoration(
-          color: colors.surface,
-          border: Border.all(color: colors.divider, width: 0.5),
-          borderRadius: BorderRadius.circular(26),
-        ),
-        child: Center(
-          child: Icon(PhosphorIconsRegular.pencilSimple, size: 22, color: colors.textPrimary),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCloseBtn(AgentColors colors) {
-    return GestureDetector(
-      onTap: _toggleInput,
-      child: Container(
-        width: 52,
-        height: 52,
-        decoration: BoxDecoration(
-          color: colors.surface,
-          border: Border.all(color: colors.divider, width: 0.5),
-          borderRadius: BorderRadius.circular(26),
-        ),
-        child: Center(
-          child: Icon(PhosphorIconsRegular.x, size: 22, color: colors.textPrimary),
         ),
       ),
     );
   }
 }
 
-class _CircleBtn extends StatelessWidget {
-  final IconData icon;
-  const _CircleBtn({required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = AgentColors.of(context);
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border.all(color: colors.divider, width: 0.5),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Icon(icon, size: 18, color: colors.textPrimary),
-    );
-  }
-}
-
-class _NavData {
+class _NavItem {
   final IconData icon;
   final IconData activeIcon;
   final String label;
 
-  const _NavData({
+  const _NavItem({
     required this.icon,
     required this.activeIcon,
     required this.label,

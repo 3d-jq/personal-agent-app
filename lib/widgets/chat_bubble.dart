@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import '../models/chat_message.dart';
 import '../core/agent_colors.dart';
@@ -85,7 +84,8 @@ class ChatBubble extends StatelessWidget {
     AgentColors nc,
   ) {
     final file = File(path);
-    final heroTag = 'user_image_${path.hashCode}';
+    final dpr = MediaQuery.of(context).devicePixelRatio;
+    final heroTag = 'user_image_${Object.hash(runtimeType, path)}';
     return PressableScale(
       onTap: () {
         HapticFeedback.lightImpact();
@@ -107,7 +107,7 @@ class ChatBubble extends StatelessWidget {
             file,
             fit: BoxFit.cover,
             width: 240,
-            cacheWidth: 480,
+            cacheWidth: (240 * dpr).round(),
             errorBuilder: (_, _, _) => Container(
               width: 240,
               height: 120,
@@ -120,7 +120,7 @@ class ChatBubble extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      PhosphorIconsRegular.imageBroken,
+                      Icons.broken_image,
                       size: 32,
                       color: nc.textSecondary.withValues(alpha: 0.4),
                     ),
@@ -162,7 +162,7 @@ class ChatBubble extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
             ),
               child: Icon(
-              PhosphorIconsRegular.fileText,
+              Icons.description,
               size: 22,
               color: Colors.white.withValues(alpha: 0.9),
             ),
@@ -299,9 +299,11 @@ class _AIBubbleState extends State<_AIBubble>
           if (textContent.isNotEmpty)
             FadeTransition(
               opacity: _fadeAnim,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: _cachedContent,
+              child: RepaintBoundary(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: _cachedContent,
+                ),
               ),
             ),
         ],
@@ -373,7 +375,7 @@ class _AIBubbleState extends State<_AIBubble>
               ),
               const SizedBox(width: 2),
               Icon(
-                PhosphorIconsRegular.caretRight,
+                Icons.chevron_right,
                 size: 16,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),
@@ -400,7 +402,7 @@ class _AIBubbleState extends State<_AIBubble>
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(PhosphorIconsRegular.x, size: 16, color: nc.error),
+          Icon(Icons.close, size: 16, color: nc.error),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
@@ -437,7 +439,7 @@ class _AIBubbleState extends State<_AIBubble>
               ),
               const SizedBox(width: 2),
               Icon(
-                PhosphorIconsRegular.caretRight,
+                Icons.chevron_right,
                 size: 16,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),

@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import 'common_widgets.dart';
 import '../core/app_animations.dart';
 import '../core/app_router.dart';
 import '../models/media_item.dart';
@@ -38,28 +38,19 @@ class _MediaViewState extends State<MediaView> {
 
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      appBar: AppTopBar(
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_new, color: nc.textPrimary, size: 22),
           onPressed: () => Navigator.pop(context),
+          tooltip: '返回',
         ),
-        title: Text(
-          '图视',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
+        title: '图视',
       ),
       body: !_loaded
           ? StatePlaceholder.loading()
           : _items.isEmpty
           ? StatePlaceholder.empty(
-              icon: PhosphorIconsRegular.images,
+              icon: Icons.photo_library,
               title: '还没有图片和视频',
               subtitle: '在聊天中让 DWeis 帮你生成',
             )
@@ -106,6 +97,8 @@ class _MediaViewState extends State<MediaView> {
                 Image.file(
                   file,
                   fit: BoxFit.cover,
+                  cacheWidth: 360,
+                  cacheHeight: 360,
                   errorBuilder: (_, __, ___) => _placeholder(nc),
                 )
               else
@@ -127,7 +120,7 @@ class _MediaViewState extends State<MediaView> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          PhosphorIconsRegular.play,
+                          Icons.play_arrow,
                           size: 12,
                           color: Colors.white,
                         ),
@@ -152,7 +145,7 @@ class _MediaViewState extends State<MediaView> {
       color: nc.primarySurface,
       child: Center(
         child: Icon(
-          PhosphorIconsRegular.videoCamera,
+          Icons.videocam,
           size: 32,
           color: nc.textSecondary.withValues(alpha: 0.3),
         ),
@@ -165,7 +158,7 @@ class _MediaViewState extends State<MediaView> {
       color: nc.primarySurface,
       child: Center(
         child: Icon(
-          PhosphorIconsRegular.image,
+          Icons.image,
           size: 32,
           color: nc.textSecondary.withValues(alpha: 0.3),
         ),
@@ -214,6 +207,7 @@ class _MediaDetail extends StatelessWidget {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         elevation: 0,
+        centerTitle: true,
         title: Text(
           item.prompt,
           maxLines: 1,
@@ -239,7 +233,7 @@ class _MediaDetail extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  PhosphorIconsRegular.playCircle,
+                                  Icons.play_circle,
                                   size: 64,
                                   color: nc.textSecondary.withValues(
                                     alpha: 0.5,

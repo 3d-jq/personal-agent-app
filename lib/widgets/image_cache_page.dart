@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
+import 'common_widgets.dart';
 import '../core/service_locator.dart';
 import '../services/media_storage.dart';
 
@@ -47,7 +47,7 @@ class _ImageCachePageState extends State<ImageCachePage> {
         backgroundColor: nc.surface,
         title: Text('清除缓存', style: TextStyle(color: nc.textPrimary)),
         content: Text(
-          '确定要清除图片缓存吗？\n这将删除 ${_imageCount} 张图片的缓存。',
+          '确定要清除图片缓存吗？\n这将删除 $_imageCount 张图片的缓存。',
           style: TextStyle(color: nc.textSecondary),
         ),
         actions: [
@@ -64,11 +64,15 @@ class _ImageCachePageState extends State<ImageCachePage> {
     );
 
     if (confirmed == true) {
-      // 清除缓存逻辑
-      setState(() {
-        _cacheSize = 0;
-        _imageCount = 0;
-      });
+      final storage = getIt<MediaStorage>();
+      final items = await storage.loadAll();
+      final imageItems = items.where((item) => item.type.name == 'image').toList();
+      for (final item in imageItems) {
+        await storage.remove(item.id); // 删除文件并更新媒体索引
+      }
+      // 清 Flutter 内存图片缓存，确保缩略图下次重新解码
+      PaintingBinding.instance.imageCache.clear();
+      await _loadCacheInfo();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('缓存已清除')),
@@ -88,22 +92,13 @@ class _ImageCachePageState extends State<ImageCachePage> {
     final nc = AgentColors.of(context);
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: nc.background.withValues(alpha: 0.85),
-        elevation: 0,
+      appBar: AppTopBar(
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_new, color: nc.textPrimary, size: 22),
           onPressed: () => Navigator.pop(context),
+          tooltip: '返回',
         ),
-        title: Text(
-          '图片缓存',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
+        title: '图片缓存',
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -114,14 +109,14 @@ class _ImageCachePageState extends State<ImageCachePage> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: nc.surface,
+                    color: nc.bgSubtle,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: nc.divider, width: 0.5),
                   ),
                   child: Column(
                     children: [
                       Icon(
-                        PhosphorIconsRegular.image,
+                        Icons.image,
                         size: 48,
                         color: nc.primary,
                       ),
@@ -151,7 +146,7 @@ class _ImageCachePageState extends State<ImageCachePage> {
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: _clearCache,
-                    icon: Icon(PhosphorIconsRegular.trash, size: 18),
+                    icon: Icon(Icons.delete, size: 18),
                     label: const Text('清除缓存'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: nc.error,

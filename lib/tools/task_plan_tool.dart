@@ -17,13 +17,13 @@ import '../services/virtual_fs.dart';
 /// - 任务持久化到虚拟文件系统
 /// - 查看当前进度摘要
 class TaskPlanTool extends AgentTool {
-  static TaskPlan? _currentPlan;
-  static TaskPlan? get currentPlan => _currentPlan;
+  TaskPlan? _currentPlan;
+  TaskPlan? get currentPlan => _currentPlan;
 
-  static String? lastStatusText;
+  String? lastStatusText;
 
-  /// 全局串行锁：所有 task_plan 操作必须串行执行，保护 _currentPlan / lastStatusText / plan.json
-  static Future<void> _queue = Future.value();
+  /// 串行锁：所有 task_plan 操作必须串行执行，保护 _currentPlan / lastStatusText / plan.json
+  Future<void> _queue = Future.value();
 
   @override
   String get name => 'task_plan';
@@ -283,7 +283,7 @@ class TaskPlanTool extends AgentTool {
     final total = allTasks.length;
 
     final buf = StringBuffer()
-      ..writeln('$prefix (${done}/${total} 已完成)')
+      ..writeln('$prefix ($done/$total 已完成)')
       ..writeln();
 
     // 剩余步骤信息

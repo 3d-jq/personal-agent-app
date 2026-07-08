@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
+import '../core/design_tokens.dart';
 import '../core/service_locator.dart';
 import '../models/skill.dart';
+import 'common_widgets.dart';
 import '../tools/skill_registry.dart';
 
 /// Skill 管理页面
@@ -22,7 +23,7 @@ class SkillManagePage extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    PhosphorIconsRegular.star,
+                    Icons.star,
                     size: 48,
                     color: nc.textSecondary.withValues(alpha: 0.3),
                   ),
@@ -82,43 +83,49 @@ class _SkillTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+    final leadingIcon = Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: nc.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: nc.divider, width: 0.5),
+        color: nc.primary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(RadiusToken.sm),
       ),
-      child: ListTile(
-        leading: Container(
-          width: 40,
-          height: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: nc.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(
-            PhosphorIconsRegular.star,
-            size: 20,
-            color: nc.primary,
+      child: Icon(
+        Icons.star,
+        size: 20,
+        color: nc.primary,
+      ),
+    );
+    return Container(
+      margin: const EdgeInsets.only(bottom: SpaceToken.sm),
+      child: ElevatedCard(
+        nc: nc,
+        child: Theme(
+          data: Theme.of(context).copyWith(splashFactory: NoSplash.splashFactory),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: SpaceToken.lg,
+              vertical: SpaceToken.sm,
+            ),
+            leading: leadingIcon,
+            title: Text(
+              skill.name,
+              style: TextStyle(
+                fontSize: FontToken.body,
+                fontWeight: WeightToken.medium,
+                color: nc.textPrimary,
+              ),
+            ),
+            subtitle: Text(
+              skill.description,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: FontToken.small, color: nc.textSecondary),
+            ),
+            onTap: onTap,
           ),
         ),
-        title: Text(
-          skill.name,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-            color: nc.textPrimary,
-          ),
-        ),
-        subtitle: Text(
-          skill.description,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(fontSize: 12, color: nc.textSecondary),
-        ),
-        onTap: onTap,
       ),
     );
   }
@@ -174,7 +181,7 @@ class _SkillDetailSheet extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        PhosphorIconsRegular.star,
+                        Icons.star,
                         size: 24,
                         color: nc.primary,
                       ),

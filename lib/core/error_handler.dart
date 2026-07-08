@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-
 /// 全局错误处理入口。
 ///
 /// 负责三处兜底：
@@ -44,7 +42,7 @@ class ErrorHandler {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const Icon(
-            PhosphorIconsRegular.warningCircle,
+            Icons.warning,
             color: Color(0xFFFF3B30),
             size: 48,
           ),

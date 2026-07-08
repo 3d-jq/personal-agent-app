@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import 'ai_settings_sheet.dart';
 import 'attachment_picker.dart';
@@ -95,7 +94,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: nc.primarySurface.withValues(alpha: 0.85),
+                  color: nc.bgSubtle.withValues(alpha: 0.95),
                   borderRadius: BorderRadius.circular(20),
                   // Apple HIG：用 0.5px 边框代替阴影区分空间
                   border: Border.all(color: nc.divider, width: 0.5),
@@ -201,11 +200,11 @@ class _ChatInputBarState extends State<ChatInputBar> {
           decoration: BoxDecoration(
             color: hasFile
                 ? nc.success.withValues(alpha: 0.1)
-                : nc.primarySurface,
+                : nc.surface,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Icon(
-            hasFile ? PhosphorIconsRegular.check : PhosphorIconsRegular.plus,
+            hasFile ? Icons.check : Icons.add,
             size: 20,
             color: hasFile ? nc.success : nc.textPrimary,
           ),
@@ -232,13 +231,13 @@ class _ChatInputBarState extends State<ChatInputBar> {
             color: widget.isLoading
                 ? nc.error.withValues(alpha: 0.1)
                 : isActive
-                ? nc.primary
-                : nc.primarySurface,
+                    ? nc.primary
+                    : nc.surface,
             borderRadius: BorderRadius.circular(20),
           ),
         child: Icon(
-          widget.isLoading ? PhosphorIconsRegular.stop : PhosphorIconsRegular.arrowUp,
-          size: 18,
+          widget.isLoading ? Icons.stop : Icons.arrow_upward,
+          size: 20,
           color: widget.isLoading
               ? nc.error
               : isActive
@@ -282,7 +281,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      PhosphorIconsRegular.image,
+                      Icons.image,
                       size: 18,
                       color: nc.textSecondary,
                     ),
@@ -298,7 +297,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  PhosphorIconsRegular.fileText,
+                  Icons.description,
                   size: 18,
                   color: nc.textSecondary,
                 ),
@@ -331,8 +330,9 @@ class _ChatInputBarState extends State<ChatInputBar> {
             GestureDetector(
               onTap: () {
                 HapticFeedback.lightImpact();
-                if (widget.onClearAttachment != null)
+                if (widget.onClearAttachment != null) {
                   widget.onClearAttachment!();
+                }
               },
               child: Container(
                 width: 24,
@@ -341,7 +341,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                   color: nc.surface,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(PhosphorIconsRegular.x, size: 14, color: nc.textSecondary),
+                child: Icon(Icons.close, size: 14, color: nc.textSecondary),
               ),
             ),
           ],

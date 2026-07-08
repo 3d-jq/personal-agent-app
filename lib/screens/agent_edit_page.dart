@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/agent_colors.dart';
+import '../core/design_tokens.dart';
 import '../core/service_locator.dart';
+import '../widgets/common_widgets.dart';
 import '../models/agent.dart';
-import '../services/agent_storage.dart';
 import '../widgets/ai_settings_sheet.dart';
 import '../widgets/agent_group/agent_group_theme.dart';
 
@@ -65,22 +65,12 @@ class _AgentEditPageState extends State<AgentEditPage> {
     final nc = AgentColors.of(context);
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: nc.background.withValues(alpha: 0.85),
-        elevation: 0,
+      appBar: AppTopBar(
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          widget.existing == null ? '新建 Agent' : '编辑 Agent',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
+        title: widget.existing == null ? '新建 Agent' : '编辑 Agent',
         actions: [
           TextButton(
             onPressed: _save,
@@ -89,7 +79,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(SpaceToken.lg),
         children: [
           // 头像预览
           Center(
@@ -99,20 +89,20 @@ class _AgentEditPageState extends State<AgentEditPage> {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: nc.primarySurface,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(RadiusToken.xl),
                 border: Border.all(color: nc.divider, width: 0.5),
               ),
               child: Text(
                 _name.text.isNotEmpty ? _name.text.characters.first : '?',
                 style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w700,
+                  fontSize: FontToken.display,
+                  fontWeight: WeightToken.bold,
                   color: nc.textPrimary,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: SpaceToken.x2),
           // 名字
           _EditField(
             label: '名字',
@@ -135,17 +125,17 @@ class _AgentEditPageState extends State<AgentEditPage> {
           Text(
             'System Prompt',
             style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
+              fontSize: FontToken.body,
+              fontWeight: WeightToken.medium,
               color: nc.textPrimary,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: SpaceToken.xs),
           Text(
             '定义 Agent 的角色、风格和行为规则',
-            style: TextStyle(fontSize: 12, color: nc.textSecondary),
+            style: TextStyle(fontSize: FontToken.caption, color: nc.textSecondary),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: SpaceToken.md),
           Theme(
             data: Theme.of(context).copyWith(
               inputDecorationTheme: const InputDecorationTheme(
@@ -161,19 +151,19 @@ class _AgentEditPageState extends State<AgentEditPage> {
               controller: _prompt,
               minLines: 6,
               maxLines: 15,
-              style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.6),
+              style: TextStyle(fontSize: FontToken.body, color: nc.textPrimary, height: 1.6),
               decoration: InputDecoration(
                 hintText: '<role>\n你是...\n</role>',
                 hintStyle: TextStyle(
                   color: nc.textDisabled,
-                  fontSize: 15,
+                  fontSize: FontToken.body,
                   fontFamily: 'monospace',
                 ),
                 filled: true,
                 fillColor: nc.primarySurface,
-                contentPadding: const EdgeInsets.all(14),
+                contentPadding: const EdgeInsets.all(SpaceToken.md),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(RadiusToken.md),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -184,18 +174,15 @@ class _AgentEditPageState extends State<AgentEditPage> {
           Text(
             'AI 后端',
             style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
+              fontSize: FontToken.body,
+              fontWeight: WeightToken.medium,
               color: nc.textPrimary,
             ),
           ),
           const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: nc.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: nc.divider, width: 0.5),
-            ),
+          ElevatedCard(
+            nc: nc,
+            padding: EdgeInsets.zero,
             child: Column(
               children: [
                 _VendorOption(
@@ -249,9 +236,9 @@ class _AgentEditPageState extends State<AgentEditPage> {
                   hintStyle: TextStyle(color: nc.textDisabled, fontSize: 15),
                   filled: true,
                   fillColor: nc.primarySurface,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: SpaceToken.md, vertical: SpaceToken.md),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(RadiusToken.md),
                     borderSide: BorderSide.none,
                   ),
                 ),
@@ -274,12 +261,9 @@ class _AgentEditPageState extends State<AgentEditPage> {
             style: TextStyle(fontSize: 12, color: nc.textSecondary),
           ),
           const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: nc.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: nc.divider, width: 0.5),
-            ),
+          ElevatedCard(
+            nc: nc,
+            padding: EdgeInsets.zero,
             child: Column(
               children: List.generate(kAgentToolOptions.length, (i) {
                 final o = kAgentToolOptions[i];
@@ -287,7 +271,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
                 return Column(
                   children: [
                     if (i > 0)
-                      Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 48),
+                      Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: 48),
                     Material(
                       color: Colors.transparent,
                       child: InkWell(
@@ -301,8 +285,10 @@ class _AgentEditPageState extends State<AgentEditPage> {
                             }
                           });
                         },
+                        splashFactory: NoSplash.splashFactory,
+                        highlightColor: nc.fillTertiary,
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: SpaceToken.lg, vertical: SpaceToken.md),
                           child: Row(
                             children: [
                               Container(
@@ -318,7 +304,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
                                   ),
                                 ),
                                 child: sel
-                                    ? const Icon(PhosphorIconsRegular.check, size: 14, color: Colors.white)
+                                    ? const Icon(Icons.check, size: 14, color: Colors.white)
                                     : null,
                               ),
                               const SizedBox(width: 12),
@@ -370,13 +356,15 @@ class _VendorOption extends StatelessWidget {
     return Column(
       children: [
         if (!isFirst)
-          Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 48),
+          Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: 48),
         Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
+            splashFactory: NoSplash.splashFactory,
+            highlightColor: nc.fillTertiary,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: SpaceToken.lg, vertical: SpaceToken.md),
               child: Row(
                 children: [
                   Expanded(
@@ -390,7 +378,7 @@ class _VendorOption extends StatelessWidget {
                     ),
                   ),
                   Icon(
-                    selected ? PhosphorIconsRegular.checkCircle : PhosphorIconsRegular.circle,
+                    selected ? Icons.check_circle_outline : Icons.circle_outlined,
                     color: selected ? nc.success : nc.textDisabled,
                     size: 20,
                   ),
@@ -458,8 +446,8 @@ class _EditField extends StatelessWidget {
               filled: true,
               fillColor: nc.primarySurface,
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
+                horizontal: SpaceToken.md,
+                vertical: SpaceToken.md,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),

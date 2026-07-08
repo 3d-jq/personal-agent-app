@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
+import 'common_widgets.dart';
 
 class AcknowledgementView extends StatelessWidget {
   const AcknowledgementView({super.key});
@@ -10,22 +10,13 @@ class AcknowledgementView extends StatelessWidget {
     final nc = AgentColors.of(context);
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      appBar: AppTopBar(
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_new, color: nc.textPrimary, size: 22),
           onPressed: () => Navigator.pop(context),
+          tooltip: '返回',
         ),
-        title: Text(
-          '致谢',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
+        title: '致谢',
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -37,7 +28,7 @@ class AcknowledgementView extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: nc.surface,
+                color: nc.bgSubtle,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: nc.divider, width: 0.5),
               ),
@@ -125,14 +116,14 @@ class AcknowledgementView extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: nc.surface,
+                color: nc.bgSubtle,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: nc.divider, width: 0.5),
               ),
               child: Column(
                 children: [
                   Icon(
-                    PhosphorIconsRegular.heart,
+                    Icons.favorite,
                     size: 28,
                     color: nc.error.withValues(alpha: 0.7),
                   ),

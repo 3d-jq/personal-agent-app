@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
 import '../services/crypto_util.dart';
@@ -7,10 +8,10 @@ import '../services/log_service.dart';
 import 'vendor_config.dart';
 
 /// AI 设置管理器
-class AISettings {
+class AISettings extends ChangeNotifier {
   AISettings();
 
-  static List<(String, String, String)> _builtIn = [];
+  List<(String, String, String)> _builtIn = [];
   List<VendorConfig> vendors = [];
   String? selectedVendorId;
   bool _loaded = false;
@@ -88,8 +89,9 @@ class AISettings {
 
   void removeVendor(String id) {
     vendors.removeWhere((x) => x.id == id);
-    if (selectedVendorId == id)
+    if (selectedVendorId == id) {
       selectedVendorId = vendors.isNotEmpty ? vendors.first.id : null;
+    }
     save();
   }
 
@@ -121,6 +123,7 @@ class AISettings {
       selectVendor(vendors.first.id);
     }
     _loaded = true;
+    notifyListeners();
   }
 
   Future<void> save() async {
@@ -134,5 +137,6 @@ class AISettings {
         }),
       ),
     );
+    notifyListeners();
   }
 }

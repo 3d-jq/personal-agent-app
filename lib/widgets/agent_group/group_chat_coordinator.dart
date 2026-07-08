@@ -3,10 +3,7 @@ import 'dart:async';
 import '../../models/agent.dart';
 import '../../models/agent_group.dart';
 import '../../models/chat_message.dart';
-import '../../services/ai_service.dart';
-import '../../services/chat_stream_event.dart';
 import '../../widgets/ai_settings_sheet.dart';
-import 'agent_group_theme.dart';
 
 /// Agent 状态枚举
 enum AgentStatus {
@@ -25,7 +22,12 @@ class GroupChatCoordinator {
     required this.members,
   });
 
-  /// 自动调度：系统判断哪个 Agent 应该回复
+  /// 自动调度：群聊「主从模式」下，协调者（主 Agent）永远是第一棒。
+  ///
+  /// 协调者负责理解用户意图、把专业任务分派给对应子 Agent、并在子 Agent
+  /// 回答后做汇总（汇总轮由 [GroupChatController._handleRelay] 自动触发）。
+  /// 因此这里不需要 LLM 选人——只要群里有协调者就直接选它，
+  /// 专业问题由协调者在其回复里 @ 子 Agent 来完成，避免「抢答 + 重复」。
   Future<String?> autoPickSpeaker({
     required AgentGroup? group,
     required List<ChatMessage> messages,
@@ -33,81 +35,9 @@ class GroupChatCoordinator {
   }) {
     final coordinator = members.where((a) => a.isCoordinator).firstOrNull;
     if (coordinator != null) return Future.value(coordinator.name);
-
-    final manager = members.firstOrNull;
-    if (manager == null) return Future.value(null);
-
-    return managerPickSpeaker(manager, [], messages: messages, speakerNames: speakerNames);
-  }
-
-  /// Manager 判断下一位发言的 Agent
-  Future<String?> managerPickSpeaker(
-    Agent manager,
-    List<String> alreadySpoken, {
-    required List<ChatMessage> messages,
-    required Map<String, String> speakerNames,
-  }) async {
-    final vendor = aiSettings.selectedVendor ??
-        (aiSettings.vendors.isNotEmpty ? aiSettings.vendors.first : null);
-    if (vendor == null || vendor.apiKey.isEmpty) return null;
-
-    final candidates = members
-        .where((a) => a.id != manager.id && !alreadySpoken.contains(a.name))
-        .toList();
-    if (candidates.isEmpty) return 'STOP';
-
-    final roleList = candidates
-        .map((a) => '- ${a.name}：${a.role.isNotEmpty ? a.role : '通用助手'}')
-        .join('\n');
-
-    final prompt = '''你是「${manager.name}」，群的协调者。
-根据用户的消息和已有对话，判断哪位成员最适合回复。
-只能从下面列表中选择一人，或回复 STOP 表示不需要更多回复。
-
-【可选成员】
-$roleList
-
-【已有回复的成员】
-${alreadySpoken.isEmpty ? '(暂无)' : alreadySpoken.join('、')}
-
-【用户的消息 + 对话】
-${messages.map((m) {
-  if (m.isUser) return '群主: ${m.text}';
-  final name = speakerNames[m.speakerId] ?? '未知';
-  return '$name: ${m.text}';
-}).join('\n')}
-
-请只回复一个名字或 STOP：''';
-
-    try {
-      final ai = AIService(
-        baseUrl: vendor.baseUrl,
-        apiKey: vendor.apiKey,
-        providerName: vendor.name,
-        model: vendor.model,
-        maxTokens: 50,
-      );
-      final buf = StringBuffer();
-      await for (final event in ai.sendMessageStream([
-        {'role': 'user', 'content': prompt},
-      ])) {
-        if (event is TextChunkEvent) buf.write(event.text);
-      }
-      final choice = buf.toString().trim();
-      for (final c in candidates) {
-        // 中文名精确匹配，英文名使用词边界匹配
-        if (choice == c.name ||
-            (RegExp(r'[a-zA-Z]').hasMatch(c.name)
-                ? choice.contains(RegExp('\\b${RegExp.escape(c.name)}\\b'))
-                : choice.contains(c.name))) {
-          return c.name;
-        }
-      }
-      if (choice.toUpperCase().contains('STOP')) return 'STOP';
-      return null;
-    } catch (_) {
-      return null;
-    }
+    // 极少见：群里没有标记协调者时，退回群内第一个成员。
+    final first = members.firstOrNull;
+    return Future.value(first?.name);
   }
 
   /// 解析 Agent 的 AI 后端配置

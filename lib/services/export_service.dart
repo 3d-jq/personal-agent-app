@@ -2,8 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-import '../models/chat_session.dart';
-import '../models/note.dart';
 import '../services/chat_storage.dart';
 import '../core/service_locator.dart';
 import '../services/note_storage.dart';

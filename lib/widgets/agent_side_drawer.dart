@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import '../core/app_config.dart';
 import '../core/app_router.dart';
@@ -42,13 +41,12 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
-    final width = MediaQuery.of(context).size.width;
 
-    return SizedBox(
-      width: width,
-      child: Drawer(
-        backgroundColor: nc.background,
-        child: SafeArea(
+    // 不再用 SizedBox(width: 整屏宽) 包裹，让 Drawer 用默认 304dp 宽度，
+    // 这样侧边栏是标准的部分覆盖（露出右侧一截聊天内容），而非全屏遮罩。
+    return Drawer(
+      backgroundColor: nc.background,
+      child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -84,25 +82,25 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                   nc: nc,
                   children: [
                     _CardItem(
-                      icon: PhosphorIconsRegular.notebook,
+                      icon: Icons.note,
                       label: '笔记',
                       nc: nc,
                       onTap: () => _closeAnd((ctx) => AppRouter.toNotes(ctx)),
                     ),
                     _CardItem(
-                      icon: PhosphorIconsRegular.images,
+                      icon: Icons.photo_library,
                       label: '图视',
                       nc: nc,
                       onTap: () => _closeAnd((ctx) => AppRouter.toMedia(ctx)),
                     ),
                     _CardItem(
-                      icon: PhosphorIconsRegular.star,
+                      icon: Icons.extension,
                       label: 'Skill & MCP',
                       nc: nc,
                       onTap: () => _closeAnd((ctx) => AppRouter.toSkillMcp(ctx)),
                     ),
                     _CardItem(
-                      icon: PhosphorIconsRegular.users,
+                      icon: Icons.group,
                       label: 'Agent 群',
                       nc: nc,
                       isLast: true,
@@ -181,13 +179,13 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                   children: [
                     GestureDetector(
                       onTap: () => _closeAnd((ctx) => AppRouter.toSearch(ctx)),
-                      child: _Pill(icon: PhosphorIconsRegular.magnifyingGlass, nc: nc),
+                      child: _Pill(icon: Icons.search, nc: nc),
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
                       onTap: () =>
                           _closeAnd((ctx) => AppRouter.toSettings(ctx)),
-                      child: _Pill(icon: PhosphorIconsRegular.user, nc: nc),
+                      child: _Pill(icon: Icons.settings, nc: nc),
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
@@ -200,7 +198,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                           'dewis_chats.json',
                         );
                       },
-                      child: _Pill(icon: PhosphorIconsRegular.downloadSimple, nc: nc),
+                      child: _Pill(icon: Icons.download, nc: nc),
                     ),
                     const Spacer(),
                     GestureDetector(
@@ -222,7 +220,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(
-                              PhosphorIconsRegular.pencilSimple,
+                              Icons.edit,
                               size: 18,
                               color: Colors.white,
                             ),
@@ -245,9 +243,8 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
             ],
           ),
         ),
-      ),
-    );
-  }
+      );
+    }
 
   void _confirmDelete(ChatSession s) {
     showDialog(
@@ -365,7 +362,7 @@ class _CardItem extends StatelessWidget {
                 ),
               ),
               Icon(
-                PhosphorIconsRegular.caretRight,
+                Icons.chevron_right,
                 size: 18,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),

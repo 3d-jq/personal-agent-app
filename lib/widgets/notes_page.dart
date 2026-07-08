@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import '../core/agent_colors.dart';
+import '../core/design_tokens.dart';
 import '../core/app_router.dart';
+import 'common_widgets.dart';
 import '../models/note.dart';
 import '../services/export_service.dart';
 import '../services/note_export_service.dart';
@@ -57,27 +58,17 @@ class _NotesPageState extends State<NotesPage> {
 
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      appBar: AppTopBar(
+        title: '笔记',
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          '笔记',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
         actions: [
           if (_notes.isNotEmpty)
             IconButton(
               icon: Icon(
-                PhosphorIconsRegular.downloadSimple,
+                Icons.download,
                 color: nc.textPrimary,
                 size: 22,
               ),
@@ -93,30 +84,30 @@ class _NotesPageState extends State<NotesPage> {
           ? StatePlaceholder.loading()
           : _notes.isEmpty
           ? StatePlaceholder.empty(
-              icon: PhosphorIconsRegular.notePencil,
+              icon: Icons.edit_note,
               title: '还没有笔记',
               subtitle: '点击右下角 + 创建，或在聊天中让 DWeis 帮你记录',
             )
           : ListView.builder(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: SpaceToken.lg, vertical: SpaceToken.sm),
               itemCount: _notes.length,
               itemBuilder: (_, i) {
                 final note = _notes[i];
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(bottom: SpaceToken.sm),
                   child: Dismissible(
                     key: Key(note.id),
                     direction: DismissDirection.endToStart,
                     background: Container(
                       alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 20),
+                      padding: const EdgeInsets.only(right: SpaceToken.xl),
                       decoration: BoxDecoration(
                         color: nc.error,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(RadiusToken.md),
                       ),
                       child: Icon(
-                        PhosphorIconsRegular.trash,
+                        Icons.delete,
                         color: Colors.white,
                         size: 20,
                       ),
@@ -125,7 +116,7 @@ class _NotesPageState extends State<NotesPage> {
                       return await showDialog<bool>(
                         context: context,
                         builder: (ctx) => AlertDialog(
-                          backgroundColor: nc.surface,
+                          backgroundColor: nc.bgSubtle,
                           title: Text('删除笔记', style: TextStyle(color: nc.textPrimary)),
                           content: Text('确定删除「${note.title}」？', style: TextStyle(color: nc.textSecondary)),
                           actions: [
@@ -164,7 +155,7 @@ class _NotesPageState extends State<NotesPage> {
         },
         backgroundColor: nc.primary,
         foregroundColor: Colors.white,
-        child: const Icon(PhosphorIconsRegular.plus),
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -172,40 +163,6 @@ class _NotesPageState extends State<NotesPage> {
   void _deleteNote(Note note) async {
     await _storage.remove(note.id);
     _load();
-  }
-
-  void _confirmDelete(Note note) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('删除笔记'),
-        content: Text('确定要删除「${note.title}」吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await _storage.remove(note.id);
-              _load();
-            },
-            child: const Text('删除'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatTime(DateTime dt) {
-    final now = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inMinutes < 1) return '刚刚';
-    if (diff.inHours < 1) return '${diff.inMinutes}分钟前';
-    if (diff.inDays < 1) return '${diff.inHours}小时前';
-    if (diff.inDays < 7) return '${diff.inDays}天前';
-    return '${dt.month}/${dt.day} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   void _openEditor(Note? existing) {
@@ -236,26 +193,16 @@ class _NoteDetail extends StatelessWidget {
     final nc = AgentColors.of(context);
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      appBar: AppTopBar(
+        title: note.title,
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          note.title,
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
         actions: [
           if (onEdit != null)
             IconButton(
-              icon: Icon(PhosphorIconsRegular.pencilSimple, color: nc.textPrimary),
+              icon: Icon(Icons.edit, color: nc.textPrimary),
               onPressed: () {
                 HapticFeedback.lightImpact();
                 Navigator.pop(context);
@@ -263,7 +210,7 @@ class _NoteDetail extends StatelessWidget {
               },
             ),
           IconButton(
-            icon: Icon(PhosphorIconsRegular.shareNetwork, color: nc.textPrimary),
+            icon: Icon(Icons.share, color: nc.textPrimary),
             onPressed: () async {
               HapticFeedback.lightImpact();
               try {
@@ -280,7 +227,7 @@ class _NoteDetail extends StatelessWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(SpaceToken.xl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -288,11 +235,11 @@ class _NoteDetail extends StatelessWidget {
               '${note.createdAt.year}/${note.createdAt.month.toString().padLeft(2, '0')}/${note.createdAt.day.toString().padLeft(2, '0')} '
               '${note.createdAt.hour.toString().padLeft(2, '0')}:${note.createdAt.minute.toString().padLeft(2, '0')} 创建',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: FontToken.caption,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: SpaceToken.lg),
             ...buildInlineContent(note.content, nc, context),
           ],
         ),
@@ -340,66 +287,56 @@ class _NoteEditorState extends State<_NoteEditor> {
 
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      appBar: AppTopBar(
+        title: isEditing ? '编辑笔记' : '新建笔记',
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => _confirmDiscard(nc),
         ),
-        title: Text(
-          isEditing ? '编辑笔记' : '新建笔记',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
         actions: [
           TextButton(
             onPressed: _save,
             child: Text(
               '保存',
               style: TextStyle(
-                fontSize: 15,
+                fontSize: FontToken.body,
                 color: nc.success,
-                fontWeight: FontWeight.w600,
+                fontWeight: WeightToken.semibold,
               ),
             ),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(SpaceToken.xl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
               controller: _titleCtrl,
               style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
+                fontSize: FontToken.headline,
+                fontWeight: WeightToken.semibold,
                 color: nc.textPrimary,
               ),
               decoration: InputDecoration(
                 hintText: '标题',
                 hintStyle: TextStyle(
                   color: nc.textSecondary.withValues(alpha: 0.4),
-                  fontSize: 20,
+                  fontSize: FontToken.headline,
                 ),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: SpaceToken.lg),
             TextField(
               controller: _contentCtrl,
               focusNode: _focusNode,
               maxLines: null,
               minLines: 10,
               style: TextStyle(
-                fontSize: 15,
+                fontSize: FontToken.body,
                 color: nc.textPrimary,
                 height: 1.6,
               ),
@@ -407,7 +344,7 @@ class _NoteEditorState extends State<_NoteEditor> {
                 hintText: '开始写笔记…\n\n支持 Markdown 格式',
                 hintStyle: TextStyle(
                   color: nc.textSecondary.withValues(alpha: 0.4),
-                  fontSize: 15,
+                  fontSize: FontToken.body,
                 ),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
@@ -539,19 +476,17 @@ class _NoteTileState extends State<_NoteTile>
       opacity: _fadeAnimation,
       child: SlideTransition(
         position: _slideAnimation,
-        child: Material(
-          color: nc.surface,
-          borderRadius: BorderRadius.circular(12),
+        child: ElevatedCard(
+          nc: nc,
+          shadow: nc.shadowSm,
+          borderRadius: BorderRadius.circular(RadiusToken.md),
+          padding: EdgeInsets.all(SpaceToken.lg),
           child: InkWell(
             onTap: widget.onTap,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: nc.divider, width: 0.5),
-              ),
-              child: Row(
+            splashFactory: NoSplash.splashFactory,
+            highlightColor: nc.fillTertiary,
+            borderRadius: BorderRadius.circular(RadiusToken.md),
+            child: Row(
                 children: [
                   Expanded(
                     child: Column(
@@ -562,12 +497,12 @@ class _NoteTileState extends State<_NoteTile>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: FontToken.title,
                             color: nc.textPrimary,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: WeightToken.semibold,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: SpaceToken.xs),
                         Text(
                           note.summary.isEmpty
                               ? _formatTime(note.updatedAt)
@@ -575,7 +510,7 @@ class _NoteTileState extends State<_NoteTile>
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: FontToken.body,
                             color: nc.textSecondary,
                           ),
                         ),
@@ -583,7 +518,7 @@ class _NoteTileState extends State<_NoteTile>
                     ),
                   ),
                   Icon(
-                    PhosphorIconsRegular.caretRight,
+                    Icons.chevron_right,
                     size: 16,
                     color: nc.textSecondary.withValues(alpha: 0.5),
                   ),
@@ -592,7 +527,6 @@ class _NoteTileState extends State<_NoteTile>
             ),
           ),
         ),
-      ),
     );
   }
 

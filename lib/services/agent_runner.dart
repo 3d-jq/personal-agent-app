@@ -4,6 +4,7 @@ import '../core/prompt_builder.dart';
 import '../core/service_locator.dart';
 import '../models/agent.dart';
 import '../models/chat_message.dart';
+import '../tools/base_tool.dart';
 import '../tools/skill_registry.dart';
 import '../tools/tool_registry.dart';
 import '../widgets/ai_settings_sheet.dart' show VendorConfig;
@@ -62,19 +63,26 @@ class AgentRunner {
     buf.writeln('【身份锁定】你必须始终以「${agent.name}」的身份发言，不要模仿或冒充其他任何成员。');
     buf.writeln('如果被问到其他成员的职责，你只能说"这是${agent.name}的职责范围之外，请咨询对应成员"。');
     if (agent.isCoordinator) {
-      buf.writeln('你是团队的常驻协调者。用户发送任何消息你都可以主动回复。');
-      buf.writeln('你的职责：理解用户意图、分析任务需求，直接回复用户或给出建议。');
-      buf.writeln('你可以 @ 其他成员来讨论或征求意见。');
+      buf.writeln('你是群聊的「主 Agent（协调者）」，其他成员都是你的「子 Agent」。');
+      buf.writeln('你的核心职责是：理解用户需求 → 通过 delegate_task 工具把任务分派给最合适的子 Agent → 在子 Agent 回答后做汇总。你自己不负责产出专业领域的完整答案。');
+      buf.writeln('【派活方式 · 工具调用】当需要某位子 Agent 的专业能力时，你「必须」调用 delegate_task(agent=子Agent名字, brief=自包含简报) 工具来派活——这是唯一能触发子 Agent 执行的途径。简报必须写清：要它做什么、期望产出什么、有何约束；子 Agent 在隔离上下文中只看用户原始需求与本简报，所以简报要自包含，不要让它去翻完整群历史。如需多人协作，依次多次调用 delegate_task。');
+      buf.writeln('【@ 不再派活】在普通文本里写 @名字 只是「提及」，不会触发任何执行，不要再用 @ 来派活；真正派活只能调用 delegate_task 工具。');
+      buf.writeln('【调度权专属】只有你拥有 delegate_task 工具，子 Agent 没有这个工具、不能反向分派；绝不要指望子 Agent 去调用 delegate_task。');
+      buf.writeln('【先收集需求再派活】如果你还需要向用户确认信息（如天数、预算、偏好、出发地等）才能写出清晰的简报，这一轮就「不要」调用 delegate_task，而是用一段自然语言把问题问清楚；等用户回答后，你再在下一轮调用 delegate_task 派活。绝不要在向用户提问的同一轮里同时派活。');
+      buf.writeln('【何时亲自答】只有当问题属于通用、闲聊、综述、调度或纯总结性质、且不属于任何子 Agent 的专业领域时，你才亲自用自然语言完整回答（不调用 delegate_task）。');
+      buf.writeln('【收尾汇总】所有需要的子 Agent 都通过 delegate_task 回答完毕后，停止调用 delegate_task，用「一两句话」做简短收尾：告诉用户任务已完成、点一下要点即可。不要复述子 Agent 已经给出的内容，不要长篇大论。');
+      buf.writeln('【避免重复】你分派出去的任务就不要自己再答一遍；你只负责调度与汇总，专业内容交给子 Agent。');
     } else {
-      buf.writeln('你可以回复被 @ 提及的消息，也可以在合适的时候主动发言。');
-      buf.writeln('如果你认为其他成员更适合回答，可以用 @名字 来邀请他们参与讨论。');
+      buf.writeln('你是群里的「子 Agent（专家）」，由主 Agent（协调者）按需调度。');
+      buf.writeln('当被主 Agent 通过 delegate_task 派活并收到任务简报时，你只需专注于完成简报中指派给你的那部分任务，并给出专业结果；不要替主 Agent 做汇总，也不要尝试去派活其他成员（分派是主 Agent 的职责，你没有 delegate_task 工具）。若简报信息不足，可基于用户原始需求合理补全。');
+      buf.writeln('你也可以在合适的时候主动发言，表达你的专业见解。');
     }
     buf.writeln('用户是群主，拥有最终决策权。重要决策必须由群主确认。');
     buf.writeln(
-      '【@ 提及规则】只有当你需要其他成员发言时，才在回复末尾使用 @名字。不要在回复正文中使用 @ 提及其他成员名字，否则会触发他们发言。',
+      '【@ 提及规则】@名字 只是引用/提及某位成员，不会自动触发对方发言；它用于自然对话中引用他人。不要把 @ 当作派活手段——派活只能由协调者通过 delegate_task 工具完成。',
     );
     buf.writeln(
-      '【协作模式】如果你需要其他成员参与讨论，请在回复末尾添加 @名字。例如："我觉得这个方案可行 @产品经理 你觉得呢？"',
+      '【协作模式】在群聊中你可以自然地 @ 提及成员，但真正的任务分派由协调者统一通过 delegate_task 工具完成，子 Agent 之间无需互相派活。',
     );
     buf.writeln(
       '【禁止幻觉】回答时事、数据、地点、人物、版本等你不能 100% 确定的事实时，必须调用 searxng_search 或 tavily_search 确认，禁止凭训练数据猜测；tavily_search 效果通常更好，当 searxng_search 结果不理想时请换用 tavily_search。',
@@ -101,9 +109,9 @@ class AgentRunner {
         buf.writeln('- @$name${role.isNotEmpty ? "：$role" : ""}');
       }
       if (agent.isCoordinator) {
-        buf.writeln('你了解每位成员的能力。你可以 @ 他们来讨论或征求意见。');
+        buf.writeln('你了解每位成员的能力，可通过 delegate_task 工具把任务派给他们。');
       } else {
-        buf.writeln('你可以 @ 其他成员来讨论或征求意见。完成后可以用 @名字 来通知相关成员。');
+        buf.writeln('你可在发言中自然 @ 提及成员，但任务分派由协调者统一负责。');
       }
       buf.writeln('</team>');
       buf.writeln();
@@ -197,8 +205,10 @@ class AgentRunner {
 
   final Map<String, ToolRegistry> _scopedCache = {};
 
-  ToolRegistry _scopedRegistry(Agent agent) {
-    final key = agent.allowedToolNames.join(',');
+  ToolRegistry _scopedRegistry(Agent agent, {AgentTool? dispatchTool}) {
+    // 缓存键加入 dispatchTool 是否存在：协调者（带 dispatchTool）与子 Agent
+    // （不带）即使 allowedToolNames 相同也不会共用同一份 registry。
+    final key = '${agent.allowedToolNames.join(',')}#${dispatchTool != null}';
     return _scopedCache.putIfAbsent(key, () {
       final scoped = ToolRegistry();
       final allowed = agent.allowedToolNames.toSet();
@@ -225,6 +235,11 @@ class AgentRunner {
         scoped.registerDiscoverable(tool);
       }
 
+      // 协调者专属的派活工具：由控制器注入，子 Agent 不注册（调度权独占）。
+      if (dispatchTool != null) {
+        scoped.register(dispatchTool);
+      }
+
       return scoped;
     });
   }
@@ -239,6 +254,7 @@ class AgentRunner {
     String groupName = '',
     String groupDesc = '',
     String thinkingEffort = 'medium',
+    AgentTool? dispatchTool,
   }) async* {
     try {
       final systemPrompt = await _buildSystemPrompt(
@@ -275,7 +291,7 @@ class AgentRunner {
         providerName: vendor.name,
         model: agent.model.isNotEmpty ? agent.model : vendor.model,
         thinkingEffort: thinkingEffort,
-        toolRegistry: _scopedRegistry(agent),
+        toolRegistry: _scopedRegistry(agent, dispatchTool: dispatchTool),
       );
       yield* ai.sendMessageStream(messages);
     } catch (e) {

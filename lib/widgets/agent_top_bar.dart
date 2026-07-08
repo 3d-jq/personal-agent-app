@@ -2,7 +2,6 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 
 class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
@@ -30,17 +29,11 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           decoration: BoxDecoration(
-            color: colors.background.withValues(alpha: 0.85),
-            border: Border(
-              bottom: BorderSide(
-                color: colors.divider,
-                width: 0.5,
-              ),
-            ),
+            color: colors.background.withValues(alpha: 0.92),
           ),
           padding: EdgeInsets.only(top: topPadding),
           child: SizedBox(
-            height: 64,
+            height: 48,
             child: Stack(
               children: [
                 Positioned(
@@ -55,15 +48,15 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                           Scaffold.of(context).openDrawer();
                         },
                         child: Container(
-                          width: 40,
-                          height: 40,
+                          width: 36,
+                          height: 36,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(9),
                           ),
                           child: Icon(
-                            PhosphorIconsRegular.list,
-                            size: 20,
-                            color: colors.textPrimary,
+                          Icons.list,
+                          size: 20,
+                          color: colors.textPrimary,
                           ),
                         ),
                       ),
@@ -100,7 +93,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Icon(
-                                  PhosphorIconsRegular.caretDown,
+                                  Icons.expand_more,
                                   size: 18,
                                   color: colors.textPrimary,
                                 ),
@@ -121,7 +114,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                     right: 12,
                     top: 0,
                     bottom: 0,
-                    child: Center(child: trailing!),
+                    child: Center(child: trailing),
                   ),
               ],
             ),
@@ -132,5 +125,5 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(64 + 48);
+  Size get preferredSize => const Size.fromHeight(48 + 48);
 }

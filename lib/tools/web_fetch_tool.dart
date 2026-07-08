@@ -275,7 +275,6 @@ class WebFetchTool extends AgentTool {
       DioExceptionType.cancel => '请求已取消',
       DioExceptionType.connectionError => '网络连接失败，请检查网络',
       DioExceptionType.unknown => '网络请求异常: ${e.message ?? e.error}',
-      _ => '抓取失败: ${e.message}',
     };
   }
 }

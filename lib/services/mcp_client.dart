@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'ai_service_base.dart';
 import 'log_service.dart';
 
 /// MCP 工具定义
@@ -62,7 +63,8 @@ class McpClient {
   /// MCP 服务的请求路径，默认 '/'。不同服务商可能用 '/mcp' 等路径。
   final String endpoint;
 
-  late Dio _dio;
+  /// 附加到每个请求的 URL query 参数。
+  final Map<String, String> queryParams;
 
   List<McpTool> _tools = [];
   List<McpResource> _resources = [];
@@ -77,19 +79,17 @@ class McpClient {
     required this.serverUrl,
     this.apiKey,
     this.endpoint = '/',
-  }) {
-    _dio = Dio(BaseOptions(
-      baseUrl: serverUrl,
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 60),
-      headers: {
-        'Content-Type': 'application/json',
-        // Streamable HTTP：声明客户端能处理两种响应格式
-        'Accept': 'application/json, text/event-stream',
-        if (apiKey != null) 'Authorization': 'Bearer $apiKey',
-      },
-    ));
-  }
+    Map<String, String>? queryParams,
+  }) : queryParams = queryParams ?? const {};
+
+  String get _baseUrl => normalizeUrl(serverUrl);
+
+  Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    // Streamable HTTP：声明客户端能处理两种响应格式
+    'Accept': 'application/json, text/event-stream',
+    if (apiKey != null) 'Authorization': 'Bearer $apiKey',
+  };
 
   /// JSON-RPC 请求 id 自增计数器，避免时间戳同毫秒并发时 id 冲突。
   int _rpcId = 0;
@@ -127,10 +127,14 @@ class McpClient {
 
     // 发送 initialized 通知（notification，无 id，不需要响应）
     try {
-      await _dio.post(endpoint, data: {
-        'jsonrpc': '2.0',
-        'method': 'notifications/initialized',
-      });
+      await AiHttpClient.sharedDio.post(
+        '$_baseUrl$endpoint',
+        data: {
+          'jsonrpc': '2.0',
+          'method': 'notifications/initialized',
+        },
+        options: Options(headers: _headers),
+      );
     } catch (e) {
       log.w('McpClient', '发送initialized通知失败: $e');
     }
@@ -243,7 +247,12 @@ class McpClient {
       'params': params,
     };
 
-    final response = await _dio.post(endpoint, data: request);
+    final response = await AiHttpClient.sharedDio.post(
+      '$_baseUrl$endpoint',
+      data: request,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+      options: Options(headers: _headers),
+    );
     final contentType =
         (response.headers.value('content-type') ?? '').toLowerCase();
 
@@ -328,6 +337,17 @@ class McpClient {
         'inputSchema': tool.inputSchema,
       };
     }).toList();
+  }
+
+  /// 释放客户端状态。
+  ///
+  /// 共享的 [AiHttpClient.sharedDio] 不在这里关闭，避免影响其他服务；
+  /// 此方法主要用于清理缓存的工具/资源列表和初始化标记。
+  void dispose() {
+    _tools = [];
+    _resources = [];
+    _initialized = false;
+    _rpcId = 0;
   }
 }
 

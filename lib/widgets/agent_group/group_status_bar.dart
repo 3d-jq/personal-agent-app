@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../../core/agent_colors.dart';
 import '../../models/agent.dart';
 import 'group_chat_coordinator.dart';
@@ -35,7 +34,7 @@ class GroupStatusBar extends StatelessWidget {
             const SizedBox(width: 8),
           ],
           if (participatedAgents.isNotEmpty) ...[
-            Icon(PhosphorIconsRegular.users, size: 14, color: nc.textSecondary),
+            Icon(Icons.group, size: 14, color: nc.textSecondary),
             const SizedBox(width: 4),
             Text(
               '${participatedAgents.length} 人参与',

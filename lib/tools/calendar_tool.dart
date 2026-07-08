@@ -39,8 +39,9 @@ class CalendarTool extends AgentTool {
 
   Future<bool> _ensurePerm() async {
     var s = await Permission.calendarFullAccess.status;
-    if (s.isDenied || s.isPermanentlyDenied)
+    if (s.isDenied || s.isPermanentlyDenied) {
       s = await Permission.calendarFullAccess.request();
+    }
     return s.isGranted;
   }
 

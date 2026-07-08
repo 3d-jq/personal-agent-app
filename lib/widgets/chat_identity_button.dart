@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import '../core/app_router.dart';
 import '../services/context_doc_service.dart';
@@ -51,7 +50,7 @@ class ChatIdentityButton extends StatelessWidget {
                           child: Text(ContextDocViewerPage.titleFor(doc),
                               style: TextStyle(fontSize: 15, color: nc.textPrimary, fontWeight: FontWeight.w400)),
                         ),
-                        Icon(PhosphorIconsRegular.caretRight, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
+                        Icon(Icons.chevron_right, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
                       ]),
                     ),
                   )),
@@ -61,13 +60,13 @@ class ChatIdentityButton extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(children: [
-                Icon(PhosphorIconsRegular.scroll, size: 20, color: nc.textPrimary),
+                Icon(Icons.article, size: 20, color: nc.textPrimary),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Text('AI 草稿纸',
                       style: TextStyle(fontSize: 15, color: nc.textPrimary, fontWeight: FontWeight.w400)),
                 ),
-                Icon(PhosphorIconsRegular.caretRight, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
+                Icon(Icons.chevron_right, size: 18, color: nc.textSecondary.withValues(alpha: 0.5)),
               ]),
             ),
           ),
@@ -76,7 +75,7 @@ class ChatIdentityButton extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-          child: Icon(PhosphorIconsRegular.identificationCard, size: 18, color: nc.textPrimary),
+          child: Icon(Icons.badge, size: 18, color: nc.textPrimary),
         ),
       ),
     );

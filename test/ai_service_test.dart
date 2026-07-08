@@ -1,7 +1,5 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:personal_agent_app/services/ai_service.dart';
 import 'package:personal_agent_app/services/chat_stream_event.dart';
 import 'package:personal_agent_app/tools/base_tool.dart';
 
@@ -72,6 +70,7 @@ void main() {
 
     test('connection timeout → timeout message', () {
       final err = _testFriendlyError(-1); // simulate timeout via type
+      expect(err, contains('-1'));
       // Since we can't easily mock DioExceptionType, test unknown path
       final unknown = _testFriendlyError(999);
       expect(unknown, contains('999'));
@@ -96,7 +95,7 @@ void main() {
     });
 
     test('parses tool call id and name from SSE delta', () {
-      final result = parseSSEWithToolCalls([
+      final result = _parseSSEWithToolCalls([
         'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_123","type":"function","function":{"name":"weather","arguments":""}}]}}]}',
         'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"city\\":\\"Beijing\\"}"}}]}}]}',
       ]);
@@ -137,7 +136,7 @@ void main() {
         'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"city\\":\\"NYC\\"}"}}]}}]}',
         'data: [DONE]',
       ];
-      final result = parseSSEWithToolCalls(lines);
+      final result = _parseSSEWithToolCalls(lines);
       expect(result.events.whereType<TextChunkEvent>(), hasLength(1));
       expect(result.toolCalls, hasLength(1));
     });
@@ -257,7 +256,7 @@ List<ChatStreamEvent> parseSSELine(String line) {
 }
 
 /// Parses multiple SSE lines and collects tool calls (simulates streaming).
-_SSEParseResult parseSSEWithToolCalls(List<String> lines) {
+_SSEParseResult _parseSSEWithToolCalls(List<String> lines) {
   final events = <ChatStreamEvent>[];
   final toolCallIds = <int, String>{};
   final toolCallNames = <int, String>{};

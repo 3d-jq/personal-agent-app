@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
+import 'common_widgets.dart';
 import '../services/log_service.dart';
 
 class LogPage extends StatefulWidget {
@@ -46,25 +46,16 @@ class _LogPageState extends State<LogPage> {
 
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      appBar: AppTopBar(
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_new, color: nc.textPrimary, size: 22),
           onPressed: () => Navigator.pop(context),
+          tooltip: '返回',
         ),
-        title: Text(
-          '运行日志',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
+        title: '运行日志',
         actions: [
           IconButton(
-            icon: Icon(PhosphorIconsRegular.copy, color: nc.textSecondary),
+            icon: Icon(Icons.content_copy, color: nc.textSecondary),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: _logs));
               ScaffoldMessenger.of(context).showSnackBar(
@@ -73,7 +64,7 @@ class _LogPageState extends State<LogPage> {
             },
           ),
           IconButton(
-            icon: Icon(PhosphorIconsRegular.trash, color: nc.error),
+            icon: Icon(Icons.delete, color: nc.error),
             onPressed: () async {
               await log.clearLogs();
               _loadLogs();
@@ -91,7 +82,7 @@ class _LogPageState extends State<LogPage> {
                   color: nc.surface,
                   child: Row(
                     children: [
-                      Icon(PhosphorIconsRegular.fileText, size: 16, color: nc.textSecondary),
+                      Icon(Icons.description, size: 16, color: nc.textSecondary),
                       SizedBox(width: 8),
                       Text(
                         '日志大小：${_formatSize(_logSize)}',

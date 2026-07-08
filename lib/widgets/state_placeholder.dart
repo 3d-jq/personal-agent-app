@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 
 /// 统一的空态 / 加载态 / 错误态占位组件。
@@ -50,7 +49,7 @@ class StatePlaceholder extends StatelessWidget {
     required VoidCallback onRetry,
   }) => StatePlaceholder(
     key: key,
-    icon: const Icon(PhosphorIconsRegular.warningCircle, size: 48),
+    icon: const Icon(Icons.warning, size: 48),
     title: title ?? '出错了',
     subtitle: subtitle,
     retryLabel: retryLabel,
@@ -105,7 +104,7 @@ class StatePlaceholder extends StatelessWidget {
             const SizedBox(height: 16),
             TextButton.icon(
               onPressed: onRetry,
-              icon: Icon(PhosphorIconsRegular.arrowsClockwise, size: 16, color: nc.primary),
+              icon: Icon(Icons.refresh, size: 16, color: nc.primary),
               label: Text(retryLabel ?? '重试', style: TextStyle(color: nc.primary)),
             ),
           ],

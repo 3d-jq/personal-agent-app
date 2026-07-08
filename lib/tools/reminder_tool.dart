@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -36,7 +35,7 @@ class ReminderTool extends AgentTool {
     'required': ['title', 'message'],
   };
 
-  static bool _channelCreated = false;
+  bool _channelCreated = false;
 
   Future<void> _ensureChannel() async {
     if (_channelCreated) return;
@@ -147,7 +146,7 @@ class ReminderTool extends AgentTool {
 
       final minutes = delaySeconds ~/ 60;
       final seconds = delaySeconds % 60;
-      return '已创建提醒: $title\n内容: $message\n将在 ${minutes > 0 ? '${minutes}分钟' : ''}${seconds > 0 ? '${seconds}秒' : ''}后推送';
+      return '已创建提醒: $title\n内容: $message\n将在 ${minutes > 0 ? '$minutes分钟' : ''}${seconds > 0 ? '$seconds秒' : ''}后推送';
     } catch (e) {
       return '创建提醒失败: $e';
     }

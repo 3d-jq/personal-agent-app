@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
+import '../core/design_tokens.dart';
 import '../core/app_router.dart';
 import '../core/app_config.dart';
 import '../core/service_locator.dart';
@@ -74,7 +74,7 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (c) => AlertDialog(
-        backgroundColor: nc.surface,
+        backgroundColor: nc.bgSubtle,
         title: Text(title, style: TextStyle(color: nc.textPrimary)),
         content: Text(msg, style: TextStyle(color: nc.textSecondary)),
         actions: [
@@ -96,7 +96,7 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       barrierDismissible: false,
       builder: (c) => AlertDialog(
-        backgroundColor: nc.surface,
+        backgroundColor: nc.bgSubtle,
         content: Row(
           children: [
             SizedBox(
@@ -107,10 +107,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 valueColor: AlwaysStoppedAnimation(nc.textSecondary),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: SpaceToken.lg),
             Text(
               message,
-              style: TextStyle(color: nc.textPrimary, fontSize: 14),
+              style: TextStyle(color: nc.textPrimary, fontSize: FontToken.small),
             ),
           ],
         ),
@@ -126,14 +126,14 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (c) => AlertDialog(
-        backgroundColor: nc.surface,
+        backgroundColor: nc.bgSubtle,
         title: Row(
           children: [
-            Icon(PhosphorIconsRegular.cloudArrowUp, color: nc.success, size: 24),
-            const SizedBox(width: 8),
+            Icon(Icons.cloud_upload, color: nc.success, size: 24),
+            const SizedBox(width: SpaceToken.sm),
             Text(
               '发现新版本 v${info.version}',
-              style: TextStyle(color: nc.textPrimary, fontSize: 16),
+              style: TextStyle(color: nc.textPrimary, fontSize: FontToken.title),
             ),
           ],
         ),
@@ -144,13 +144,13 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Text(
                 '当前版本：${AppConfig.displayVersion}',
-                style: TextStyle(color: nc.textSecondary, fontSize: 13),
+                style: TextStyle(color: nc.textSecondary, fontSize: FontToken.small),
               ),
               if (info.notes.isNotEmpty) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: SpaceToken.md),
                 Text(
                   info.notes,
-                  style: TextStyle(color: nc.textPrimary, fontSize: 13),
+                  style: TextStyle(color: nc.textPrimary, fontSize: FontToken.small),
                 ),
               ],
             ],
@@ -199,10 +199,10 @@ class _SettingsPageState extends State<SettingsPage> {
           builder: (context, progress, _) {
             final done = progress != null && progress >= 1.0;
             return AlertDialog(
-              backgroundColor: nc.surface,
+              backgroundColor: nc.bgSubtle,
               title: Text(
                 done ? '下载完成' : '正在下载更新...',
-                style: TextStyle(color: nc.textPrimary, fontSize: 16),
+                style: TextStyle(color: nc.textPrimary, fontSize: FontToken.title),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -212,14 +212,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     backgroundColor: nc.divider,
                     valueColor: AlwaysStoppedAnimation<Color>(nc.success),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: SpaceToken.md),
                   Text(
                     done
                         ? '准备安装...'
                         : progress != null
-                        ? '${(progress * 100).toStringAsFixed(0)}%'
-                        : '正在连接...',
-                    style: TextStyle(color: nc.textSecondary, fontSize: 13),
+                            ? '${(progress * 100).toStringAsFixed(0)}%'
+                            : '正在连接...',
+                    style: TextStyle(color: nc.textSecondary, fontSize: FontToken.small),
                   ),
                 ],
               ),
@@ -272,164 +272,125 @@ class _SettingsPageState extends State<SettingsPage> {
     final nc = AgentColors.of(context);
 
     return Scaffold(
-      backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      backgroundColor: nc.bgSubtle,
+      appBar: AppTopBar(
+        title: '设置',
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          '设置',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: SpaceToken.lg),
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: SpaceToken.sm),
           SectionHeader(title: '应用程序', nc: nc),
-          RoundedCard(
+          ElevatedCard(
             nc: nc,
-            children: [
-              _SettingItem(
-                icon: PhosphorIconsRegular.sun,
-                label: '主题',
-                trailing: getIt<ThemeService>().label,
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  final ts = getIt<ThemeService>();
-                  final next = ts.mode == ThemeMode.light
-                      ? ThemeMode.dark
-                      : ts.mode == ThemeMode.dark
-                      ? ThemeMode.system
-                      : ThemeMode.light;
-                  ts.setMode(next);
-                },
-              ),
-              _SettingItem(
-                icon: PhosphorIconsRegular.stack,
-                label: '模型',
-                trailing: '管理',
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  AppRouter.toModelSettings(context);
-                },
-              ),
-              _SettingItem(
-                icon: PhosphorIconsRegular.trash,
-                label: '图片缓存',
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  AppRouter.toImageCache(context);
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          SectionHeader(title: '调试', nc: nc),
-          RoundedCard(
-            nc: nc,
-            children: [
-              SwitchListTile(
-                title: Text('启用日志', style: TextStyle(fontSize: 15, color: nc.textPrimary)),
-                subtitle: Text(
-                  '记录运行日志用于问题排查',
-                  style: TextStyle(fontSize: 12, color: nc.textSecondary),
+            shadow: nc.shadowSm,
+            child: Column(
+              children: [
+                _SettingItem(
+                  icon: Icons.wb_sunny,
+                  label: '主题',
+                  trailing: getIt<ThemeService>().label,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    final ts = getIt<ThemeService>();
+                    final next = ts.mode == ThemeMode.light
+                        ? ThemeMode.dark
+                        : ts.mode == ThemeMode.dark
+                            ? ThemeMode.system
+                            : ThemeMode.light;
+                    ts.setMode(next);
+                  },
                 ),
-                value: log.enabled,
-                onChanged: (v) async {
-                  HapticFeedback.lightImpact();
-                  await log.setEnabled(v);
-                  setState(() {});
-                },
-                activeColor: nc.primary,
-              ),
-            ],
+                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                _SettingItem(
+                  icon: Icons.layers,
+                  label: '模型',
+                  trailing: '管理',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    AppRouter.toModelSettings(context);
+                  },
+                ),
+                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                _SettingItem(
+                  icon: Icons.delete,
+                  label: '图片缓存',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    AppRouter.toImageCache(context);
+                  },
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
-          SectionHeader(title: '关于', nc: nc),
-          RoundedCard(
+          const SizedBox(height: SpaceToken.xl),
+          SectionHeader(title: '调试', nc: nc),
+          ElevatedCard(
             nc: nc,
-            children: [
-              _SettingItem(
-                label: '检查更新',
-                trailing: AppConfig.displayVersion,
-                onTap: () => _checkUpdate(context, nc),
+            shadow: nc.shadowSm,
+            child: SwitchListTile(
+              title: Text('启用日志', style: TextStyle(fontSize: FontToken.body, color: nc.textPrimary)),
+              subtitle: Text(
+                '记录运行日志用于问题排查',
+                style: TextStyle(fontSize: FontToken.small, color: nc.textSecondary),
               ),
-              _SettingItem(
-                label: '运行日志',
-                trailing: log.enabled ? '已开启' : '已关闭',
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  AppRouter.toLog(context);
-                },
-              ),
-              _SettingItem(
-                label: '关于',
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  AppRouter.toAbout(context);
-                },
-              ),
-              _SettingItem(
-                label: '致谢',
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  AppRouter.toAcknowledgement(context);
-                },
-              ),
-            ],
+              value: log.enabled,
+              onChanged: (v) async {
+                HapticFeedback.lightImpact();
+                await log.setEnabled(v);
+                setState(() {});
+              },
+              activeThumbColor: nc.primary,
+            ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: SpaceToken.xl),
+          SectionHeader(title: '关于', nc: nc),
+          ElevatedCard(
+            nc: nc,
+            shadow: nc.shadowSm,
+            child: Column(
+              children: [
+                _SettingItem(
+                  label: '检查更新',
+                  trailing: AppConfig.displayVersion,
+                  onTap: () => _checkUpdate(context, nc),
+                ),
+                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                _SettingItem(
+                  label: '运行日志',
+                  trailing: log.enabled ? '已开启' : '已关闭',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    AppRouter.toLog(context);
+                  },
+                ),
+                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                _SettingItem(
+                  label: '关于',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    AppRouter.toAbout(context);
+                  },
+                ),
+                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                _SettingItem(
+                  label: '致谢',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    AppRouter.toAcknowledgement(context);
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: SpaceToken.x3),
         ],
       ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final AgentColors nc;
-  const _SectionHeader({required this.title, required this.nc});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 13,
-          color: nc.textSecondary,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-}
-
-class _RoundedCard extends StatelessWidget {
-  final AgentColors nc;
-  final List<Widget> children;
-  const _RoundedCard({required this.nc, required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: nc.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: nc.divider, width: 0.5),
-      ),
-      child: Column(children: children),
     );
   }
 }
@@ -453,35 +414,40 @@ class _SettingItem extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap ?? () {},
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: nc.fillTertiary,
         borderRadius: BorderRadius.zero,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(
+            horizontal: SpaceToken.lg,
+            vertical: SpaceToken.lg,
+          ),
           child: Row(
             children: [
               if (icon != null) ...[
                 Icon(icon, size: 20, color: nc.textPrimary),
-                const SizedBox(width: 14),
+                const SizedBox(width: SpaceToken.md),
               ],
               Expanded(
                 child: Text(
                   label,
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: FontToken.body,
                     color: nc.textPrimary,
-                    fontWeight: FontWeight.w400,
+                    fontWeight: WeightToken.medium,
                   ),
                 ),
               ),
               if (trailing != null)
                 Text(
                   trailing!,
-                  style: TextStyle(fontSize: 15, color: nc.textSecondary),
+                  style: TextStyle(fontSize: FontToken.body, color: nc.textSecondary),
                 ),
-              const SizedBox(width: 4),
+              const SizedBox(width: SpaceToken.xs),
               Icon(
-                PhosphorIconsRegular.caretRight,
+                Icons.chevron_right,
                 size: 18,
-                color: nc.textSecondary.withValues(alpha: 0.5),
+                color: nc.textDisabled,
               ),
             ],
           ),

@@ -4,7 +4,6 @@ import '../core/service_locator.dart';
 import '../models/chat_message.dart';
 import '../services/crypto_util.dart';
 import '../services/mcp_manager.dart';
-import '../tools/mcp_tool_adapter.dart';
 import '../tools/tools.dart';
 
 /// 安全读取环境变量，测试环境未加载 dotenv 时返回空字符串。
@@ -40,8 +39,6 @@ void registerAllTools(ToolRegistry registry) {
   registry.register(ContextDocTool());
   registry.register(VirtualFSTool());
   registry.register(SkillManageTool());
-  registry.register(ShellTool());
-  registry.register(SandboxStatusTool());
 
   // 工具发现层（本身也是预加载工具）
   registry.register(ToolSearchTool(registry: registry));
@@ -161,6 +158,10 @@ String toolLabel(String name, {Map<String, dynamic>? arguments, bool detailed = 
       return '获取时间';
     case 'ask_user':
       return '询问用户';
+    case 'delegate_task':
+      final agent = arguments?['agent'] as String?;
+      final who = (agent != null && agent.isNotEmpty) ? '给「$agent」' : '';
+      return '派发任务$who';
     default:
       return name;
   }

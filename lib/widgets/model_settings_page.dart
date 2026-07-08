@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
+import '../core/design_tokens.dart';
 import '../core/service_locator.dart';
+import '../widgets/common_widgets.dart';
 import 'ai_settings_sheet.dart';
 
 class ModelSettingsView extends StatefulWidget {
@@ -13,7 +14,6 @@ class ModelSettingsView extends StatefulWidget {
 
 class _ModelSettingsViewState extends State<ModelSettingsView> {
   final _aiSettings = getIt<AISettings>();
-  bool _loaded = false;
 
   static const _thinkingOptions = [
     ('low', '低'),
@@ -94,7 +94,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
                   style: TextStyle(fontSize: 12, color: nc.textSecondary),
                 ),
                 trailing: _aiSettings.thinkingEffort == o.$1
-                    ? Icon(PhosphorIconsRegular.check, color: nc.success)
+                    ? Icon(Icons.check, color: nc.success)
                     : null,
                 onTap: () {
                   setState(() => _aiSettings.thinkingEffort = o.$1);
@@ -167,7 +167,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
                           style: TextStyle(fontSize: 12, color: nc.textSecondary),
                         ),
                         trailing: _aiSettings.contextWindowSize == o.$1
-                            ? Icon(PhosphorIconsRegular.check, color: nc.success)
+                            ? Icon(Icons.check, color: nc.success)
                             : null,
                         onTap: () {
                           setState(() => _aiSettings.contextWindowSize = o.$1);
@@ -250,7 +250,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
   @override
   void initState() {
     super.initState();
-    _aiSettings.load().then((_) => setState(() => _loaded = true));
+    _aiSettings.load().then((_) => setState(() {}));
   }
 
   @override
@@ -260,22 +260,13 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
 
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      appBar: AppTopBar(
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_new, color: nc.textPrimary, size: 22),
           onPressed: () => Navigator.pop(context),
+          tooltip: '返回',
         ),
-        title: Text(
-          '模型',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
+        title: '模型',
       ),
       body: ListView(
         physics: const BouncingScrollPhysics(),
@@ -286,7 +277,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
             nc: nc,
             children: [
               _SettingItem(
-                icon: PhosphorIconsRegular.checkCircle,
+                icon: Icons.check_circle_outline,
                 label: 'AI 厂商',
                 trailing: vendor?.name ?? '未配置',
                 onTap: () {
@@ -299,23 +290,24 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
                 },
               ),
               _SettingItem(
-                icon: PhosphorIconsRegular.robot,
+                icon: Icons.smart_toy_outlined,
                 label: '对话模型',
                 trailing: vendor?.model.isNotEmpty == true
                     ? vendor!.model
                     : '未设置',
                 onTap: () {
                   HapticFeedback.lightImpact();
-                  if (vendor != null)
+                  if (vendor != null) {
                     showModelPicker(
                       context,
                       _aiSettings,
                       () => setState(() {}),
                     );
+                  }
                 },
               ),
               _SettingItem(
-                icon: PhosphorIconsRegular.brain,
+                icon: Icons.psychology,
                 label: '思考强度',
                 trailing: _thinkingLabel(_aiSettings.thinkingEffort),
                 onTap: () {
@@ -324,7 +316,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
                 },
               ),
               _SettingItem(
-                icon: PhosphorIconsRegular.appWindow,
+                icon: Icons.apps,
                 label: '上下文窗口',
                 trailing: _contextWindowLabel(_aiSettings.contextWindowSize),
                 onTap: () {
@@ -365,14 +357,7 @@ class _RoundedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: nc.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: nc.divider, width: 0.5),
-      ),
-      child: Column(children: children),
-    );
+    return ElevatedCard(nc: nc, child: Column(children: children));
   }
 }
 
@@ -395,9 +380,11 @@ class _SettingItem extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap ?? () {},
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: nc.fillTertiary,
         borderRadius: BorderRadius.zero,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: SpaceToken.lg, vertical: SpaceToken.md),
           child: Row(
             children: [
               Icon(icon, size: 20, color: nc.textPrimary),
@@ -419,7 +406,7 @@ class _SettingItem extends StatelessWidget {
                 ),
               const SizedBox(width: 4),
               Icon(
-                PhosphorIconsRegular.caretRight,
+                Icons.chevron_right,
                 size: 18,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),

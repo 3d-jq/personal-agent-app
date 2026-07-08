@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import 'common_widgets.dart';
 import '../models/reminder.dart';
 import '../core/service_locator.dart';
 import '../services/reminder_storage.dart';
@@ -49,28 +49,19 @@ class _RemindersViewState extends State<RemindersView> {
 
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      appBar: AppTopBar(
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_new, color: nc.textPrimary, size: 22),
           onPressed: () => Navigator.pop(context),
+          tooltip: '返回',
         ),
-        title: Text(
-          '定时任务',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
+        title: '定时任务',
       ),
       body: !_loaded
           ? StatePlaceholder.loading()
           : _reminders.isEmpty
           ? StatePlaceholder.empty(
-              icon: PhosphorIconsRegular.alarm,
+              icon: Icons.alarm,
               title: '没有定时任务',
               subtitle: '在聊天中让 DWeis 帮你设置提醒',
             )
@@ -97,15 +88,12 @@ class _RemindersViewState extends State<RemindersView> {
         ? '已过期'
         : '等待中';
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: nc.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: nc.divider, width: 0.5),
-      ),
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: ElevatedCard(
+        nc: nc,
+        padding: const EdgeInsets.all(16),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -156,7 +144,7 @@ class _RemindersViewState extends State<RemindersView> {
           Row(
             children: [
               Icon(
-                PhosphorIconsRegular.clock,
+                Icons.access_time,
                 size: 14,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),
@@ -197,6 +185,7 @@ class _RemindersViewState extends State<RemindersView> {
             ],
           ),
         ],
+      ),
       ),
     );
   }

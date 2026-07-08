@@ -1,6 +1,3 @@
-import '../services/ai_service.dart';
-import '../tools/base_tool.dart';
-
 /// 一个 Agent 定义：角色 + 性格 + 工具 + 模型
 class Agent {
   final String id;
