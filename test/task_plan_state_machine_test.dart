@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:personal_agent_app/core/service_locator.dart';
 import 'package:personal_agent_app/tools/task_plan_tool.dart';
 import 'package:personal_agent_app/tools/task_plan_state_machine.dart';
 
@@ -9,6 +10,19 @@ TaskPlanStateMachine _sm(List<TaskNode> tasks, {String title = 'Test Plan'}) {
 }
 
 void main() {
+  /// 本文件被测代码（TaskPlanStateMachine）本身无任何全局状态，
+  /// 但在全量测试中偶发失败（其他测试的全局状态污染）。
+  /// 此处显式重置 getIt / ForegroundService 等全局容器，
+  /// 确保每次 setUp 都从干净状态开始，消除跨测试污染。
+  setUp(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    await resetDependencies();
+    await configureDependencies();
+  });
+
+  tearDown(() async {
+    await resetDependencies();
+  });
   // ── Create-time validation ──────────────────────────────────────────
 
   group('TaskPlanStateMachine validateCreate', () {

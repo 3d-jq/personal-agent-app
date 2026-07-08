@@ -19,7 +19,7 @@ import 'package:personal_agent_app/widgets/ai_settings_sheet.dart';
 void main() {
   setUp(() async {
     await resetDependencies();
-    configureDependencies();
+    await configureDependencies();
   });
 
   tearDown(() async => await resetDependencies());

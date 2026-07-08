@@ -3,13 +3,17 @@ import 'package:personal_agent_app/controllers/chat_controller.dart';
 import 'package:personal_agent_app/core/service_locator.dart';
 import 'package:personal_agent_app/models/chat_session.dart';
 import 'package:personal_agent_app/services/chat_storage.dart';
+import 'package:personal_agent_app/services/storage/app_database.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  sqfliteFfiInit();
 
   setUp(() async {
     await resetDependencies();
-    configureDependencies();
+    await AppDatabase.instance.initializeForTest(databaseFactoryFfi);
+    await configureDependencies();
   });
 
   tearDown(() async => await resetDependencies());
