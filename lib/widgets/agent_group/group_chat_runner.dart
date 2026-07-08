@@ -77,6 +77,7 @@ Future<String> runGroupAgentMessage({
       groupDesc: groupDesc,
       thinkingEffort: thinkingEffort,
       dispatchTool: dispatchTool,
+      isGroupChat: true,
     );
     final completer = Completer<void>();
     sub = stream.listen(

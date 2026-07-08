@@ -7,7 +7,7 @@ void main() {
   tearDown(() async => await resetDependencies());
 
   testWidgets('App loads successfully', (WidgetTester tester) async {
-    configureDependencies();
+    await configureDependencies();
     // 预选一个厂商，避免 App 初始化时触发保存文件（测试环境无 path_provider）
     getIt<AISettings>().selectedVendorId = 'Agnes-2.0-Flash';
 

@@ -43,7 +43,7 @@ void main() {
   setUp(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     await resetDependencies();
-    configureDependencies();
+    await configureDependencies();
     getIt.unregister<AISettings>();
     getIt.registerSingleton<AISettings>(_FakeAISettings());
     getIt.unregister<AgentGroupStorage>();

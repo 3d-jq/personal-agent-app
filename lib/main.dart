@@ -10,13 +10,16 @@ import 'core/service_locator.dart';
 import 'services/connectivity_service.dart';
 import 'services/foreground_service.dart';
 import 'services/mcp_manager.dart';
+import 'services/storage/db_migration.dart';
 import 'tools/skill_registry.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   ErrorHandler.init();
   ErrorWidget.builder = ErrorHandler.buildErrorWidget;
-  configureDependencies();
+  await configureDependencies();
+  // 从旧 JSON 文件迁移数据到 SQLite（首次启动执行，幂等，失败不阻塞启动）
+  unawaited(DbMigration.run());
 
   await runZonedGuarded(() async {
     await dotenv.load();

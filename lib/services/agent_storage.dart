@@ -2,21 +2,20 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:uuid/uuid.dart';
 import '../models/agent.dart';
 import '../widgets/agent_group/agent_group_theme.dart' show filterAgentTools;
+import 'storage/app_database.dart';
 import 'storage/cached_repository.dart';
-import 'storage/json_file_data_source.dart';
+import 'storage/sqlite_data_source.dart';
 
 /// Agent 库：管理所有用户可见的 Agent（内置 + 自定义）
 class AgentStorage {
   AgentStorage()
     : _repo = CachedRepository<Agent>(
-        dataSource: JsonFileDataSource<Agent>(
-          relativePath: 'agents.json',
-          fromJson: (list) =>
-              list
-                  .map((j) => Agent.fromJson(j as Map<String, dynamic>))
-                  .toList()
-                ..sort((a, b) => a.name.compareTo(b.name)),
-          toJson: (items) => items.map((e) => e.toJson()).toList(),
+        dataSource: SqliteDataSource<Agent>(
+          table: 'agents',
+          db: AppDatabase.instance,
+          toJson: (a) => a.toJson(),
+          fromJson: (j) => Agent.fromJson(j),
+          idOf: (a) => a.id,
         ),
       );
 
@@ -24,6 +23,7 @@ class AgentStorage {
 
   Future<List<Agent>> loadAll() async {
     final all = await _repo.loadAll();
+    all.sort((a, b) => a.name.compareTo(b.name));
     if (all.isEmpty) {
       await _seedIfEmpty();
       return _repo.current;

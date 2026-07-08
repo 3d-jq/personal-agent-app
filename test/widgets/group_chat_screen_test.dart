@@ -41,7 +41,7 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
     await resetDependencies();
     // 保留其余真实 service，仅替换屏幕加载所需的三个依赖
-    configureDependencies();
+    await configureDependencies();
     getIt.unregister<AISettings>();
     getIt.registerSingleton<AISettings>(_FakeAISettings());
     getIt.unregister<AgentGroupStorage>();

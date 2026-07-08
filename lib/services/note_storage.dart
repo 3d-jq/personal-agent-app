@@ -1,25 +1,19 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/note.dart';
+import 'storage/app_database.dart';
 import 'storage/cached_repository.dart';
-import 'storage/json_file_data_source.dart';
+import 'storage/sqlite_data_source.dart';
 
 class NoteStorage extends ChangeNotifier {
   NoteStorage()
     : _repo = CachedRepository<Note>(
-        dataSource: JsonFileDataSource<Note>(
-          relativePath: 'notes.json',
-          fromJson: (list) {
-            final notes = <Note>[];
-            for (final item in list) {
-              if (item is Map) {
-                notes.add(Note.fromJson(Map<String, dynamic>.from(item)));
-              }
-            }
-            notes.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-            return notes;
-          },
-          toJson: (items) => items.map((e) => e.toJson()).toList(),
+        dataSource: SqliteDataSource<Note>(
+          table: 'notes',
+          db: AppDatabase.instance,
+          toJson: (n) => n.toJson(),
+          fromJson: (j) => Note.fromJson(j),
+          idOf: (n) => n.id,
         ),
       ) {
     _repo.addListener(notifyListeners);

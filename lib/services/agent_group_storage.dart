@@ -1,25 +1,28 @@
 import '../models/agent_group.dart';
+import 'storage/app_database.dart';
 import 'storage/cached_repository.dart';
-import 'storage/json_file_data_source.dart';
+import 'storage/sqlite_data_source.dart';
 
 /// Agent 群存储：所有常驻群落盘
 class AgentGroupStorage {
   AgentGroupStorage()
     : _repo = CachedRepository<AgentGroup>(
-        dataSource: JsonFileDataSource<AgentGroup>(
-          relativePath: 'agent_groups.json',
-          fromJson: (list) =>
-              list
-                  .map((j) => AgentGroup.fromJson(j as Map<String, dynamic>))
-                  .toList()
-                ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)),
-          toJson: (items) => items.map((e) => e.toJson()).toList(),
+        dataSource: SqliteDataSource<AgentGroup>(
+          table: 'agent_groups',
+          db: AppDatabase.instance,
+          toJson: (g) => g.toJson(),
+          fromJson: (j) => AgentGroup.fromJson(j),
+          idOf: (g) => g.id,
         ),
       );
 
   final CachedRepository<AgentGroup> _repo;
 
-  Future<List<AgentGroup>> loadAll() => _repo.loadAll();
+  Future<List<AgentGroup>> loadAll() async {
+    final all = await _repo.loadAll();
+    all.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    return all;
+  }
 
   Future<void> save(AgentGroup g) async {
     g.updatedAt = DateTime.now();
