@@ -49,6 +49,7 @@ class GroupMessageBubble extends StatelessWidget {
     if (!msg.isUser &&
         !msg.isStreaming &&
         speaker != null &&
+        msg.plan == null &&
         msg.text.trim().isEmpty &&
         (msg.steps == null || msg.steps!.isEmpty)) {
       return const SizedBox.shrink();

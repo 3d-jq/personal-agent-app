@@ -89,7 +89,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
         // Apple HIG：底部输入栏毛玻璃材质
         ClipRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
               child: Container(

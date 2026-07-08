@@ -184,11 +184,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               children: [
                 // ── Agent 状态栏 ──
                 if (_controller.busy || _controller.participatedAgents.isNotEmpty)
-                  GroupStatusBar(
-                    members: _controller.members,
-                    agentStatus: _controller.agentStatus,
-                    discussionRound: _controller.discussionRound,
-                    participatedAgents: _controller.participatedAgents,
+                  RepaintBoundary(
+                    child: GroupStatusBar(
+                      members: _controller.members,
+                      agentStatus: _controller.agentStatus,
+                      discussionRound: _controller.discussionRound,
+                      participatedAgents: _controller.participatedAgents,
+                    ),
                   ),
                 Expanded(
                   child: _controller.messages.isEmpty
