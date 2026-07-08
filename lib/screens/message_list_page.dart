@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-
 import '../core/agent_colors.dart';
+import '../core/design_tokens.dart';
 import '../core/app_router.dart';
 import '../core/service_locator.dart';
 import '../models/agent.dart';
@@ -14,7 +12,7 @@ import '../services/chat_storage.dart';
 import '../widgets/common_widgets.dart';
 import '../widgets/state_placeholder.dart';
 
-/// 消息列表页面（类似微信聊天列表）
+/// 消息列表页面（类似微信聊天列表，极简对话式升级）
 class MessageListPage extends StatefulWidget {
   const MessageListPage({super.key});
 
@@ -100,21 +98,16 @@ class _MessageListPageState extends State<MessageListPage> {
 
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: nc.background.withValues(alpha: 0.85),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: Text(
-          '消息',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: nc.textPrimary,
-          ),
+      appBar: AppTopBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new),
+          color: nc.textPrimary,
+          onPressed: () => Navigator.of(context).pop(),
         ),
+        title: '消息',
         actions: [
           IconButton(
-            icon: Icon(PhosphorIconsRegular.plusCircle, color: nc.textPrimary),
+            icon: Icon(Icons.add_circle_outline, color: nc.textPrimary),
             onPressed: _showAddMenu,
           ),
         ],
@@ -123,7 +116,7 @@ class _MessageListPageState extends State<MessageListPage> {
           ? StatePlaceholder.loading()
           : _items.isEmpty
               ? StatePlaceholder.empty(
-                  icon: PhosphorIconsRegular.chatCircle,
+                  icon: Icons.chat_bubble_outline,
                   title: '暂无消息',
                   subtitle: '点击右上角 + 创建群聊，或到 Agent 页面开始聊天',
                 )
@@ -143,10 +136,10 @@ class _MessageListPageState extends State<MessageListPage> {
                             : DismissDirection.none,
                         background: Container(
                           alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
+                          padding: const EdgeInsets.only(right: SpaceToken.xl),
                           color: nc.error,
                           child: Icon(
-                            PhosphorIconsRegular.trash,
+                            Icons.delete,
                             color: Colors.white,
                             size: 20,
                           ),
@@ -211,7 +204,7 @@ class _MessageListPageState extends State<MessageListPage> {
     final nc = AgentColors.of(context);
     showAddMenu(context, nc, [
       AddMenuItem(
-        icon: PhosphorIconsRegular.users,
+        icon: Icons.group,
         label: '创建群聊',
         nc: nc,
         onTap: () async {
@@ -275,7 +268,7 @@ class _MessageTileState extends State<_MessageTile>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: MotionToken.normal,
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
@@ -307,31 +300,39 @@ class _MessageTileState extends State<_MessageTile>
           color: Colors.transparent,
           child: InkWell(
             onTap: widget.onTap,
+            splashFactory: NoSplash.splashFactory,
+            highlightColor: nc.fillTertiary,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(
+                horizontal: SpaceToken.lg,
+                vertical: SpaceToken.md,
+              ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 头像
+                  // 圆形头像
                   Container(
                     width: 48,
                     height: 48,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: item.isGroup ? nc.primary : nc.primarySurface,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(RadiusToken.pill),
                     ),
                     child: item.isGroup
-                        ? Icon(PhosphorIconsRegular.users, size: 24, color: Colors.white)
+                        ? Icon(Icons.group, size: 24, color: Colors.white)
                         : Text(
-                            item.avatar.isNotEmpty ? item.avatar : item.name.characters.first,
+                            item.avatar.isNotEmpty
+                                ? item.avatar
+                                : item.name.characters.first,
                             style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
+                              fontSize: FontToken.title,
+                              fontWeight: WeightToken.medium,
                               color: nc.textPrimary,
                             ),
                           ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: SpaceToken.md),
                   // 消息内容
                   Expanded(
                     child: Column(
@@ -343,8 +344,8 @@ class _MessageTileState extends State<_MessageTile>
                               child: Text(
                                 item.name,
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                                  fontSize: FontToken.title,
+                                  fontWeight: WeightToken.medium,
                                   color: nc.textPrimary,
                                 ),
                                 maxLines: 1,
@@ -354,21 +355,27 @@ class _MessageTileState extends State<_MessageTile>
                             Text(
                               _formatTime(item.time),
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: FontToken.caption,
                                 color: nc.textSecondary,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: SpaceToken.xs),
                         Text(
                           item.lastMessage,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: FontToken.body,
                             color: nc.textSecondary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: SpaceToken.md),
+                        Divider(
+                          height: 0.5,
+                          thickness: 0.5,
+                          color: nc.divider,
                         ),
                       ],
                     ),
@@ -393,46 +400,5 @@ class _MessageTileState extends State<_MessageTile>
     if (diff.inHours > 0) return '${diff.inHours}小时前';
     if (diff.inMinutes > 0) return '${diff.inMinutes}分钟前';
     return '刚刚';
-  }
-}
-
-/// 添加菜单项
-class _AddMenuItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final AgentColors nc;
-  final VoidCallback onTap;
-
-  const _AddMenuItem({
-    required this.icon,
-    required this.label,
-    required this.nc,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Icon(icon, size: 20, color: nc.primary),
-              const SizedBox(width: 12),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: nc.textPrimary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

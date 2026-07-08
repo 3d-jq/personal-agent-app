@@ -18,7 +18,6 @@ import '../services/context_doc_service.dart';
 import '../services/history_manager.dart';
 import '../services/notification_service.dart';
 import '../services/typewriter_buffer.dart';
-import '../tools/task_plan_tool.dart';
 import '../tools/tools.dart';
 import '../widgets/ai_settings_sheet.dart';
 
@@ -135,8 +134,7 @@ class ChatController extends ChangeNotifier {
 
   Future<void> loadSession(String id) async {
     _sessionId = id;
-    final sessions = await _chatStorage.loadAll();
-    final session = sessions.where((s) => s.id == id).firstOrNull;
+    final session = await _chatStorage.loadSession(id);
     _messages = session?.messages.toList() ?? [];
     _notify();
   }
@@ -158,7 +156,6 @@ class ChatController extends ChangeNotifier {
         updatedAt: DateTime.now(),
       ),
     );
-    _chatStorage.clearCache();
     _sessions = await _chatStorage.loadChatSessions();
     _notify();
   }
@@ -234,15 +231,22 @@ class ChatController extends ChangeNotifier {
     String? attachmentBase64;
     String? attachmentName;
     if (_pendingAttachment != null) {
-      final bytes = await _pendingAttachment!.readAsBytes();
-      attachmentBase64 = base64Encode(bytes);
-      attachmentName = _pendingAttachment!.path
-          .split(Platform.pathSeparator)
-          .last;
-      final typeLabel = _pendingAttachmentType == 'image' ? '图片' : '文档';
-      displayText = trimmed.isEmpty
-          ? '[附件: $typeLabel $attachmentName]'
-          : '$trimmed\n[附件: $typeLabel $attachmentName]';
+      try {
+        final bytes = await _pendingAttachment!.readAsBytes();
+        attachmentBase64 = base64Encode(bytes);
+        attachmentName = _pendingAttachment!.path
+            .split(Platform.pathSeparator)
+            .last;
+        final typeLabel = _pendingAttachmentType == 'image' ? '图片' : '文档';
+        displayText = trimmed.isEmpty
+            ? '[附件: $typeLabel $attachmentName]'
+            : '$trimmed\n[附件: $typeLabel $attachmentName]';
+      } catch (e) {
+        // 附件读取失败（文件损坏/权限问题）：忽略附件继续发送文本，避免崩溃
+        debugPrint('附件读取失败，已忽略: $e');
+        attachmentBase64 = null;
+        attachmentName = null;
+      }
     }
 
     final contextDocs = getIt<ContextDocService>();
@@ -413,51 +417,15 @@ class ChatController extends ChangeNotifier {
             detail: '工具: $name',
           ),
         );
-        if (name == 'generate_image' || name == 'generate_video') {
-          getIt<NotificationService>().startTask(
-            id: name,
-            title: _toolLabel(name),
-            message: '准备中…',
-          );
-        }
+        _startToolMediaNotification(name);
         break;
       case ToolDoneEvent(:final name):
-        final idx = state.steps.lastIndexWhere(
-          (s) =>
-              s.type == TimelineStepType.tool &&
-              s.status == TimelineStepStatus.running &&
-              s.detail == '工具: $name',
-        );
-        if (idx >= 0) {
-          state.steps[idx].status = TimelineStepStatus.done;
-          state.steps[idx].detail = '执行成功';
-        }
-        if (name == 'generate_image' || name == 'generate_video') {
-          getIt<NotificationService>().complete(
-            id: name,
-            title: _toolLabel(name),
-            message: '已完成',
-          );
-        }
+        _markToolStep(state.steps, name, TimelineStepStatus.done, '执行成功');
+        _notifyToolMedia(name, success: true);
         break;
       case ToolErrorEvent(:final name, :final message):
-        final idx = state.steps.lastIndexWhere(
-          (s) =>
-              s.type == TimelineStepType.tool &&
-              s.status == TimelineStepStatus.running &&
-              s.detail == '工具: $name',
-        );
-        if (idx >= 0) {
-          state.steps[idx].status = TimelineStepStatus.error;
-          state.steps[idx].detail = message;
-        }
-        if (name == 'generate_image' || name == 'generate_video') {
-          getIt<NotificationService>().complete(
-            id: name,
-            title: _toolLabel(name),
-            message: '执行失败',
-          );
-        }
+        _markToolStep(state.steps, name, TimelineStepStatus.error, message);
+        _notifyToolMedia(name, success: false);
         break;
       case ToolMediaEvent(:final url):
         final text = '\n$url\n';
@@ -497,7 +465,8 @@ class ChatController extends ChangeNotifier {
     }
     aiMsg.text = state.typewriter.visibleText;
     aiMsg.steps = List.unmodifiable(state.steps);
-    _notify();
+    // 文本/步骤变化已由 ChatMessage(ChangeNotifier) 局部通知气泡，
+    // 这里不再 _notify() 触发整个消息列表重建（消除流式期间冗余双通知）。
     onNeedScroll?.call();
   }
 
@@ -512,7 +481,7 @@ class ChatController extends ChangeNotifier {
 
   void _ensureTypewriterTimer(_StreamState state, ChatMessage aiMsg) {
     if (state.typewriterTimer != null) return;
-    state.typewriterTimer = Timer.periodic(const Duration(milliseconds: 24), (_) {
+    state.typewriterTimer = Timer.periodic(const Duration(milliseconds: 50), (_) {
       if (!state.typewriter.hasPending) {
         state.typewriterTimer?.cancel();
         state.typewriterTimer = null;
@@ -523,7 +492,8 @@ class ChatController extends ChangeNotifier {
       }
       state.typewriter.revealNext();
       aiMsg.text = state.typewriter.visibleText;
-      _notify();
+      // aiMsg 自身是 ChangeNotifier，_AIBubble 已监听它做局部刷新，
+      // 这里不再需要触发 Controller 全局重建。
       onNeedScroll?.call();
     });
   }
@@ -589,8 +559,9 @@ class ChatController extends ChangeNotifier {
     if (state.steps.isEmpty) return;
     final last = state.steps.last;
     if (last.type != TimelineStepType.thinking ||
-        last.status != TimelineStepStatus.running)
+        last.status != TimelineStepStatus.running) {
       return;
+    }
 
     // 优先用大模型的 reasoning_content，否则用正文增量作为兜底
     String text;
@@ -633,7 +604,7 @@ class ChatController extends ChangeNotifier {
         plan.tasks.every(
           (t) => t.status == TaskStatus.done || t.status == TaskStatus.failed,
         );
-    final waitingVerify = allDoneOrFailed && !(plan?.verified ?? false);
+    final waitingVerify = allDoneOrFailed && !plan.verified;
     if (state.steps.isNotEmpty) {
       if (state.steps.last.type == TimelineStepType.thinking) {
         state.steps.last.label = waitingVerify ? '等待校验' : '任务完成';
@@ -687,6 +658,49 @@ class ChatController extends ChangeNotifier {
   }
 
   String _toolLabel(String name) => toolLabel(name);
+
+  /// 将正在运行、且匹配 [name] 的工具步骤更新为 [status] / [detail]。
+  ///
+  /// 用于 ToolDone / ToolError 事件复用同一查找逻辑，避免三处重复。
+  void _markToolStep(
+    List<TimelineStep> steps,
+    String name,
+    TimelineStepStatus status,
+    String detail,
+  ) {
+    final idx = steps.lastIndexWhere(
+      (s) =>
+          s.type == TimelineStepType.tool &&
+          s.status == TimelineStepStatus.running &&
+          s.detail == '工具: $name',
+    );
+    if (idx >= 0) {
+      steps[idx].status = status;
+      steps[idx].detail = detail;
+    }
+  }
+
+  /// 图片 / 视频生成工具开始时推送一条"准备中"通知。
+  void _startToolMediaNotification(String name) {
+    if (name == 'generate_image' || name == 'generate_video') {
+      getIt<NotificationService>().startTask(
+        id: name,
+        title: _toolLabel(name),
+        message: '准备中…',
+      );
+    }
+  }
+
+  /// 图片 / 视频生成工具结束（成功或失败）时收尾通知。
+  void _notifyToolMedia(String name, {required bool success}) {
+    if (name == 'generate_image' || name == 'generate_video') {
+      getIt<NotificationService>().complete(
+        id: name,
+        title: _toolLabel(name),
+        message: success ? '已完成' : '执行失败',
+      );
+    }
+  }
 
   /// 只结束 running 状态的「思考」步骤，不影响正在并行执行的工具步骤。
   void _finishThinkingSteps(List<TimelineStep> steps) {

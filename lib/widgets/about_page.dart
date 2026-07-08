@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
+import '../core/design_tokens.dart';
 import '../core/app_config.dart';
+import 'common_widgets.dart';
 
 class AboutView extends StatelessWidget {
   const AboutView({super.key});
@@ -13,22 +14,13 @@ class AboutView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+      appBar: AppTopBar(
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_new, color: nc.textPrimary, size: 22),
           onPressed: () => Navigator.pop(context),
+          tooltip: '返回',
         ),
-        title: Text(
-          '关于',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
+        title: '关于',
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -67,27 +59,27 @@ class AboutView extends StatelessWidget {
             nc: nc,
             children: [
               _CapabilityItem(
-                icon: PhosphorIconsRegular.chatTeardropText,
+                icon: Icons.chat_bubble_outline,
                 label: 'AI 对话',
                 nc: nc,
               ),
               _CapabilityItem(
-                icon: PhosphorIconsRegular.image,
+                icon: Icons.image,
                 label: '图片生成',
                 nc: nc,
               ),
               _CapabilityItem(
-                icon: PhosphorIconsRegular.videoCamera,
+                icon: Icons.videocam,
                 label: '视频生成',
                 nc: nc,
               ),
-              _CapabilityItem(icon: PhosphorIconsRegular.globe, label: '网页搜索', nc: nc),
+              _CapabilityItem(icon: Icons.public, label: '网页搜索', nc: nc),
               _CapabilityItem(
-                icon: PhosphorIconsRegular.bookmarkSimple,
+                icon: Icons.bookmark_border,
                 label: '记忆系统',
                 nc: nc,
               ),
-              _CapabilityItem(icon: PhosphorIconsRegular.notebook, label: '笔记管理', nc: nc),
+              _CapabilityItem(icon: Icons.note, label: '笔记管理', nc: nc),
             ],
           ),
           const SizedBox(height: 20),
@@ -96,7 +88,7 @@ class AboutView extends StatelessWidget {
             nc: nc,
             children: [
               _SettingItem(
-                icon: PhosphorIconsRegular.fileText,
+                icon: Icons.description,
                 label: '查看开源许可',
                 onTap: () {
                   HapticFeedback.lightImpact();
@@ -123,14 +115,7 @@ class _RoundedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: nc.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: nc.divider, width: 0.5),
-      ),
-      child: Column(children: children),
-    );
+    return ElevatedCard(nc: nc, child: Column(children: children));
   }
 }
 
@@ -214,9 +199,11 @@ class _SettingItem extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap ?? () {},
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: nc.fillTertiary,
         borderRadius: BorderRadius.zero,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: SpaceToken.lg, vertical: SpaceToken.md),
           child: Row(
             children: [
               Icon(icon, size: 20, color: nc.textPrimary),
@@ -232,7 +219,7 @@ class _SettingItem extends StatelessWidget {
                 ),
               ),
               Icon(
-                PhosphorIconsRegular.caretRight,
+                Icons.chevron_right,
                 size: 18,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),

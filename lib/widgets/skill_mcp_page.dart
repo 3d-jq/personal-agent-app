@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
+import '../widgets/common_widgets.dart';
 import 'mcp_manage_page.dart';
 import 'skill_manage_page.dart';
 
@@ -34,22 +34,13 @@ class _SkillMcpPageState extends State<SkillMcpPage>
 
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: nc.background.withValues(alpha: 0.85),
-        elevation: 0,
+      appBar: AppTopBar(
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_new, color: nc.textPrimary, size: 22),
           onPressed: () => Navigator.pop(context),
+          tooltip: '返回',
         ),
-        title: Text(
-          'Skill & MCP',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
-        centerTitle: true,
+        title: 'Skill & MCP',
         bottom: TabBar(
           controller: _tabController,
           labelColor: nc.primary,

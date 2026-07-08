@@ -1,8 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_agent_app/tools/clipboard_tool.dart';
-import 'package:personal_agent_app/tools/context_doc_tool.dart';
 import 'package:personal_agent_app/tools/tools.dart';
-import 'package:personal_agent_app/tools/weather_tool.dart';
 
 void main() {
   group('ToolRegistry', () {

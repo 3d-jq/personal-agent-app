@@ -66,7 +66,6 @@ class MessageListSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nc = AgentColors.of(context);
     return ListView.builder(
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 8,

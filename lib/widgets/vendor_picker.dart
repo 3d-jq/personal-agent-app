@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import 'ai_settings.dart';
 import 'vendor_config.dart';
@@ -128,7 +127,6 @@ class _AddVendorBody extends StatefulWidget {
 class _AddVendorBodyState extends State<_AddVendorBody> {
   @override
   Widget build(BuildContext context) {
-    final nc = AgentColors.of(context);
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -343,7 +341,7 @@ class _VendorTile extends StatelessWidget {
     final nc = AgentColors.of(context);
     return ListTile(
       leading: Icon(
-        isSelected ? PhosphorIconsRegular.checkCircle : PhosphorIconsRegular.circle,
+        isSelected ? Icons.check_circle_outline : Icons.circle_outlined,
         color: isSelected ? nc.success : nc.textSecondary,
         size: 22,
       ),
@@ -387,7 +385,7 @@ class _VendorTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: Icon(PhosphorIconsRegular.pencilSimple, size: 18, color: nc.textSecondary),
+            icon: Icon(Icons.edit, size: 18, color: nc.textSecondary),
             onPressed: () {
               HapticFeedback.lightImpact();
               onEdit();
@@ -395,7 +393,7 @@ class _VendorTile extends StatelessWidget {
           ),
           if (!vendor.isBuiltIn)
             IconButton(
-              icon: Icon(PhosphorIconsRegular.trash, size: 18, color: nc.error),
+              icon: Icon(Icons.delete, size: 18, color: nc.error),
               onPressed: () {
                 HapticFeedback.lightImpact();
                 onDelete();
@@ -419,7 +417,7 @@ class _AddVendorTile extends StatelessWidget {
     final nc = AgentColors.of(context);
     return ListTile(
       leading: Icon(
-        PhosphorIconsRegular.plusCircle,
+        Icons.add_circle_outline,
         color: nc.textSecondary,
         size: 22,
       ),

@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_agent_app/services/ai_service_anthropic.dart';
-import 'package:personal_agent_app/services/ai_service_base.dart';
 import 'package:personal_agent_app/services/chat_stream_event.dart';
 import 'package:personal_agent_app/tools/tool_registry.dart';
 import 'package:personal_agent_app/tools/base_tool.dart';
@@ -287,8 +286,8 @@ void _parseAnthropicSSEWithToolCalls(
           }
           outToolCalls.add(
             ToolCall(
-              id: currentToolId!,
-              name: currentToolName!,
+              id: currentToolId,
+              name: currentToolName,
               arguments: args,
             ),
           );

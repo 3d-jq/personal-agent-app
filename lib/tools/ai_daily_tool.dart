@@ -30,8 +30,9 @@ class AiDailyTool extends AgentTool {
       final response = await _dio.get(
         'https://aihot.virxact.com/api/public/daily',
       );
-      if (response.statusCode != 200)
+      if (response.statusCode != 200) {
         return '获取AI信息失败 (${response.statusCode})';
+      }
       return jsonEncode(response.data);
     } on DioException {
       return '获取AI信息失败';

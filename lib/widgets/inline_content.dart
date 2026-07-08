@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
@@ -18,6 +17,8 @@ List<Widget> buildInlineContent(
   AgentColors nc,
   BuildContext context,
 ) {
+  final mq = MediaQuery.of(context);
+  final maxImagePixels = (mq.size.width * mq.devicePixelRatio).round();
   final widgets = <Widget>[];
   final seenUrls = <String>{};
   final pattern = RegExp(r'!\[.*?\]\((https?://[^\s)]+|file://[^\s)]+)\)');
@@ -27,25 +28,25 @@ List<Widget> buildInlineContent(
     if (match.start > lastEnd) {
       final before = text.substring(lastEnd, match.start).trim();
       if (before.isNotEmpty) {
-        widgets.add(mdBlock(before, nc, context));
+        widgets.add(RepaintBoundary(child: mdBlock(before, nc, context)));
       }
     }
     final url = match.group(1)!;
     if (seenUrls.add(url)) {
-      widgets.add(_mediaWidget(url, nc, context));
+      widgets.add(RepaintBoundary(child: _mediaWidget(url, nc, context, maxImagePixels)));
     }
     lastEnd = match.end;
   }
   if (lastEnd < text.length) {
     final after = text.substring(lastEnd).trim();
     if (after.isNotEmpty) {
-      widgets.add(mdBlock(after, nc, context));
+      widgets.add(RepaintBoundary(child: mdBlock(after, nc, context)));
     }
   }
   return widgets;
 }
 
-Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
+Widget _mediaWidget(String url, AgentColors nc, BuildContext context, int maxCacheWidth) {
   final isLocal = url.startsWith('file://');
   final filePath = isLocal ? url.replaceFirst('file://', '') : url;
   final isVideo =
@@ -82,7 +83,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
-                      PhosphorIconsRegular.play,
+                      Icons.play_arrow,
                       size: 30,
                       color: Colors.white,
                     ),
@@ -128,7 +129,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                   File(filePath),
                   fit: BoxFit.contain,
                   width: double.infinity,
-                  cacheWidth: 1080,
+                  cacheWidth: maxCacheWidth,
                   errorBuilder: (ctx, err, stack) => Container(
                     height: 160,
                     decoration: BoxDecoration(
@@ -140,7 +141,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            PhosphorIconsRegular.imageBroken,
+                            Icons.broken_image,
                             size: 32,
                             color: nc.textSecondary.withValues(alpha: 0.3),
                           ),
@@ -161,7 +162,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                   imageUrl: url,
                   fit: BoxFit.contain,
                   width: double.infinity,
-                  memCacheWidth: 1080,
+                  memCacheWidth: maxCacheWidth,
                   placeholder: (ctx, url) => Container(
                     height: 200,
                     decoration: BoxDecoration(
@@ -175,7 +176,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              PhosphorIconsRegular.image,
+                              Icons.image,
                               size: 28,
                               color: nc.textSecondary.withValues(alpha: 0.25),
                             ),
@@ -204,7 +205,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            PhosphorIconsRegular.imageBroken,
+                            Icons.broken_image,
                             size: 32,
                             color: nc.textSecondary.withValues(alpha: 0.3),
                           ),
@@ -230,13 +231,14 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context) {
 Widget mdBlock(String text, AgentColors nc, [BuildContext? context]) {
   return MarkdownBody(
     data: text,
-    selectable: true,
     onTapLink: (text, href, title) async {
-      if (href != null) {
-        final uri = Uri.tryParse(href);
-        if (uri != null && await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
+      if (href == null || href.isEmpty) return;
+      final uri = Uri.tryParse(href);
+      if (uri == null) return;
+      try {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        // 链接无法在当前环境打开时静默失败，避免抛异常中断 UI
       }
     },
     styleSheet: MarkdownStyleSheet(
@@ -279,8 +281,9 @@ Widget mdBlock(String text, AgentColors nc, [BuildContext? context]) {
       ),
       a: TextStyle(
         fontSize: 15,
-        color: nc.success,
+        color: nc.primary,
         decoration: TextDecoration.underline,
+        decorationColor: nc.primary,
       ),
       em: TextStyle(
         fontSize: 15,
@@ -361,7 +364,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
             ),
             child: Row(
               children: [
-                Icon(PhosphorIconsRegular.code, size: 13, color: nc.textSecondary),
+                Icon(Icons.code, size: 13, color: nc.textSecondary),
                 const SizedBox(width: 6),
                 Text(
                   element.attributes['class']?.toString().replaceAll(
@@ -388,7 +391,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(PhosphorIconsRegular.copy, size: 13, color: nc.textSecondary),
+                      Icon(Icons.content_copy, size: 13, color: nc.textSecondary),
                       const SizedBox(width: 4),
                       Text(
                         '复制',
@@ -498,7 +501,7 @@ class _FullscreenImageState extends State<_FullscreenImage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(PhosphorIconsRegular.imageBroken, size: 48, color: Colors.white38),
+            Icon(Icons.broken_image, size: 48, color: Colors.white38),
             SizedBox(height: 12),
             Text('加载失败', style: TextStyle(color: Colors.white38)),
           ],
@@ -527,7 +530,7 @@ class _FullscreenImageState extends State<_FullscreenImage> {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(PhosphorIconsRegular.downloadSimple),
+                : const Icon(Icons.download),
             tooltip: '保存',
           ),
         ],
@@ -603,7 +606,7 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(PhosphorIconsRegular.downloadSimple),
+                : const Icon(Icons.download),
             tooltip: '保存',
           ),
         ],
@@ -618,7 +621,7 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      PhosphorIconsRegular.videoCamera,
+                      Icons.videocam,
                       size: 64,
                       color: Colors.white38,
                     ),
@@ -646,10 +649,11 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                       'com.example/open_file',
                     ).invokeMethod('openFile', {'path': widget.filePath});
                   } catch (e) {
-                    if (mounted)
+                    if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('无法播放: $e\n请安装视频播放器应用')),
                       );
+                    }
                   }
                 },
                 child: Container(
@@ -665,7 +669,7 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                     mainAxisSize: MainAxisSize.min,
                     children: const [
                       Icon(
-                        PhosphorIconsRegular.play,
+                        Icons.play_arrow,
                         color: Colors.white,
                         size: 24,
                       ),

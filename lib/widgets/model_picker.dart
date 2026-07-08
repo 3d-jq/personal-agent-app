@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import '../services/ai_service.dart';
 import 'ai_settings.dart';
@@ -55,17 +54,19 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
         providerName: widget.vendor.name,
         model: '',
       ).fetchModels();
-      if (mounted)
+      if (mounted) {
         setState(() {
           _fetched = m;
           _loading = false;
         });
+      }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = e.toString().replaceFirst('Exception: ', '');
           _loading = false;
         });
+      }
     }
   }
 
@@ -111,7 +112,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
                     child: Padding(
                       padding: const EdgeInsets.all(8),
                       child: Icon(
-                        PhosphorIconsRegular.arrowsClockwise,
+                        Icons.refresh,
                         size: 18,
                         color: nc.textSecondary,
                       ),
@@ -147,7 +148,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
                             ),
                           ),
                           trailing: sel
-                              ? Icon(PhosphorIconsRegular.checkCircle,
+                              ? Icon(Icons.check_circle_outline,
                                   size: 20, color: nc.success)
                               : null,
                           onTap: () {

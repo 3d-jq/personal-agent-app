@@ -7,7 +7,7 @@ void main() {
     late HistoryManager manager;
 
     setUp(() {
-      manager = const HistoryManager(
+      manager = HistoryManager(
         contextWindowSize: 100000,
         maxOutputTokens: 4096,
         bufferTokens: 20000,
@@ -17,19 +17,19 @@ void main() {
 
     group('estimateTokens', () {
       test('estimates Chinese text tokens', () {
-        final tokens = HistoryManager.estimateTokens('你好世界');
+        final tokens = manager.estimateTokens('你好世界');
         expect(tokens, greaterThan(0));
         expect(tokens, lessThanOrEqualTo(4)); // 4 chars / 2 = 2 tokens
       });
 
       test('estimates English text tokens', () {
-        final tokens = HistoryManager.estimateTokens('Hello World');
+        final tokens = manager.estimateTokens('Hello World');
         expect(tokens, greaterThan(0));
         expect(tokens, lessThanOrEqualTo(6)); // 11 chars / 4 ≈ 3 tokens
       });
 
       test('estimates mixed text tokens', () {
-        final tokens = HistoryManager.estimateTokens('你好 Hello');
+        final tokens = manager.estimateTokens('你好 Hello');
         expect(tokens, greaterThan(0));
       });
     });

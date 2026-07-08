@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import 'common_widgets.dart';
 import '../core/service_locator.dart';
 import '../services/virtual_fs.dart';
 import 'state_placeholder.dart';
@@ -98,7 +97,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
                           ),
                         ),
                         IconButton(
-                          icon: Icon(PhosphorIconsRegular.x, size: 18, color: nc.textSecondary),
+                          icon: Icon(Icons.close, size: 18, color: nc.textSecondary),
                           onPressed: () => Navigator.pop(c),
                         ),
                       ],
@@ -160,25 +159,16 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
     final nc = AgentColors.of(context);
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: AppTopBar(
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.caretLeft, size: 18, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_new, color: nc.textPrimary, size: 22),
           onPressed: () => Navigator.pop(context),
+          tooltip: '返回',
         ),
-        title: Text(
-          'AI 草稿纸',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: nc.textPrimary,
-          ),
-        ),
+        title: 'AI 草稿纸',
         actions: [
           IconButton(
-            icon: Icon(PhosphorIconsRegular.arrowsClockwise, size: 20, color: nc.textSecondary),
+            icon: Icon(Icons.refresh, size: 20, color: nc.textSecondary),
             onPressed: _load,
           ),
         ],
@@ -201,7 +191,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
 
     if (_files.isEmpty) {
       return StatePlaceholder.empty(
-        icon: PhosphorIconsRegular.bookOpen,
+        icon: Icons.menu_book,
         title: '草稿纸是空的',
         subtitle: 'AI 执行复杂任务时，中间结果会写到这里',
       );
@@ -215,10 +205,12 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
         final file = _files[i];
         return Material(
           color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => _openFile(file),
-            child: Container(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          splashFactory: NoSplash.splashFactory,
+          highlightColor: nc.fillTertiary,
+          onTap: () => _openFile(file),
+          child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
                 color: nc.surface,
@@ -226,7 +218,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
               ),
               child: Row(
                 children: [
-                  Icon(PhosphorIconsRegular.fileText, size: 18, color: nc.textSecondary),
+                  Icon(Icons.description, size: 18, color: nc.textSecondary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -234,7 +226,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
                       style: TextStyle(fontSize: 15, color: nc.textPrimary),
                     ),
                   ),
-                  Icon(PhosphorIconsRegular.caretRight, size: 16, color: nc.textSecondary.withValues(alpha: 0.5)),
+                  Icon(Icons.chevron_right, size: 16, color: nc.textSecondary.withValues(alpha: 0.5)),
                 ],
               ),
             ),

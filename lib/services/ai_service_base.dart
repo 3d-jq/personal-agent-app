@@ -132,7 +132,8 @@ Future<List<ToolResult>> executeAllTools(
         sink.add(ToolMediaEvent(result.content));
       }
       if (tc.name == 'task_plan' && result.content.isNotEmpty && !result.failed) {
-        final plan = TaskPlanTool.currentPlan;
+        final taskPlanTool = toolRegistry.get('task_plan');
+        final plan = taskPlanTool is TaskPlanTool ? taskPlanTool.currentPlan : null;
         if (plan != null) {
           sink.add(TaskPlanEvent(
             title: plan.title,

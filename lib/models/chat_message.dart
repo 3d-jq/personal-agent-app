@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 // ── Message ──
 
 class ChatMessage extends ChangeNotifier {
+  final String id;
   String _text;
   final bool isUser;
   bool _isStreaming;
@@ -27,6 +29,7 @@ class ChatMessage extends ChangeNotifier {
   List<Map<String, dynamic>>? toolInteractions;
 
   ChatMessage({
+    String? id,
     required String text,
     required this.isUser,
     bool isStreaming = false,
@@ -36,7 +39,8 @@ class ChatMessage extends ChangeNotifier {
     this.attachmentPath,
     this.attachmentType,
     this.toolInteractions,
-  }) : _text = text,
+  }) : id = id ?? const Uuid().v4(),
+       _text = text,
        _isStreaming = isStreaming,
        _steps = steps;
 
@@ -66,6 +70,7 @@ class ChatMessage extends ChangeNotifier {
   String get cleanText => _text;
 
   Map<String, dynamic> toJson() => {
+    'id': id,
     'text': _text,
     'isUser': isUser,
     'isStreaming': _isStreaming,
@@ -79,6 +84,7 @@ class ChatMessage extends ChangeNotifier {
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     return ChatMessage(
+      id: json['id'] as String?,
       text: json['text'] as String? ?? '',
       isUser: json['isUser'] as bool? ?? false,
       isStreaming: json['isStreaming'] as bool? ?? false,

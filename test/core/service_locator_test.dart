@@ -65,13 +65,19 @@ void main() {
 
 class _FakeChatStorage implements ChatStorage {
   @override
-  Future<void> clearCache() async {}
+  void clearCache() {}
 
   @override
   Future<void> delete(String id) async {}
 
   @override
   Future<List<ChatSession>> loadAll() async => [];
+
+  @override
+  Future<List<ChatSession>> loadChatSessions() async => [];
+
+  @override
+  Future<ChatSession?> loadSession(String id) async => null;
 
   @override
   Future<void> save(ChatSession session) async {}

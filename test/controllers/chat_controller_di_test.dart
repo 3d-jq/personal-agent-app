@@ -46,16 +46,31 @@ class _FakeChatStorage implements ChatStorage {
   List<ChatSession> sessions = [];
 
   @override
-  Future<void> clearCache() async {}
+  void clearCache() {}
 
   @override
-  Future<void> delete(String id) async {}
+  Future<void> delete(String id) async {
+    sessions.removeWhere((s) => s.id == id);
+  }
 
   @override
   Future<List<ChatSession>> loadAll() async => sessions;
 
   @override
+  Future<List<ChatSession>> loadChatSessions() async => sessions;
+
+  @override
+  Future<ChatSession?> loadSession(String id) async {
+    return sessions.where((s) => s.id == id).firstOrNull;
+  }
+
+  @override
   Future<void> save(ChatSession session) async {
-    sessions.add(session);
+    final idx = sessions.indexWhere((s) => s.id == session.id);
+    if (idx >= 0) {
+      sessions[idx] = session;
+    } else {
+      sessions.add(session);
+    }
   }
 }

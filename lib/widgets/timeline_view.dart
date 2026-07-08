@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../models/chat_message.dart';
 import '../core/agent_colors.dart';
 
@@ -55,7 +54,7 @@ class TimelineView extends StatelessWidget {
                             )
                           : isDone
                           ? const Icon(
-                              PhosphorIconsRegular.check,
+                              Icons.check,
                               size: 8,
                               color: Colors.white,
                             )

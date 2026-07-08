@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../core/agent_colors.dart';
 import '../core/service_locator.dart';
 import '../widgets/ai_settings_sheet.dart';
@@ -88,7 +86,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               color: nc.success.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(PhosphorIconsRegular.robot, size: 44, color: nc.success),
+            child: Icon(Icons.smart_toy_outlined, size: 44, color: nc.success),
           ),
           const SizedBox(height: 24),
           Text(
@@ -149,7 +147,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           IconButton(
             onPressed: () => setState(() => _step = 0),
             icon: Icon(
-              PhosphorIconsRegular.caretLeft,
+              Icons.chevron_left,
               size: 20,
               color: nc.textPrimary,
             ),

@@ -10,15 +10,11 @@ void main() {
     late TextEditingController controller;
     late FocusNode focusNode;
     late AISettings settings;
-    bool sendCalled = false;
-    bool stopCalled = false;
 
     setUp(() {
       controller = TextEditingController();
       focusNode = FocusNode();
       settings = AISettings();
-      sendCalled = false;
-      stopCalled = false;
     });
 
     tearDown(() {
@@ -44,8 +40,8 @@ void main() {
             bottomSafe: 0,
             controller: controller,
             focusNode: focusNode,
-            onSend: () => sendCalled = true,
-            onStop: () => stopCalled = true,
+            onSend: () {},
+            onStop: () {},
             isLoading: isLoading,
             isCompressing: isCompressing,
             isAwaitingReply: isAwaitingReply,
@@ -223,8 +219,6 @@ void main() {
       final controller = TextEditingController();
       final focusNode = FocusNode();
       final settings = AISettings();
-      bool onChangedCalled = false;
-
       await tester.pumpWidget(MaterialApp(
         theme: ThemeData(extensions: [AgentColors.light()]),
         home: Scaffold(
@@ -236,7 +230,7 @@ void main() {
             onStop: () {},
             isLoading: false,
             settings: settings,
-            onChanged: () => onChangedCalled = true,
+            onChanged: () {},
           ),
         ),
       ));
@@ -286,7 +280,6 @@ void main() {
       final controller = TextEditingController();
       final focusNode = FocusNode();
       final settings = AISettings();
-      bool sendCalled = false;
 
       await tester.pumpWidget(MaterialApp(
         theme: ThemeData(extensions: [AgentColors.light()]),
@@ -295,7 +288,7 @@ void main() {
             bottomSafe: 0,
             controller: controller,
             focusNode: focusNode,
-            onSend: () => sendCalled = true,
+            onSend: () {},
             onStop: () {},
             isLoading: false,
             settings: settings,

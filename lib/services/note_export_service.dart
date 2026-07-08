@@ -85,12 +85,15 @@ class NoteExportService {
     final trimmed = line.trim();
     if (trimmed.isEmpty) return '<br>';
 
-    if (trimmed.startsWith('### '))
+    if (trimmed.startsWith('### ')) {
       return '<h3>${_escapeHtml(trimmed.substring(4))}</h3>';
-    if (trimmed.startsWith('## '))
+    }
+    if (trimmed.startsWith('## ')) {
       return '<h2>${_escapeHtml(trimmed.substring(3))}</h2>';
-    if (trimmed.startsWith('# '))
+    }
+    if (trimmed.startsWith('# ')) {
       return '<h1>${_escapeHtml(trimmed.substring(2))}</h1>';
+    }
 
     if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
       return '<li>${_escapeHtml(trimmed.substring(2))}</li>';
@@ -100,8 +103,9 @@ class NoteExportService {
       return '<blockquote>${_escapeHtml(trimmed.substring(2))}</blockquote>';
     }
 
-    if (trimmed.startsWith('```'))
+    if (trimmed.startsWith('```')) {
       return trimmed.contains('```') ? '<pre><code>' : '</code></pre>';
+    }
 
     final imgMatch = RegExp(
       r'!\[.*?\]\((file://[^\s)]+)\)',

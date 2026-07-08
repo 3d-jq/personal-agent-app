@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import '../controllers/chat_controller.dart';
 import '../core/agent_colors.dart';
 import '../widgets/agent_side_drawer.dart';
@@ -41,14 +40,12 @@ class _ChatScreenState extends State<ChatScreen> {
       initialSessionId: widget.sessionId,
       onNeedScroll: _scrollDown,
     );
-    _controller.addListener(_onControllerChanged);
     _controller.initialize();
     _scrollCtrl.addListener(_onScroll);
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     _inputCtrl.dispose();
     _inputFocus.dispose();
@@ -57,8 +54,6 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollTimer?.cancel();
     super.dispose();
   }
-
-  void _onControllerChanged() => setState(() {});
 
   void _onScroll() {
     if (!_scrollCtrl.hasClients) return;
@@ -101,6 +96,26 @@ class _ChatScreenState extends State<ChatScreen> {
     _inputFocus.unfocus();
   }
 
+  void _onNewChat() async {
+    _resetInput();
+    await _controller.saveSession();
+    _controller.newSession();
+    await _controller.refreshSessions();
+  }
+
+  void _onSessionTap(String id) {
+    if (id != _controller.currentSessionId) {
+      _resetInput();
+      _controller.switchSession(id).then((_) {
+        widget.onSessionChanged?.call();
+      });
+    }
+  }
+
+  void _onSessionDeleted(String id) async {
+    await _controller.deleteSession(id);
+  }
+
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
@@ -125,33 +140,14 @@ class _ChatScreenState extends State<ChatScreen> {
           backgroundColor: nc.background,
           drawerEnableOpenDragGesture: false,
           drawerScrimColor: Colors.black.withValues(alpha: 0.38),
-          drawer: AgentSideDrawer(
-            sessions: _controller.sessions,
-            currentSessionId: _controller.currentSessionId,
-            isLoading: _controller.isLoading,
-            onSessionTap: (id) {
-              if (id != _controller.currentSessionId) {
-                _resetInput();
-                _controller.switchSession(id).then((_) {
-                  widget.onSessionChanged?.call();
-                });
-              }
-            },
-            onNewChat: () async {
-              _resetInput();
-              await _controller.saveSession();
-              _controller.newSession();
-              await _controller.refreshSessions();
-            },
-            onSessionDeleted: (id) async {
-              await _controller.deleteSession(id);
-            },
+          drawer: _DrawerContent(
+            controller: _controller,
+            onSessionTap: _onSessionTap,
+            onNewChat: _onNewChat,
+            onSessionDeleted: _onSessionDeleted,
           ),
           appBar: AgentTopBar(
-            afterMenu: ChatModelChip(
-              settings: _controller.aiSettings,
-              onChanged: () => setState(() {}),
-            ),
+            afterMenu: _ModelChip(controller: _controller),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -167,18 +163,7 @@ class _ChatScreenState extends State<ChatScreen> {
               Expanded(
                 child: Stack(
                   children: [
-                    ListView.builder(
-                      controller: _scrollCtrl,
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      itemCount: _controller.messages.length,
-                      cacheExtent: 500,
-                      itemBuilder: (c, i) => ChatBubble(
-                        key: ValueKey(_controller.messages[i].text.hashCode),
-                        msg: _controller.messages[i],
-                        nc: nc,
-                      ),
-                    ),
+                    _MessageList(controller: _controller, scrollController: _scrollCtrl),
                     if (_showScrollBottom)
                       Positioned(
                         right: 16,
@@ -192,7 +177,6 @@ class _ChatScreenState extends State<ChatScreen> {
                               curve: Curves.easeOut,
                             );
                           },
-                          // Apple HIG：毛玻璃浮动按钮
                           child: ClipOval(
                             child: BackdropFilter(
                               filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -204,7 +188,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   shape: BoxShape.circle,
                                   border: Border.all(color: nc.divider, width: 0.5),
                                 ),
-                                child: Icon(PhosphorIconsRegular.caretDoubleDown, size: 18, color: nc.textPrimary),
+                                child: Icon(Icons.keyboard_arrow_down, size: 18, color: nc.textPrimary),
                               ),
                             ),
                           ),
@@ -213,34 +197,154 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
               ),
-              TaskPlanPanel(
-                key: _planPanelKey,
+              _TaskPlanPanel(controller: _controller, planPanelKey: _planPanelKey),
+              _ChatInputBar(
                 controller: _controller,
-                onClose: () {
-                  setState(() {
-                    _controller.currentPlan = null;
-                  });
-                },
-              ),
-              ChatInputBar(
-                bottomSafe: bottomSafe,
-                controller: _inputCtrl,
+                inputController: _inputCtrl,
                 focusNode: _inputFocus,
+                bottomSafe: bottomSafe,
                 onSend: _handleSend,
-                onStop: _controller.stopStream,
-                isLoading: _controller.isLoading,
-                isCompressing: _controller.isCompressing,
-                isAwaitingReply: _controller.isWaitingUserPrompt,
-                settings: _controller.aiSettings,
-                onChanged: () => setState(() {}),
-                pendingFile: _controller.pendingAttachment,
-                pendingFileType: _controller.pendingAttachmentType,
-                onAttachment: (file, type) => _controller.setAttachment(file, type),
-                onClearAttachment: _controller.clearAttachment,
+                onResetInput: _resetInput,
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DrawerContent extends StatelessWidget {
+  final ChatController controller;
+  final ValueChanged<String> onSessionTap;
+  final VoidCallback onNewChat;
+  final ValueChanged<String> onSessionDeleted;
+
+  const _DrawerContent({
+    required this.controller,
+    required this.onSessionTap,
+    required this.onNewChat,
+    required this.onSessionDeleted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, child) => AgentSideDrawer(
+        sessions: controller.sessions,
+        currentSessionId: controller.currentSessionId,
+        isLoading: controller.isLoading,
+        onSessionTap: onSessionTap,
+        onNewChat: onNewChat,
+        onSessionDeleted: onSessionDeleted,
+      ),
+    );
+  }
+}
+
+class _ModelChip extends StatelessWidget {
+  final ChatController controller;
+  const _ModelChip({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: controller.aiSettings,
+      builder: (context, child) => ChatModelChip(
+        settings: controller.aiSettings,
+        onChanged: () {},
+      ),
+    );
+  }
+}
+
+class _MessageList extends StatelessWidget {
+  final ChatController controller;
+  final ScrollController scrollController;
+
+  const _MessageList({required this.controller, required this.scrollController});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, child) {
+        final nc = AgentColors.of(context);
+        return ListView.builder(
+          controller: scrollController,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          itemCount: controller.messages.length,
+          cacheExtent: 500,
+          itemBuilder: (c, i) => ChatBubble(
+            key: ValueKey(controller.messages[i].id),
+            msg: controller.messages[i],
+            nc: nc,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TaskPlanPanel extends StatelessWidget {
+  final ChatController controller;
+  final GlobalKey<TaskPlanPanelState> planPanelKey;
+
+  const _TaskPlanPanel({required this.controller, required this.planPanelKey});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, child) => TaskPlanPanel(
+        key: planPanelKey,
+        controller: controller,
+        onClose: () {
+          controller.currentPlan = null;
+        },
+      ),
+    );
+  }
+}
+
+class _ChatInputBar extends StatelessWidget {
+  final ChatController controller;
+  final TextEditingController inputController;
+  final FocusNode focusNode;
+  final double bottomSafe;
+  final VoidCallback onSend;
+  final VoidCallback onResetInput;
+
+  const _ChatInputBar({
+    required this.controller,
+    required this.inputController,
+    required this.focusNode,
+    required this.bottomSafe,
+    required this.onSend,
+    required this.onResetInput,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, child) => ChatInputBar(
+        bottomSafe: bottomSafe,
+        controller: inputController,
+        focusNode: focusNode,
+        onSend: onSend,
+        onStop: controller.stopStream,
+        isLoading: controller.isLoading,
+        isCompressing: controller.isCompressing,
+        isAwaitingReply: controller.isWaitingUserPrompt,
+        settings: controller.aiSettings,
+        onChanged: () {},
+        pendingFile: controller.pendingAttachment,
+        pendingFileType: controller.pendingAttachmentType,
+        onAttachment: (file, type) => controller.setAttachment(file, type),
+        onClearAttachment: controller.clearAttachment,
       ),
     );
   }

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
-
 import '../core/agent_colors.dart';
+import '../core/design_tokens.dart';
 import '../core/app_router.dart';
 import '../core/service_locator.dart';
 import '../models/agent.dart';
@@ -47,21 +45,11 @@ class _AgentContactPageState extends State<AgentContactPage> {
 
     return Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: nc.background.withValues(alpha: 0.85),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        title: Text(
-          'Agent',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: nc.textPrimary,
-          ),
-        ),
+      appBar: AppTopBar(
+        title: 'Agent',
         actions: [
           IconButton(
-            icon: Icon(PhosphorIconsRegular.plusCircle, color: nc.textPrimary),
+            icon: Icon(Icons.add_circle_outline, color: nc.textPrimary),
             onPressed: _showAddMenu,
           ),
         ],
@@ -72,16 +60,16 @@ class _AgentContactPageState extends State<AgentContactPage> {
               children: [
                 // 群聊入口
                 if (_groups.isNotEmpty) ...[
-                  _SectionHeader(title: '群聊', nc: nc, count: _groups.length),
+                  SectionHeader(title: '群聊', nc: nc, count: _groups.length),
                   ..._groups.map((g) => _GroupTile(
                     group: g,
                     nc: nc,
                     onTap: () => _showGroupCard(g),
                   )),
-                  Divider(height: 1, thickness: 0.5, color: nc.divider, indent: 16),
+                  Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg),
                 ],
                 // Agent 列表
-                _SectionHeader(title: 'Agent', nc: nc, count: _agents.length),
+                SectionHeader(title: 'Agent', nc: nc, count: _agents.length),
                 ..._agents.map((a) => _AgentTile(
                   agent: a,
                   nc: nc,
@@ -213,7 +201,7 @@ class _AgentContactPageState extends State<AgentContactPage> {
     final nc = AgentColors.of(context);
     showAddMenu(context, nc, [
       AddMenuItem(
-        icon: PhosphorIconsRegular.robot,
+        icon: Icons.smart_toy_outlined,
         label: '新建 Agent',
         nc: nc,
         onTap: () async {
@@ -247,8 +235,13 @@ class _GroupTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: nc.fillTertiary,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: SpaceToken.lg,
+            vertical: SpaceToken.md,
+          ),
           child: Row(
             children: [
               Container(
@@ -257,22 +250,23 @@ class _GroupTile extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: nc.primary,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(RadiusToken.sm),
                 ),
-                child: Icon(PhosphorIconsRegular.users, size: 20, color: Colors.white),
+                child: Icon(Icons.group, size: 20, color: Colors.white),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: SpaceToken.md),
               Expanded(
                 child: Text(
                   group.name,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: FontToken.body,
+                    fontWeight: WeightToken.medium,
                     color: nc.textPrimary,
                   ),
                 ),
               ),
               Icon(
-                PhosphorIconsRegular.caretRight,
+                Icons.chevron_right,
                 size: 16,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),
@@ -302,8 +296,13 @@ class _AgentTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: nc.fillTertiary,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(
+            horizontal: SpaceToken.lg,
+            vertical: SpaceToken.md,
+          ),
           child: Row(
             children: [
               Container(
@@ -312,19 +311,19 @@ class _AgentTile extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: nc.primarySurface,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(RadiusToken.sm),
                   border: Border.all(color: nc.divider, width: 0.5),
                 ),
                 child: Text(
                   agent.avatar.isNotEmpty ? agent.avatar : agent.name.characters.first,
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontSize: FontToken.body,
+                    fontWeight: WeightToken.semibold,
                     color: nc.textPrimary,
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: SpaceToken.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,7 +331,8 @@ class _AgentTile extends StatelessWidget {
                     Text(
                       agent.name,
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: FontToken.body,
+                        fontWeight: WeightToken.medium,
                         color: nc.textPrimary,
                       ),
                     ),
@@ -340,7 +340,7 @@ class _AgentTile extends StatelessWidget {
                       Text(
                         agent.role,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: FontToken.small,
                           color: nc.textSecondary,
                         ),
                         maxLines: 1,
@@ -350,7 +350,7 @@ class _AgentTile extends StatelessWidget {
                 ),
               ),
               Icon(
-                PhosphorIconsRegular.caretRight,
+                Icons.chevron_right,
                 size: 16,
                 color: nc.textSecondary.withValues(alpha: 0.5),
               ),
@@ -380,13 +380,13 @@ class _AgentCardSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: MediaQuery.of(context).padding.bottom + 16,
+        left: SpaceToken.lg,
+        right: SpaceToken.lg,
+        bottom: MediaQuery.of(context).padding.bottom + SpaceToken.lg,
       ),
       decoration: BoxDecoration(
         color: nc.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(RadiusToken.xl),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -401,7 +401,7 @@ class _AgentCardSheet extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(SpaceToken.x2),
             child: Row(
               children: [
                 Container(
@@ -410,7 +410,7 @@ class _AgentCardSheet extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: nc.primarySurface,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(RadiusToken.md),
                     border: Border.all(color: nc.divider, width: 0.5),
                   ),
                   child: Text(
@@ -430,8 +430,8 @@ class _AgentCardSheet extends StatelessWidget {
                       Text(
                         agent.name,
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                          fontSize: FontToken.headline,
+                          fontWeight: WeightToken.semibold,
                           color: nc.textPrimary,
                         ),
                       ),
@@ -439,7 +439,7 @@ class _AgentCardSheet extends StatelessWidget {
                         Text(
                           agent.role,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: FontToken.body,
                             color: nc.textSecondary,
                           ),
                         ),
@@ -459,9 +459,9 @@ class _AgentCardSheet extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: nc.error,
                       side: BorderSide(color: nc.error.withValues(alpha: 0.3)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: SpaceToken.md),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(RadiusToken.md),
                       ),
                     ),
                     child: const Text('删除'),
@@ -474,9 +474,9 @@ class _AgentCardSheet extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: nc.textPrimary,
                       side: BorderSide(color: nc.divider, width: 0.5),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: SpaceToken.md),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(RadiusToken.md),
                       ),
                     ),
                     child: const Text('编辑'),
@@ -485,45 +485,6 @@ class _AgentCardSheet extends StatelessWidget {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 区域标题
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final int count;
-  final AgentColors nc;
-
-  const _SectionHeader({
-    required this.title,
-    required this.nc,
-    this.count = 0,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Row(
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: nc.textSecondary,
-            ),
-          ),
-          if (count > 0) ...[
-            const SizedBox(width: 6),
-            Text(
-              '($count)',
-              style: TextStyle(fontSize: 13, color: nc.textDisabled),
-            ),
-          ],
         ],
       ),
     );
@@ -550,13 +511,13 @@ class _GroupCardSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: MediaQuery.of(context).padding.bottom + 16,
+        left: SpaceToken.lg,
+        right: SpaceToken.lg,
+        bottom: MediaQuery.of(context).padding.bottom + SpaceToken.lg,
       ),
       decoration: BoxDecoration(
         color: nc.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(RadiusToken.xl),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -571,7 +532,7 @@ class _GroupCardSheet extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(SpaceToken.x2),
             child: Row(
               children: [
                 Container(
@@ -582,7 +543,7 @@ class _GroupCardSheet extends StatelessWidget {
                     color: nc.primary,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(PhosphorIconsRegular.users, size: 28, color: Colors.white),
+                  child: Icon(Icons.group, size: 28, color: Colors.white),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -592,8 +553,8 @@ class _GroupCardSheet extends StatelessWidget {
                       Text(
                         group.name,
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                          fontSize: FontToken.headline,
+                          fontWeight: WeightToken.semibold,
                           color: nc.textPrimary,
                         ),
                       ),
@@ -601,7 +562,7 @@ class _GroupCardSheet extends StatelessWidget {
                         Text(
                           memberNames,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: FontToken.body,
                             color: nc.textSecondary,
                           ),
                           maxLines: 2,
@@ -610,7 +571,7 @@ class _GroupCardSheet extends StatelessWidget {
                       Text(
                         '${group.agentIds.length} 位成员',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: FontToken.caption,
                           color: nc.textDisabled,
                         ),
                       ),
@@ -630,9 +591,9 @@ class _GroupCardSheet extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: nc.error,
                       side: BorderSide(color: nc.error.withValues(alpha: 0.3), width: 0.5),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: SpaceToken.md),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(RadiusToken.md),
                       ),
                     ),
                     child: const Text('删除'),
@@ -645,9 +606,9 @@ class _GroupCardSheet extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: nc.textPrimary,
                       side: BorderSide(color: nc.divider, width: 0.5),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: SpaceToken.md),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(RadiusToken.md),
                       ),
                     ),
                     child: const Text('编辑'),

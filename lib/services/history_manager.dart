@@ -24,17 +24,22 @@ class HistoryManager {
   /// 工具输出最大字符数（约 2000 字符 ≈ 500 token）
   static const int toolOutputMaxChars = 2000;
 
-  const HistoryManager({
+  HistoryManager({
     this.contextWindowSize = 256000,
     this.maxOutputTokens = 4096,
     this.bufferTokens = 20000,
     this.keepTokens = 8000,
   });
 
+  final _tokenCache = <String, int>{};
+
   /// 估算文本的 token 数
   ///
   /// 中文约 2 字符 ≈ 1 token，英文约 4 字符 ≈ 1 token
-  static int estimateTokens(String text) {
+  int estimateTokens(String text) {
+    final cached = _tokenCache[text];
+    if (cached != null) return cached;
+
     int cn = 0, en = 0;
     for (final code in text.codeUnits) {
       if (code > 0x4E00 && code < 0x9FFF) {
@@ -45,7 +50,9 @@ class HistoryManager {
         cn++;
       }
     }
-    return (cn / 2 + en / 4).ceil();
+    final result = (cn / 2 + en / 4).ceil();
+    _tokenCache[text] = result;
+    return result;
   }
 
   /// 估算消息列表的总 token 数
@@ -152,7 +159,7 @@ class HistoryManager {
   /// 构建摘要输入（结构化模板）
   List<Map<String, dynamic>> _buildSummaryInput(List<ChatMessage> messages) {
     final buffer = StringBuffer();
-    buffer.writeln(SUMMARY_TEMPLATE);
+    buffer.writeln(summaryTemplate);
     buffer.writeln();
     buffer.writeln('--- 对话记录 ---');
     buffer.writeln();
@@ -170,7 +177,7 @@ class HistoryManager {
 }
 
 /// 结构化摘要模板（参考 opencode）
-const SUMMARY_TEMPLATE = '''请对以下对话进行结构化摘要，严格按照以下 Markdown 格式输出，保持章节顺序不变。
+const summaryTemplate = '''请对以下对话进行结构化摘要，严格按照以下 Markdown 格式输出，保持章节顺序不变。
 
 ## Goal
 - [单句话总结任务目标]

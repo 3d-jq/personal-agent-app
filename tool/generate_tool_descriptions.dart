@@ -38,7 +38,7 @@ void main() {
     final outputPath = p.join(toolsDir.path, outputName);
 
     final content = txtFile.readAsStringSync();
-    final constName = _toCamelCase(basename) + 'Description';
+    final constName = '${_toCamelCase(basename)}Description';
 
     final buf = StringBuffer();
     buf.writeln('// GENERATED CODE - DO NOT MODIFY BY HAND');

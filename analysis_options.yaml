@@ -13,6 +13,14 @@ linter:
   rules:
     avoid_print: false
     prefer_single_quotes: true
+    curly_braces_in_flow_control_structures: true
+    unnecessary_null_checks: true
+    unnecessary_brace_in_string_interps: true
+    constant_identifier_names: true
+    dangling_library_doc_comments: true
+    prefer_conditional_assignment: true
+    prefer_function_declarations_over_variables: true
+    prefer_final_fields: true
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

@@ -68,6 +68,7 @@ class FileTool extends AgentTool {
         }
       }
       final dir = Directory(fullPath);
+      final file = File(fullPath);
 
       switch (action) {
         case 'list':

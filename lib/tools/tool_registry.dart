@@ -1,5 +1,4 @@
 import 'base_tool.dart';
-import 'task_plan_tool.dart';
 import '../utils/tool_result_truncator.dart';
 
 /// Registry that manages and dispatches agent tools.

@@ -29,10 +29,10 @@ Future<void> main() async {
     skillRegistry.registerBuiltInSkills();
 
     // 自动连接所有已启用的 MCP 服务器（失败不阻塞启动）
-    await getIt<McpManager>().autoConnect();
+    unawaited(getIt<McpManager>().autoConnect());
 
-    // 启动前台服务，保持应用在后台运行
-    await ForegroundService.start();
+    // 启动前台服务，保持应用在后台运行（均不阻塞首屏冷启动）
+    unawaited(ForegroundService.start());
 
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(statusBarColor: Colors.transparent),

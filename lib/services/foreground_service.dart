@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -70,4 +69,12 @@ class ForegroundService {
 
   /// 检查服务是否运行
   static bool get isRunning => _isRunning;
+
+  /// 复位内存状态，主要用于测试清理，避免 _isRunning / _heartbeatTimer 等静态状态跨测试泄漏。
+  /// 不影响已启动的系统前台服务进程本身。
+  static void reset() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+    _isRunning = false;
+  }
 }

@@ -1,17 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/agent_colors.dart';
+import '../core/design_tokens.dart';
+import '../widgets/common_widgets.dart';
 import '../core/service_locator.dart';
 import '../models/agent.dart';
 import '../models/chat_message.dart';
 import '../models/chat_session.dart';
 import '../services/agent_runner.dart';
-import '../services/ai_service.dart';
 import '../services/chat_storage.dart';
 import '../services/chat_stream_event.dart';
 import '../services/typewriter_buffer.dart';
@@ -184,8 +183,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
           _scrollDown();
 
           // 启动打字机定时器
-          if (typewriterTimer == null) {
-            typewriterTimer = Timer.periodic(const Duration(milliseconds: 24), (_) {
+          typewriterTimer ??= Timer.periodic(const Duration(milliseconds: 24), (_) {
               if (!typewriter.hasPending) {
                 typewriterTimer?.cancel();
                 typewriterTimer = null;
@@ -196,7 +194,6 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
               if (mounted) setState(() {});
               _scrollDown();
             });
-          }
         },
         onDone: () {
           typewriterTimer?.cancel();
@@ -261,15 +258,13 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
       },
       child: Scaffold(
       backgroundColor: nc.background,
-      appBar: AppBar(
-        backgroundColor: nc.background.withValues(alpha: 0.85),
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: AppTopBar(
         leading: IconButton(
-          icon: Icon(PhosphorIconsRegular.arrowLeft, color: nc.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_new, color: nc.textPrimary, size: 22),
           onPressed: _handleBack,
+          tooltip: '返回',
         ),
-        title: Row(
+        titleWidget: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
@@ -278,7 +273,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: nc.primarySurface,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(RadiusToken.sm),
                 border: Border.all(color: nc.divider, width: 0.5),
               ),
               child: Text(
@@ -286,13 +281,13 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
                     ? widget.agent.avatar
                     : widget.agent.name.characters.first,
                 style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
+                  fontSize: FontToken.body,
+                  fontWeight: WeightToken.semibold,
                   color: nc.textPrimary,
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: SpaceToken.sm),
             Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,15 +295,15 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
                 Text(
                   widget.agent.name,
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontSize: FontToken.title,
+                    fontWeight: WeightToken.semibold,
                     color: nc.textPrimary,
                   ),
                 ),
                 Text(
                   widget.agent.role,
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: FontToken.caption,
                     color: nc.textSecondary,
                   ),
                 ),
@@ -328,7 +323,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            PhosphorIconsRegular.chatCircle,
+                            Icons.chat_bubble_outline,
                             size: 48,
                             color: nc.primary.withValues(alpha: 0.3),
                           ),
