@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../core/agent_colors.dart';
+import '../core/design_tokens.dart';
 import '../services/log_service.dart';
 /// 全局错误处理入口。
 ///
@@ -73,52 +75,60 @@ class ErrorHandler {
   }
 
   /// 构建自定义错误占位 widget，替换默认红屏。
+  ///
+  /// 通过 [Builder] 在构建期拿到 context，用 [AgentColors] 适配浅/暗双模，
+  /// 不再写死浅色色值（暗色下原白底红字会刺眼且与环境割裂）。
   static Widget buildErrorWidget(FlutterErrorDetails details) {
-    return Container(
-      color: const Color(0xFFF2F2F7),
-      padding: const EdgeInsets.all(24),
-      alignment: Alignment.center,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.warning,
-            color: Color(0xFFFF3B30),
-            size: 48,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '页面出错了',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1C1C1E),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '请重启应用或返回上一页重试。',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 15, color: Color(0xFF3C3C43)),
-          ),
-          if (kDebugMode) ...[
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFFFF),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE5E5EA), width: 0.5),
+    return Builder(
+      builder: (context) {
+        final nc = AgentColors.of(context);
+        return Container(
+          color: nc.background,
+          padding: const EdgeInsets.all(24),
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: nc.error,
+                size: 48,
               ),
-              child: Text(
-                details.exception.toString(),
-                textAlign: TextAlign.left,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF3C3C43)),
+              const SizedBox(height: 16),
+              Text(
+                '页面出错了',
+                style: TextStyle(
+                  fontSize: FontToken.headline,
+                  fontWeight: WeightToken.semibold,
+                  color: nc.textPrimary,
+                ),
               ),
-            ),
-          ],
-        ],
-      ),
+              const SizedBox(height: 8),
+              Text(
+                '请重启应用或返回上一页重试。',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: FontToken.body, color: nc.textSecondary),
+              ),
+              if (kDebugMode) ...[
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: nc.surface,
+                    borderRadius: BorderRadius.circular(RadiusToken.md),
+                    border: Border.all(color: nc.divider, width: 0.5),
+                  ),
+                  child: Text(
+                    details.exception.toString(),
+                    textAlign: TextAlign.left,
+                    style: TextStyle(fontSize: FontToken.small, color: nc.textSecondary),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

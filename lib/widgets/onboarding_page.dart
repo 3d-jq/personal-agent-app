@@ -28,8 +28,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   void initState() {
     super.initState();
+    _keyCtrl.addListener(_onKeyChanged);
     _applyPreset('DeepSeek');
   }
+
+  void _onKeyChanged() => setState(() {});
 
   void _applyPreset(String name) {
     final p = _presets.firstWhere((e) => e.$1 == name);
@@ -241,6 +244,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _keyCtrl.removeListener(_onKeyChanged);
     _keyCtrl.dispose();
     _urlCtrl.dispose();
     super.dispose();

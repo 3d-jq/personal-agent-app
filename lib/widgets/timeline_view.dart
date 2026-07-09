@@ -43,12 +43,12 @@ class TimelineView extends StatelessWidget {
                             : null,
                       ),
                       child: isRunning
-                          ? const Padding(
-                              padding: EdgeInsets.all(2),
+                          ? Padding(
+                              padding: const EdgeInsets.all(2),
                               child: CircularProgressIndicator(
                                 strokeWidth: 1.2,
                                 valueColor: AlwaysStoppedAnimation(
-                                  Colors.white,
+                                  nc.background,
                                 ),
                               ),
                             )

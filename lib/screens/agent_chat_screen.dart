@@ -134,8 +134,10 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
     final vendor = _aiSettings.selectedVendor ??
         (_aiSettings.vendors.isNotEmpty ? _aiSettings.vendors.first : null);
     if (vendor == null || vendor.apiKey.isEmpty) {
+      final cfgMsg = ChatMessage(text: '请先在设置中配置 AI 后端', isUser: false);
+      cfgMsg.isError = true;
       setState(() {
-        _messages.add(ChatMessage(text: '请先在设置中配置 AI 后端', isUser: false));
+        _messages.add(cfgMsg);
         _busy = false;
       });
       return;
