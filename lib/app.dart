@@ -30,6 +30,8 @@ class _AppState extends State<App> {
         _loaded = true;
         _showOnboarding = !aiSettings.hasVendor;
       });
+    }, onError: (e, st) {
+      debugPrint('主题/设置加载失败: $e');
     });
   }
 

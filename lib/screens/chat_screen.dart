@@ -144,6 +144,8 @@ class _ChatScreenState extends State<ChatScreen> {
       _resetInput();
       _controller.switchSession(id).then((_) {
         widget.onSessionChanged?.call();
+      }, onError: (e, st) {
+        debugPrint('切换会话失败: $e');
       });
     }
   }

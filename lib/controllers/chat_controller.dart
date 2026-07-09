@@ -264,6 +264,9 @@ class ChatController extends ChangeNotifier {
       return;
     }
 
+    // 同步置位，收窄重入窗口：避免流式首个 await 之前重复触发开第二条流覆盖 _aiStream
+    _isLoading = true;
+
     String displayText = trimmed;
     String? attachmentBase64;
     String? attachmentName;
@@ -305,7 +308,6 @@ class ChatController extends ChangeNotifier {
       ),
     );
     _messages.add(ChatMessage(text: '', isUser: false, isStreaming: true));
-    _isLoading = true;
 
     final pendingFile = _pendingAttachment;
     final pendingType = _pendingAttachmentType;

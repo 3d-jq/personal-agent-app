@@ -212,6 +212,7 @@ class GroupChatController extends ChangeNotifier {
   /// 发送用户消息并驱动整个协作流程。
   Future<void> send(String text) async {
     if (_group == null || _busy) return;
+    _busy = true;
     final mentionNames = parseMentions(text, _members);
     final mentionAgents = mentionNames
         .map((n) => _byName[n])
@@ -235,6 +236,7 @@ class GroupChatController extends ChangeNotifier {
       _notify();
       await saveGroup();
       onScroll?.call();
+      _busy = false;
       return;
     }
 
@@ -247,6 +249,7 @@ class GroupChatController extends ChangeNotifier {
       _notify();
       await saveGroup();
       onScroll?.call();
+      _busy = false;
       return;
     }
 
@@ -283,7 +286,6 @@ class GroupChatController extends ChangeNotifier {
       _notify();
     }
 
-    _busy = true;
     _discussionRound = 0;
     _participatedAgents.clear();
     _dispatchCount = 0;

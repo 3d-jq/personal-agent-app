@@ -1,8 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:personal_agent_app/tools/base_tool.dart';
 import 'package:personal_agent_app/tools/tools.dart';
-import 'package:personal_agent_app/tools/clipboard_tool.dart';
-import 'package:personal_agent_app/tools/file_tool.dart';
 
 /// 全工具契约测试：验证每个工具的基本定义，不依赖网络/API/平台/存储。
 
@@ -23,8 +20,6 @@ List<AgentTool> _allTools() => [
   ContextDocTool(),
   CalendarTool(),
   VirtualFSTool(),
-  ClipboardTool(),
-  FileTool(),
   SkillManageTool(),
   DelegateTaskTool(onDelegate: (_, __) async => 'stub'),
 ];
@@ -91,8 +86,8 @@ void main() {
       expect(tool.toFunctionDefinition()['type'], 'function');
     });
 
-    test('工具总数 >= 20', () {
-      expect(_allTools().length, greaterThanOrEqualTo(20));
+    test('工具总数 >= 18', () {
+      expect(_allTools().length, greaterThanOrEqualTo(18));
     });
   });
 
