@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.4.4 — 群聊重新打开自动贴底（修复停在首条消息）(2026-07-09)
+
+### 🐛 Bug 修复：群聊重新打开不显示最新消息
+- **现象**：agent 群聊聊完后，每次重新打开界面都停在**最开始那条消息**，需手动往下滚才能看到最新回复。
+- **根因**：`group_chat_screen.dart` 仅在 `initState` 的 `addPostFrameCallback` 里 `await _controller.load()`，加载完成后 `ListView` 的 `ScrollController` 默认停在顶部（offset 0），消息列表按时间正序排列 → 停在 index 0（首条）。发送消息时靠 `_scrollDown` 贴底，但**重新进入界面没有做贴底**。存档本身无问题（`AgentGroup.messages` 正确序列化、`saveGroup` 每条回复后全量落盘）。
+- **修复**：
+  - 加载完成并触发重建后新增 `_scrollToBottom()`：`jumpTo(maxScrollExtent)` 立即贴底。
+  - **两阶段校正**：首跳让底部未测量项完成布局（`ListView.builder` 动态 item 高度下首跳时 `maxScrollExtent` 偏小，只跳一次会差约 50px 没完全贴底），下一帧再跳一次到真实最大处。
+- **回归测试**：`test/widgets/group_chat_screen_test.dart` 新增 `reopen scrolls to the latest message (bottom)`，用 40 条消息大群（超过分页窗口 30）覆盖 Fake 存储，`pumpAndSettle` 后断言最新消息可见 + 滚动位置接近最大处，20 个用例全过。
+
 ## v1.4.3 — 首次见面硬化 + SSE 解析修复 + 日志系统强化 (2026-07-09)
 
 ### 🔧 Bug 修复：首次见面流程「经常不触发」（脆弱性根因修复）

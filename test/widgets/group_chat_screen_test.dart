@@ -31,6 +31,22 @@ final _group = AgentGroup(
   ],
 );
 
+/// 回归测试数据：超过分页窗口（_pageSize=30）的大群，使列表可滚动，
+/// 用于验证「重新进入群聊默认贴底（最新消息可见）」。
+final _bigGroup = AgentGroup(
+  id: 'g_big',
+  name: '多消息群',
+  agentIds: ['a1'],
+  messages: [
+    for (int i = 0; i < 40; i++)
+      ChatMessage(
+        text: 'msg-$i',
+        isUser: i.isEven,
+        speakerId: i.isEven ? null : 'a1',
+      ),
+  ],
+);
+
 Widget _wrap(Widget child) => MaterialApp(
       theme: ThemeData(extensions: [AgentColors.light()]),
       home: Scaffold(body: child),
@@ -291,6 +307,27 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(GroupChatInputBar), findsOneWidget);
     });
+
+    testWidgets('reopen scrolls to the latest message (bottom)',
+        (tester) async {
+      // 覆盖存储，返回超过分页窗口的大群，使列表可滚动
+      getIt.unregister<AgentGroupStorage>();
+      getIt.registerSingleton<AgentGroupStorage>(_FakeBigGroupStorage());
+
+      await tester.pumpWidget(MaterialApp(
+        theme: ThemeData(extensions: [AgentColors.light()]),
+        home: GroupChatScreen(groupId: 'g_big'),
+      ));
+      await tester.pumpAndSettle();
+
+      // 重新进入后应贴底：最新消息 msg-39 可见，滚动位置位于接近最大处
+      expect(find.text('msg-39'), findsOneWidget);
+      final scrollable =
+          tester.widget<Scrollable>(find.byType(Scrollable).first);
+      final pos = scrollable.controller!.position;
+      // 动态 item 高度下首跳 maxScrollExtent 偏小，两阶段校正后允许少量容差
+      expect(pos.pixels, greaterThanOrEqualTo(pos.maxScrollExtent - 100));
+    });
   });
 }
 
@@ -315,6 +352,23 @@ class _FakeAgentGroupStorage implements AgentGroupStorage {
 
   @override
   AgentGroup? byId(String id) => id == _group.id ? _group : null;
+
+  @override
+  void clearCache() {}
+}
+
+class _FakeBigGroupStorage implements AgentGroupStorage {
+  @override
+  Future<List<AgentGroup>> loadAll() async => [_bigGroup];
+
+  @override
+  Future<void> save(AgentGroup g) async {}
+
+  @override
+  Future<void> delete(String id) async {}
+
+  @override
+  AgentGroup? byId(String id) => id == _bigGroup.id ? _bigGroup : null;
 
   @override
   void clearCache() {}
