@@ -328,9 +328,9 @@ class ChatController extends ChangeNotifier {
     final ai = AIService(
       baseUrl: _aiSettings.baseUrl,
       apiKey: _aiSettings.apiKey,
-      providerName: _aiSettings.selectedVendor?.name ?? '',
       model: _aiSettings.effectiveModel,
       thinkingEffort: _aiSettings.thinkingEffort,
+      isAnthropic: _aiSettings.selectedVendor?.isAnthropic ?? false,
       toolRegistry: _toolRegistry,
     );
 

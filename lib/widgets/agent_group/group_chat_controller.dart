@@ -269,9 +269,9 @@ class GroupChatController extends ChangeNotifier {
           final response = await AIService(
             baseUrl: ai.baseUrl,
             apiKey: ai.apiKey,
-            providerName: ai.selectedVendor?.name ?? '',
             model: ai.effectiveModel,
             thinkingEffort: ai.thinkingEffort,
+            isAnthropic: ai.selectedVendor?.isAnthropic ?? false,
           ).summarize(messages);
           return response;
         },

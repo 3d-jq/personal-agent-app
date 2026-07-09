@@ -12,7 +12,7 @@ void showBackendPicker(BuildContext context, AISettings s, VoidCallback cb) {
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (ctx) => Padding(
-      padding: const EdgeInsets.only(bottom: 32),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -36,46 +36,57 @@ void showBackendPicker(BuildContext context, AISettings s, VoidCallback cb) {
               ),
             ),
           ),
-          ...s.vendors.map(
-            (v) => _VendorTile(
-              vendor: v,
-              isSelected: s.selectedVendorId == v.id,
-              onSelect: () {
-                s.selectVendor(v.id);
-                cb();
-                Navigator.pop(ctx);
-              },
-              onEdit: () {
-                Navigator.pop(ctx);
-                _showEditVendor(context, s, v, cb);
-              },
-              onDelete: () async {
-                Navigator.pop(ctx);
-                final ok = await showDialog<bool>(
-                  context: context,
-                  builder: (c) => AlertDialog(
-                    title: const Text('删除厂商'),
-                    content: Text('确定要删除「${v.name}」吗？'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(c, false),
-                        child: const Text('取消'),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(c, true),
-                        child: const Text('删除'),
-                      ),
-                    ],
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.6,
+            ),
+            child: ListView(
+              physics: const BouncingScrollPhysics(),
+              shrinkWrap: true,
+              children: [
+                ...s.vendors.map(
+                  (v) => _VendorTile(
+                    vendor: v,
+                    isSelected: s.selectedVendorId == v.id,
+                    onSelect: () {
+                      s.selectVendor(v.id);
+                      cb();
+                      Navigator.pop(ctx);
+                    },
+                    onEdit: () {
+                      Navigator.pop(ctx);
+                      _showEditVendor(context, s, v, cb);
+                    },
+                    onDelete: () async {
+                      Navigator.pop(ctx);
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (c) => AlertDialog(
+                          title: const Text('删除厂商'),
+                          content: Text('确定要删除「${v.name}」吗？'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(c, false),
+                              child: const Text('取消'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(c, true),
+                              child: const Text('删除'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (ok == true) {
+                        s.removeVendor(v.id);
+                        cb();
+                      }
+                    },
                   ),
-                );
-                if (ok == true) {
-                  s.removeVendor(v.id);
-                  cb();
-                }
-              },
+                ),
+                const SizedBox(height: 8),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
           _AddVendorTile(
             onTap: () {
               HapticFeedback.lightImpact();
@@ -92,7 +103,8 @@ void showBackendPicker(BuildContext context, AISettings s, VoidCallback cb) {
 void _showAddVendor(BuildContext context, AISettings s, VoidCallback cb) {
   final nCtrl = TextEditingController(),
       kCtrl = TextEditingController(),
-      uCtrl = TextEditingController();
+      uCtrl = TextEditingController(),
+      mCtrl = TextEditingController();
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -103,6 +115,7 @@ void _showAddVendor(BuildContext context, AISettings s, VoidCallback cb) {
       nameCtrl: nCtrl,
       keyCtrl: kCtrl,
       urlCtrl: uCtrl,
+      modelCtrl: mCtrl,
       settings: s,
       onChanged: cb,
     ),
@@ -110,13 +123,14 @@ void _showAddVendor(BuildContext context, AISettings s, VoidCallback cb) {
 }
 
 class _AddVendorBody extends StatefulWidget {
-  final TextEditingController nameCtrl, keyCtrl, urlCtrl;
+  final TextEditingController nameCtrl, keyCtrl, urlCtrl, modelCtrl;
   final AISettings settings;
   final VoidCallback onChanged;
   const _AddVendorBody({
     required this.nameCtrl,
     required this.keyCtrl,
     required this.urlCtrl,
+    required this.modelCtrl,
     required this.settings,
     required this.onChanged,
   });
@@ -125,6 +139,7 @@ class _AddVendorBody extends StatefulWidget {
 }
 
 class _AddVendorBodyState extends State<_AddVendorBody> {
+  String _protocol = 'openai';
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -167,6 +182,19 @@ class _AddVendorBodyState extends State<_AddVendorBody> {
                 hintText: 'https://api.openai.com/v1',
               ),
             ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: widget.modelCtrl,
+              decoration: const InputDecoration(
+                labelText: '默认模型（可选）',
+                hintText: '留空默认 deepseek-chat',
+              ),
+            ),
+            const SizedBox(height: 12),
+            _ProtocolSelector(
+              value: _protocol,
+              onChanged: (p) => setState(() => _protocol = p),
+            ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
@@ -176,13 +204,15 @@ class _AddVendorBodyState extends State<_AddVendorBody> {
                 final u = widget.urlCtrl.text.trim().isNotEmpty
                     ? widget.urlCtrl.text.trim()
                     : 'https://api.deepseek.com/v1';
+                final m = widget.modelCtrl.text.trim();
                 widget.settings.addVendor(
                   VendorConfig(
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
                     name: n,
                     apiKey: k,
                     baseUrl: u,
-                    model: 'deepseek-chat',
+                    model: m.isEmpty ? 'deepseek-chat' : m,
+                    protocol: _protocol,
                   ),
                 );
                 widget.onChanged();
@@ -205,7 +235,8 @@ void _showEditVendor(
 ) {
   final nCtrl = TextEditingController(text: v.name),
       kCtrl = TextEditingController(text: v.apiKey),
-      uCtrl = TextEditingController(text: v.baseUrl);
+      uCtrl = TextEditingController(text: v.baseUrl),
+      mCtrl = TextEditingController(text: v.model);
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -217,6 +248,7 @@ void _showEditVendor(
       nameCtrl: nCtrl,
       keyCtrl: kCtrl,
       urlCtrl: uCtrl,
+      modelCtrl: mCtrl,
       settings: s,
       onChanged: cb,
     ),
@@ -225,7 +257,7 @@ void _showEditVendor(
 
 class _EditVendorBody extends StatefulWidget {
   final VendorConfig vendor;
-  final TextEditingController nameCtrl, keyCtrl, urlCtrl;
+  final TextEditingController nameCtrl, keyCtrl, urlCtrl, modelCtrl;
   final AISettings settings;
   final VoidCallback onChanged;
   const _EditVendorBody({
@@ -233,6 +265,7 @@ class _EditVendorBody extends StatefulWidget {
     required this.nameCtrl,
     required this.keyCtrl,
     required this.urlCtrl,
+    required this.modelCtrl,
     required this.settings,
     required this.onChanged,
   });
@@ -241,6 +274,12 @@ class _EditVendorBody extends StatefulWidget {
 }
 
 class _EditVendorBodyState extends State<_EditVendorBody> {
+  String _protocol = 'openai';
+  @override
+  void initState() {
+    super.initState();
+    _protocol = widget.vendor.protocol;
+  }
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
@@ -289,6 +328,20 @@ class _EditVendorBodyState extends State<_EditVendorBody> {
                 ),
               ),
               const SizedBox(height: 12),
+              _ProtocolSelector(
+                value: _protocol,
+                onChanged: (p) => setState(() => _protocol = p),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: widget.modelCtrl,
+                decoration: InputDecoration(
+                  labelText: '默认模型（可选）',
+                  labelStyle: TextStyle(color: nc.textSecondary),
+                  hintText: '留空默认 deepseek-chat',
+                ),
+              ),
+              const SizedBox(height: 12),
             ],
             TextField(
               controller: widget.keyCtrl,
@@ -297,6 +350,17 @@ class _EditVendorBodyState extends State<_EditVendorBody> {
                 labelStyle: TextStyle(color: nc.textSecondary),
               ),
             ),
+            if (isBuiltIn) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: widget.modelCtrl,
+                decoration: InputDecoration(
+                  labelText: '默认模型（可选）',
+                  labelStyle: TextStyle(color: nc.textSecondary),
+                  hintText: '留空默认 deepseek-chat',
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
@@ -310,8 +374,15 @@ class _EditVendorBodyState extends State<_EditVendorBody> {
                     : (widget.urlCtrl.text.trim().isNotEmpty
                           ? widget.urlCtrl.text.trim()
                           : widget.vendor.baseUrl);
+                final m = widget.modelCtrl.text.trim();
                 widget.settings.updateVendor(
-                  widget.vendor.copyWith(name: n, apiKey: k, baseUrl: u),
+                  widget.vendor.copyWith(
+                    name: n,
+                    apiKey: k,
+                    baseUrl: u,
+                    protocol: _protocol,
+                    model: m.isEmpty ? widget.vendor.model : m,
+                  ),
                 );
                 widget.onChanged();
                 Navigator.of(context).pop();
@@ -378,7 +449,9 @@ class _VendorTile extends StatelessWidget {
         ],
       ),
       subtitle: Text(
-        vendor.model.isNotEmpty ? vendor.model : '未设置模型',
+        vendor.isBuiltIn
+            ? (vendor.model.isNotEmpty ? vendor.model : '未设置模型')
+            : '${vendor.model.isNotEmpty ? vendor.model : '未设置模型'} · ${vendor.protocol == 'anthropic' ? 'Anthropic 格式' : 'OpenAI 格式'}',
         style: TextStyle(fontSize: 12, color: nc.textSecondary),
       ),
       trailing: Row(
@@ -426,6 +499,76 @@ class _AddVendorTile extends StatelessWidget {
         style: TextStyle(fontSize: 15, color: nc.textSecondary),
       ),
       onTap: onTap,
+    );
+  }
+}
+
+/// OpenAI / Anthropic 接口协议分段选择器（Apple HIG 风格）
+class _ProtocolSelector extends StatelessWidget {
+  final String value;
+  final ValueChanged<String> onChanged;
+  const _ProtocolSelector({
+    required this.value,
+    required this.onChanged,
+  });
+
+  static const _options = [
+    (value: 'openai', label: 'OpenAI 格式'),
+    (value: 'anthropic', label: 'Anthropic 格式'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final nc = AgentColors.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '接口协议',
+          style: TextStyle(fontSize: 13, color: nc.textSecondary),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            for (var i = 0; i < _options.length; i++) ...[
+              if (i > 0) const SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => onChanged(_options[i].value),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: value == _options[i].value
+                          ? nc.primary.withValues(alpha: 0.12)
+                          : nc.fillTertiary,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: value == _options[i].value
+                            ? nc.primary
+                            : nc.divider,
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      _options[i].label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: value == _options[i].value
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: value == _options[i].value
+                            ? nc.primary
+                            : nc.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }

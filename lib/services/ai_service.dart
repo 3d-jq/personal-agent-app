@@ -13,23 +13,23 @@ export 'ai_service_base.dart' show AiResponse;
 class AIService {
   final String baseUrl;
   final String apiKey;
-  final String providerName;
   final String model;
   final ToolRegistry toolRegistry;
   final int maxTokens;
   final String thinkingEffort;
+  final bool isAnthropic;
 
   AIService({
     required this.baseUrl,
     required this.apiKey,
-    required this.providerName,
     required this.model,
     this.maxTokens = 65536,
     this.thinkingEffort = 'medium',
+    this.isAnthropic = false,
     ToolRegistry? toolRegistry,
   }) : toolRegistry = toolRegistry ?? ToolRegistry();
 
-  bool get _isAnthropic => providerName == 'Anthropic';
+  bool get _isAnthropic => isAnthropic;
 
   OpenAiProtocol get _openAi => OpenAiProtocol(
     baseUrl: baseUrl,
@@ -78,6 +78,9 @@ class AIService {
 
   /// 非流式摘要，用于 HistoryManager 压缩早期对话历史。
   Future<String> summarize(List<Map<String, dynamic>> messages) async {
+    if (_isAnthropic) {
+      return _anthropic.summarize(messages);
+    }
     final url = '${normalizeUrl(baseUrl)}/chat/completions';
     log.i('AIService', 'Summarize request: ${messages.length} messages');
     try {

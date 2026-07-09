@@ -35,10 +35,30 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
   List<String>? _fetched;
   bool _loading = false;
   String? _error;
+  late final TextEditingController _modelCtrl;
   @override
   void initState() {
     super.initState();
+    _modelCtrl = TextEditingController(text: widget.vendor.model);
     _fetch();
+  }
+
+  @override
+  void dispose() {
+    _modelCtrl.dispose();
+    super.dispose();
+  }
+
+  void _useManual() {
+    final m = _modelCtrl.text.trim();
+    if (m.isEmpty) {
+      setState(() {}); // 触发空值提示
+      return;
+    }
+    HapticFeedback.lightImpact();
+    widget.settings.setVendorModel(widget.vendor.id, m);
+    widget.onChanged();
+    Navigator.pop(context);
   }
 
   Future<void> _fetch() async {
@@ -51,8 +71,8 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
       final m = await AIService(
         baseUrl: widget.vendor.baseUrl,
         apiKey: widget.vendor.apiKey,
-        providerName: widget.vendor.name,
         model: '',
+        isAnthropic: widget.vendor.isAnthropic,
       ).fetchModels();
       if (mounted) {
         setState(() {
@@ -160,7 +180,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
                           },
                         );
                       }),
-                      if (_error != null)
+                        if (_error != null)
                         Padding(
                           padding: const EdgeInsets.all(16),
                           child: Text(
@@ -171,6 +191,53 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
                         ),
                     ],
                   ),
+          ),
+          const Divider(height: 1),
+          Container(
+            color: nc.fillTertiary,
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              top: 12,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '接口没列出想要的？手动输入模型',
+                  style: TextStyle(fontSize: 13, color: nc.textSecondary),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _modelCtrl,
+                        decoration: InputDecoration(
+                          hintText: '例如: gpt-4o, claude-3-5-sonnet',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: nc.divider),
+                          ),
+                        ),
+                        onSubmitted: (_) => _useManual(),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: _useManual,
+                      child: const Text('使用'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),

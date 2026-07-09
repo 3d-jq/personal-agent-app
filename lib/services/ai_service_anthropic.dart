@@ -192,10 +192,54 @@ class AnthropicProtocol {
           }
         }
       }
-    } on DioException catch (e) {
+      } on DioException catch (e) {
       yield ErrorEvent(friendlyError(e));
     } catch (e) {
       yield ErrorEvent('未知错误: $e');
+    }
+  }
+
+  /// 非流式摘要，用于 HistoryManager 压缩早期对话历史。
+  /// Anthropic 没有独立的摘要端点，复用 Messages API（非流式）取文本。
+  Future<String> summarize(List<Map<String, dynamic>> messages) async {
+    final url = '${normalizeUrl(baseUrl)}/messages';
+    final system = messages
+        .where((m) => m['role'] == 'system')
+        .map((m) => m['content'] ?? '')
+        .join('\n');
+    final conversation = messages.where((m) => m['role'] != 'system').toList();
+    log.i('AnthropicProtocol', 'Summarize request: ${messages.length} messages');
+    try {
+      final response = await AiHttpClient.retryPost(
+        url,
+        headers: _authHeaders,
+        data: {
+          'model': model,
+          'max_tokens': 2048,
+          'temperature': 0.3,
+          if (system.isNotEmpty) 'system': system,
+          'messages': conversation,
+        },
+      );
+      final statusCode = response.statusCode;
+      if (statusCode == null || statusCode >= 400) {
+        log.e('AnthropicProtocol', 'Summarize failed: HTTP $statusCode');
+        return '';
+      }
+      final data = response.data;
+      final content = data is Map ? data['content'] : null;
+      if (content is List && content.isNotEmpty) {
+        final text = content
+            .whereType<Map>()
+            .map((c) => (c['text'] ?? '').toString())
+            .join('');
+        log.i('AnthropicProtocol', 'Summarize success: ${text.length} chars');
+        return text.trim();
+      }
+      return '';
+    } catch (e) {
+      log.e('AnthropicProtocol', 'Summarize failed', e);
+      return '';
     }
   }
 }
