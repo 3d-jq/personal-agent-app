@@ -48,14 +48,14 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                           Scaffold.of(context).openDrawer();
                         },
                         child: Container(
-                          width: 36,
-                          height: 36,
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(9),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
                           Icons.list,
-                          size: 20,
+                          size: 24,
                           color: colors.textPrimary,
                           ),
                         ),
@@ -86,7 +86,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                                 Text(
                                   dropdownText!,
                                   style: TextStyle(
-                                    fontSize: 15,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w500,
                                     color: colors.textPrimary,
                                   ),
@@ -94,7 +94,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                                 const SizedBox(width: 4),
                                 Icon(
                                   Icons.expand_more,
-                                  size: 18,
+                                  size: 20,
                                   color: colors.textPrimary,
                                 ),
                               ],
@@ -103,7 +103,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                         : Text(
                             title!,
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 17,
                               fontWeight: FontWeight.w600,
                               color: colors.textPrimary,
                             ),

@@ -75,7 +75,7 @@ class ChatIdentityButton extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-          child: Icon(Icons.badge, size: 18, color: nc.textPrimary),
+          child: Icon(Icons.badge, size: 22, color: nc.textPrimary),
         ),
       ),
     );

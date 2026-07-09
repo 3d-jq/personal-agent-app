@@ -6,6 +6,7 @@ import '../core/agent_colors.dart';
 import '../core/design_tokens.dart';
 import '../core/service_locator.dart';
 import '../widgets/common_widgets.dart';
+import '../widgets/app_toast.dart';
 import '../models/agent.dart';
 import '../widgets/ai_settings_sheet.dart';
 import '../widgets/agent_group/agent_group_theme.dart';
@@ -42,9 +43,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
 
   Future<void> _save() async {
     if (_name.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请填写 Agent 名字')));
+      AppToast.show(context, '请填写 Agent 名字', type: ToastType.error);
       return;
     }
     final a = Agent(

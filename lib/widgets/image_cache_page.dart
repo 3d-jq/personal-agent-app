@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
 import 'common_widgets.dart';
+import 'app_toast.dart';
 import '../core/service_locator.dart';
 import '../services/media_storage.dart';
 
@@ -74,9 +75,7 @@ class _ImageCachePageState extends State<ImageCachePage> {
       PaintingBinding.instance.imageCache.clear();
       await _loadCacheInfo();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('缓存已清除')),
-        );
+        AppToast.show(context, '缓存已清除', type: ToastType.success);
       }
     }
   }

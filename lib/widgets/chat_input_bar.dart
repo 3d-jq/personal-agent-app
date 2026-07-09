@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import 'ai_settings_sheet.dart';
 import 'attachment_picker.dart';
+import '../core/app_animations.dart';
 
 class ChatInputBar extends StatefulWidget {
   final double bottomSafe;
@@ -90,12 +91,12 @@ class _ChatInputBarState extends State<ChatInputBar> {
         ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Padding(
+                child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: nc.bgSubtle.withValues(alpha: 0.95),
-                  borderRadius: BorderRadius.circular(20),
+                  color: nc.surface,
+                  borderRadius: BorderRadius.circular(24),
                   // Apple HIG：用 0.5px 边框代替阴影区分空间
                   border: Border.all(color: nc.divider, width: 0.5),
                 ),
@@ -103,18 +104,20 @@ class _ChatInputBarState extends State<ChatInputBar> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-                      child: Theme(
+                      padding: const EdgeInsets.fromLTRB(18, 14, 18, 6),
+                        child: Theme(
                         data: Theme.of(context).copyWith(
-                      inputDecorationTheme: const InputDecorationTheme(
-                        border: InputBorder.none,
-                        enabledBorder: InputBorder.none,
-                        focusedBorder: InputBorder.none,
-                        disabledBorder: InputBorder.none,
-                        errorBorder: InputBorder.none,
-                        focusedErrorBorder: InputBorder.none,
-                      ),
-                    ),
+                          inputDecorationTheme: InputDecorationTheme(
+                            filled: true,
+                            fillColor: nc.surface,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            focusedErrorBorder: InputBorder.none,
+                          ),
+                        ),
                     child: TextField(
                       controller: widget.controller,
                       focusNode: widget.focusNode,
@@ -124,7 +127,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                       textInputAction: TextInputAction.newline,
                       enabled: !widget.isCompressing,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 16,
                         color: nc.textPrimary,
                         height: 1.5,
                       ),
@@ -138,10 +141,12 @@ class _ChatInputBarState extends State<ChatInputBar> {
                           color: widget.isCompressing
                               ? nc.primary
                               : nc.textSecondary.withValues(alpha: 0.6),
-                          fontSize: 15,
+                          fontSize: 16,
                           height: 1.5,
                         ),
                         border: InputBorder.none,
+                        filled: true,
+                        fillColor: nc.surface,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
                         disabledBorder: InputBorder.none,
@@ -176,7 +181,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
           child: Text(
             '大模型也会出错，请谨慎核对内容',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               color: nc.textDisabled,
             ),
           ),
@@ -187,34 +192,59 @@ class _ChatInputBarState extends State<ChatInputBar> {
 
   Widget _buildAttachmentButton(AgentColors nc, bool hasFile) {
     if (widget.isAwaitingReply) return const SizedBox.shrink();
-    return GestureDetector(
+    return PressableScale(
+      scale: 0.9,
       onTap: () {
         HapticFeedback.lightImpact();
         if (widget.onAttachment != null) {
           AttachmentPicker.show(context, nc, widget.onAttachment!);
         }
       },
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: hasFile
-                ? nc.success.withValues(alpha: 0.1)
-                : nc.surface,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Icon(
-            hasFile ? Icons.check : Icons.add,
-            size: 20,
-            color: hasFile ? nc.success : nc.textPrimary,
-          ),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: hasFile
+              ? nc.success.withValues(alpha: 0.1)
+              : nc.surface,
+          borderRadius: BorderRadius.circular(22),
         ),
+        child: Icon(
+          hasFile ? Icons.check : Icons.add,
+          size: 22,
+          color: hasFile ? nc.success : nc.textPrimary,
+        ),
+      ),
     );
   }
 
   Widget _buildSendButton(AgentColors nc, bool hasText, bool hasFile) {
     final isActive = hasText || hasFile || widget.isLoading;
-    return GestureDetector(
+    final child = AnimatedContainer(
+      duration: AppDurations.fast,
+      curve: AppCurves.color,
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: widget.isLoading
+            ? nc.error.withValues(alpha: 0.1)
+            : isActive
+                ? nc.primary
+                : nc.surface,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Icon(
+        widget.isLoading ? Icons.stop : Icons.arrow_upward,
+        size: 22,
+        color: widget.isLoading
+            ? nc.error
+            : isActive
+                ? nc.surface
+                : nc.textSecondary,
+      ),
+    );
+    return PressableScale(
+      scale: 0.9,
       onTap: () {
         if (!isActive) return;
         HapticFeedback.mediumImpact();
@@ -224,27 +254,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
           widget.onSend();
         }
       },
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: widget.isLoading
-                ? nc.error.withValues(alpha: 0.1)
-                : isActive
-                    ? nc.primary
-                    : nc.surface,
-            borderRadius: BorderRadius.circular(20),
-          ),
-        child: Icon(
-          widget.isLoading ? Icons.stop : Icons.arrow_upward,
-          size: 20,
-          color: widget.isLoading
-              ? nc.error
-              : isActive
-              ? nc.surface
-              : nc.textSecondary,
-        ),
-      ),
+      child: child,
     );
   }
 

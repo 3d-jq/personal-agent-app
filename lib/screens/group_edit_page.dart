@@ -6,6 +6,7 @@ import '../core/agent_colors.dart';
 import '../core/design_tokens.dart';
 import '../core/service_locator.dart';
 import '../widgets/common_widgets.dart';
+import '../widgets/app_toast.dart';
 import '../models/agent.dart';
 import '../models/agent_group.dart';
 import '../services/agent_storage.dart';
@@ -43,9 +44,7 @@ class _GroupEditPageState extends State<GroupEditPage> {
 
   void _save() {
     if (_name.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请填写群名')));
+      AppToast.show(context, '请填写群名', type: ToastType.error);
       return;
     }
     final g = AgentGroup(

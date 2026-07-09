@@ -75,6 +75,16 @@ class ChatMessage extends ChangeNotifier {
     }
   }
 
+  /// 标记该消息为「错误气泡」，UI 据此渲染为内联报错卡而非普通正文。
+  bool _isError = false;
+  bool get isError => _isError;
+  set isError(bool value) {
+    if (_isError != value) {
+      _isError = value;
+      notifyListeners();
+    }
+  }
+
   List<TimelineStep>? get steps => _steps;
   set steps(List<TimelineStep>? value) {
     _steps = value;

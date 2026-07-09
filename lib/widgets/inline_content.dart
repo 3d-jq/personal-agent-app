@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/agent_colors.dart';
 import '../core/app_animations.dart';
 import '../core/app_router.dart';
+import '../widgets/app_toast.dart';
 
 /// Build inline content: split text by markdown image patterns,
 /// render text as MarkdownBody, and images as Image.network inline.
@@ -246,61 +247,61 @@ MarkdownStyleSheet _mdStyleSheet(AgentColors nc) {
   }
   _cachedMdStyleHash = hash;
   return _cachedMdStyle = MarkdownStyleSheet(
-    p: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.6),
+    p: TextStyle(fontSize: 16, color: nc.textPrimary, height: 1.6),
     h1: TextStyle(
-      fontSize: 20,
+      fontSize: 22,
       fontWeight: FontWeight.w700,
       color: nc.textPrimary,
       height: 1.4,
     ),
     h2: TextStyle(
-      fontSize: 18,
+      fontSize: 20,
       fontWeight: FontWeight.w700,
       color: nc.textPrimary,
       height: 1.4,
     ),
     h3: TextStyle(
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: FontWeight.w700,
       color: nc.textPrimary,
       height: 1.4,
     ),
     h4: TextStyle(
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: FontWeight.w700,
       color: nc.textPrimary,
       height: 1.4,
     ),
     h5: TextStyle(
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: FontWeight.w700,
       color: nc.textPrimary,
       height: 1.4,
     ),
     h6: TextStyle(
-      fontSize: 13,
+      fontSize: 14,
       fontWeight: FontWeight.w700,
       color: nc.textPrimary,
       height: 1.4,
     ),
     a: TextStyle(
-      fontSize: 15,
+      fontSize: 16,
       color: nc.primary,
       decoration: TextDecoration.underline,
       decorationColor: nc.primary,
     ),
     em: TextStyle(
-      fontSize: 15,
+      fontSize: 16,
       fontStyle: FontStyle.italic,
       color: nc.textPrimary,
     ),
     strong: TextStyle(
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: FontWeight.w700,
       color: nc.textPrimary,
     ),
     code: TextStyle(
-      fontSize: 13,
+      fontSize: 14,
       color: nc.textPrimary,
       backgroundColor: nc.divider.withValues(alpha: 0.5),
       fontFamily: 'monospace',
@@ -321,14 +322,14 @@ MarkdownStyleSheet _mdStyleSheet(AgentColors nc) {
       top: 8,
       bottom: 8,
     ),
-    listBullet: TextStyle(fontSize: 15, color: nc.textPrimary),
+    listBullet: TextStyle(fontSize: 16, color: nc.textPrimary),
     tableBorder: TableBorder.all(color: nc.divider),
     tableHead: TextStyle(
-      fontSize: 15,
+      fontSize: 16,
       fontWeight: FontWeight.w600,
       color: nc.textPrimary,
     ),
-    tableBody: TextStyle(fontSize: 15, color: nc.textPrimary),
+    tableBody: TextStyle(fontSize: 16, color: nc.textPrimary),
     horizontalRuleDecoration: BoxDecoration(
       border: Border(top: BorderSide(color: nc.divider, width: 0.5)),
     ),
@@ -400,12 +401,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
                     Clipboard.setData(ClipboardData(text: code));
                     HapticFeedback.lightImpact();
                     if (context != null) {
-                      ScaffoldMessenger.of(context!).showSnackBar(
-                        const SnackBar(
-                          content: Text('已复制到剪贴板'),
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
+                      AppToast.show(context!, '已复制到剪贴板');
                     }
                   },
                   child: Row(
@@ -480,15 +476,11 @@ class _FullscreenImageState extends State<_FullscreenImage> {
         },
       );
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('已保存到相册')));
+        AppToast.show(context, '已保存到相册', type: ToastType.success);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
+        AppToast.show(context, '保存失败: $e', type: ToastType.error);
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -591,15 +583,11 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
         'name': 'dweis_video_${DateTime.now().millisecondsSinceEpoch}.mp4',
       });
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('已保存到相册')));
+        AppToast.show(context, '已保存到相册', type: ToastType.success);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
+        AppToast.show(context, '保存失败: $e', type: ToastType.error);
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -670,9 +658,7 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                     ).invokeMethod('openFile', {'path': widget.filePath});
                   } catch (e) {
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('无法播放: $e\n请安装视频播放器应用')),
-                      );
+                      AppToast.show(context, '无法播放: $e\n请安装视频播放器应用', type: ToastType.error);
                     }
                   }
                 },

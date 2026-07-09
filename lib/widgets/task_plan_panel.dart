@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../tools/task_plan_tool.dart';
 
@@ -45,10 +46,6 @@ class TaskPlanView extends StatelessWidget {
             ? nc.warning
             : nc.primary;
 
-    final leadingIcon = verified || allDoneOrFailed
-        ? Icons.check_circle_outline
-        : Icons.checklist_outlined;
-
     return Padding(
       // 左右不缩进 → 与气泡文本同宽；下方留 8 间距与后续文本分隔
       padding: const EdgeInsets.only(bottom: 8),
@@ -70,7 +67,9 @@ class TaskPlanView extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
                 child: Row(
                   children: [
-                    Icon(leadingIcon, size: 17, color: badgeFg),
+                    (verified || allDoneOrFailed)
+                        ? _PopCheck(color: badgeFg)
+                        : Icon(Icons.checklist_outlined, size: 17, color: badgeFg),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -206,6 +205,49 @@ class TaskPlanView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 计划完成时的对勾微动效（弹簧缩放 + 轻触觉），用于「完成时刻」氛围。
+class _PopCheck extends StatefulWidget {
+  final Color color;
+  const _PopCheck({required this.color});
+
+  @override
+  State<_PopCheck> createState() => _PopCheckState();
+}
+
+class _PopCheckState extends State<_PopCheck>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 340),
+    );
+    _scale = Tween<double>(begin: 0.4, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut),
+    );
+    _ctrl.forward();
+    HapticFeedback.lightImpact();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scale,
+      child: Icon(Icons.check_circle_outline, size: 17, color: widget.color),
     );
   }
 }

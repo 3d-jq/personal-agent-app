@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import 'common_widgets.dart';
+import 'app_toast.dart';
 import '../services/log_service.dart';
 
 class LogPage extends StatefulWidget {
@@ -58,9 +59,7 @@ class _LogPageState extends State<LogPage> {
             icon: Icon(Icons.content_copy, color: nc.textSecondary),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: _logs));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('已复制日志'), duration: Duration(seconds: 1)),
-              );
+              AppToast.show(context, '已复制日志');
             },
           ),
           IconButton(

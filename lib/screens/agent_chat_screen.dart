@@ -17,6 +17,7 @@ import '../services/typewriter_buffer.dart';
 import '../tools/tools.dart';
 import '../widgets/ai_settings_sheet.dart';
 import '../widgets/chat_bubble.dart';
+import '../core/error_handler.dart';
 import '../widgets/chat_input_bar.dart';
 import 'chat_helpers.dart';
 
@@ -205,10 +206,12 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
         onError: (e) {
           typewriterTimer?.cancel();
           typewriterTimer = null;
-          buf.write('\n\n[错误: $e]');
-          typewriter.append('\n\n[错误: $e]');
+          final friendly = ErrorHandler.humanizeError(e);
+          buf.write('\n\n$friendly');
+          typewriter.append('\n\n$friendly');
           typewriter.revealAll();
           placeholder.text = typewriter.visibleText;
+          placeholder.isError = true;
           completer.complete();
         },
         cancelOnError: true,
