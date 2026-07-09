@@ -103,8 +103,7 @@ void showBackendPicker(BuildContext context, AISettings s, VoidCallback cb) {
 void _showAddVendor(BuildContext context, AISettings s, VoidCallback cb) {
   final nCtrl = TextEditingController(),
       kCtrl = TextEditingController(),
-      uCtrl = TextEditingController(),
-      mCtrl = TextEditingController();
+      uCtrl = TextEditingController();
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -115,7 +114,6 @@ void _showAddVendor(BuildContext context, AISettings s, VoidCallback cb) {
       nameCtrl: nCtrl,
       keyCtrl: kCtrl,
       urlCtrl: uCtrl,
-      modelCtrl: mCtrl,
       settings: s,
       onChanged: cb,
     ),
@@ -123,14 +121,13 @@ void _showAddVendor(BuildContext context, AISettings s, VoidCallback cb) {
 }
 
 class _AddVendorBody extends StatefulWidget {
-  final TextEditingController nameCtrl, keyCtrl, urlCtrl, modelCtrl;
+  final TextEditingController nameCtrl, keyCtrl, urlCtrl;
   final AISettings settings;
   final VoidCallback onChanged;
   const _AddVendorBody({
     required this.nameCtrl,
     required this.keyCtrl,
     required this.urlCtrl,
-    required this.modelCtrl,
     required this.settings,
     required this.onChanged,
   });
@@ -183,14 +180,6 @@ class _AddVendorBodyState extends State<_AddVendorBody> {
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: widget.modelCtrl,
-              decoration: const InputDecoration(
-                labelText: '默认模型（可选）',
-                hintText: '留空默认 deepseek-chat',
-              ),
-            ),
-            const SizedBox(height: 12),
             _ProtocolSelector(
               value: _protocol,
               onChanged: (p) => setState(() => _protocol = p),
@@ -204,14 +193,13 @@ class _AddVendorBodyState extends State<_AddVendorBody> {
                 final u = widget.urlCtrl.text.trim().isNotEmpty
                     ? widget.urlCtrl.text.trim()
                     : 'https://api.deepseek.com/v1';
-                final m = widget.modelCtrl.text.trim();
                 widget.settings.addVendor(
                   VendorConfig(
                     id: DateTime.now().millisecondsSinceEpoch.toString(),
                     name: n,
                     apiKey: k,
                     baseUrl: u,
-                    model: m.isEmpty ? 'deepseek-chat' : m,
+                    model: 'deepseek-chat',
                     protocol: _protocol,
                   ),
                 );
@@ -235,8 +223,7 @@ void _showEditVendor(
 ) {
   final nCtrl = TextEditingController(text: v.name),
       kCtrl = TextEditingController(text: v.apiKey),
-      uCtrl = TextEditingController(text: v.baseUrl),
-      mCtrl = TextEditingController(text: v.model);
+      uCtrl = TextEditingController(text: v.baseUrl);
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -248,7 +235,6 @@ void _showEditVendor(
       nameCtrl: nCtrl,
       keyCtrl: kCtrl,
       urlCtrl: uCtrl,
-      modelCtrl: mCtrl,
       settings: s,
       onChanged: cb,
     ),
@@ -257,7 +243,7 @@ void _showEditVendor(
 
 class _EditVendorBody extends StatefulWidget {
   final VendorConfig vendor;
-  final TextEditingController nameCtrl, keyCtrl, urlCtrl, modelCtrl;
+  final TextEditingController nameCtrl, keyCtrl, urlCtrl;
   final AISettings settings;
   final VoidCallback onChanged;
   const _EditVendorBody({
@@ -265,7 +251,6 @@ class _EditVendorBody extends StatefulWidget {
     required this.nameCtrl,
     required this.keyCtrl,
     required this.urlCtrl,
-    required this.modelCtrl,
     required this.settings,
     required this.onChanged,
   });
@@ -333,15 +318,6 @@ class _EditVendorBodyState extends State<_EditVendorBody> {
                 onChanged: (p) => setState(() => _protocol = p),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: widget.modelCtrl,
-                decoration: InputDecoration(
-                  labelText: '默认模型（可选）',
-                  labelStyle: TextStyle(color: nc.textSecondary),
-                  hintText: '留空默认 deepseek-chat',
-                ),
-              ),
-              const SizedBox(height: 12),
             ],
             TextField(
               controller: widget.keyCtrl,
@@ -350,17 +326,6 @@ class _EditVendorBodyState extends State<_EditVendorBody> {
                 labelStyle: TextStyle(color: nc.textSecondary),
               ),
             ),
-            if (isBuiltIn) ...[
-              const SizedBox(height: 12),
-              TextField(
-                controller: widget.modelCtrl,
-                decoration: InputDecoration(
-                  labelText: '默认模型（可选）',
-                  labelStyle: TextStyle(color: nc.textSecondary),
-                  hintText: '留空默认 deepseek-chat',
-                ),
-              ),
-            ],
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
@@ -374,14 +339,12 @@ class _EditVendorBodyState extends State<_EditVendorBody> {
                     : (widget.urlCtrl.text.trim().isNotEmpty
                           ? widget.urlCtrl.text.trim()
                           : widget.vendor.baseUrl);
-                final m = widget.modelCtrl.text.trim();
                 widget.settings.updateVendor(
                   widget.vendor.copyWith(
                     name: n,
                     apiKey: k,
                     baseUrl: u,
                     protocol: _protocol,
-                    model: m.isEmpty ? widget.vendor.model : m,
                   ),
                 );
                 widget.onChanged();
