@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../core/app_config.dart';
+import '../core/design_tokens.dart';
 import '../core/app_router.dart';
 import '../models/chat_session.dart';
 import '../core/service_locator.dart';
@@ -56,8 +57,8 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                 child: Text(
                   AppConfig.appName,
                   style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
+                    fontSize: FontToken.display,
+                    fontWeight: WeightToken.bold,
                     color: nc.textPrimary,
                     letterSpacing: -0.5,
                     height: 1.2,
@@ -69,7 +70,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                 child: Text(
                   '生成图片、视频能力来自 Agnes-AI',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: FontToken.micro,
                     color: nc.textSecondary.withValues(alpha: 0.5),
                   ),
                 ),

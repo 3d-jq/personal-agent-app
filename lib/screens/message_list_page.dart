@@ -62,6 +62,7 @@ class _MessageListPageState extends State<MessageListPage> {
         time: session?.updatedAt ?? DateTime(2000),
         isGroup: false,
         agentId: a.id,
+        sessionId: session?.id,
       ));
     }
 
@@ -132,7 +133,7 @@ class _MessageListPageState extends State<MessageListPage> {
                       final item = _items[index];
                       return Dismissible(
                         key: Key(item.id),
-                        direction: item.isGroup
+                        direction: item.isGroup || item.sessionId != null
                             ? DismissDirection.endToStart
                             : DismissDirection.none,
                         background: Container(
@@ -146,12 +147,21 @@ class _MessageListPageState extends State<MessageListPage> {
                           ),
                         ),
                         confirmDismiss: (direction) async {
+                          final isGroup = item.isGroup;
                           return await showDialog<bool>(
                             context: context,
                             builder: (ctx) => AlertDialog(
                               backgroundColor: nc.surface,
-                              title: Text('删除群聊', style: TextStyle(color: nc.textPrimary)),
-                              content: Text('确定删除「${item.name}」？', style: TextStyle(color: nc.textSecondary)),
+                              title: Text(
+                                isGroup ? '删除群聊' : '删除聊天记录',
+                                style: TextStyle(color: nc.textPrimary),
+                              ),
+                              content: Text(
+                                isGroup
+                                    ? '确定删除「${item.name}」？'
+                                    : '确定删除与「${item.name}」的聊天记录？',
+                                style: TextStyle(color: nc.textSecondary),
+                              ),
                               actions: [
                                 TextButton(
                                   onPressed: () => Navigator.pop(ctx, false),
@@ -165,7 +175,13 @@ class _MessageListPageState extends State<MessageListPage> {
                             ),
                           );
                         },
-                        onDismissed: (direction) => _deleteGroup(item.id),
+                        onDismissed: (direction) {
+                          if (item.isGroup) {
+                            _deleteGroup(item.id);
+                          } else if (item.sessionId != null) {
+                            _deleteSession(item.sessionId!);
+                          }
+                        },
                         child: _MessageTile(
                           item: item,
                           nc: nc,
@@ -201,6 +217,11 @@ class _MessageListPageState extends State<MessageListPage> {
     _load();
   }
 
+  void _deleteSession(String sessionId) async {
+    await getIt<ChatStorage>().delete(sessionId);
+    _load();
+  }
+
   void _showAddMenu() {
     final nc = AgentColors.of(context);
     showAddMenu(context, nc, [
@@ -230,6 +251,7 @@ class _ChatItem {
   final DateTime time;
   final bool isGroup;
   final String? agentId;
+  final String? sessionId;
 
   _ChatItem({
     required this.id,
@@ -239,6 +261,7 @@ class _ChatItem {
     required this.time,
     required this.isGroup,
     this.agentId,
+    this.sessionId,
   });
 }
 

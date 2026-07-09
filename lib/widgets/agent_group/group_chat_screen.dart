@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import '../../core/agent_colors.dart';
 import '../../core/design_tokens.dart';
 import '../../widgets/common_widgets.dart';
@@ -35,6 +37,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   // ── 滚动节流 ──
   Timer? _scrollTimer;
 
+  // ── 滚动状态：上滑后停止自动贴底，避免与阅读打架；程序滚动期间忽略 _onScroll ──
+  bool _showScrollBottom = false;
+  bool _userScrolledUp = false;
+  bool _autoScrolling = false;
+
   // ── 加载更早消息的 anchor（纯 UI，钉住首条可见消息保持滚动位置） ──
   final GlobalKey _anchorKey = GlobalKey();
   int _anchorMsgIndex = -1;
@@ -43,6 +50,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   void initState() {
     super.initState();
     _controller.onScroll = _scrollDown;
+    _scrollCtrl.addListener(_onScroll);
     // 首帧 build 完成后再触发异步加载，避免 _load 的 Future 链与首帧渲染竞争
     // （在低性能设备 / 测试 fake-async 调度下，pumpAndSettle 可能早于加载完成返回，
     //  导致集成测试偶发断言群数据未渲染）
@@ -67,6 +75,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   void dispose() {
     _inputCtrl.dispose();
     _inputFocus.dispose();
+    _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
     _scrollTimer?.cancel();
     // 解除对滚动控制器的引用：界面关闭后后台流仍在跑，
@@ -78,15 +87,32 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   /// 滚动节流：最多每 80ms 滚一次
   void _scrollDown() {
+    if (_userScrolledUp || _autoScrolling) return;
     _scrollTimer?.cancel();
     _scrollTimer = Timer(const Duration(milliseconds: 80), () {
       if (!mounted || !_scrollCtrl.hasClients) return;
+      _autoScrolling = true;
       _scrollCtrl.animateTo(
         _scrollCtrl.position.maxScrollExtent,
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
-      );
+      ).then((_) => _autoScrolling = false);
     });
+  }
+
+  /// 监听用户滚动：上滑超过阈值即标记“已离开底部”，隐藏自动贴底、显示回到底部按钮。
+  void _onScroll() {
+    if (!_scrollCtrl.hasClients || _autoScrolling) return;
+    final max = _scrollCtrl.position.maxScrollExtent;
+    final current = _scrollCtrl.position.pixels;
+    final distFromBottom = max - current;
+    final shouldShow = distFromBottom > 120;
+    if (shouldShow != _showScrollBottom) {
+      setState(() => _showScrollBottom = shouldShow);
+    }
+    if (distFromBottom > 60) {
+      _userScrolledUp = true;
+    }
   }
 
   /// 立即贴底（重新进入群聊时用）。
@@ -95,10 +121,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   /// 首跳时尚未布局，maxScrollExtent 偏小）。
   void _scrollToBottom() {
     if (!_scrollCtrl.hasClients) return;
+    _userScrolledUp = false;
+    _autoScrolling = true;
     _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+    _autoScrolling = false;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollCtrl.hasClients) return;
+      _autoScrolling = true;
       _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+      _autoScrolling = false;
     });
   }
 
@@ -107,6 +138,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     if (text.isEmpty) return;
     _inputCtrl.clear();
     _inputFocus.unfocus();
+    _userScrolledUp = false;
     _controller.send(text);
   }
 
@@ -217,7 +249,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     ),
                   ),
                 Expanded(
-                  child: _controller.messages.isEmpty
+                  child: Stack(
+                    children: [
+                      _controller.messages.isEmpty
                       ? Center(
                           child: Padding(
                             padding: const EdgeInsets.all(32),
@@ -230,6 +264,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         )
                       : ListView.builder(
                           controller: _scrollCtrl,
+                          physics: const BouncingScrollPhysics(),
                           padding: const EdgeInsets.symmetric(
                             horizontal: SpaceToken.md,
                             vertical: SpaceToken.md,
@@ -259,6 +294,41 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                             );
                           },
                         ),
+                      Positioned(
+                        right: 16,
+                        bottom: 12,
+                        child: AnimatedOpacity(
+                          opacity: _showScrollBottom ? 1.0 : 0.0,
+                          duration: const Duration(milliseconds: 150),
+                          curve: Curves.easeOut,
+                          child: IgnorePointer(
+                            ignoring: !_showScrollBottom,
+                            child: GestureDetector(
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                _scrollToBottom();
+                              },
+                              child: ClipOval(
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                                  child: Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: nc.surface.withValues(alpha: 0.85),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: nc.divider, width: 0.5),
+                                    ),
+                                    child: Icon(Icons.keyboard_arrow_down, size: 18, color: nc.textPrimary),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 GroupChatInputBar(
                   controller: _inputCtrl,

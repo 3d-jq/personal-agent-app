@@ -183,7 +183,7 @@ class _GroupChatInputBarState extends State<GroupChatInputBar> {
                           GestureDetector(
                             behavior: HitTestBehavior.opaque,
                             onTap: () {
-                              HapticFeedback.lightImpact();
+                              HapticFeedback.mediumImpact();
                               if (widget.busy) {
                                 widget.onStop();
                               } else if (canSend) {

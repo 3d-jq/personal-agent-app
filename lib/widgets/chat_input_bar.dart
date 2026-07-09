@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import '../core/app_config.dart';
 import 'ai_settings_sheet.dart';
 import 'attachment_picker.dart';
 import '../core/app_animations.dart';
@@ -136,7 +137,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                             ? '上下文压缩中...'
                             : widget.isAwaitingReply
                                 ? '回复以继续…'
-                                : (hasFile ? '添加描述（可选）' : '给 DWeis 发消息'),
+                                : (hasFile ? '添加描述（可选）' : '给 ${AppConfig.appName} 发消息'),
                         hintStyle: TextStyle(
                           color: widget.isCompressing
                               ? nc.primary

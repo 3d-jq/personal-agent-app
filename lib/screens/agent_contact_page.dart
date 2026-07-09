@@ -9,6 +9,7 @@ import '../services/agent_group_storage.dart';
 import '../services/agent_storage.dart';
 import '../widgets/common_widgets.dart';
 import '../widgets/skeleton.dart';
+import '../widgets/state_placeholder.dart';
 
 /// Agent 通讯录页面（类似微信通讯录）
 class AgentContactPage extends StatefulWidget {
@@ -56,8 +57,15 @@ class _AgentContactPageState extends State<AgentContactPage> {
       ),
       body: !_loaded
           ? const AgentListSkeleton()
-          : ListView(
-              children: [
+          : (_agents.isEmpty && _groups.isEmpty)
+              ? StatePlaceholder.empty(
+                  icon: Icons.smart_toy_outlined,
+                  title: '还没有 Agent',
+                  subtitle: '点击右上角 + 创建你的第一个 Agent',
+                )
+              : ListView(
+                  physics: const BouncingScrollPhysics(),
+                  children: [
                 // 群聊入口
                 if (_groups.isNotEmpty) ...[
                   SectionHeader(title: '群聊', nc: nc, count: _groups.length),
@@ -388,104 +396,111 @@ class _AgentCardSheet extends StatelessWidget {
         color: nc.surface,
         borderRadius: BorderRadius.circular(RadiusToken.xl),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 8),
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: nc.divider,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(SpaceToken.x2),
-            child: Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: nc.primarySurface,
-                    borderRadius: BorderRadius.circular(RadiusToken.md),
-                    border: Border.all(color: nc.divider, width: 0.5),
-                  ),
-                  child: Text(
-                    agent.avatar.isNotEmpty ? agent.avatar : agent.name.characters.first,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: nc.textPrimary,
-                    ),
-                  ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: nc.divider,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        agent.name,
+              ),
+              Padding(
+                padding: const EdgeInsets.all(SpaceToken.x2),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: nc.primarySurface,
+                        borderRadius: BorderRadius.circular(RadiusToken.md),
+                        border: Border.all(color: nc.divider, width: 0.5),
+                      ),
+                      child: Text(
+                        agent.avatar.isNotEmpty ? agent.avatar : agent.name.characters.first,
                         style: TextStyle(
-                          fontSize: FontToken.headline,
-                          fontWeight: WeightToken.semibold,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
                           color: nc.textPrimary,
                         ),
                       ),
-                      if (agent.role.isNotEmpty)
-                        Text(
-                          agent.role,
-                          style: TextStyle(
-                            fontSize: FontToken.body,
-                            color: nc.textSecondary,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            agent.name,
+                            style: TextStyle(
+                              fontSize: FontToken.headline,
+                              fontWeight: WeightToken.semibold,
+                              color: nc.textPrimary,
+                            ),
+                          ),
+                          if (agent.role.isNotEmpty)
+                            Text(
+                              agent.role,
+                              style: TextStyle(
+                                fontSize: FontToken.body,
+                                color: nc.textSecondary,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onDelete,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: nc.error,
+                          side: BorderSide(color: nc.error.withValues(alpha: 0.3)),
+                          padding: const EdgeInsets.symmetric(vertical: SpaceToken.md),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(RadiusToken.md),
                           ),
                         ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onDelete,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: nc.error,
-                      side: BorderSide(color: nc.error.withValues(alpha: 0.3)),
-                      padding: const EdgeInsets.symmetric(vertical: SpaceToken.md),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(RadiusToken.md),
+                        child: const Text('删除'),
                       ),
                     ),
-                    child: const Text('删除'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onEdit,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: nc.textPrimary,
-                      side: BorderSide(color: nc.divider, width: 0.5),
-                      padding: const EdgeInsets.symmetric(vertical: SpaceToken.md),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(RadiusToken.md),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onEdit,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: nc.textPrimary,
+                          side: BorderSide(color: nc.divider, width: 0.5),
+                          padding: const EdgeInsets.symmetric(vertical: SpaceToken.md),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(RadiusToken.md),
+                          ),
+                        ),
+                        child: const Text('编辑'),
                       ),
                     ),
-                    child: const Text('编辑'),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -519,105 +534,112 @@ class _GroupCardSheet extends StatelessWidget {
         color: nc.surface,
         borderRadius: BorderRadius.circular(RadiusToken.xl),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 8),
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: nc.divider,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(SpaceToken.x2),
-            child: Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: nc.primary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.group, size: 28, color: Colors.white),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 8),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: nc.divider,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        group.name,
-                        style: TextStyle(
-                          fontSize: FontToken.headline,
-                          fontWeight: WeightToken.semibold,
-                          color: nc.textPrimary,
-                        ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(SpaceToken.x2),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: nc.primary,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      if (memberNames.isNotEmpty)
-                        Text(
-                          memberNames,
-                          style: TextStyle(
-                            fontSize: FontToken.body,
-                            color: nc.textSecondary,
+                      child: Icon(Icons.group, size: 28, color: Colors.white),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            group.name,
+                            style: TextStyle(
+                              fontSize: FontToken.headline,
+                              fontWeight: WeightToken.semibold,
+                              color: nc.textPrimary,
+                            ),
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      Text(
-                        '${group.agentIds.length} 位成员',
-                        style: TextStyle(
-                          fontSize: FontToken.caption,
-                          color: nc.textDisabled,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onDelete,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: nc.error,
-                      side: BorderSide(color: nc.error.withValues(alpha: 0.3), width: 0.5),
-                      padding: const EdgeInsets.symmetric(vertical: SpaceToken.md),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(RadiusToken.md),
+                          if (memberNames.isNotEmpty)
+                            Text(
+                              memberNames,
+                              style: TextStyle(
+                                fontSize: FontToken.body,
+                                color: nc.textSecondary,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          Text(
+                            '${group.agentIds.length} 位成员',
+                            style: TextStyle(
+                              fontSize: FontToken.caption,
+                              color: nc.textDisabled,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    child: const Text('删除'),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onEdit,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: nc.textPrimary,
-                      side: BorderSide(color: nc.divider, width: 0.5),
-                      padding: const EdgeInsets.symmetric(vertical: SpaceToken.md),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(RadiusToken.md),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onDelete,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: nc.error,
+                          side: BorderSide(color: nc.error.withValues(alpha: 0.3), width: 0.5),
+                          padding: const EdgeInsets.symmetric(vertical: SpaceToken.md),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(RadiusToken.md),
+                          ),
+                        ),
+                        child: const Text('删除'),
                       ),
                     ),
-                    child: const Text('编辑'),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onEdit,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: nc.textPrimary,
+                          side: BorderSide(color: nc.divider, width: 0.5),
+                          padding: const EdgeInsets.symmetric(vertical: SpaceToken.md),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(RadiusToken.md),
+                          ),
+                        ),
+                        child: const Text('编辑'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
