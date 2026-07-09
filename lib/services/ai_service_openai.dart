@@ -24,6 +24,17 @@ class OpenAiProtocol {
     this.thinkingEffort = 'medium',
   });
 
+  /// 从 SSE data (已 jsonDecode) 中取出 choices 的第一个元素。
+  /// 兼容 choices 为 null / 空数组 / 非 Map 的情况（如 OpenAI 开启
+  /// stream usage 时最后一个分片是 {"choices":[],"usage":{...}}）。
+  static Map<String, dynamic>? firstChoice(dynamic decoded) {
+    if (decoded is! Map) return null;
+    final choices = decoded['choices'];
+    if (choices is! List || choices.isEmpty) return null;
+    final c = choices[0];
+    return c is Map<String, dynamic> ? c : null;
+  }
+
   Map<String, String> get authHeaders => {
     'Content-Type': 'application/json',
     'Authorization': 'Bearer $apiKey',
@@ -65,7 +76,7 @@ class OpenAiProtocol {
         return AiResponse(text: errorMsg);
       }
 
-      final choice = response.data['choices']?[0];
+      final choice = firstChoice(response.data);
       if (choice == null || choice['message'] == null) {
         return const AiResponse(text: '');
       }
@@ -149,7 +160,7 @@ class OpenAiProtocol {
           final data = line.substring(6).trim();
           if (data.isEmpty || data == '[DONE]') continue;
           try {
-            final choice = jsonDecode(data)['choices']?[0];
+            final choice = firstChoice(jsonDecode(data));
             final finishReason = choice?['finish_reason'] as String?;
             if (finishReason == 'length') {
               yield ErrorEvent('回复被长度限制截断，请简化问题或分多次询问');
@@ -195,7 +206,7 @@ class OpenAiProtocol {
       if (remaining.isNotEmpty && !remaining.startsWith('[DONE]')) {
         if (remaining.startsWith('data: ')) {
           try {
-            final choice = jsonDecode(remaining.substring(6))['choices']?[0];
+            final choice = firstChoice(jsonDecode(remaining.substring(6)));
             final finishReason = choice?['finish_reason'] as String?;
             if (finishReason == 'length') {
               yield ErrorEvent('回复被长度限制截断，请简化问题或分多次询问');

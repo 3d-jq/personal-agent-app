@@ -8,6 +8,7 @@ import 'core/app_config.dart';
 import 'core/error_handler.dart';
 import 'core/service_locator.dart';
 import 'services/connectivity_service.dart';
+import 'services/log_service.dart';
 import 'services/foreground_service.dart';
 import 'services/mcp_manager.dart';
 import 'services/storage/app_database.dart';
@@ -18,6 +19,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   ErrorHandler.init();
   ErrorWidget.builder = ErrorHandler.buildErrorWidget;
+  // 默认开启文件日志（崩溃留痕 + 问题排查），设置里可手动关闭
+  await log.setEnabled(true);
   await configureDependencies();
 
   // 初始化 SQLite 数据库（建表等），必须早于任何 storage 读写

@@ -91,19 +91,25 @@ class ContextDocService {
   /// 获取已缓存的文档内容；未加载时返回空字符串。
   String cached(ContextDoc doc) => _cache[doc] ?? '';
 
-  /// USER.md 是否包含用户自定义资料（而非默认模板）。
-  bool hasUserProfile() {
-    final content = _cache[ContextDoc.user];
+  /// USER.md 是否包含有效用户资料（而非默认模板）。
+  ///
+  /// 完成判定走「哨兵」思路（对标 BOOTSTRAP.md 的 file-gate）：
+  /// 模板自带占位符「（待用户首次指定）」，存在即视为未完成；
+  /// 移除占位符且「怎么称呼」已填实才算完成。
+  /// 不依赖具体中文字段名（如「语气风格」），避免模板字段微调导致误判。
+  bool hasUserProfile() => isProfileContentComplete(_cache[ContextDoc.user]);
+
+  /// 纯函数版，便于测试。判定逻辑见 [hasUserProfile]。
+  static bool isProfileContentComplete(String? content) {
     if (content == null || content.trim().isEmpty) return false;
-    // 模板包含"待用户首次指定"标记，有此标记说明未填写
+    // 哨兵：模板占位符仍在 → 未完成（任一字段留占位都算未完成）
     if (content.contains('（待用户首次指定）')) return false;
     final fallback = _fallbackContent(ContextDoc.user);
     if (content.trim() == fallback.trim()) return false;
-    // 检查必填字段：怎么称呼、语气风格
-    // 如果这两个字段还是空的或默认值，说明首次见面没完成
-    final hasName = RegExp(r'怎么称呼：\s*\S').hasMatch(content);
-    final hasStyle = RegExp(r'语气风格：\s*\S').hasMatch(content);
-    return hasName && hasStyle;
+    // 关键字段「怎么称呼」已填实（后面跟了非占位的实际内容）
+    final nameFilled =
+        RegExp(r'怎么称呼：\s*(?!（待用户首次指定）)\S').hasMatch(content);
+    return nameFilled;
   }
 
   /// 读取指定知识库文件。返回完整 Markdown 内容。

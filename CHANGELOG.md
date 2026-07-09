@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.4.3 — 首次见面硬化 + SSE 解析修复 + 日志系统强化 (2026-07-09)
+
+### 🔧 Bug 修复：首次见面流程「经常不触发」（脆弱性根因修复）
+- 根因：原 `isFirstMeeting = !hasUserProfile() && _messages.isEmpty` 是「一次性门禁」——首条消息没完成引导就永久不再触发；且 `hasUserProfile()` 用正则要求 `语气风格：` 字段，但 USER.md 模板里根本没有该字段 → 判定永远「未完成」且不再引导，卡死在死区。
+- 修复（对标 file-gate 思路，把「完成态」从推断改为显式哨兵）：
+  - `chat_controller.dart`：去掉 `&& _messages.isEmpty`，只取决于 USER.md 是否完成，**没完成就一直引导**。
+  - `context_doc_service.dart`：新增静态纯函数 `isProfileContentComplete(content)`，完成判定 = 占位符 `（待用户首次指定）` 消失 + `怎么称呼` 填实；**不再依赖任何中文字段名正则**，模板微调不会误判。
+  - `assets/context/USER.md`：补 `- 语气风格：（待用户首次指定）` 字段，让语气有结构化落点。
+  - `prompt_builder.dart`：`<first_meeting>` 明确让模型把昵称写进「怎么称呼」、语气写进「语气风格」、并移除占位符。
+
+### 🐛 Bug 修复：SSE 流式解析 `RangeError`
+- 现象：`[OpenAiProtocol] Parse SSE line error: RangeError (length): Valid value range is empty: 0`。
+- 根因：`jsonDecode(data)['choices']?[0]` 的 `?` 只防 `choices` 为 null，未防空数组 `[]`；OpenAI 兼容接口开启 `stream_usage` 时最后一个分片 `{"choices":[],"usage":{...}}` → `[0]` 越界。
+- 修复：抽出公开静态方法 `OpenAiProtocol.firstChoice(dynamic)`，统一取 `choices[0]`，兼容 null / 空数组 / 非 Map（均返回 null 不抛错）；替换 `stream()` 主循环、末尾缓冲分支、`callNonStreaming`，并硬化 `ai_service.dart` 历史压缩 `summarize` 接口同款隐患。Anthropic 协议无此结构未动。
+
+### 📋 日志系统强化（默认开启）
+- **默认开启**：`_enabled` 默认改为 `true`；`main.dart` 启动早期 `await log.setEnabled(true)` 打开文件 sink，确保默认就写盘（设置仍可手动关）。
+- **时间戳加日期**：从 `HH:MM:SS.mmm` 升级为 `yyyy-MM-dd HH:mm:ss.mmm`，跨天日志不再糊在一起。
+- **warn/error 带堆栈**：`w(tag, msg, [error, stack])` / `e(tag, msg, [error, stack])`，警告不再只有文字丢失堆栈。
+- **自动轮转**：文件超 **5MB** 自动备份为 `dweis.log.1` 再清空当前文件（每 100 行检查，非阻塞 `unawaited`），长期开着不无限涨。
+- **崩溃强制留痕**：新增 `recordFatal()`，并接进 `ErrorHandler._report`（`FlutterError` + zone 未捕获异常均写盘）。**关键点**：此路径**即使关闭「启用日志」开关也强制落盘**，补上「现场崩了崩因不进日志」的缺口。
+
+### 🧪 测试
+- 全量测试串行通过（`flutter test -j 1`）；新增 `context_doc_service_test`（哨兵判定组）、`ai_service_openai_test`（空 choices 分片 + `firstChoice` 四种分支）、`log_service_test`（默认开启 + 崩溃强制落盘）。
+
+---
+
 ## v1.4.2 — 输出稳定性增强 + 计划面板极简化 (2026-07-09)
 
 ### 🐛 Bug 修复（输出稳定性）

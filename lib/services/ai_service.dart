@@ -97,7 +97,11 @@ class AIService {
         log.e('AIService', 'Summarize failed: HTTP $statusCode');
         return '';
       }
-      final choice = response.data['choices']?[0];
+      final rawData = response.data;
+      final choices = rawData is Map ? rawData['choices'] : null;
+      final choice = (choices is List && choices.isNotEmpty && choices[0] is Map)
+          ? choices[0] as Map<String, dynamic>
+          : null;
       final result = (choice?['message']?['content'] as String? ?? '').trim();
       log.i('AIService', 'Summarize success: ${result.length} chars');
       return result;

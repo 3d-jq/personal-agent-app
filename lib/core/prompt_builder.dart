@@ -71,7 +71,7 @@ class PromptBuilder {
       buf.writeln('2. 主动询问用户两个必填信息：');
       buf.writeln('   - 希望你怎么称呼 ta（名字或昵称）；');
       buf.writeln('   - 偏好的对话语气风格（可爱温柔、简洁直接、专业严谨、轻松幽默等）。');
-      buf.writeln('在用户明确回复后，使用 context_doc 工具写入 USER.md。');
+      buf.writeln('在用户明确回复后，使用 context_doc 工具把昵称写入「怎么称呼」字段、把语气写入「语气风格」字段，并移除「（待用户首次指定）」占位符。');
       buf.writeln('注意：不要只回复问候，必须同时提出上述两个问题。');
       buf.writeln('</first_meeting>');
       buf.writeln();
