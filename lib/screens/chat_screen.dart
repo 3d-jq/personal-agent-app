@@ -274,11 +274,16 @@ class _MessageList extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           itemCount: controller.messages.length,
           cacheExtent: 500,
-          itemBuilder: (c, i) => ChatBubble(
-            key: ValueKey(controller.messages[i].id),
-            msg: controller.messages[i],
-            nc: nc,
-          ),
+          // ChatMessage 是 ChangeNotifier，流式更新时仅对应气泡局部重建；
+          // 必须逐条用 ListenableBuilder(msg) 包住，否则流式期间 controller 不通知、气泡不刷新
+          itemBuilder: (c, i) {
+            final msg = controller.messages[i];
+            return ListenableBuilder(
+              key: ValueKey(msg.id),
+              listenable: msg,
+              builder: (_, __) => ChatBubble(msg: msg, nc: nc),
+            );
+          },
         );
       },
     );

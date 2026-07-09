@@ -131,11 +131,16 @@ class TimelineStep {
   /// 在 [TimelineView] 中展示在 label 下面单独一行。
   String? detail;
 
+  /// 工具调用唯一 id（与模型 tool_call_id 对应）。
+  /// 并发完成时用于精确匹配步骤，避免同名工具互相错配。
+  final String? toolId;
+
   TimelineStep({
     required this.label,
     required this.type,
     required this.status,
     this.detail,
+    this.toolId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -143,6 +148,7 @@ class TimelineStep {
     'type': type.name,
     'status': status.name,
     if (detail != null) 'detail': detail,
+    if (toolId != null) 'toolId': toolId,
   };
 
   factory TimelineStep.fromJson(Map<String, dynamic> json) {
@@ -155,6 +161,7 @@ class TimelineStep {
         json['status'] as String? ?? 'running',
       ),
       detail: json['detail'] as String?,
+      toolId: json['toolId'] as String?,
     );
   }
 }

@@ -101,7 +101,12 @@ Future<List<ToolResult>> executeAllTools(
   try {
     final count = toolCalls.length;
     for (final tc in toolCalls) {
-      sink.add(ToolStartEvent(tc.name, concurrentCount: count, arguments: tc.arguments));
+      sink.add(ToolStartEvent(
+        tc.name,
+        id: tc.id,
+        concurrentCount: count,
+        arguments: tc.arguments,
+      ));
     }
 
     final planCalls = toolCalls.where((tc) => tc.name == 'task_plan').toList();
@@ -123,9 +128,9 @@ Future<List<ToolResult>> executeAllTools(
       final result = results[tc.id]!;
       ordered.add(result);
       if (result.failed) {
-        sink.add(ToolErrorEvent(tc.name, result.content));
+        sink.add(ToolErrorEvent(tc.id, tc.name, result.content));
       } else {
-        sink.add(ToolDoneEvent(tc.name));
+        sink.add(ToolDoneEvent(tc.id, tc.name));
       }
       if ((tc.name == 'generate_image' || tc.name == 'generate_video') &&
           result.content.isNotEmpty && !result.failed) {

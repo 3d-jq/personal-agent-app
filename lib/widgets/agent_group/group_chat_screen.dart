@@ -59,6 +59,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _inputFocus.dispose();
     _scrollCtrl.dispose();
     _scrollTimer?.cancel();
+    // 解除对滚动控制器的引用：界面关闭后后台流仍在跑，
+    // 避免流回调一个已 dispose 的 ScrollController。
+    _controller.onScroll = null;
     _controller.dispose();
     super.dispose();
   }
@@ -140,11 +143,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   /// 流式过程中拦截返回：先停止流并存盘，再退出
+  /// 流式/讨论过程中返回：不中断模型，让它后台继续跑完，由控制器的 finally 存盘。
   Future<void> _handleBack() async {
-    if (_controller.busy) {
-      _controller.stop();
-      await _controller.saveGroup();
-    }
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -160,7 +160,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         }
 
         return PopScope(
-          canPop: !_controller.busy,
+          // 允许随时返回：讨论在后台继续跑，结束后由控制器的 finally 存盘
+          canPop: true,
           onPopInvokedWithResult: (didPop, _) {
             if (!didPop) _handleBack();
           },

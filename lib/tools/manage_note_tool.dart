@@ -4,7 +4,7 @@ import '../services/note_storage.dart';
 import 'base_tool.dart';
 import 'manage_note_tool.g.dart';
 
-/// 管理（列出/修改/删除）已有笔记。save_note 工具负责新建，本工具负责后续管理。
+/// 管理（列出/读取/修改/删除）已有笔记。save_note 工具负责新建，本工具负责后续管理。
 class ManageNoteTool extends AgentTool {
   @override
   String get name => 'manage_notes';
@@ -20,12 +20,12 @@ class ManageNoteTool extends AgentTool {
     'properties': {
       'action': {
         'type': 'string',
-        'enum': ['list', 'update', 'delete'],
-        'description': 'list=列出全部笔记；update=修改某条笔记；delete=删除某条笔记',
+        'enum': ['list', 'update', 'delete', 'read'],
+        'description': 'list=列出全部笔记；read=读取某条笔记的完整正文；update=修改某条笔记；delete=删除某条笔记',
       },
       'note_id': {
         'type': 'string',
-        'description': '要修改/删除的笔记 id（update/delete 时必填，从 list 结果获取）',
+        'description': '要读取/修改/删除的笔记 id（read/update/delete 时必填，从 list 结果获取）',
       },
       'title': {'type': 'string', 'description': '修改后的新标题（update 时可选）'},
       'content': {
@@ -98,8 +98,31 @@ class ManageNoteTool extends AgentTool {
         await storage.remove(id!);
         return '笔记「${note.title}」已删除\n\n当前笔记列表（删除后）：\n${_formatList(await storage.loadAll())}';
 
+      case 'read':
+        final id = args['note_id'] as String?;
+        final note = id != null
+            ? notes.where((n) => n.id == id).firstOrNull
+            : null;
+
+        // 没给 id 或 id 无效 → 自动 list，让 AI 在同轮看到可用 id 后重试
+        if (note == null) {
+          final hint = id == null ? '未提供 note_id' : '找不到 id 为 "$id" 的笔记';
+          final list = _formatList(notes);
+          return '$hint。当前笔记列表如下，请选择正确的 id 重新调用 read：\n\n$list';
+        }
+
+        final buf = StringBuffer();
+        buf.writeln('笔记「${note.title}」(id: ${note.id})');
+        final updated = note.updatedAt != note.createdAt
+            ? '｜更新: ${note.updatedAt.toIso8601String()}'
+            : '';
+        buf.writeln('创建: ${note.createdAt.toIso8601String()}$updated');
+        buf.writeln();
+        buf.write(note.content);
+        return buf.toString();
+
       default:
-        return '错误: 未知操作 "$action"，支持的操作: list / update / delete';
+        return '错误: 未知操作 "$action"，支持的操作: list / read / update / delete';
     }
   }
 }

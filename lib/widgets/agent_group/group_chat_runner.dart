@@ -64,6 +64,7 @@ Future<String> runGroupAgentMessage({
   final typewriter = TypewriterBuffer(charsPerTick: 4);
   Timer? typewriterTimer;
   List<TimelineStep>? currentSteps;
+  int concurrentStarted = 0;
   final toolInteractions = <Map<String, dynamic>>[];
   StreamSubscription<ChatStreamEvent>? sub;
   try {
@@ -90,7 +91,7 @@ Future<String> runGroupAgentMessage({
             buf.write(text);
             typewriter.append(text);
             break;
-          case ToolStartEvent(:final name, :final concurrentCount, :final arguments):
+          case ToolStartEvent(:final name, :final id, :final concurrentCount, :final arguments):
             currentSteps ??= [];
             for (final s in currentSteps!) {
               if (s.type == TimelineStepType.thinking &&
@@ -100,41 +101,62 @@ Future<String> runGroupAgentMessage({
             }
             final detailLabel =
                 toolLabel(name, arguments: arguments, detailed: true);
-            final suffix = concurrentCount > 1 ? ' ×$concurrentCount' : '';
+            // 并发批次：仅在本批次「最后一个」并发工具上标注 ×N，避免 N 行都写 ×N 造成 N×N 错觉
+            final isConcurrent = concurrentCount > 1;
+            concurrentStarted += 1;
+            final isLastInGroup =
+                isConcurrent && concurrentStarted >= concurrentCount;
+            final suffix = isLastInGroup ? ' ×$concurrentCount' : '';
             currentSteps!.add(
               TimelineStep(
                 label: '$detailLabel$suffix',
                 type: TimelineStepType.tool,
                 status: TimelineStepStatus.running,
                 detail: '工具: $name',
+                toolId: id,
               ),
             );
+            if (isLastInGroup) concurrentStarted = 0;
             break;
-          case ToolDoneEvent(:final name):
+          case ToolDoneEvent(:final id):
             if (currentSteps != null) {
               final idx = currentSteps!.lastIndexWhere(
                 (s) =>
                     s.type == TimelineStepType.tool &&
-                    s.detail == '工具: $name' &&
+                    s.toolId == id &&
                     s.status == TimelineStepStatus.running,
               );
               if (idx >= 0) {
                 currentSteps![idx].status = TimelineStepStatus.done;
                 currentSteps![idx].detail = '执行成功';
               }
+              if (!currentSteps!.any(
+                (s) =>
+                    s.type == TimelineStepType.tool &&
+                    s.status == TimelineStepStatus.running,
+              )) {
+                concurrentStarted = 0;
+              }
             }
             break;
-          case ToolErrorEvent(:final name, :final message):
+          case ToolErrorEvent(:final id, :final message):
             if (currentSteps != null) {
               final idx = currentSteps!.lastIndexWhere(
                 (s) =>
                     s.type == TimelineStepType.tool &&
-                    s.detail == '工具: $name' &&
+                    s.toolId == id &&
                     s.status == TimelineStepStatus.running,
               );
               if (idx >= 0) {
                 currentSteps![idx].status = TimelineStepStatus.error;
                 currentSteps![idx].detail = message;
+              }
+              if (!currentSteps!.any(
+                (s) =>
+                    s.type == TimelineStepType.tool &&
+                    s.status == TimelineStepStatus.running,
+              )) {
+                concurrentStarted = 0;
               }
             }
             break;

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
 import '../tools/task_plan_tool.dart';
 
-/// 可复用的任务计划视图
+/// 气泡内嵌的任务计划视图（极简 callout 风格）
 ///
+/// 设计为「极简无框气泡」里的内嵌引用块：仅一层极浅中性底色 + 圆角，
+/// 无边框、无彩色竖线，与气泡文本流同宽，融入文本而非浮层卡片。
 /// [plan] 任务计划数据；[expanded] 是否展开；[onToggle] 折叠/展开回调；[onClose] 关闭回调。
 class TaskPlanView extends StatelessWidget {
   final TaskPlan plan;
@@ -31,13 +33,30 @@ class TaskPlanView extends StatelessWidget {
     );
     final verified = plan.verified;
 
+    // 徽标配色：进行中=primary，完成=success，待校验=warning
+    final badgeBg = verified
+        ? nc.success.withValues(alpha: 0.12)
+        : allDoneOrFailed
+            ? nc.warning.withValues(alpha: 0.12)
+            : nc.primary.withValues(alpha: 0.1);
+    final badgeFg = verified
+        ? nc.success
+        : allDoneOrFailed
+            ? nc.warning
+            : nc.primary;
+
+    final leadingIcon = verified || allDoneOrFailed
+        ? Icons.check_circle_outline
+        : Icons.checklist_outlined;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+      // 左右不缩进 → 与气泡文本同宽；下方留 8 间距与后续文本分隔
+      padding: const EdgeInsets.only(bottom: 8),
       child: Container(
         decoration: BoxDecoration(
-          color: nc.surface,
+          // 极浅中性底色，无边框、无竖线，仅靠浅底+圆角作为引用块区分，最简洁
+          color: nc.primarySurface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: nc.divider, width: 0.5),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -48,31 +67,16 @@ class TaskPlanView extends StatelessWidget {
             GestureDetector(
               onTap: onToggle,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
+                padding: const EdgeInsets.fromLTRB(14, 10, 12, 10),
                 child: Row(
                   children: [
-                    Icon(
-                      verified
-                          ? Icons.check_circle_outline
-                          : allDoneOrFailed
-                          ? Icons.hourglass_empty
-                          : Icons.check_circle_outline,
-                      size: 18,
-                      color: verified
-                          ? nc.success
-                          : allDoneOrFailed
-                          ? nc.warning
-                          : nc.textSecondary,
-                    ),
+                    Icon(leadingIcon, size: 17, color: badgeFg),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         plan.title,
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 14.5,
                           fontWeight: FontWeight.w600,
                           color: nc.textPrimary,
                         ),
@@ -87,27 +91,19 @@ class TaskPlanView extends StatelessWidget {
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: verified
-                            ? nc.success.withValues(alpha: 0.1)
-                            : allDoneOrFailed
-                            ? nc.warning.withValues(alpha: 0.1)
-                            : nc.primarySurface,
-                        borderRadius: BorderRadius.circular(12),
+                        color: badgeBg,
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
                         verified
                             ? '已完成'
                             : allDoneOrFailed
-                            ? '待校验'
-                            : '$doneCount/$total',
+                                ? '待校验'
+                                : '$doneCount/$total',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: verified
-                              ? nc.success
-                              : allDoneOrFailed
-                              ? nc.warning
-                              : nc.textSecondary,
+                          color: badgeFg,
                         ),
                       ),
                     ),
@@ -119,7 +115,7 @@ class TaskPlanView extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: nc.textSecondary.withValues(alpha: 0.1),
+                            color: nc.textSecondary.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Icon(
@@ -131,7 +127,7 @@ class TaskPlanView extends StatelessWidget {
                       ),
                     ],
                     if (onToggle != null && !verified) ...[
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 2),
                       Icon(
                         expanded ? Icons.expand_less : Icons.expand_more,
                         size: 20,
@@ -146,7 +142,7 @@ class TaskPlanView extends StatelessWidget {
             if (expanded)
               Container(
                 constraints: const BoxConstraints(maxHeight: 200),
-                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
+                padding: const EdgeInsets.only(left: 14, right: 14, bottom: 10),
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,20 +175,20 @@ class TaskPlanView extends StatelessWidget {
               isDone
                   ? Icons.check_circle_outline
                   : isInProgress
-                  ? Icons.radio_button_unchecked
-                  : isFailed
-                  ? Icons.warning
-                  : isBlocked
-                  ? Icons.block
-                  : Icons.circle_outlined,
+                      ? Icons.radio_button_unchecked
+                      : isFailed
+                          ? Icons.warning
+                          : isBlocked
+                              ? Icons.block
+                              : Icons.circle_outlined,
               size: 14,
               color: isDone
                   ? nc.success
                   : isInProgress
-                  ? nc.primary
-                  : isFailed
-                  ? nc.error
-                  : nc.textSecondary.withValues(alpha: 0.4),
+                      ? nc.primary
+                      : isFailed
+                          ? nc.error
+                          : nc.textSecondary.withValues(alpha: 0.4),
             ),
           ),
           const SizedBox(width: 8),
