@@ -95,7 +95,7 @@ class _ToastWidgetState extends State<_ToastWidget>
     _ctrl.forward();
     Future.delayed(widget.duration, () {
       if (mounted) {
-        _ctrl.reverse().then((_) => widget.onDismissed());
+        _ctrl.reverse().then((_) => widget.onDismissed(), onError: (_) {});
       }
     });
   }

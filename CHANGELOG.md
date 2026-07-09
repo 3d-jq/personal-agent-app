@@ -31,6 +31,12 @@
 - 聊天主路径放大一圈（正文 / 输入栏 / 气泡 / 列表留白），顶部图标同步放大；基调仍「克制极简」，不加新视觉元素。
 - 输入框与全局系统灰去紫：原 iOS 系统灰 `#F2F2F7` 蓝通道偏高显冷紫；输入框容器改纯白 `surface`，并把 `surfaceSecondary` / `bgSubtle` / `primarySurface` / `cardBackground` 统一中性化为 `#F4F4F4`（深色模式同步），全项目二级背景一次治本。
 
+### 🧹 终检清理（发布前收口，定为最终版本）
+- 删除 4 个零引用死亡文件：`quick_action_chips.dart`、`json_file_data_source.dart`、`clipboard_tool.dart`(+.g)、`file_tool.dart`(+.g)，以及根目录陈旧产物 `analyze_p1.log`（全项目无任何引用，编译/运行无影响；对应 3 个测试引用一并改为用 `WeatherTool` 等存活工具）。
+- 修复主聊 `ChatController.sendMessage` 潜伏竞争：`_isLoading` 原在第 308 行（首个 `await` 之后）才置位，窗口期内重复触发会开第二条流覆盖 `_aiStream`；现提到所有提前返回之后、首个 `await` 之前同步置位（群聊 `GroupChatController.send` 同构：`_busy` 提前置位并在提前返回路径复位）。
+- 三处 `unawaited` future 补 `onError`：`chat_screen` 切换会话、`app.dart` 主题加载、`app_toast` 消失回调，避免异常被 zone 静默吞掉。
+- `dart analyze` 仅余 1 条既有 `pubspec.yaml` 的 `path` dev 依赖冗余警告（非本次引入，不影响运行）；全套 338 测试通过。
+
 ## v1.4.4 — 群聊重新打开自动贴底（修复停在首条消息）(2026-07-09)
 
 ### 🐛 Bug 修复：群聊重新打开不显示最新消息

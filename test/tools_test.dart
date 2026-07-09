@@ -1,33 +1,32 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:personal_agent_app/tools/clipboard_tool.dart';
 import 'package:personal_agent_app/tools/tools.dart';
 
 void main() {
   group('ToolRegistry', () {
     test('register and retrieve tools', () {
       final registry = ToolRegistry();
-      registry.register(ClipboardTool());
-      registry.register(WeatherTool());
+      registry.register(WeatherTool(apiKey: ''));
+      registry.register(ReminderTool());
 
       expect(registry.all.length, 2);
-      expect(registry.all.any((t) => t.name == 'clipboard'), true);
       expect(registry.all.any((t) => t.name == 'weather'), true);
+      expect(registry.all.any((t) => t.name == 'reminder'), true);
     });
 
     test('functionDefinitions format', () {
       final registry = ToolRegistry();
-      registry.register(ClipboardTool());
+      registry.register(WeatherTool(apiKey: ''));
 
       final defs = registry.functionDefinitions;
       expect(defs.length, 1);
       expect(defs[0]['type'], 'function');
-      expect((defs[0]['function'] as Map)['name'], 'clipboard');
+      expect((defs[0]['function'] as Map)['name'], 'weather');
     });
 
     test('duplicate registration replaces', () {
       final registry = ToolRegistry();
-      registry.register(ClipboardTool());
-      registry.register(ClipboardTool());
+      registry.register(WeatherTool(apiKey: ''));
+      registry.register(WeatherTool(apiKey: ''));
 
       expect(registry.all.length, 1);
     });
@@ -41,14 +40,6 @@ void main() {
 
       expect(actions, contains('read'));
       expect(actions, contains('update'));
-    });
-  });
-
-  group('ClipboardTool', () {
-    test('returns error when action is missing', () async {
-      final tool = ClipboardTool();
-      final result = await tool.execute({});
-      expect(result, contains('错误'));
     });
   });
 }
