@@ -290,9 +290,41 @@ void main() {
         expect(result.toolCallId, 'call_123');
       });
     });
+
+    group('firstChoice (empty-choices guard)', () {
+      test('returns null for empty choices list', () {
+        expect(OpenAiProtocol.firstChoice({'choices': []}), isNull);
+      });
+
+      test('returns null for null choices', () {
+        expect(OpenAiProtocol.firstChoice({'choices': null}), isNull);
+      });
+
+      test('returns null for missing choices key', () {
+        expect(OpenAiProtocol.firstChoice({'other': []}), isNull);
+      });
+
+      test('returns null for non-map payload', () {
+        expect(OpenAiProtocol.firstChoice([1, 2, 3]), isNull);
+      });
+
+      test('returns first choice when present', () {
+        final c = {'delta': {'content': 'hi'}};
+        expect(OpenAiProtocol.firstChoice({'choices': [c]}), same(c));
+      });
+    });
   });
 
   group('SSE parsing simulation', () {
+    test('ignores empty choices chunk (OpenAI stream usage tail)', () {
+      // OpenAI-compatible endpoints with stream usage send a final chunk
+      // {"choices":[],"usage":{...}}. Parsing must not throw RangeError.
+      final events = _parseSSELine(
+        'data: {"choices":[],"usage":{"prompt_tokens":1,"completion_tokens":2}}',
+      );
+      expect(events, isEmpty);
+    });
+
     test('parses text delta from SSE line', () {
       final events = _parseSSELine('data: {"choices":[{"delta":{"content":"Hello"}}]}');
       expect(events, hasLength(1));
@@ -374,7 +406,7 @@ List<ChatStreamEvent> _parseSSELine(String line) {
   final data = line.substring(6).trim();
   if (data.isEmpty || data == '[DONE]') return events;
   try {
-    final choice = jsonDecode(data)['choices']?[0];
+    final choice = OpenAiProtocol.firstChoice(jsonDecode(data));
     final finishReason = choice?['finish_reason'] as String?;
     if (finishReason == 'length') {
       events.add(ErrorEvent('回复被长度限制截断，请简化问题或分多次询问'));
@@ -405,7 +437,7 @@ _SSEParseResult _parseSSEWithToolCalls(List<String> lines) {
     final data = line.substring(6).trim();
     if (data.isEmpty || data == '[DONE]') continue;
     try {
-      final choice = jsonDecode(data)['choices']?[0];
+      final choice = OpenAiProtocol.firstChoice(jsonDecode(data));
       final delta = choice?['delta'];
       if (delta == null) continue;
 

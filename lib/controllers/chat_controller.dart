@@ -249,7 +249,10 @@ class ChatController extends ChangeNotifier {
     final contextDocs = getIt<ContextDocService>();
     await contextDocs.loadAll();
 
-    final isFirstMeeting = !contextDocs.hasUserProfile() && _messages.isEmpty;
+    // 首次见面判定：只取决于 USER.md 是否已完成（不依赖消息数）。
+    // 去掉原来的 `&& _messages.isEmpty` 一次性门禁——否则首条消息没完成引导后，
+    // 后续消息因 _messages 不空而永久不再触发，用户陷入"既不引导、又算没完成"的死区。
+    final isFirstMeeting = !contextDocs.hasUserProfile();
 
     _messages.add(
       ChatMessage(

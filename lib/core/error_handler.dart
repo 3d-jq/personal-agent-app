@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../services/log_service.dart';
 /// 全局错误处理入口。
 ///
 /// 负责三处兜底：
@@ -27,9 +29,10 @@ class ErrorHandler {
   }
 
   static void _report(String label, Object error, StackTrace? stack) {
-    // 生产环境可接入 Sentry/Crashlytics；目前仅打印以便调试。
+    // 生产环境可接入 Sentry/Crashlytics；目前同时打印到控制台并落盘（崩溃留痕）。
     debugPrint('[$label] $error');
     if (stack != null) debugPrint(stack.toString());
+    unawaited(log.recordFatal(label, error, stack));
   }
 
   /// 构建自定义错误占位 widget，替换默认红屏。

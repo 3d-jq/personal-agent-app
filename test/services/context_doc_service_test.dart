@@ -37,11 +37,38 @@ void main() {
       test('returns false when no cache', () {
         expect(service.hasUserProfile(), isFalse);
       });
+    });
 
-      test('returns false for default template', () {
-        // We can't directly set _cache, but we can test the logic
-        // by checking that hasUserProfile returns false for empty service
-        expect(service.hasUserProfile(), isFalse);
+    group('isProfileContentComplete (哨兵判定)', () {
+      test('null / 空内容 → false', () {
+        expect(ContextDocService.isProfileContentComplete(null), isFalse);
+        expect(ContextDocService.isProfileContentComplete(''), isFalse);
+        expect(ContextDocService.isProfileContentComplete('   '), isFalse);
+      });
+
+      test('模板占位符仍在 → false', () {
+        const tpl = '# USER.md\n- 怎么称呼：（待用户首次指定）\n- 语气风格：（待用户首次指定）';
+        expect(ContextDocService.isProfileContentComplete(tpl), isFalse);
+      });
+
+      test('昵称已填、无占位符 → true（不再要求「语气风格」字段名）', () {
+        const filled = '# USER.md\n- 怎么称呼：小张\n- 语气风格：可爱温柔';
+        expect(ContextDocService.isProfileContentComplete(filled), isTrue);
+      });
+
+      test('昵称行留占位、即使其它内容已填 → false', () {
+        const partial = '# USER.md\n- 怎么称呼：（待用户首次指定）\n- 语气风格：可爱温柔';
+        expect(ContextDocService.isProfileContentComplete(partial), isFalse);
+      });
+
+      test('仅语气填了、昵称仍占位 → false（哨兵全局生效）', () {
+        const partial = '# USER.md\n- 怎么称呼：（待用户首次指定）\n- 语气风格：可爱温柔';
+        expect(ContextDocService.isProfileContentComplete(partial), isFalse);
+      });
+
+      test('昵称带前导空格也算填实', () {
+        const filled = '# USER.md\n- 怎么称呼： 小张';
+        expect(ContextDocService.isProfileContentComplete(filled), isTrue);
       });
     });
 
