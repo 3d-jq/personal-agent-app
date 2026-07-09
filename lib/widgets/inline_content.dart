@@ -11,6 +11,37 @@ import '../core/app_animations.dart';
 import '../core/app_router.dart';
 import '../widgets/app_toast.dart';
 
+/// 调用原生「用系统播放器打开」能力（com.example/open_file → openFile）。
+const _kOpenFileChannel = MethodChannel('com.example/open_file');
+
+/// 按扩展名推断视频 MIME，保证 .mov/.webm/.mkv 也能被系统播放器识别。
+String _videoMimeType(String path) {
+  final lower = path.toLowerCase();
+  if (lower.endsWith('.mov')) return 'video/quicktime';
+  if (lower.endsWith('.webm')) return 'video/webm';
+  if (lower.endsWith('.mkv')) return 'video/x-matroska';
+  return 'video/mp4';
+}
+
+/// 直接调起手机系统视频播放器。失败时回退到应用内 _FullscreenVideo 以便保存/重试。
+Future<void> _launchSystemPlayer(
+  BuildContext context,
+  String filePath,
+  String heroTag,
+) async {
+  try {
+    await _kOpenFileChannel.invokeMethod('openFile', {
+      'path': filePath,
+      'mimeType': _videoMimeType(filePath),
+    });
+  } catch (e) {
+    if (context.mounted) {
+      AppToast.show(context, '无法打开系统播放器', type: ToastType.error);
+      AppRouter.push(context, _FullscreenVideo(filePath: filePath, heroTag: heroTag));
+    }
+  }
+}
+
 /// Build inline content: split text by markdown image patterns,
 /// render text as MarkdownBody, and images as Image.network inline.
 List<Widget> buildInlineContent(
@@ -60,10 +91,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context, int maxCac
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: PressableScale(
-        onTap: () => AppRouter.push(
-          context,
-          _FullscreenVideo(filePath: filePath, heroTag: heroTag),
-        ),
+        onTap: () => _launchSystemPlayer(context, filePath, heroTag),
         child: Hero(
           tag: heroTag,
           child: AspectRatio(
@@ -625,26 +653,41 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
           children: [
             Expanded(
               child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.videocam,
-                      size: 64,
-                      color: Colors.white38,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      '视频文件',
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      widget.filePath.split(Platform.pathSeparator).last,
-                      style: TextStyle(color: Colors.white38, fontSize: 13),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                child: GestureDetector(
+                  onTap: () => _launchSystemPlayer(
+                    context,
+                    widget.filePath,
+                    widget.heroTag,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: const BoxDecoration(
+                          color: Color(0xAA000000),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.play_arrow,
+                          size: 40,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '点击用系统播放器播放',
+                        style: TextStyle(color: Colors.white70, fontSize: 15),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.filePath.split(Platform.pathSeparator).last,
+                        style: const TextStyle(color: Colors.white38, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -653,12 +696,13 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
               child: GestureDetector(
                 onTap: () async {
                   try {
-                    await MethodChannel(
-                      'com.example/open_file',
-                    ).invokeMethod('openFile', {'path': widget.filePath});
+                    await _kOpenFileChannel.invokeMethod('openFile', {
+                      'path': widget.filePath,
+                      'mimeType': _videoMimeType(widget.filePath),
+                    });
                   } catch (e) {
                     if (mounted) {
-                      AppToast.show(context, '无法播放: $e\n请安装视频播放器应用', type: ToastType.error);
+                      AppToast.show(context, '无法播放: $e', type: ToastType.error);
                     }
                   }
                 },
@@ -671,9 +715,9 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                     color: Colors.white.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
+                    children: [
                       Icon(
                         Icons.play_arrow,
                         color: Colors.white,

@@ -64,9 +64,18 @@ class MainActivity : FlutterActivity() {
                         result.error("FILE_NOT_FOUND", "File not found: $path", null)
                         return@setMethodCallHandler
                     }
+                    // 按扩展名推断正确的 MIME，避免 .mov/.webm 被当成 mp4 无法播放
+                    val ext = file.extension.lowercase()
+                    val mimeType = call.argument<String>("mimeType") ?: when (ext) {
+                        "mp4" -> "video/mp4"
+                        "mov" -> "video/quicktime"
+                        "webm" -> "video/webm"
+                        "mkv" -> "video/x-matroska"
+                        else -> "video/*"
+                    }
                     val uri = FileProvider.getUriForFile(this, "${packageName}.fileprovider", file)
                     val intent = Intent(Intent.ACTION_VIEW).apply {
-                        setDataAndType(uri, "video/mp4")
+                        setDataAndType(uri, mimeType)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                     val chooser = Intent.createChooser(intent, "选择播放器")

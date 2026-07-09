@@ -301,9 +301,9 @@ class AgentRunner {
       final ai = AIService(
         baseUrl: vendor.baseUrl,
         apiKey: vendor.apiKey,
-        providerName: vendor.name,
         model: agent.model.isNotEmpty ? agent.model : vendor.model,
         thinkingEffort: thinkingEffort,
+        isAnthropic: vendor.isAnthropic,
         toolRegistry: _scopedRegistry(agent, dispatchTool: dispatchTool),
       );
       yield* ai.sendMessageStream(messages);

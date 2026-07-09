@@ -283,6 +283,10 @@ class _NoteEditorState extends State<_NoteEditor> {
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
     final isEditing = widget.note != null;
+    final top = MediaQuery.of(context).padding.top;
+    // 让卡片至少撑满可视区域，呈现「一页纸」的写作质感
+    final minH =
+        MediaQuery.of(context).size.height - top - 48 - SpaceToken.md * 2;
 
     return Scaffold(
       backgroundColor: nc.background,
@@ -307,49 +311,88 @@ class _NoteEditorState extends State<_NoteEditor> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(SpaceToken.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _titleCtrl,
-              style: TextStyle(
-                fontSize: FontToken.headline,
-                fontWeight: WeightToken.semibold,
-                color: nc.textPrimary,
-              ),
-              decoration: InputDecoration(
-                hintText: '标题',
-                hintStyle: TextStyle(
-                  color: nc.textSecondary.withValues(alpha: 0.4),
-                  fontSize: FontToken.headline,
+        padding: EdgeInsets.symmetric(
+          horizontal: SpaceToken.lg,
+          vertical: SpaceToken.md,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: minH),
+          child: ElevatedCard(
+            nc: nc,
+            padding: EdgeInsets.all(SpaceToken.xl),
+            borderRadius: BorderRadius.circular(RadiusToken.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _titleCtrl,
+                  autofocus: !isEditing,
+                  style: TextStyle(
+                    fontSize: FontToken.headline,
+                    fontWeight: WeightToken.semibold,
+                    color: nc.textPrimary,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: '标题',
+                    hintStyle: TextStyle(
+                      color: nc.textSecondary.withValues(alpha: 0.4),
+                      fontSize: FontToken.headline,
+                    ),
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
                 ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-            const SizedBox(height: SpaceToken.lg),
-            TextField(
-              controller: _contentCtrl,
-              focusNode: _focusNode,
-              maxLines: null,
-              minLines: 10,
-              style: TextStyle(
-                fontSize: FontToken.body,
-                color: nc.textPrimary,
-                height: 1.6,
-              ),
-              decoration: InputDecoration(
-                hintText: '开始写笔记…\n\n支持 Markdown 格式',
-                hintStyle: TextStyle(
-                  color: nc.textSecondary.withValues(alpha: 0.4),
-                  fontSize: FontToken.body,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: SpaceToken.md),
+                  child: Divider(height: 0.5, thickness: 0.5, color: nc.divider),
                 ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-              ),
+                TextField(
+                  controller: _contentCtrl,
+                  focusNode: _focusNode,
+                  maxLines: null,
+                  minLines: 8,
+                  style: TextStyle(
+                    fontSize: FontToken.body,
+                    color: nc.textPrimary,
+                    height: 1.6,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: '开始写笔记…\n\n支持 Markdown 格式',
+                    hintStyle: TextStyle(
+                      color: nc.textSecondary.withValues(alpha: 0.4),
+                      fontSize: FontToken.body,
+                    ),
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                    alignLabelWithHint: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const Spacer(),
+                Padding(
+                  padding: const EdgeInsets.only(top: SpaceToken.lg),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.text_format,
+                        size: 14,
+                        color: nc.textSecondary.withValues(alpha: 0.45),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '支持 Markdown 语法',
+                        style: TextStyle(
+                          fontSize: FontToken.caption,
+                          color: nc.textSecondary.withValues(alpha: 0.45),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

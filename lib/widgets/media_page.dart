@@ -8,6 +8,7 @@ import '../core/app_router.dart';
 import '../models/media_item.dart';
 import '../core/service_locator.dart';
 import '../services/media_storage.dart';
+import '../widgets/app_toast.dart';
 import 'state_placeholder.dart';
 
 class MediaView extends StatefulWidget {
@@ -195,11 +196,31 @@ class _MediaDetail extends StatelessWidget {
   final MediaItem item;
   const _MediaDetail({required this.item});
 
+  Future<void> _launchSystemPlayer(BuildContext context, String filePath) async {
+    final lower = filePath.toLowerCase();
+    final mime = lower.endsWith('.mov')
+        ? 'video/quicktime'
+        : lower.endsWith('.webm')
+            ? 'video/webm'
+            : 'video/mp4';
+    try {
+      await const MethodChannel('com.example/open_file').invokeMethod(
+        'openFile',
+        {'path': filePath, 'mimeType': mime},
+      );
+    } catch (e) {
+      if (context.mounted) {
+        AppToast.show(context, '无法播放: $e', type: ToastType.error);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
     final file = File(item.filePath);
     final isVideo = item.type == MediaType.video;
+    final exists = file.existsSync();
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -214,47 +235,81 @@ class _MediaDetail extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 14),
         ),
+        actions: [
+          if (isVideo && exists)
+            IconButton(
+              onPressed: () async {
+                try {
+                  final bytes = await file.readAsBytes();
+                  await const MethodChannel(
+                    'com.example/save_to_gallery',
+                  ).invokeMethod('saveVideo', {
+                    'bytes': bytes,
+                    'name': 'dweis_video_${DateTime.now().millisecondsSinceEpoch}.mp4',
+                  });
+                  if (context.mounted) {
+                    AppToast.show(context, '已保存到相册', type: ToastType.success);
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    AppToast.show(context, '保存失败: $e', type: ToastType.error);
+                  }
+                }
+              },
+              icon: const Icon(Icons.download),
+              tooltip: '保存',
+            ),
+        ],
       ),
       body: Center(
-        child: file.existsSync()
-            ? InteractiveViewer(
-                minScale: 0.5,
-                maxScale: 4.0,
-                child: isVideo
-                    ? AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: nc.primarySurface,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.play_circle,
-                                  size: 64,
-                                  color: nc.textSecondary.withValues(
-                                    alpha: 0.5,
-                                  ),
+        child: !exists
+            ? const Text('文件不存在', style: TextStyle(color: Colors.white54))
+            : isVideo
+                ? GestureDetector(
+                    onTap: () => _launchSystemPlayer(context, item.filePath),
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: nc.primarySurface,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 72,
+                                height: 72,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xAA000000),
+                                  shape: BoxShape.circle,
                                 ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  '视频文件',
-                                  style: TextStyle(
-                                    color: nc.textSecondary,
-                                    fontSize: 15,
-                                  ),
+                                child: const Icon(
+                                  Icons.play_arrow,
+                                  size: 40,
+                                  color: Colors.white,
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                '点击用系统播放器播放',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      )
-                    : Image.file(file, fit: BoxFit.contain),
-              )
-            : const Text('文件不存在', style: TextStyle(color: Colors.white54)),
+                      ),
+                    ),
+                  )
+                : InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Image.file(file, fit: BoxFit.contain),
+                  ),
       ),
     );
   }
