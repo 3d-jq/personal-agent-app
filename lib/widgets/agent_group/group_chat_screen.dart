@@ -49,7 +49,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       await _controller.load();
-      if (mounted && _controller.group == null) Navigator.of(context).pop();
+      if (!mounted) return;
+      if (_controller.group == null) {
+        Navigator.of(context).pop();
+        return;
+      }
+      // 重新进入群聊：默认滚动到最新消息（贴底），符合聊天惯例。
+      // 必须在 load() 触发的重建完成后再跳；并做两阶段校正（见 _scrollToBottom）。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _scrollToBottom();
+      });
     });
   }
 
@@ -76,6 +86,19 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
       );
+    });
+  }
+
+  /// 立即贴底（重新进入群聊时用）。
+  /// 两阶段校正：首跳让底部未测量项完成布局、把 maxScrollExtent 推到真实值，
+  /// 下一帧再跳一次到真正的最大处。仅跳一次在动态 item 高度下会差一截（底部项
+  /// 首跳时尚未布局，maxScrollExtent 偏小）。
+  void _scrollToBottom() {
+    if (!_scrollCtrl.hasClients) return;
+    _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollCtrl.hasClients) return;
+      _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
     });
   }
 
