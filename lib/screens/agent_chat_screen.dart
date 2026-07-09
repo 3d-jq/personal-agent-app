@@ -226,7 +226,8 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
       await sub?.cancel();
       typewriterTimer?.cancel();
       placeholder.isStreaming = false;
-      setState(() => _busy = false);
+      // 界面可能已返回销毁，setState 前必须校验 mounted，否则抛异常
+      if (mounted) setState(() => _busy = false);
       await _saveSession();
     }
   }
@@ -236,12 +237,8 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
     setState(() => _busy = false);
   }
 
-  /// 流式过程中拦截返回：先停止流并存盘，再退出
+  /// 流式过程中返回：不中断模型，让它后台继续跑完，由 _runAgent 的 finally 存盘。
   Future<void> _handleBack() async {
-    if (_busy) {
-      _stop();
-      await _saveSession();
-    }
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -250,11 +247,12 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
     final nc = AgentColors.of(context);
     final bottomSafe = MediaQuery.of(context).padding.bottom;
 
-    return PopScope(
-      canPop: !_busy,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _handleBack();
-      },
+      return PopScope(
+        // 允许随时返回：模型在后台继续跑，结束后由 _runAgent 的 finally 存盘
+        canPop: true,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _handleBack();
+        },
       child: Scaffold(
       backgroundColor: nc.background,
       appBar: AppTopBar(

@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.4.2 — 输出稳定性增强 + 计划面板极简化 (2026-07-09)
+
+### 🐛 Bug 修复（输出稳定性）
+- **单聊流式不刷新**：`chat_screen.dart` 漏给气泡套 `ListenableBuilder(listenable: msg)`，导致工具调用/思考步骤不显示、流结束才一次性吐出。已与 `agent_chat_screen` 一致逐条包裹，流式细粒度刷新恢复。
+- **并发工具 ×N 显示乱**：批次并发时每步重复标 `×N`（N×N 错觉）+ 同名工具按名字错配。改为仅末步标 `×N`，并靠 `toolId` 精确匹配完成（新增 `ToolStartEvent.id` / `TimelineStep.toolId`）。
+- **群聊退出即中断**：`GroupChatController.dispose()` 误取消进行中的对话/工具流，退出界面丢失整个回复。改为 dispose 仅清 listeners、不 cancel 流；后台流跑完自然存盘。
+- **返回键也后台继续**：单 agent 界面与群聊的 `PopScope` 返回键原会 `stop()` 中断模型。改为 `canPop: true` + 返回只 `pop`，离开界面后台继续跑完（手动停止按钮仍真正 cancel）。`_runAgent` 的 `finally` 加 `if (mounted)` 守卫防崩溃。
+
+### 🎨 计划面板极简化
+- 气泡内 `TaskPlanView` 由 callout（左侧蓝色 accent 竖线）改为纯「极浅中性底色 + 圆角」无边框引用块，去掉装饰性蓝竖线，更简约。
+
+### ✨ 新功能：笔记「读正文」
+- `manage_notes` 工具新增 `read` action：按 `note_id` 返回某篇笔记的**完整正文**（标题 + 创建/更新时间 + Markdown 内容）。此前模型只能写/列笔记、无法翻回去看内容；现在 `list`（看索引）→ `read`（看正文）→ `update`/`delete`（改/删）链路完整。
+
+### 🧠 记忆系统维护规则（仅主聊）
+- 系统提示新增规则 11/12：教模型**何时**主动维护 `MEMORY.md`（跨会话事实持久化）与 `AGENT.md`（任务经验沉淀）。此前这两份文档在系统提示中无任何「何时写入」的触发规则。记忆系统按设计仅作用于主界面单聊，agent 群不启用。
+
+### 🎯 增强：人格一致性（语气/昵称始终遵守）
+- 修复「SOUL.md 语气 / USER.md 昵称只在对话最开始遵守、后面偏离」的 persona drift 问题。系统提示虽每轮注入 persona，但模型长对话遵循度下降；现新增 `<persona_constraints>` 硬约束块 + 【人格一致性】规则 13，将语气/昵称钉为最高优先级约束，全程不得偏离（除非用户明确要求改变）。
+
+### 🧪 测试
+- 全量测试串行通过（`flutter test -j 1`）；新增 `manage_note_tool_test`、`prompt_builder_test`。
+
+---
+
 ## v1.4.1 — 数据库初始化修复 + 性能优化 + 计划面板气泡化 (2026-07-09)
 
 ### 🐛 Bug 修复

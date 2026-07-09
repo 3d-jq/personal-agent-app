@@ -110,11 +110,11 @@ class GroupChatController extends ChangeNotifier {
 
   @override
   void dispose() {
+    // 注意：界面关闭（pop）时**不要**取消正在跑的对话 / 工具流。
+    // 群聊的流式任务应像单聊一样在后台继续跑完，并由 runGroupAgentMessage
+    // 在 finally 里自动存盘（saveGroup）；否则退出界面会中断模型、丢失整个回复。
+    // 用户主动停止请调用 [stop]，那里才会真正取消订阅。
     _disposed = true;
-    for (final s in _activeSubs) {
-      s.cancel();
-    }
-    _activeSubs.clear();
     super.dispose();
   }
 

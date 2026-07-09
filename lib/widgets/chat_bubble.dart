@@ -300,13 +300,10 @@ class _AIBubbleState extends State<_AIBubble>
               child: _buildProcessLine(steps ?? const [], nc, msg.isStreaming),
             ),
           if (msg.plan != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: TaskPlanView(
-                plan: msg.plan!,
-                expanded: _planExpanded,
-                onToggle: () => setState(() => _planExpanded = !_planExpanded),
-              ),
+            TaskPlanView(
+              plan: msg.plan!,
+              expanded: _planExpanded,
+              onToggle: () => setState(() => _planExpanded = !_planExpanded),
             ),
           if (textContent.isNotEmpty)
             FadeTransition(

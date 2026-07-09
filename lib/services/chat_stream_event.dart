@@ -29,20 +29,24 @@ class ToolStartEvent extends ChatStreamEvent {
   final int concurrentCount;
   /// 工具调用参数，用于生成更具体的标签（如 context_doc 的 action/doc）。
   final Map<String, dynamic>? arguments;
-  const ToolStartEvent(this.name, {this.concurrentCount = 1, this.arguments});
+  /// 工具调用唯一 id（与模型返回的 tool_call_id 对应），用于完成时精确匹配步骤。
+  final String? id;
+  const ToolStartEvent(this.name, {this.id, this.concurrentCount = 1, this.arguments});
 }
 
 /// 工具调用成功完成。
 class ToolDoneEvent extends ChatStreamEvent {
+  final String id;
   final String name;
-  const ToolDoneEvent(this.name);
+  const ToolDoneEvent(this.id, this.name);
 }
 
 /// 工具调用失败。
 class ToolErrorEvent extends ChatStreamEvent {
+  final String id;
   final String name;
   final String message;
-  const ToolErrorEvent(this.name, this.message);
+  const ToolErrorEvent(this.id, this.name, this.message);
 }
 
 /// 图片/视频生成结果（媒体 URL，需追加到正文靠 markdown 渲染）。

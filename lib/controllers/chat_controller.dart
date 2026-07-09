@@ -400,28 +400,37 @@ class ChatController extends ChangeNotifier {
         state.buf.write(text);
         _appendTypewriterText(state, aiMsg, text);
         break;
-      case ToolStartEvent(:final name, :final concurrentCount, :final arguments):
+      case ToolStartEvent(:final name, :final id, :final concurrentCount, :final arguments):
         state.hasToolCalls = true;
         _captureThinkingDetail(state);
         _finishThinkingSteps(state.steps);
         final detailLabel = toolLabel(name, arguments: arguments, detailed: true);
-        final suffix = concurrentCount > 1 ? ' ×$concurrentCount' : '';
+        // 并发批次：仅在本批次「最后一个」并发工具上标注 ×N，避免 N 行都写 ×N 造成 N×N 错觉
+        final isConcurrent = concurrentCount > 1;
+        state._concurrentStarted += 1;
+        final isLastInGroup =
+            isConcurrent && state._concurrentStarted >= concurrentCount;
+        final suffix = isLastInGroup ? ' ×$concurrentCount' : '';
         state.steps.add(
           TimelineStep(
             label: '$detailLabel$suffix',
             type: TimelineStepType.tool,
             status: TimelineStepStatus.running,
             detail: '工具: $name',
+            toolId: id,
           ),
         );
+        if (isLastInGroup) state._concurrentStarted = 0;
         _startToolMediaNotification(name);
         break;
-      case ToolDoneEvent(:final name):
-        _markToolStep(state.steps, name, TimelineStepStatus.done, '执行成功');
+      case ToolDoneEvent(:final id, :final name):
+        _markToolStep(state.steps, id, TimelineStepStatus.done, '执行成功');
+        _resetConcurrentCounterIfDone(state);
         _notifyToolMedia(name, success: true);
         break;
-      case ToolErrorEvent(:final name, :final message):
-        _markToolStep(state.steps, name, TimelineStepStatus.error, message);
+      case ToolErrorEvent(:final id, :final name, :final message):
+        _markToolStep(state.steps, id, TimelineStepStatus.error, message);
+        _resetConcurrentCounterIfDone(state);
         _notifyToolMedia(name, success: false);
         break;
       case ToolMediaEvent(:final url):
@@ -656,12 +665,13 @@ class ChatController extends ChangeNotifier {
 
   String _toolLabel(String name) => toolLabel(name);
 
-  /// 将正在运行、且匹配 [name] 的工具步骤更新为 [status] / [detail]。
+  /// 将正在运行、且匹配 [id] 的工具步骤更新为 [status] / [detail]。
   ///
-  /// 用于 ToolDone / ToolError 事件复用同一查找逻辑，避免三处重复。
+  /// 按工具调用唯一 id 精确匹配，避免同批次同名工具互相错配；
+  /// 用于 ToolDone / ToolError 事件复用同一查找逻辑。
   void _markToolStep(
     List<TimelineStep> steps,
-    String name,
+    String id,
     TimelineStepStatus status,
     String detail,
   ) {
@@ -669,12 +679,21 @@ class ChatController extends ChangeNotifier {
       (s) =>
           s.type == TimelineStepType.tool &&
           s.status == TimelineStepStatus.running &&
-          s.detail == '工具: $name',
+          s.toolId == id,
     );
     if (idx >= 0) {
       steps[idx].status = status;
       steps[idx].detail = detail;
     }
+  }
+
+  /// 当已无正在运行的工具步骤时，重置并发批次计数，
+  /// 以便下一个并发批次能重新在末尾标注 ×N。
+  void _resetConcurrentCounterIfDone(_StreamState state) {
+    final stillRunning = state.steps.any(
+      (s) => s.type == TimelineStepType.tool && s.status == TimelineStepStatus.running,
+    );
+    if (!stillRunning) state._concurrentStarted = 0;
   }
 
   /// 图片 / 视频生成工具开始时推送一条"准备中"通知。
@@ -728,6 +747,9 @@ class _StreamState {
 
   /// 当前思考步创建时 buf 的长度，用于结束思考步时截取增量文本作为 detail。
   int thinkingStepBufStart = 0;
+
+  /// 当前并发工具批次中已开始的工具数，用于在「批次最后一个」步骤上标注 ×N。
+  int _concurrentStarted = 0;
 
   /// 收集所有轮次的工具交互记录，用于持久化到消息历史。
   final List<Map<String, dynamic>> toolInteractions = [];
