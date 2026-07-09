@@ -35,6 +35,43 @@ class ErrorHandler {
     unawaited(log.recordFatal(label, error, stack));
   }
 
+  /// 把底层异常映射为对用户友好的文案，避免把原始栈/异常信息直接抛给用户。
+  static String humanizeError(Object e) {
+    final s = e.toString().toLowerCase();
+    if (s.contains('socket') ||
+        s.contains('network') ||
+        s.contains('connection') ||
+        s.contains('clientexception') ||
+        s.contains('failed host lookup') ||
+        s.contains('errno') ||
+        s.contains('handshake')) {
+      return '网络连接不太稳定，请检查网络后重试';
+    }
+    if (s.contains('timeout') || s.contains('timed out') || s.contains('deadline')) {
+      return '请求超时了，请稍后再试一次';
+    }
+    if (s.contains('401') ||
+        s.contains('unauthorized') ||
+        s.contains('api key') ||
+        s.contains('authentication') ||
+        s.contains('invalid api')) {
+      return '后端鉴权失败，请检查 API Key 配置';
+    }
+    if (s.contains('429') ||
+        s.contains('rate limit') ||
+        s.contains('too many requests')) {
+      return '请求过于频繁，稍等片刻再试';
+    }
+    if (s.contains('quota') || s.contains('insufficient') || s.contains('billing')) {
+      return '当前账户额度不足，请检查套餐';
+    }
+    if (s.contains('context length') ||
+        (s.contains('token') && s.contains('exceed'))) {
+      return '单次内容超出模型长度限制，试试分段发送';
+    }
+    return '出了点小问题，请稍后重试';
+  }
+
   /// 构建自定义错误占位 widget，替换默认红屏。
   static Widget buildErrorWidget(FlutterErrorDetails details) {
     return Container(

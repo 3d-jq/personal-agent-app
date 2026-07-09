@@ -1,5 +1,36 @@
 # Changelog
 
+## v1.4.5 — 愉悦体验打磨（克制精致基调）(2026-07-09)
+
+### ✨ 体验升级（四包全落地，基调：Apple HIG 风、微动画、留白、克制不喧哗）
+
+**A · 开场惊艳**
+- 主聊天空态：品牌 Logo 脉冲呼吸 + 欢迎语「嗨，我是 DWeis ✨」+ 可点击示例问题 chips（点击即填充并发送）。
+- 用户 / AI 气泡进场弹簧淡入 + 微上滑；AI 思考首 token 前三点跳动 typing 指示（替代纯扫光）。
+- 滚动到底按钮 `AnimatedOpacity` 淡入；发送 / 附件按钮按压缩放 + 颜色过渡。
+
+**B · 加载与反馈**
+- 点亮死代码骨架屏：通讯录 / 消息列表首帧由 `StatePlaceholder.loading()` 升级为 `AgentListSkeleton` / `MessageListSkeleton`。
+- 统一 `AppToast` 替代散落的 `showSnackBar`（圆角、轻阴影、2s 自动消失、root Overlay 渲染）；覆盖笔记 / 媒体 / 内联 / 编辑页等 10+ 处。
+
+**C · 容错优雅**
+- 聊天报错从「把原始异常塞进气泡」升级为内联报错卡（浅红底 + 红图标 + 友好文案 + 重试按钮），保留在对话流不污染正常消息。
+- `ErrorHandler.humanizeError` 把网络 / 超时 / 配额 / 密钥异常映射为友好中文文案；`ChatMessage.isError` 标记 + `ChatController.resendLast` 重试。
+
+**D · 完成时刻**
+- 任务计划完成：标题对勾 `_PopCheck` 弹簧缩放微动效 + 轻触觉；`AppToast.success` 统一触发一次轻量 `HapticFeedback`。
+- 气泡长按菜单（复制 / 重新生成 / 删除）：`ChatController.deleteMessage` / `regenerate` 支撑删除与重生成。
+
+### ✅ 测试
+- 新增 `test/widgets/app_toast_test.dart`、`test/widgets/chat_bubble_test.dart`、`test/controllers/chat_controller_delight_test.dart`（共 9 用例，全过）。
+- **修复**：`AppToast` 消失逻辑此前只 null 静态引用而未真正 `entry.remove()`，导致 toast 永远残留在 Overlay；现已修正并在测试中验证自动消失。
+
+### 🔧 复核微调（用户验收后）
+- 撤回 A1 主聊天空态、A3 AI 思考三点跳动（改回原 `ShimmerText`「思考中」）；气泡长按菜单改在按下位置 `showMenu` 弹出（原底部 sheet 不符直觉）；`AppToast` 改为贴合主题（`nc.surface` 卡片 + 细边 + 轻阴影）。
+- 修复「回到底部」按钮偶尔回过头：滚动状态机增加 `_autoScrolling` 守卫，区分程序自身滚动与用户上滑。
+- 聊天主路径放大一圈（正文 / 输入栏 / 气泡 / 列表留白），顶部图标同步放大；基调仍「克制极简」，不加新视觉元素。
+- 输入框与全局系统灰去紫：原 iOS 系统灰 `#F2F2F7` 蓝通道偏高显冷紫；输入框容器改纯白 `surface`，并把 `surfaceSecondary` / `bgSubtle` / `primarySurface` / `cardBackground` 统一中性化为 `#F4F4F4`（深色模式同步），全项目二级背景一次治本。
+
 ## v1.4.4 — 群聊重新打开自动贴底（修复停在首条消息）(2026-07-09)
 
 ### 🐛 Bug 修复：群聊重新打开不显示最新消息

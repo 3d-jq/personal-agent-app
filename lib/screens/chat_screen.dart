@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/chat_controller.dart';
+import '../models/chat_message.dart';
 import '../core/agent_colors.dart';
 import '../widgets/agent_side_drawer.dart';
 import '../widgets/agent_top_bar.dart';
@@ -11,6 +12,7 @@ import '../widgets/chat_identity_button.dart';
 import '../widgets/chat_input_bar.dart';
 import '../widgets/chat_model_chip.dart';
 import '../widgets/chat_new_chat_button.dart';
+import '../core/app_animations.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sessionId;
@@ -30,6 +32,9 @@ class _ChatScreenState extends State<ChatScreen> {
   Timer? _scrollTimer;
   bool _showScrollBottom = false;
   bool _userScrolledUp = false;
+  // 程序主动触发的滚动（点击回到底部 / 流式自动贴底）期间为 true，
+  // 避免 _onScroll 把"自己的位移"误判成用户上滑而污染状态
+  bool _autoScrolling = false;
 
   @override
   void initState() {
@@ -54,7 +59,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _onScroll() {
-    if (!_scrollCtrl.hasClients) return;
+    // 程序主动滚动期间忽略，避免误判用户上滑
+    if (!_scrollCtrl.hasClients || _autoScrolling) return;
     final max = _scrollCtrl.position.maxScrollExtent;
     final current = _scrollCtrl.position.pixels;
     final distFromBottom = max - current;
@@ -68,14 +74,42 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _scrollDown() {
-    if (_userScrolledUp) return;
+    // 用户已上滑 / 正在程序滚动时跳过，避免与回到底部动画打架
+    if (_userScrolledUp || _autoScrolling) return;
     _scrollTimer?.cancel();
     _scrollTimer = Timer(const Duration(milliseconds: 50), () {
       if (_scrollCtrl.hasClients) {
+        _autoScrolling = true;
+        _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+        _autoScrolling = false;
+      }
+    });
+  }
+
+  /// 平滑回到底部：用于点击「回到底部」按钮。
+  /// 复位 _userScrolledUp 让流式自动贴底能恢复；动画结束后兜底补一次贴底
+  /// （流式期间内容可能已增长，避免落点比真实底部高）。
+  void _scrollToBottom() {
+    if (!_scrollCtrl.hasClients) return;
+    _userScrolledUp = false;
+    _autoScrolling = true;
+    _scrollCtrl
+        .animateTo(
+      _scrollCtrl.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    )
+        .then((_) {
+      _autoScrolling = false;
+      // 兜底：若动画期间内容增长导致未真正贴底，补一次
+      if (_scrollCtrl.hasClients &&
+          _scrollCtrl.position.pixels <
+              _scrollCtrl.position.maxScrollExtent - 4) {
         _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
       }
     });
   }
+
 
   void _handleSend() {
     _userScrolledUp = false;
@@ -92,6 +126,10 @@ class _ChatScreenState extends State<ChatScreen> {
   void _resetInput() {
     _inputCtrl.clear();
     _inputFocus.unfocus();
+  }
+
+  void _onRetry() {
+    _controller.resendLast();
   }
 
   void _onNewChat() async {
@@ -161,19 +199,26 @@ class _ChatScreenState extends State<ChatScreen> {
               Expanded(
                 child: Stack(
                   children: [
-                    _MessageList(controller: _controller, scrollController: _scrollCtrl),
-                    if (_showScrollBottom)
-                      Positioned(
-                        right: 16,
-                        bottom: 12,
-                        child: GestureDetector(
+                    _MessageList(
+                      controller: _controller,
+                      scrollController: _scrollCtrl,
+                      onRetry: _onRetry,
+                      onDelete: (m) => _controller.deleteMessage(m),
+                      onRegenerate: (m) => _controller.regenerate(m),
+                    ),
+                    Positioned(
+                      right: 16,
+                      bottom: 12,
+                      child: AnimatedOpacity(
+                        opacity: _showScrollBottom ? 1.0 : 0.0,
+                        duration: AppDurations.fast,
+                        curve: Curves.easeOut,
+                        child: IgnorePointer(
+                          ignoring: !_showScrollBottom,
+                          child: GestureDetector(
                           onTap: () {
                             HapticFeedback.lightImpact();
-                            _scrollCtrl.animateTo(
-                              _scrollCtrl.position.maxScrollExtent,
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.easeOut,
-                            );
+                            _scrollToBottom();
                           },
                           child: ClipOval(
                             child: BackdropFilter(
@@ -186,12 +231,14 @@ class _ChatScreenState extends State<ChatScreen> {
                                   shape: BoxShape.circle,
                                   border: Border.all(color: nc.divider, width: 0.5),
                                 ),
-                                child: Icon(Icons.keyboard_arrow_down, size: 18, color: nc.textPrimary),
+                              child: Icon(Icons.keyboard_arrow_down, size: 18, color: nc.textPrimary),
                               ),
                             ),
                           ),
                         ),
                       ),
+                    ),
+                  ),
                   ],
                 ),
               ),
@@ -259,8 +306,17 @@ class _ModelChip extends StatelessWidget {
 class _MessageList extends StatelessWidget {
   final ChatController controller;
   final ScrollController scrollController;
+  final VoidCallback? onRetry;
+  final ValueChanged<ChatMessage>? onDelete;
+  final ValueChanged<ChatMessage>? onRegenerate;
 
-  const _MessageList({required this.controller, required this.scrollController});
+  const _MessageList({
+    required this.controller,
+    required this.scrollController,
+    this.onRetry,
+    this.onDelete,
+    this.onRegenerate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -271,7 +327,7 @@ class _MessageList extends StatelessWidget {
         return ListView.builder(
           controller: scrollController,
           physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           itemCount: controller.messages.length,
           cacheExtent: 500,
           // ChatMessage 是 ChangeNotifier，流式更新时仅对应气泡局部重建；
@@ -281,7 +337,15 @@ class _MessageList extends StatelessWidget {
             return ListenableBuilder(
               key: ValueKey(msg.id),
               listenable: msg,
-              builder: (_, __) => ChatBubble(msg: msg, nc: nc),
+              builder: (_, __) => ChatBubble(
+                msg: msg,
+                nc: nc,
+                onRetry: onRetry,
+                onDelete: onDelete == null ? null : () => onDelete!(msg),
+                onRegenerate: (onRegenerate == null || msg.isUser)
+                    ? null
+                    : () => onRegenerate!(msg),
+              ),
             );
           },
         );
@@ -330,3 +394,4 @@ class _ChatInputBar extends StatelessWidget {
     );
   }
 }
+

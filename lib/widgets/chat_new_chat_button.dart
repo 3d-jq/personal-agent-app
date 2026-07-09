@@ -23,7 +23,7 @@ class ChatNewChatButton extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-          child: Icon(Icons.edit_note, size: 18, color: AgentColors.of(context).textPrimary),
+          child: Icon(Icons.edit_note, size: 24, color: AgentColors.of(context).textPrimary),
         ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import '../core/prompt_builder.dart';
+import '../core/error_handler.dart';
 import '../core/service_locator.dart';
 import '../models/chat_message.dart';
 import '../models/chat_session.dart';
@@ -199,6 +200,45 @@ class ChatController extends ChangeNotifier {
   }
 
   // ═══ Message sending ═══
+
+  /// 重发最后一条用户消息（错误气泡「重试」用）：清掉其后所有消息后重新请求。
+  Future<void> resendLast() async {
+    final idx = _messages.lastIndexWhere((m) => m.isUser);
+    if (idx < 0) return;
+    final text = _messages[idx].text;
+    _messages.removeRange(idx, _messages.length);
+    _notify();
+    await sendMessage(text);
+  }
+
+  /// 删除单条消息（气泡长按菜单「删除」用）。
+  Future<void> deleteMessage(ChatMessage msg) async {
+    final idx = _messages.indexOf(msg);
+    if (idx < 0) return;
+    _messages.removeAt(idx);
+    _notify();
+    await saveSession();
+  }
+
+  /// 重新生成某条 AI 回复（气泡长按菜单「重新生成」用）：
+  /// 找到该回复前最近的一条用户消息作为 prompt，清掉其后所有内容并重发。
+  Future<void> regenerate(ChatMessage aiMsg) async {
+    if (_isLoading) return;
+    final idx = _messages.indexOf(aiMsg);
+    if (idx < 0) return;
+    int userIdx = -1;
+    for (int i = idx - 1; i >= 0; i--) {
+      if (_messages[i].isUser) {
+        userIdx = i;
+        break;
+      }
+    }
+    if (userIdx < 0) return;
+    final prompt = _messages[userIdx].text;
+    _messages.removeRange(userIdx, _messages.length);
+    _notify();
+    await sendMessage(prompt);
+  }
 
   Future<void> sendMessage(String text) async {
     final trimmed = text.trim();
@@ -655,9 +695,8 @@ class ChatController extends ChangeNotifier {
     finishRunningSteps(state.steps);
     _currentSteps = null;
     _streamState = null;
-    aiMsg.text = state.buf.isEmpty
-        ? '错误: $e'
-        : '${state.buf.toString()}\n\n错误: $e';
+    aiMsg.isError = true;
+    aiMsg.text = ErrorHandler.humanizeError(e);
     aiMsg.isStreaming = false;
     aiMsg.steps = state.steps.isEmpty ? null : List.unmodifiable(state.steps);
     _isLoading = false;

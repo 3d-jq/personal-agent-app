@@ -32,14 +32,14 @@ class ChatModelChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 6, height: 6,
+              width: 7, height: 7,
               decoration: BoxDecoration(color: nc.success, shape: BoxShape.circle),
             ),
             const SizedBox(width: 6),
             Text(vendor.model,
-                style: TextStyle(fontSize: 13, color: nc.textPrimary, fontWeight: FontWeight.w500)),
+                style: TextStyle(fontSize: 14, color: nc.textPrimary, fontWeight: FontWeight.w500)),
             const SizedBox(width: 2),
-            Icon(Icons.expand_more, size: 16, color: nc.textSecondary),
+            Icon(Icons.expand_more, size: 18, color: nc.textSecondary),
           ],
         ),
       ),

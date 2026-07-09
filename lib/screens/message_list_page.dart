@@ -10,6 +10,7 @@ import '../services/agent_group_storage.dart';
 import '../services/agent_storage.dart';
 import '../services/chat_storage.dart';
 import '../widgets/common_widgets.dart';
+import '../widgets/skeleton.dart';
 import '../widgets/state_placeholder.dart';
 
 /// 消息列表页面（类似微信聊天列表，极简对话式升级）
@@ -113,7 +114,7 @@ class _MessageListPageState extends State<MessageListPage> {
         ],
       ),
       body: !_loaded
-          ? StatePlaceholder.loading()
+          ? const MessageListSkeleton()
           : _items.isEmpty
               ? StatePlaceholder.empty(
                   icon: Icons.chat_bubble_outline,

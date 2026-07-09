@@ -3,22 +3,118 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/chat_message.dart';
 import '../core/agent_colors.dart';
+import '../core/design_tokens.dart';
 import '../core/app_animations.dart';
 import '../core/app_router.dart';
+import '../widgets/app_toast.dart';
 import 'inline_content.dart';
 import 'timeline_view.dart';
 import 'shimmer_text.dart';
 import 'task_plan_panel.dart';
 
+enum _BubbleAction { copy, regenerate, delete }
+
 class ChatBubble extends StatelessWidget {
   final ChatMessage msg;
   final AgentColors nc;
-  const ChatBubble({super.key, required this.msg, required this.nc});
+  final VoidCallback? onRetry;
+  final VoidCallback? onDelete;
+  final VoidCallback? onRegenerate;
+  const ChatBubble({
+    super.key,
+    required this.msg,
+    required this.nc,
+    this.onRetry,
+    this.onDelete,
+    this.onRegenerate,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (msg.isUser) return _userBubble(context);
-    return _AIBubble(msg: msg, nc: nc);
+    final child = msg.isUser
+        ? _userBubble(context)
+        : _AIBubble(msg: msg, nc: nc, onRetry: onRetry);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPressStart: (d) => _showActionMenu(context, d.globalPosition),
+      child: child,
+    );
+  }
+
+  void _copy(BuildContext context) {
+    final text = msg.cleanText.isNotEmpty ? msg.cleanText : msg.text;
+    Clipboard.setData(ClipboardData(text: text));
+    HapticFeedback.lightImpact();
+    AppToast.show(context, '已复制');
+  }
+
+  void _showActionMenu(BuildContext context, Offset globalPos) async {
+    final nc = AgentColors.of(context);
+    final menuItems = <PopupMenuEntry<_BubbleAction>>[
+      PopupMenuItem<_BubbleAction>(
+        value: _BubbleAction.copy,
+        child: _menuRow(nc, Icons.content_copy, '复制', false),
+      ),
+    ];
+    if (onRegenerate != null) {
+      menuItems.add(
+        PopupMenuItem<_BubbleAction>(
+          value: _BubbleAction.regenerate,
+          child: _menuRow(nc, Icons.refresh, '重新生成', false),
+        ),
+      );
+    }
+    if (onDelete != null) {
+      menuItems.add(
+        PopupMenuItem<_BubbleAction>(
+          value: _BubbleAction.delete,
+          child: _menuRow(nc, Icons.delete_outline, '删除', true),
+        ),
+      );
+    }
+
+    final result = await showMenu<_BubbleAction>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        globalPos.dx,
+        globalPos.dy,
+        globalPos.dx,
+        globalPos.dy,
+      ),
+      color: nc.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(RadiusToken.md),
+      ),
+      elevation: 8,
+      items: menuItems,
+    );
+
+    switch (result) {
+      case _BubbleAction.copy:
+        _copy(context);
+      case _BubbleAction.regenerate:
+        onRegenerate?.call();
+      case _BubbleAction.delete:
+        onDelete?.call();
+      case null:
+        break;
+    }
+  }
+
+  Widget _menuRow(
+    AgentColors nc,
+    IconData icon,
+    String label,
+    bool destructive,
+  ) {
+    final color = destructive ? nc.error : nc.textPrimary;
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: SpaceToken.md),
+        Text(label, style: TextStyle(fontSize: FontToken.body, color: color)),
+      ],
+    );
   }
 
   Widget _userBubble(BuildContext context) {
@@ -34,7 +130,7 @@ class ChatBubble extends StatelessWidget {
         .replaceAll(RegExp(r'\n?\[附件: [^\]]+\]'), '')
         .trim();
 
-    return Padding(
+    final bubble = Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Align(
         alignment: Alignment.centerRight,
@@ -55,18 +151,18 @@ class ChatBubble extends StatelessWidget {
               Container(
                 constraints: const BoxConstraints(maxWidth: 300),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
+                  horizontal: 15,
+                  vertical: 11,
                 ),
                 decoration: BoxDecoration(
                   color: bgColor,
                   // Apple HIG：连续曲率圆角，无边框
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   cleanText,
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: 16,
                     color: Colors.white,
                     height: 1.5,
                   ),
@@ -75,6 +171,19 @@ class ChatBubble extends StatelessWidget {
           ],
         ),
       ),
+    );
+    return TweenAnimationBuilder<double>(
+      duration: AppDurations.bubble,
+      curve: Curves.easeOut,
+      tween: Tween(begin: 0.0, end: 1.0),
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, (1 - value) * 8),
+          child: child,
+        ),
+      ),
+      child: bubble,
     );
   }
 
@@ -203,14 +312,15 @@ class ChatBubble extends StatelessWidget {
 class _AIBubble extends StatefulWidget {
   final ChatMessage msg;
   final AgentColors nc;
-  const _AIBubble({required this.msg, required this.nc});
+  final VoidCallback? onRetry;
+  const _AIBubble({required this.msg, required this.nc, this.onRetry});
 
   @override
   State<_AIBubble> createState() => _AIBubbleState();
 }
 
 class _AIBubbleState extends State<_AIBubble>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   String _lastText = '';
   int _lastTextLength = 0;
   bool _planExpanded = true;
@@ -218,6 +328,9 @@ class _AIBubbleState extends State<_AIBubble>
   DateTime _lastRenderTime = DateTime(2000); // far in the past
   late AnimationController _fadeCtrl;
   late Animation<double> _fadeAnim;
+  late AnimationController _enterCtrl;
+  late Animation<double> _enterOpacity;
+  late Animation<Offset> _enterOffset;
 
   static const _renderThrottle = Duration(milliseconds: 80);
 
@@ -233,6 +346,20 @@ class _AIBubbleState extends State<_AIBubble>
       end: 1.0,
     ).animate(CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut));
     _fadeCtrl.value = 1.0;
+
+    _enterCtrl = AnimationController(
+      vsync: this,
+      duration: AppDurations.bubble,
+    );
+    _enterOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _enterCtrl, curve: Curves.easeOut),
+    );
+    _enterOffset = Tween<Offset>(
+      begin: const Offset(0, 0.04),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _enterCtrl, curve: Curves.easeOut));
+    _enterCtrl.forward();
+
     widget.msg.addListener(_onChanged);
   }
 
@@ -254,6 +381,7 @@ class _AIBubbleState extends State<_AIBubble>
   void dispose() {
     widget.msg.removeListener(_onChanged);
     _fadeCtrl.dispose();
+    _enterCtrl.dispose();
     super.dispose();
   }
 
@@ -271,6 +399,9 @@ class _AIBubbleState extends State<_AIBubble>
   Widget build(BuildContext context) {
     final msg = widget.msg;
     final nc = widget.nc;
+    if (msg.isError) {
+      return _buildErrorCard(nc);
+    }
     final steps = msg.steps;
     final hasSteps = steps != null && steps.isNotEmpty;
     final textContent = msg.cleanText;
@@ -289,9 +420,13 @@ class _AIBubbleState extends State<_AIBubble>
       _cachedContent = buildInlineContent(textContent, nc, context);
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Column(
+    return FadeTransition(
+      opacity: _enterOpacity,
+      child: SlideTransition(
+        position: _enterOffset,
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (showProcessLine)
@@ -316,6 +451,58 @@ class _AIBubbleState extends State<_AIBubble>
               ),
             ),
         ],
+      ),
+        ),
+      ),
+    );
+  }
+
+  /// 错误气泡：内联报错卡（浅红底 + 红图标 + 友好文案 + 重试）
+  Widget _buildErrorCard(AgentColors nc) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: nc.error.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: nc.error.withValues(alpha: 0.25), width: 0.5),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.error_outline, size: 18, color: nc.error),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.msg.text,
+                    style: TextStyle(fontSize: 14, color: nc.textPrimary, height: 1.5),
+                  ),
+                  if (widget.onRetry != null) ...[
+                    const SizedBox(height: 10),
+                    GestureDetector(
+                      onTap: widget.onRetry,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: nc.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '重试',
+                          style: TextStyle(fontSize: 13, color: nc.error, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -537,3 +724,4 @@ class _UserImagePreview extends StatelessWidget {
     );
   }
 }
+

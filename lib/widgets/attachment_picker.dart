@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
+import '../widgets/app_toast.dart';
 
 class AttachmentPicker extends StatelessWidget {
   final AgentColors nc;
@@ -98,9 +99,7 @@ class AttachmentPicker extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('选择文件失败: $e')));
+        AppToast.show(context, '选择文件失败: $e', type: ToastType.error);
       }
     }
   }

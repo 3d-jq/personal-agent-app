@@ -8,7 +8,7 @@ import '../models/agent_group.dart';
 import '../services/agent_group_storage.dart';
 import '../services/agent_storage.dart';
 import '../widgets/common_widgets.dart';
-import '../widgets/state_placeholder.dart';
+import '../widgets/skeleton.dart';
 
 /// Agent 通讯录页面（类似微信通讯录）
 class AgentContactPage extends StatefulWidget {
@@ -55,7 +55,7 @@ class _AgentContactPageState extends State<AgentContactPage> {
         ],
       ),
       body: !_loaded
-          ? StatePlaceholder.loading()
+          ? const AgentListSkeleton()
           : ListView(
               children: [
                 // 群聊入口

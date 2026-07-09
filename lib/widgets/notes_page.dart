@@ -5,6 +5,7 @@ import '../core/agent_colors.dart';
 import '../core/design_tokens.dart';
 import '../core/app_router.dart';
 import 'common_widgets.dart';
+import 'app_toast.dart';
 import '../models/note.dart';
 import '../services/export_service.dart';
 import '../services/note_export_service.dart';
@@ -217,9 +218,7 @@ class _NoteDetail extends StatelessWidget {
                 await NoteExportService.exportToWord(note);
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('导出失败: $e')));
+                  AppToast.show(context, '导出失败: $e', type: ToastType.error);
                 }
               }
             },
@@ -381,12 +380,13 @@ class _NoteEditorState extends State<_NoteEditor> {
 
     try {
       await widget.onSaved(note);
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        AppToast.show(context, '已保存', type: ToastType.success);
+        Navigator.pop(context);
+      }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败: $e')),
-        );
+        AppToast.show(context, '保存失败: $e', type: ToastType.error);
       }
     }
   }
