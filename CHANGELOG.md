@@ -1,5 +1,38 @@
 # Changelog
 
+## v1.4.18 — 模型选择器默认「自动选择」(2026-07-10)
+
+### 🐛 Bug 修复
+- **首次打开模型选择器默认选中「手动输入」**：根因 `_fetch()` 拉完模型列表后，若当前默认模型不在列表里会被强制掰到「手动输入」，导致体感"默认手动"。
+- **修复**：默认保持「自动选择」；仅在自动列表里当前模型不在列表中时，顶部显示轻提示「当前模型「X」不在列表中，改用手动输入」，点击才切换——既默认自动、又不丢自定义模型的可发现性。
+
+## v1.4.17 — 删除无用的 terminate_subagent 工具 (2026-07-10)
+
+### 🧹 代码清理
+- **删除摆设工具**：`terminate_subagent` 在阻塞式 `delegate_task` 下，协调者当轮被卡住根本调不到它，实为摆设；用户「停止」按钮的 abort 信号已能实时中断所有在跑子 Agent，功能完全覆盖。
+- 删除 `terminate_subagent_tool.dart`，清理控制器 `import` / `_terminateChild` / `_coordinatorDispatchTools` 引用及三处注释残留，净删 74 行，不污染代码表面积。
+
+## v1.4.16 — 根治「回到底部」按钮可见跳变 (2026-07-10)
+
+### 🐛 Bug 修复
+- **回到底部按钮点下去"跳一下"**：旧 `_scrollToBottom` 先 `animateTo(固定估算 max)` 再 `jumpTo` 兜底。长列表/未布局底部 item 时，动画期间真实 max 才被推出、比动画目标更大，结束落点在错误（偏高）底部 → 末尾 snap 到真底部 = 可见 teleport。
+- **修复（主聊天屏 + 群聊屏统一同款）**：改**跟随式动画**——动画期间每一帧 `jumpTo(当前 maxScrollExtent)`，底部 item 随布局完成把 max 自然推高，滚动平滑跟随到底，无二次跳动。两处皆加 `SingleTickerProviderStateMixin` + `AnimationController`。
+
+## v1.4.15 — 群聊工具上限语义 + 子 Agent 可控可观测 (2026-07-10)
+
+### 🐛 Bug 修复：工具调用上限语义
+- **现象**：群聊里经常碰到"工具调用达到上限"，但分不清是每 Agent 10 还是全群 10。
+- **根因**：`ToolRegistry.maxConsecutiveCalls=10` 本是"同一工具连续调用"上限；但 scoped registry 按权限缓存（权限相同的子 Agent 共用同一实例计数），且群聊从不 `resetCallCounts()`（单聊才会）→ 配额**跨 Agent、跨轮次累积**触顶。
+- **修复**：每个 Agent 每次执行前 `resetCallCounts()`，语义变为「**每个 Agent 每轮独立配额**」。
+
+### ✨ 增强：子 Agent 可控可观测
+- **状态可见**：`AgentStatus` 扩展 `error` / `timeout` / `cancelled`，状态栏分别红色/灰色渲染 —— 看得见哪个子 Agent 挂了。
+- **短超时**：子 Agent 执行超时由 **5 分钟** 砍到 **90 秒**，不再体感永久卡死。
+- **停止真生效**：此前 `stop()` 只 cancel 流、不解锁 completer，协调者永远死等；现 abort 信号会一并中断所有在跑子 Agent。
+- （注：`terminate_subagent` 工具于 v1.4.17 删除，因阻塞式派活下协调者当轮调不到它。）
+
+---
+
 ## v1.4.5 — 愉悦体验打磨（克制精致基调）(2026-07-09)
 
 ### ✨ 体验升级（四包全落地，基调：Apple HIG 风、微动画、留白、克制不喧哗）
