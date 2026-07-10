@@ -109,5 +109,17 @@ void main() {
       expect(find.text('**粗**'), findsNothing);
       expect(find.text('粗'), findsOneWidget);
     });
+
+    testWidgets('流式首帧空文本不抛异常（占位 text="" isStreaming=true）', (tester) async {
+      // 复现真机「发消息瞬间红屏闪一下再恢复」：AI 占位消息创建时
+      // text='' 且 isStreaming=true，首帧走 _rebuildStreaming 会得到空 blocks，
+      // 旧实现对空列表执行 List.length=-1 → RangeError 红屏；修复后直接返回
+      // 空列表，由「思考中」占位，构建无异常。
+      final msg = ChatMessage(text: '', isUser: false);
+      msg.isStreaming = true;
+      await tester.pumpWidget(build(msg));
+      expect(tester.takeException(), isNull);
+      expect(find.byType(ChatBubble), findsOneWidget);
+    });
   });
 }
