@@ -80,8 +80,7 @@ class SessionInfoSheet {
               ? '占用较高，注意上下文长度'
               : '占用正常';
       String fmt(int n) => n >= 1000 ? '${(n / 1000).round()}K' : '$n';
-      return SingleChildScrollView(
-      child: Column(
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
@@ -178,8 +177,7 @@ class SessionInfoSheet {
           ),
           const SizedBox(height: 16),
         ],
-      ),
-    );
+      );
     }
 
     Widget content = buildContent();

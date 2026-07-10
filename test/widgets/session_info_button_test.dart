@@ -3,10 +3,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_agent_app/core/agent_colors.dart';
 import 'package:personal_agent_app/widgets/session_info_button.dart';
 
+/// 放大视口以容纳固定高度的面板（真机屏幕够高，面板不滚动、一次性全显示）。
+Future<void> _pumpWithLargeViewport(WidgetTester tester, Widget widget) async {
+  tester.binding.window.physicalSizeTestValue = const Size(400, 1000);
+  tester.binding.window.devicePixelRatioTestValue = 1.0;
+  await tester.pumpWidget(widget);
+  addTearDown(() {
+    tester.binding.window.physicalSizeTestValue = const Size(800, 600);
+    tester.binding.window.devicePixelRatioTestValue = 3.0;
+  });
+}
+
 void main() {
   testWidgets('点击身份牌弹出会话信息面板，含上下文占用与文档入口', (tester) async {
     final nc = AgentColors.light();
-    await tester.pumpWidget(
+    await _pumpWithLargeViewport(
+      tester,
       MaterialApp(
         theme: ThemeData(extensions: [nc]),
         home: Scaffold(
@@ -40,7 +52,8 @@ void main() {
 
   testWidgets('占用接近阈值时显示红态文案', (tester) async {
     final nc = AgentColors.light();
-    await tester.pumpWidget(
+    await _pumpWithLargeViewport(
+      tester,
       MaterialApp(
         theme: ThemeData(extensions: [nc]),
         home: Scaffold(
