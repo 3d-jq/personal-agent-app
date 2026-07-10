@@ -241,21 +241,14 @@ List<Map<String, dynamic>> buildMessageHistory({
   String? pendingType,
   String? text,
   int? pendingFileSize,
-    int? maxMessages, // 滑动窗口，保留最近 N 条
     DateTime? now, // 当前时间注入到历史末尾（不进 system，保证 system 前缀稳定可缓存）
   }) {
   final history = <Map<String, dynamic>>[
     {'role': 'system', 'content': systemPrompt},
   ];
 
-  // 滑动窗口截断
-  var msgs = messages;
-  if (maxMessages != null && messages.length > maxMessages) {
-    msgs = messages.sublist(messages.length - maxMessages);
-  }
-
-  for (var i = 0; i < msgs.length; i++) {
-    final m = msgs[i];
+  for (var i = 0; i < messages.length; i++) {
+    final m = messages[i];
     if (m.isStreaming) continue;
 
     // 如果 assistant 消息有工具交互记录，重建完整的工具调用链
@@ -293,7 +286,7 @@ List<Map<String, dynamic>> buildMessageHistory({
       'role': m.isUser ? 'user' : 'assistant',
       'content': m.text,
     };
-    if (i == msgs.length - 2 && attachmentBase64 != null) {
+    if (i == messages.length - 2 && attachmentBase64 != null) {
       final userText = (text?.isEmpty ?? true) ? '' : text!;
       if (pendingType == 'image') {
         final mimeType = attachmentName != null

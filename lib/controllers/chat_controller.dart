@@ -413,9 +413,6 @@ class ChatController extends ChangeNotifier {
       pendingType: pendingType,
       text: trimmed,
       pendingFileSize: pendingFile?.lengthSync(),
-      // 压缩后已用摘要控制长度，不再用 maxMessages 二次截断（否则会从尾部切掉
-      // 头部的摘要气泡，使压缩彻底失效）。未压缩时保留原 20 条滑动窗口。
-      maxMessages: identical(sendView, _messages) ? 20 : null,
     );
 
     final aiMsg = _messages.last;

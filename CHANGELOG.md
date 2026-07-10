@@ -38,6 +38,11 @@
 - **运行日志打 cache 统计**：Anthropic 解析 SSE `message_start` 的 `usage`（cache_read/creation token）、OpenAI 流式加 `stream_options.include_usage` 并解析 `prompt_tokens_details.cached_tokens`，均打到运行日志，方便不依赖厂商后台验证命中。
 - 新增回归测试锁定：system 不含「当前时间」、`buildMessageHistory` 在 `now` 非空时末尾追加时间消息。
 
+### 🪟 移除滑动窗口截断（回归纯压缩，对齐 opencode）
+- **背景**：滑动窗口（`maxMessages:20` / 子 Agent `maxMsgs:50`）是当年「还没有上下文压缩」时临时管长度的遗留手段；如今 `compressIfNeeded` 已在单聊（`chat_controller`）与群聊（`group_chat_controller`）两层兜底（阈值按 `contextWindowSize` 动态算），窗口纯属冗余，且会让中段对话每轮只发最近 N 条、AI 对更早内容失忆。
+- **改动**：主聊 `buildMessageHistory` 移除 `maxMessages` 参数与截断逻辑（`chat_helpers.dart`），`chat_controller` 不再传窗口；子 Agent / 群聊成员 `agent_runner._buildHistory` 移除 `maxMsgs:50` 截断，统一由 group 层 `compressIfNeeded` 先压缩、子 Agent 拿压缩视图兜底。
+- **现状行为**：短/中对话每轮发完整历史（token 成本随对话递增，直到接近窗口上限才压缩）；长对话压缩触发、头部变 `[历史摘要]`，AI 不忘早年内容。system 缓存（Prompt Cache 优化）不受影响——system 是恒定前缀，独立于对话体。
+
 ## v1.4.20 — 上下文占用收进身份牌面板 (2026-07-10)
 
 ### 🎨 UI 优化

@@ -178,15 +178,10 @@ class AgentRunner {
     String selfLabel, {
     DateTime? now,
   }) {
-    const maxMsgs = 50;
-    final window = msgs.length > maxMsgs
-        ? msgs.sublist(msgs.length - maxMsgs)
-        : msgs;
-
     final history = <Map<String, dynamic>>[
       {'role': 'system', 'content': systemPrompt},
     ];
-    for (final m in window) {
+    for (final m in msgs) {
       if (m.isUser) {
         // 用户消息：保持 user 角色
         history.add({'role': 'user', 'content': m.text, 'name': '群主'});
