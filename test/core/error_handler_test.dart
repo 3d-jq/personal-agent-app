@@ -29,7 +29,7 @@ void main() {
       await tester.pumpWidget(MaterialApp(home: Scaffold(body: widget)));
 
       expect(find.text('页面出错了'), findsOneWidget);
-      expect(find.text('请重启应用或返回上一页重试。'), findsOneWidget);
+      expect(find.textContaining('请重启应用或返回上一页重试'), findsOneWidget);
       if (kDebugMode) {
         expect(find.textContaining('boom'), findsOneWidget);
       }

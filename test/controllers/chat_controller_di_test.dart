@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_agent_app/controllers/chat_controller.dart';
 import 'package:personal_agent_app/core/service_locator.dart';
+import 'package:personal_agent_app/models/chat_message.dart';
 import 'package:personal_agent_app/models/chat_session.dart';
 import 'package:personal_agent_app/services/chat_storage.dart';
 import 'package:personal_agent_app/services/storage/app_database.dart';
@@ -42,6 +43,56 @@ void main() {
 
       expect(controller.sessions, isEmpty);
       expect(() => controller.refreshSessions(), returnsNormally);
+    });
+  });
+
+  group('estimatedContextTokens 流式翻转缓存失效', () {
+    test('流式结束 isStreaming 翻 false 应触发重算并纳入 AI 回复', () async {
+      final userMsg = ChatMessage(text: '你好', isUser: true);
+      final aiMsg = ChatMessage(
+        text: '这是一条较长的 AI 回复内容用于估算 token 占用',
+        isUser: false,
+        isStreaming: true,
+      );
+      final session = ChatSession(
+        id: 's1',
+        title: 'Test',
+        messages: [userMsg, aiMsg],
+        updatedAt: DateTime(2025, 1, 1),
+      );
+      final fake = _FakeChatStorage()..sessions = [session];
+
+      final controller = ChatController(chatStorage: fake);
+      await controller.loadSession('s1');
+
+      // 流式进行中：AI 回复被跳过（isStreaming=true），仅计入用户消息
+      final streamingTokens = controller.estimatedContextTokens;
+      // 模拟流式收尾：仅翻转 isStreaming，文本长度不变
+      aiMsg.isStreaming = false;
+      final finalizedTokens = controller.estimatedContextTokens;
+
+      // 翻转后必须纳入 AI 回复（否则会漏算整条回复 —— 问题 1 根因）
+      expect(finalizedTokens, greaterThan(streamingTokens));
+      expect(finalizedTokens - streamingTokens, greaterThan(0));
+    });
+
+    test('引用/条数/长度/流式状态均未变时复用缓存（无重复重算）', () async {
+      final userMsg = ChatMessage(text: '你好世界', isUser: true);
+      final aiMsg =
+          ChatMessage(text: '已完成的回复', isUser: false, isStreaming: false);
+      final session = ChatSession(
+        id: 's1',
+        title: 'Test',
+        messages: [userMsg, aiMsg],
+        updatedAt: DateTime(2025, 1, 1),
+      );
+      final fake = _FakeChatStorage()..sessions = [session];
+      final controller = ChatController(chatStorage: fake);
+      await controller.loadSession('s1');
+
+      final first = controller.estimatedContextTokens;
+      final second = controller.estimatedContextTokens;
+      expect(second, first);
     });
   });
 }
