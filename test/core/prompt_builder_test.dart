@@ -2,12 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_agent_app/core/prompt_builder.dart';
 
 void main() {
-  final now = DateTime(2026, 7, 9, 13, 44);
-
   group('PromptBuilder.buildMainPrompt 记忆规则', () {
     test('包含 USER.md 维护指引（规则 9）', () {
       final p = PromptBuilder.buildMainPrompt(
-        now: now,
         soulContext: '',
         userContext: '',
       );
@@ -17,7 +14,6 @@ void main() {
 
     test('包含 MEMORY.md 维护指引（规则 11：跨会话事实持久化）', () {
       final p = PromptBuilder.buildMainPrompt(
-        now: now,
         soulContext: '',
         userContext: '',
       );
@@ -28,7 +24,6 @@ void main() {
 
     test('包含 AGENT.md 维护指引（规则 12：任务经验沉淀，需 reviewed=true）', () {
       final p = PromptBuilder.buildMainPrompt(
-        now: now,
         soulContext: '',
         userContext: '',
       );
@@ -39,7 +34,6 @@ void main() {
 
     test('首次见面分支仍要求写入 USER.md', () {
       final p = PromptBuilder.buildMainPrompt(
-        now: now,
         soulContext: '',
         userContext: '',
         isFirstMeeting: true,
@@ -51,7 +45,6 @@ void main() {
 
     test('有 persona/user_profile 时注入人格一致性硬约束（对抗人格漂移）', () {
       final p = PromptBuilder.buildMainPrompt(
-        now: now,
         soulContext: '# SOUL\n语气：可爱温柔',
         userContext: '# USER\n怎么称呼：小张',
       );
@@ -64,11 +57,24 @@ void main() {
 
     test('空 persona/user_profile 时不注入人格一致性约束', () {
       final p = PromptBuilder.buildMainPrompt(
-        now: now,
         soulContext: '',
         userContext: '',
       );
       expect(p, isNot(contains('persona_constraints')));
+    });
+
+    test('system 不注入当前时间（保证前缀稳定可缓存）', () {
+      final p = PromptBuilder.buildMainPrompt(
+        soulContext: '',
+        userContext: '',
+      );
+      expect(p, isNot(contains('当前时间')));
+    });
+
+    test('currentTimeContext 仍可用（供调用方注入用户消息）', () {
+      final s = PromptBuilder.currentTimeContext(DateTime(2026, 7, 9, 13, 44));
+      expect(s, contains('2026'));
+      expect(s, contains('13:44'));
     });
   });
 }

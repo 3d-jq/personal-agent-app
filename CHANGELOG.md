@@ -31,6 +31,13 @@
 - **笔记详情 markdown 解析缓存**：`_NoteDetail` 由 `StatelessWidget` 改为 `StatefulWidget`，解析结果缓存到 `late final` 字段仅在 `initState` 计算一次、`build` 直接复用，根治"笔记点开长文重复全量解析"卡顿。
 - 路由转场（`IosSlideRoute` 纯横滑无整页 fade）、主聊天列表虚拟化（`ListView.builder`）、群聊入口双帧校正动画、markdown 样式表主题色哈希缓存等**经排查已处于较优状态**，本轮未改动、非卡顿源。
 
+### 🔌 Prompt Cache 命中优化（省 token）
+- **根治 prompt cache 命中率≈0**：此前两协议层（`AnthropicProtocol` / `OpenAiProtocol`）请求体均未加 `cache_control`，且 system 末尾每轮注入「当前时间（精确到秒）」使 system 前缀逐 token 变化，缓存永远失效，每轮全量重发 SOUL/USER/rules/skill catalog（约 2k~4k+ token）；群聊 N 个 Agent 各发一份、浪费放大 N 倍。
+- **稳定化（前提）**：`PromptBuilder.buildMainPrompt` 与 `agent_runner._buildSystemPrompt` 移除 system 内的「当前时间」块；时间改由调用方注入到历史**末尾**的 user 消息（`chat_helpers.buildMessageHistory` / `agent_runner._buildHistory` 增 `now` 参数，return 前追加 `当前时间：…`）。system 主体恒定 → 前缀可缓存。
+- **双协议加缓存断点**：Anthropic 把 `system` 改为带 `cache_control:{type:'ephemeral'}` 的 block 数组（流式 + 摘要两处）；OpenAI 把 system message 的 `content` 转为同结构 block 数组（端点不支持显式标记时无害，且稳定前缀仍触发 OpenAI 自动前缀缓存）。命中后 system 块只计 cache_read 价（约 1/10）。
+- **运行日志打 cache 统计**：Anthropic 解析 SSE `message_start` 的 `usage`（cache_read/creation token）、OpenAI 流式加 `stream_options.include_usage` 并解析 `prompt_tokens_details.cached_tokens`，均打到运行日志，方便不依赖厂商后台验证命中。
+- 新增回归测试锁定：system 不含「当前时间」、`buildMessageHistory` 在 `now` 非空时末尾追加时间消息。
+
 ## v1.4.20 — 上下文占用收进身份牌面板 (2026-07-10)
 
 ### 🎨 UI 优化

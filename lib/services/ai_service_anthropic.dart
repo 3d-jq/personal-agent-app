@@ -89,6 +89,15 @@ class AnthropicProtocol {
         .map((m) => m['content'] ?? '')
         .join('\n');
     final conversation = messages.where((m) => m['role'] != 'system').toList();
+    final systemBlocks = system.isNotEmpty
+        ? [
+            {
+              'type': 'text',
+              'text': system,
+              'cache_control': {'type': 'ephemeral'},
+            }
+          ]
+        : null;
 
     final tools = toolRegistry.all.isNotEmpty
         ? toolRegistry.functionDefinitions.map((t) {
@@ -112,7 +121,7 @@ class AnthropicProtocol {
         data: {
           'model': model,
           'max_tokens': maxTokens,
-          if (system.isNotEmpty) 'system': system,
+          if (systemBlocks != null) 'system': systemBlocks,
           'messages': conversation,
           if (hasTools) 'tools': tools,
           'stream': true,
@@ -142,7 +151,16 @@ class AnthropicProtocol {
             final json = jsonDecode(data);
             final type = json['type'] as String?;
 
-            if (type == 'content_block_delta') {
+            if (type == 'message_start') {
+            final usage = json['message']?['usage'];
+            if (usage is Map) {
+              final read = usage['cache_read_input_tokens'];
+              final creation = usage['cache_creation_input_tokens'];
+              if (read != null || creation != null) {
+                log.i('AnthropicProtocol', 'Cache usage — read: $read, creation: $creation');
+              }
+            }
+          } else if (type == 'content_block_delta') {
               final delta = json['delta'];
               if (delta is Map) {
                 if (delta['type'] == 'text_delta') {
@@ -213,6 +231,15 @@ class AnthropicProtocol {
         .map((m) => m['content'] ?? '')
         .join('\n');
     final conversation = messages.where((m) => m['role'] != 'system').toList();
+    final systemBlocks = system.isNotEmpty
+        ? [
+            {
+              'type': 'text',
+              'text': system,
+              'cache_control': {'type': 'ephemeral'},
+            }
+          ]
+        : null;
     log.i('AnthropicProtocol', 'Summarize request: ${messages.length} messages');
     try {
       final response = await AiHttpClient.retryPost(
@@ -222,7 +249,7 @@ class AnthropicProtocol {
           'model': model,
           'max_tokens': 2048,
           'temperature': 0.3,
-          if (system.isNotEmpty) 'system': system,
+          if (systemBlocks != null) 'system': systemBlocks,
           'messages': conversation,
         },
       );

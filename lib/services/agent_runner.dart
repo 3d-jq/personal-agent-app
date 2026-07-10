@@ -33,7 +33,6 @@ class AgentRunner {
     required bool isGroupChat,
     String groupName = '',
     String groupDesc = '',
-    required DateTime now,
   }) async {
     final buf = StringBuffer();
 
@@ -99,12 +98,6 @@ class AgentRunner {
     );
     buf.writeln('【先工具后回答】工具返回前不要给出最终结论，只能基于工具返回的内容回答。');
     buf.writeln('</rules>');
-    buf.writeln();
-
-    // ═══ 实时上下文 ═══
-    buf.writeln('<context>');
-    buf.writeln('当前时间：${PromptBuilder.currentTimeContext(now)}');
-    buf.writeln('</context>');
     buf.writeln();
 
     // 团队成员能力（排除自己），仅群聊
@@ -182,8 +175,9 @@ class AgentRunner {
   List<Map<String, dynamic>> _buildHistory(
     List<_GroupMsg> msgs,
     String systemPrompt,
-    String selfLabel,
-  ) {
+    String selfLabel, {
+    DateTime? now,
+  }) {
     const maxMsgs = 50;
     final window = msgs.length > maxMsgs
         ? msgs.sublist(msgs.length - maxMsgs)
@@ -210,6 +204,14 @@ class AgentRunner {
           'content': '[${m.speakerLabel}的发言] ${m.text}',
         });
       }
+    }
+    // 当前时间不进 system，追加到历史末尾的一条 user 消息，
+    // 保证 system 前缀恒定，两厂商 prompt cache 可稳定命中。
+    if (now != null) {
+      history.add({
+        'role': 'user',
+        'content': '当前时间：${PromptBuilder.currentTimeContext(now)}',
+      });
     }
     return history;
   }
@@ -278,7 +280,6 @@ class AgentRunner {
         isGroupChat: isGroupChat,
         groupName: groupName,
         groupDesc: groupDesc,
-        now: DateTime.now(),
       );
 
       final mapped = <_GroupMsg>[];
@@ -299,7 +300,7 @@ class AgentRunner {
         mapped.add(_GroupMsg(label, content, m.isUser));
       }
 
-      final messages = _buildHistory(mapped, systemPrompt, agent.name);
+      final messages = _buildHistory(mapped, systemPrompt, agent.name, now: DateTime.now());
       final scopedRegistry = _scopedRegistry(agent, dispatchTools: dispatchTools);
       // 每个 Agent 每次执行前重置工具调用计数：配额归该 Agent 当轮独占，
       // 避免群里权限相同的子 Agent 共用同一缓存 registry、且群聊从不 resetCallCounts

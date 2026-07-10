@@ -365,7 +365,6 @@ class ChatController extends ChangeNotifier {
     onNeedScroll?.call();
 
     final systemPrompt = PromptBuilder.buildMainPrompt(
-      now: DateTime.now(),
       soulContext: contextDocs.cached(ContextDoc.soul),
       userContext: contextDocs.cached(ContextDoc.user),
       isFirstMeeting: isFirstMeeting,
@@ -407,6 +406,7 @@ class ChatController extends ChangeNotifier {
     final history = buildMessageHistory(
       systemPrompt: systemPrompt,
       messages: sendView,
+      now: DateTime.now(),
       attachmentBase64: attachmentBase64,
       attachmentName: attachmentName,
       attachmentPath: pendingFile?.path,
