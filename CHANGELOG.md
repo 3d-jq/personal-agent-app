@@ -9,6 +9,7 @@
 - **根治上下文占用数字对话中不刷新**：`estimatedContextTokens` 的缓存只在消息**列表引用变更**时才重算，但消息是 `_messages.add(...)` 追加的、引用始终不变，导致正常对话中数字纹丝不动（只有压缩/切会话才更新）。修法：缓存失效条件改为「引用 + 条数 + 最后一条内容长度」，新增一轮问答与流式增长都会实时重算（单聊 / 群聊同步修复）。
 - 占用数字显示由整 K（`12K`）改为一位小数（`12.3K`，≥100K 仍用整数），几百 token 的变化也能直观看到。
 - **根治面板「AI 草稿纸」贴底 / 底部留白改了不生效**：真因是 `showModalBottomSheet` 未开 `isScrollControlled`，默认最大高度被限制在屏幕 9/16（约 56%），面板内容超出后底部被**裁剪**，任何底部留白调整都落在被裁区域里、真机上看不出变化。修法：开 `isScrollControlled: true` 让面板按内容自适应高度（`Column` 改 `mainAxisSize: MainAxisSize.min`），并用 `SafeArea(top:false)` 正确避开底部系统手势条。「AI 草稿纸」不再贴底。
+- **根治上下文占用阈值 / 节点位置「不随窗口变化」（非动态）**：`HistoryManager.contextWindowSize` 原为 `final`，在 controller 首次懒加载时被**固化**为当时的窗口值；而面板里「阈值比例 = 固化阈值 ÷ 动态窗口（来自 `_aiSettings`）」，切换窗口后 —— 小窗口时比值 >1、节点被 `markX<w` 条件裁掉（看不到），大窗口时节点被挤到左侧（位置不对）；且真实压缩时机也因此错误。修法：`HistoryManager` 的 `contextWindowSize` / `maxOutputTokens` 改为可变字段，单聊与群聊两个 controller 的 `_historyManagerInstance` getter 在返回前把最新 `_aiSettings.contextWindowSize` 同步进去；面板写死的「80%」文案改为动态百分比（`占用约达 X% 时自动压缩`，大窗口 80%、小窗口显示真实 <80% 值）。新增回归测试锁定该行为，防止字段被改回 `final` 或遗忘同步。
 - 同步 `AppConfig._version` / `_buildNumber` 硬编码默认值至 `1.4.21` / `17`（原为 `1.0.0` / `1`，与 pubspec 脱节、易误读为版本未更新；运行时已由 `PackageInfo` 覆盖，此处仅作正确 fallback）。
 
 ## v1.4.20 — 上下文占用收进身份牌面板 (2026-07-10)
@@ -32,7 +33,7 @@
 
 ### 🔧 压缩阈值逻辑修正
 - 原阈值 `contextWindowSize - 20000`（固定缓冲）**不是 80%**：256K 窗实际 ~92% 才压，而 32K 小窗仅用 37% 就压、浪费大半上下文；设置页「达到 80% 时自动压缩」文案与实现不符。
-- 改为 **80% 百分比 + 绝对下限**：`max(contextWindowSize*0.8, contextWindowSize-(maxOutputTokens+余量))` —— 大窗用满 80%，小窗自动后退为输出预留空间、避免下一轮生成溢出窗口。
+- 改为 **80% 百分比 + 绝对下限（取两者较小值）**：`min(contextWindowSize*0.8, contextWindowSize-(maxOutputTokens+余量))` —— 大窗用满 80%，小窗自动后退为输出预留空间、避免下一轮生成溢出窗口。
 - 同步修正设置页文案为「占用约达 80% 时自动压缩（小窗口会预留输出空间，更早压缩）」。
 
 ---

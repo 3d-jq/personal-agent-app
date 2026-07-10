@@ -36,6 +36,28 @@ void main() {
         final m = HistoryManager(contextWindowSize: 8000);
         expect(m.compressionThreshold, greaterThanOrEqualTo(0));
       });
+
+      test('构造后改窗口大小，阈值随之动态重算（防止固化 bug 回归）', () {
+        // 根因回归：HistoryManager.contextWindowSize 曾为 final，在 controller
+        // 首次懒加载时固化，导致改窗口后压缩阈值/节点位置永远停留在旧值。
+        final m = HistoryManager(contextWindowSize: 256000);
+        final before = m.compressionThreshold;
+        expect(before, 256000 * 0.8);
+
+        // 模拟用户在设置中把窗口改小到 8K：小窗口为输出留余量，阈值后退到
+        // W-8096（远小于 80%），而非停留在 256K 的 80%。
+        m.contextWindowSize = 8192;
+        final afterSmall = m.compressionThreshold;
+        expect(afterSmall, 8192 - (4096 + 4000)); // = 96
+        expect(afterSmall, lessThan((8192 * 0.8).round()));
+        expect(afterSmall, isNot(equals(before)));
+
+        // 改大到 1M：大窗口精确用满 80%（0.8W < W-8096），阈值应跟随变为 800000，
+        // 而非停留在 256K 的 80% 旧值。
+        m.contextWindowSize = 1000000;
+        expect(m.compressionThreshold, (1000000 * 0.8).round());
+        expect(m.compressionThreshold, isNot(equals(before)));
+      });
     });
 
     group('estimateTokens', () {

@@ -158,7 +158,7 @@ class SessionInfoSheet {
                   Text(statusText, style: TextStyle(fontSize: 12, color: fill)),
                   const SizedBox(height: 4),
                   Text(
-                    '数值为估算值（非真实分词），占用约达 80% 时自动压缩',
+                    '数值为估算值（非真实分词），占用约达 ${(thresholdRatio * 100).round()}% 时自动压缩',
                     style: TextStyle(fontSize: 11, color: nc.textSecondary),
                   ),
                 ],
