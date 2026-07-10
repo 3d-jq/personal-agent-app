@@ -85,10 +85,6 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
         setState(() {
           _fetched = m;
           _loading = false;
-          // 当前模型不在列表里（之前手动填过）→ 自动切到手动，让用户看到自己的值
-          if (widget.vendor.model.isNotEmpty && !m.contains(widget.vendor.model)) {
-            _mode = 'manual';
-          }
         });
       }
     } catch (e) {
@@ -233,31 +229,75 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
         ),
       );
     }
-    return ListView(
-      physics: const BouncingScrollPhysics(),
+    final currentModel = widget.vendor.model;
+    final currentNotListed =
+        currentModel.isNotEmpty && !_models.contains(currentModel);
+    return Column(
       children: [
-        ..._models.map((m) {
-          final sel = m == _current;
-          return ListTile(
-            title: Text(
-              m,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
-                color: sel ? nc.success : nc.textPrimary,
+        if (currentNotListed)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: GestureDetector(
+              onTap: () => setState(() => _mode = 'manual'),
+              child: Container(
+                width: double.infinity,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: nc.primarySurface,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: RichText(
+                  text: TextSpan(
+                    style: TextStyle(fontSize: 13, color: nc.textSecondary),
+                    children: [
+                      const TextSpan(text: '当前模型「'),
+                      TextSpan(
+                        text: currentModel,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, color: nc.textPrimary),
+                      ),
+                      const TextSpan(text: '」不在列表中，'),
+                      TextSpan(
+                        text: '改用手动输入',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, color: nc.primary),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-            trailing: sel
-                ? Icon(Icons.check_circle_outline, size: 20, color: nc.success)
-                : null,
-            onTap: () {
-              HapticFeedback.lightImpact();
-              widget.settings.setVendorModel(widget.vendor.id, m);
-              widget.onChanged();
-              Navigator.pop(context);
-            },
-          );
-        }),
+          ),
+        Expanded(
+          child: ListView(
+            physics: const BouncingScrollPhysics(),
+            children: [
+              ..._models.map((m) {
+                final sel = m == _current;
+                return ListTile(
+                  title: Text(
+                    m,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
+                      color: sel ? nc.success : nc.textPrimary,
+                    ),
+                  ),
+                  trailing: sel
+                      ? Icon(Icons.check_circle_outline, size: 20, color: nc.success)
+                      : null,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    widget.settings.setVendorModel(widget.vendor.id, m);
+                    widget.onChanged();
+                    Navigator.pop(context);
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
       ],
     );
   }
