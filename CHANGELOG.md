@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.4.22 — 上下文管理全面优化（Prompt Cache + 纯压缩 + 工具结果截断对齐）(2026-07-10)
+
+### 🔌 Prompt Cache 命中优化（省 token）
+- **根因**: system 末尾每轮注入「当前时间（精确到秒）」→ 前缀逐 token 变化；两协议层均无 `cache_control` → 缓存永远失效，命中率≈0。
+- **A · system 稳定化**: 「当前时间」从 system 移入历史末尾 user 消息（`buildMessageHistory` / `_buildHistory`），system 主体恒定为可缓存前缀。
+- **B · 双协议 cache_control**: Anthropic system 标 `[{type:text,text,cache_control:{type:ephemeral}}]`；OpenAI system 的 String content 转同结构 block。命中后 system 只计 cache_read 价（约 1/10）。
+- **日志打点**: Anthropic 解析 `message_start.usage.cache_read_input_tokens`；OpenAI 加 `stream_options.include_usage` 解析 `cached_tokens`——厂商返回的真实命中数字，非估算。
+- 覆盖主聊 + 子 Agent/群聊成员；群聊 N 个 Agent 各发 system → 收益放大 N 倍。
+
+### 🪟 移除滑动窗口截断（回归纯压缩）
+- 主聊 `maxMessages:20` 与子 Agent `maxMsgs:50` 是早期无压缩时的遗留截断——如今 `compressIfNeeded` 已在单聊/群聊两层兜底（阈值按 `contextWindowSize` 动态算），窗口纯属冗余且与压缩「保留记忆」目标冲突。全面移除，回归 opencode 纯压缩模式。
+
+### 📏 工具结果截断 6000→20000 + 面板估算对齐
+- `ToolResultTruncator.maxChars` 6000→20000，`HistoryManager.toolOutputMaxChars` 2000→20000——身份牌估算与真实发送内容完全一致，不再偏低。
+
+### 🔧 压缩阈值动态同步修复
+- 修复 `HistoryManager.contextWindowSize` 构造时固化 → 用户改设置后阈值/节点不刷的 bug。
+
+### 🐞 其他修复
+- 流式首帧空文本红屏（`blocks=[]` 致负长度 RangeError）；上下文占用「对话中不刷新」（缓存只认列表引用替换、不认 `add`）。
+- 视频系统播放器 OPEN_ERROR（`file_paths.xml` 包名过期）。
+
 ## v1.4.21 — 会话信息面板去除滚动 (2026-07-10)
 
 ### 🎨 UI 优化
