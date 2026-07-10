@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../core/service_locator.dart';
+import '../core/prompt_builder.dart';
 import '../models/chat_message.dart';
 import '../services/crypto_util.dart';
 import '../services/mcp_manager.dart';
@@ -240,8 +241,9 @@ List<Map<String, dynamic>> buildMessageHistory({
   String? pendingType,
   String? text,
   int? pendingFileSize,
-  int? maxMessages, // 滑动窗口，保留最近 N 条
-}) {
+    int? maxMessages, // 滑动窗口，保留最近 N 条
+    DateTime? now, // 当前时间注入到历史末尾（不进 system，保证 system 前缀稳定可缓存）
+  }) {
   final history = <Map<String, dynamic>>[
     {'role': 'system', 'content': systemPrompt},
   ];
@@ -363,6 +365,16 @@ List<Map<String, dynamic>> buildMessageHistory({
     return (m['content'] ?? '').isEmpty ||
         (m['content'] is List && (m['content'] as List).isEmpty);
   });
+
+  // 当前时间不进 system，改为追加到历史末尾的一条 user 消息。
+  // 这样 system 主体（role/persona/rules/skill catalog）保持恒定，
+  // 两厂商的 prompt cache 才能稳定命中（前缀逐 token 一致）。
+  if (now != null) {
+    history.add({
+      'role': 'user',
+      'content': '当前时间：${PromptBuilder.currentTimeContext(now)}',
+    });
+  }
 
   return history;
 }

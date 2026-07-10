@@ -19,7 +19,6 @@ class PromptBuilder {
 
   /// 构建主聊天 System Prompt
   static String buildMainPrompt({
-    required DateTime now,
     required String soulContext, // SOUL.md 人格文档
     required String userContext, // USER.md 用户资料文档
     bool isFirstMeeting = false,
@@ -128,11 +127,6 @@ class PromptBuilder {
     buf.writeln('12. 敏感话题（医疗/法律/金融等）提供通用参考，但声明不构成专业建议，请咨询专业人士。');
     buf.writeln();
     buf.writeln('</rules>');
-    buf.writeln();
-
-    buf.writeln('<context>');
-    buf.writeln('当前时间：${currentTimeContext(now)}');
-    buf.writeln('</context>');
     buf.writeln();
 
     return buf.toString();

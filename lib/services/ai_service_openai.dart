@@ -47,12 +47,27 @@ class OpenAiProtocol {
   ) async {
     final url = '${normalizeUrl(baseUrl)}/chat/completions';
     try {
+      final patchedMessages = messages.map((m) {
+        if (m['role'] == 'system' && m['content'] is String) {
+          return {
+            ...m,
+            'content': [
+              {
+                'type': 'text',
+                'text': m['content'],
+                'cache_control': {'type': 'ephemeral'},
+              }
+            ],
+          };
+        }
+        return m;
+      }).toList();
       final response = await AiHttpClient.retryPost(
         url,
         headers: authHeaders,
         data: {
           'model': model,
-          'messages': messages,
+          'messages': patchedMessages,
           'tools': tools,
           'max_tokens': maxTokens,
           if (thinkingEffort != 'low')
@@ -77,6 +92,14 @@ class OpenAiProtocol {
       }
 
       final choice = firstChoice(response.data);
+      final usage = response.data is Map ? response.data['usage'] : null;
+      if (usage is Map) {
+        final details = usage['prompt_tokens_details'];
+        final cached = details is Map ? details['cached_tokens'] : null;
+        if (cached != null) {
+          log.i('OpenAiProtocol', 'Cache usage — cached_tokens: $cached');
+        }
+      }
       if (choice == null || choice['message'] == null) {
         return const AiResponse(text: '');
       }
@@ -107,6 +130,21 @@ class OpenAiProtocol {
   }) async* {
     final url = '${normalizeUrl(baseUrl)}/chat/completions';
     try {
+      final patchedMessages = messages.map((m) {
+        if (m['role'] == 'system' && m['content'] is String) {
+          return {
+            ...m,
+            'content': [
+              {
+                'type': 'text',
+                'text': m['content'],
+                'cache_control': {'type': 'ephemeral'},
+              }
+            ],
+          };
+        }
+        return m;
+      }).toList();
       final response = await AiHttpClient.retryPost(
         url,
         headers: authHeaders,
@@ -114,8 +152,9 @@ class OpenAiProtocol {
         receiveTimeout: const Duration(minutes: 5),
         data: {
           'model': model,
-          'messages': messages,
+          'messages': patchedMessages,
           'stream': true,
+          'stream_options': {'include_usage': true},
           'max_tokens': maxTokens,
           if (tools != null && tools.isNotEmpty) 'tools': tools,
           if (thinkingEffort != 'low')
@@ -165,7 +204,16 @@ class OpenAiProtocol {
           final data = line.substring(6).trim();
           if (data.isEmpty || data == '[DONE]') continue;
           try {
-            final choice = firstChoice(jsonDecode(data));
+            final decoded = jsonDecode(data);
+            final usage = decoded is Map ? decoded['usage'] : null;
+            if (usage is Map) {
+              final details = usage['prompt_tokens_details'];
+              final cached = details is Map ? details['cached_tokens'] : null;
+              if (cached != null) {
+                log.i('OpenAiProtocol', 'Cache usage — cached_tokens: $cached');
+              }
+            }
+            final choice = firstChoice(decoded);
             final finishReason = choice?['finish_reason'] as String?;
             if (finishReason == 'length') {
               yield ErrorEvent('回复被长度限制截断，请简化问题或分多次询问');
