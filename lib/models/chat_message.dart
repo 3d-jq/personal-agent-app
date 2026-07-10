@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import '../core/text_sanitizer.dart';
 import '../tools/task_plan_tool.dart';
 
 // ── Message ──
@@ -46,15 +47,16 @@ class ChatMessage extends ChangeNotifier {
     this.toolInteractions,
     TaskPlan? plan,
   }) : id = id ?? const Uuid().v4(),
-       _text = text,
+       _text = sanitizeUtf16(text),
        _isStreaming = isStreaming,
        _steps = steps,
        _plan = plan;
 
   String get text => _text;
   set text(String value) {
-    if (_text != value) {
-      _text = value;
+    final cleaned = sanitizeUtf16(value);
+    if (_text != cleaned) {
+      _text = cleaned;
       notifyListeners();
     }
   }

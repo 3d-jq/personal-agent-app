@@ -144,15 +144,20 @@ class OpenAiProtocol {
         return;
       }
 
-      final stream = response.data.stream as Stream<List<int>>;
+      // 关键：用「流式」Utf8Decoder（跨块保持状态）替代逐块 utf8.decode。
+      // 逐块独立解码会让被网络分包切断的多字节字符（emoji / 中文等）变成乱码；
+      // 流式解码器能正确拼接跨块字符，allowMalformed 仅替换真正非法的字节序列。
+      final stream = (response.data.stream as Stream<List<int>>)
+          .cast<List<int>>()
+          .transform(const Utf8Decoder(allowMalformed: true));
       String buffer = '';
 
       final toolCallArgs = <int, StringBuffer>{};
       final toolCallIds = <int, String>{};
       final toolCallNames = <int, String>{};
 
-      await for (final chunk in stream) {
-        buffer += utf8.decode(chunk, allowMalformed: true);
+      await for (final strChunk in stream) {
+        buffer += strChunk;
         final lines = buffer.split('\n');
         buffer = lines.removeLast();
         for (final line in lines) {
