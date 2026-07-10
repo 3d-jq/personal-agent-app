@@ -125,22 +125,31 @@ class GroupChatController extends ChangeNotifier {
   int _usageMsgLen = -1;
   int _usageLastLen = -1;
   int? _usageTokenCache;
-  /// 当前对话估算占用的 token 数（基于字符启发式估算，非真实分词）。
-  /// 带轻量缓存：当消息**列表引用**变更（切会话/压缩）、**条数**变化（新增一轮问答）
-  /// 或**最后一条内容长度**变化（流式增长）时重算，其余无关刷新复用缓存。
-  /// 注意：消息是 `_messages.add(...)` 追加的，列表引用不变，故不能只判断引用，
-  /// 否则正常对话中数字永远不刷新。
+  /// 系统提示（群名/描述/成员角色）估算 token，计入面板占用展示。
+  int? _systemPromptTokens;
+  /// 上一次计算缓存时「最后一条消息是否在流式」；翻转时强制重算，
+  /// 避免「流式结束 isStreaming 翻 false 但文本长度恰好未变」导致缓存不失效、
+  /// 面板漏算该 Agent 回复（群聊每帧 _notify，此 case 比单聊更易触发）。
+  bool? _usageLastStreaming;
+  /// 当前对话估算占用的 token 数（消息估算 + 系统提示估算，均为字符启发式，非真实分词）。
+  /// 带轻量缓存：当消息**列表引用**变更（切会话/压缩）、**条数**变化（新增一轮问答）、
+  /// **最后一条内容长度**变化（流式增长）或**最后一条流式状态翻转**（流式收尾）时重算，
+  /// 其余无关刷新复用缓存。
   int get estimatedContextTokens {
-    final lastLen = _messages.isEmpty ? 0 : _messages.last.text.length;
+    final last = _messages.isEmpty ? null : _messages.last;
+    final lastLen = last?.text.length ?? 0;
+    final lastStreaming = last?.isStreaming ?? false;
     if (_usageMsgRef != _messages ||
         _usageMsgLen != _messages.length ||
-        _usageLastLen != lastLen) {
+        _usageLastLen != lastLen ||
+        _usageLastStreaming != lastStreaming) {
       _usageMsgRef = _messages;
       _usageMsgLen = _messages.length;
       _usageLastLen = lastLen;
+      _usageLastStreaming = lastStreaming;
       _usageTokenCache = _historyManagerInstance.estimateMessagesTokens(_messages);
     }
-    return _usageTokenCache ?? 0;
+    return (_usageTokenCache ?? 0) + (_systemPromptTokens ?? 0);
   }
   /// 上下文窗口大小（token 数）。
   int get contextWindowSize => _aiSettings.contextWindowSize;
@@ -307,6 +316,10 @@ class GroupChatController extends ChangeNotifier {
     // 压缩仅生成「发送视图」，不替换 _messages——完整群聊历史保留在 _messages
     // 供 UI 展示与 saveGroup 落盘。后续每个非隔离 Agent 通过 _historyView 引用
     // 该视图（见 _runOneAndAppend），既避免历史永久丢失，也避免二次截断把摘要切掉。
+    // 系统提示占用计入面板上下文统计（之前只算消息、漏算群名/描述/成员角色）。
+    _systemPromptTokens = _historyManagerInstance.estimateTokens(
+      _groupSystemPromptEstimate(),
+    );
     List<ChatMessage> sendView = _messages;
     try {
       _isCompressing = true;
@@ -323,9 +336,7 @@ class GroupChatController extends ChangeNotifier {
           ).summarize(messages);
           return response;
         },
-        systemPromptTokens: _historyManagerInstance.estimateTokens(
-          _groupSystemPromptEstimate(),
-        ),
+        systemPromptTokens: _systemPromptTokens!,
       );
       sendView = identical(compressed, _messages) ? _messages : compressed;
     } catch (e) {

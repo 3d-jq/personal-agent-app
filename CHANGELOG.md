@@ -21,6 +21,9 @@
 - **压缩判断计入 systemPrompt 开销**：`HistoryManager.shouldCompress` 新增 `systemPromptTokens` 参数（消息 token + systemPrompt token 再比阈值），单聊传 `estimateTokens(systemPrompt)`、群聊传 `_groupSystemPromptEstimate()` 估算（群名/描述/成员角色），避免「消息估算刚过阈值、加上 systemPrompt 后实际超窗」的漏判（阈值已有 4000 安全边际，但 systemPrompt 超 4000 仍会漏）。
 - **token 估算 Unicode 精度修正**：`estimateTokens` 由 `text.codeUnits` 改 `text.runes` 遍历码点（避免 emoji 等补充平面字符被拆成两个 UTF-16 代理对多算）；CJK 范围覆盖扩展 A（U+3400-4DBF）与主要平面（U+4E00-9FFF，临界值由 `> 0x4E00` 修正为 `>= 0x4E00` 含「一」），补充平面 CJK（U+20000-2FA1F）；其余非 ASCII 文字（阿拉伯 / 西里尔 / 泰文 / emoji 等）按英文比率估算，不再被误算作中文。
 - **token 缓存防累积**：`HistoryManager._tokenCache` 原以消息序列化全文为 key 且永不清理，常驻 controller 生命周期会随长对话增长；改为 `compressIfNeeded` 进入时 `_tokenCache.clear()`。
+- **身份牌面板「流式结束后漏算整条 AI 回复」根治（用户深度审查发现）**：`estimatedContextTokens` 的缓存三条件（引用/条数/最后一条长度）在「流式收尾 `isStreaming` 翻 false 但文本长度恰好未变」时**不会失效**——缓存仍是流式期间算的（当时 AI 回复被 `if (m.isStreaming) continue` 跳过），导致面板数字比真实少整条 AI 回复，直到下次发消息才自我修正。修法：缓存新增**第 4 个失效条件「最后一条消息的流式状态翻转」**，单聊/群聊对称修复；该条件覆盖所有收尾终点（正常完成/错误/终止），无需逐个 `isStreaming=false` 调用点打补丁。新增回归测试锁定「仅翻转 isStreaming（长度不变）即触发重算并纳入 AI 回复」。
+- **身份牌面板纳入 systemPrompt 占用**：`estimatedContextTokens` 原只算消息 token，漏算 SOUL/USER/rules/skill catalog（约 2k~4k），面板显示偏乐观；现复用 `sendMessage` 已构建的 systemPrompt 估算（`_systemPromptTokens`），单聊传 `estimateTokens(systemPrompt)`、群聊传 `_groupSystemPromptEstimate()`，返回值 = 消息估算 + systemPrompt 估算。
+- **修正过期单测**：`error_handler_test` 断言的错误页正文文案仍是旧版，fcc6d58 改为「请重启应用或返回上一页重试。完整错误已记录，可一键导出日志。」后未同步测试 → 改为 `find.textContaining('请重启应用或返回上一页重试')` 鲁棒匹配；该失败此前被误归因为 task_plan flake。
 
 ### 🚀 性能优化（全面流畅度升级，对齐 ChatGPT / DeepSeek 等主流 APP）
 - **回到底部 FAB 去实时模糊**：原 `BackdropFilter(blur)` 每帧 GPU 采样，长列表滚动时与主线程争抢 → 改为**实心底 + `boxShadow`**（对齐微信 / Telegram 做法，去掉实时模糊）。主聊天屏 + 群聊屏统一修改。
