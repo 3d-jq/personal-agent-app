@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../services/ai_service.dart';
 import 'ai_settings.dart';
+import 'common_widgets.dart';
 import 'vendor_config.dart';
 
 void showModelPicker(BuildContext context, AISettings s, VoidCallback cb) {
@@ -35,7 +36,9 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
   List<String>? _fetched;
   bool _loading = false;
   String? _error;
+  String _mode = 'auto'; // 'auto' | 'manual'
   late final TextEditingController _modelCtrl;
+
   @override
   void initState() {
     super.initState();
@@ -56,7 +59,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
   void _useManual() {
     final m = _modelCtrl.text.trim();
     if (m.isEmpty) {
-      setState(() {}); // 触发空值提示
+      setState(() {}); // 触发空值禁用态
       return;
     }
     HapticFeedback.lightImpact();
@@ -82,6 +85,10 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
         setState(() {
           _fetched = m;
           _loading = false;
+          // 当前模型不在列表里（之前手动填过）→ 自动切到手动，让用户看到自己的值
+          if (widget.vendor.model.isNotEmpty && !m.contains(widget.vendor.model)) {
+            _mode = 'manual';
+          }
         });
       }
     } catch (e) {
@@ -145,136 +152,188 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
               ],
             ),
           ),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                _error!,
-                style: TextStyle(fontSize: 12, color: nc.error),
-              ),
-            ),
-          Flexible(
-            child: _loading
-                ? _ModelSkeletonList(nc: nc)
-                : ListView(
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      ..._models.map((m) {
-                        final sel = m == _current;
-                        return ListTile(
-                          title: Text(
-                            m,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight:
-                                  sel ? FontWeight.w600 : FontWeight.w400,
-                              color: sel ? nc.success : nc.textPrimary,
-                            ),
-                          ),
-                          trailing: sel
-                              ? Icon(Icons.check_circle_outline,
-                                  size: 20, color: nc.success)
-                              : null,
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            widget.settings
-                                .setVendorModel(widget.vendor.id, m);
-                            widget.onChanged();
-                            Navigator.pop(context);
-                          },
-                        );
-                      }),
-                        if (_error != null)
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Text(
-                            _error!,
-                            style: TextStyle(fontSize: 13, color: nc.error),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                    ],
-                  ),
-          ),
-          const Divider(height: 1),
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              14,
-              16,
-              MediaQuery.of(context).viewInsets.bottom + 16,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SegmentedControl<String>(
+              value: _mode,
+              onChanged: (v) => setState(() => _mode = v),
+              options: const [
+                (value: 'auto', label: '自动选择'),
+                (value: 'manual', label: '手动输入'),
+              ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '手动输入模型',
+          ),
+          const SizedBox(height: 8),
+          const Divider(height: 1),
+          Flexible(
+            child: _mode == 'auto' ? _buildAuto(nc) : _buildManual(nc),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuto(AgentColors nc) {
+    if (_loading) return _ModelSkeletonList(nc: nc);
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _error!,
+                style: TextStyle(fontSize: 13, color: nc.error),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () => setState(() => _mode = 'manual'),
+                child: Text(
+                  '改用手动输入',
                   style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: nc.textSecondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: nc.primary,
                   ),
                 ),
-                const SizedBox(height: 10),
-                Container(
-                  decoration: BoxDecoration(
-                    color: nc.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: nc.divider, width: 0.5),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    if (_models.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '未获取到可用模型',
+                style: TextStyle(fontSize: 13, color: nc.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () => setState(() => _mode = 'manual'),
+                child: Text(
+                  '改用手动输入',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: nc.primary,
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _modelCtrl,
-                          style: TextStyle(fontSize: 15, color: nc.textPrimary),
-                          decoration: InputDecoration(
-                            hintText: '例如: gpt-4o, claude-3-5-sonnet',
-                            hintStyle: TextStyle(
-                              color: nc.textSecondary.withValues(alpha: 0.6),
-                              fontSize: 15,
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 13,
-                            ),
-                            isDense: true,
-                          ),
-                          onSubmitted: (_) => _useManual(),
-                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return ListView(
+      physics: const BouncingScrollPhysics(),
+      children: [
+        ..._models.map((m) {
+          final sel = m == _current;
+          return ListTile(
+            title: Text(
+              m,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
+                color: sel ? nc.success : nc.textPrimary,
+              ),
+            ),
+            trailing: sel
+                ? Icon(Icons.check_circle_outline, size: 20, color: nc.success)
+                : null,
+            onTap: () {
+              HapticFeedback.lightImpact();
+              widget.settings.setVendorModel(widget.vendor.id, m);
+              widget.onChanged();
+              Navigator.pop(context);
+            },
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildManual(AgentColors nc) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        MediaQuery.of(context).viewInsets.bottom + 16,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '输入模型名称',
+            style: TextStyle(fontSize: 13, color: nc.textSecondary),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: nc.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: nc.divider, width: 0.5),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _modelCtrl,
+                    style: TextStyle(fontSize: 15, color: nc.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: '例如: gpt-4o, claude-3-5-sonnet',
+                      hintStyle: TextStyle(
+                        color: nc.textSecondary.withValues(alpha: 0.6),
+                        fontSize: 15,
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ElevatedButton(
-                          onPressed: _modelCtrl.text.trim().isNotEmpty
-                              ? _useManual
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: nc.primary,
-                            foregroundColor: nc.surface,
-                            disabledBackgroundColor: nc.fillTertiary,
-                            disabledForegroundColor: nc.textDisabled,
-                            elevation: 0,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 11,
-                            ),
-                          ),
-                          child: Text(
-                            '使用',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 13,
                       ),
-                    ],
+                      isDense: true,
+                    ),
+                    onSubmitted: (_) => _useManual(),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ElevatedButton(
+                    onPressed: _modelCtrl.text.trim().isNotEmpty
+                        ? _useManual
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: nc.primary,
+                      foregroundColor: nc.surface,
+                      disabledBackgroundColor: nc.fillTertiary,
+                      disabledForegroundColor: nc.textDisabled,
+                      elevation: 0,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 11,
+                      ),
+                    ),
+                    child: Text(
+                      '使用',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ],
