@@ -322,31 +322,18 @@ class _AIBubble extends StatefulWidget {
 class _AIBubbleState extends State<_AIBubble>
     with TickerProviderStateMixin {
   String _lastText = '';
-  int _lastTextLength = 0;
   bool _planExpanded = true;
   List<Widget> _cachedContent = [];
   DateTime _lastRenderTime = DateTime(2000); // far in the past
-  late AnimationController _fadeCtrl;
-  late Animation<double> _fadeAnim;
   late AnimationController _enterCtrl;
   late Animation<double> _enterOpacity;
   late Animation<Offset> _enterOffset;
 
-  static const _renderThrottle = Duration(milliseconds: 80);
+  static const _renderThrottle = Duration(milliseconds: 32);
 
   @override
   void initState() {
     super.initState();
-    _fadeCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-    _fadeAnim = Tween<double>(
-      begin: 0.55,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut));
-    _fadeCtrl.value = 1.0;
-
     _enterCtrl = AnimationController(
       vsync: this,
       duration: AppDurations.bubble,
@@ -359,18 +346,13 @@ class _AIBubbleState extends State<_AIBubble>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _enterCtrl, curve: Curves.easeOut));
     _enterCtrl.forward();
-
-    widget.msg.addListener(_onChanged);
   }
 
   @override
   void didUpdateWidget(_AIBubble oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.msg != widget.msg || oldWidget.nc != widget.nc) {
-      oldWidget.msg.removeListener(_onChanged);
-      widget.msg.addListener(_onChanged);
       _lastText = '';
-      _lastTextLength = 0;
       _cachedContent = [];
       _lastRenderTime = DateTime(2000);
       _planExpanded = true;
@@ -379,20 +361,8 @@ class _AIBubbleState extends State<_AIBubble>
 
   @override
   void dispose() {
-    widget.msg.removeListener(_onChanged);
-    _fadeCtrl.dispose();
     _enterCtrl.dispose();
     super.dispose();
-  }
-
-  void _onChanged() {
-    if (!mounted) return;
-    final currentLen = widget.msg.cleanText.length;
-    if (currentLen > _lastTextLength && widget.msg.isStreaming) {
-      _fadeCtrl.forward(from: 0.55);
-    }
-    _lastTextLength = currentLen;
-    // 不需要 setState：外层 ListenableBuilder 已监听 msg 并触发重建
   }
 
   @override
@@ -441,13 +411,10 @@ class _AIBubbleState extends State<_AIBubble>
               onToggle: () => setState(() => _planExpanded = !_planExpanded),
             ),
           if (textContent.isNotEmpty)
-            FadeTransition(
-              opacity: _fadeAnim,
-              child: RepaintBoundary(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _cachedContent,
-                ),
+            RepaintBoundary(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: _cachedContent,
               ),
             ),
         ],
