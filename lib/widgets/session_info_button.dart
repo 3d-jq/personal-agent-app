@@ -81,6 +81,7 @@ class SessionInfoSheet {
               : '占用正常';
       String fmt(int n) => n >= 1000 ? '${(n / 1000).round()}K' : '$n';
       return Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
@@ -175,7 +176,7 @@ class SessionInfoSheet {
             'AI 草稿纸',
             () => AppRouter.toScratchViewer(context),
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 24),
         ],
       );
     }
@@ -184,10 +185,15 @@ class SessionInfoSheet {
     if (listenable != null) {
       content = ListenableBuilder(listenable: listenable, builder: (_, __) => buildContent());
     }
+    // 用 SafeArea(top:false) 避开底部系统手势条，避免「AI 草稿纸」被手势条压住。
+    content = SafeArea(top: false, child: content);
 
     return showModalBottomSheet(
       context: context,
       backgroundColor: nc.surface,
+      // 允许面板按内容自适应高度：默认 false 时最大高度被限制在屏幕 9/16(约 56%)，
+      // 内容超出会被裁剪，导致底部留白/「AI 草稿纸」被切掉、看起来永远贴底。
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
