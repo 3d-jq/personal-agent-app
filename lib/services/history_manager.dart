@@ -41,18 +41,28 @@ class HistoryManager {
     if (cached != null) return cached;
 
     int cn = 0, en = 0;
-    for (final code in text.codeUnits) {
-      if (code > 0x4E00 && code < 0x9FFF) {
+    // 用 runes 遍历 Unicode 码点，避免代理对（emoji 等补充平面字符）被拆成两个
+    // UTF-16 code unit 而多算；CJK 范围覆盖扩展 A（U+3400-4DBF）与主要平面
+    // （U+4E00-9FFF），以及补充平面 CJK（U+20000-2FA1F）；其余非 ASCII 文字
+    // （阿拉伯/西里尔/泰文/emoji 等）按英文比率估算，避免被高估为中文。
+    for (final rune in text.runes) {
+      if (_isCjk(rune)) {
         cn++;
-      } else if (code < 0x80) {
+      } else if (rune < 0x80) {
         en++;
       } else {
-        cn++;
+        en++;
       }
     }
     final result = (cn / 2 + en / 4).ceil();
     _tokenCache[text] = result;
     return result;
+  }
+
+  /// 判断是否为中日韩统一表意文字（含扩展区），按中文比率估算 token。
+  static bool _isCjk(int rune) {
+    return (rune >= 0x3400 && rune <= 0x9FFF) ||
+        (rune >= 0x20000 && rune <= 0x2FA1F);
   }
 
   /// 估算消息列表的总 token 数
@@ -111,13 +121,14 @@ class HistoryManager {
   }
 
   /// 检查是否需要压缩
-  bool shouldCompress(List<ChatMessage> messages) {
+  bool shouldCompress(List<ChatMessage> messages, {int systemPromptTokens = 0}) {
     if (messages.length <= 2) return false;
-    final tokens = estimateMessagesTokens(messages);
+    final tokens = estimateMessagesTokens(messages) + systemPromptTokens;
     final threshold = compressionThreshold;
     final should = tokens > threshold;
     if (should) {
-      log.i('HistoryManager', 'Should compress: $tokens > $threshold (context: $contextWindowSize)');
+      log.i('HistoryManager',
+          'Should compress: $tokens > $threshold (msg+system, context: $contextWindowSize)');
     }
     return should;
   }
@@ -125,9 +136,16 @@ class HistoryManager {
   /// 如果需要压缩，对早期消息做摘要压缩
   Future<List<ChatMessage>> compressIfNeeded(
     List<ChatMessage> messages,
-    Future<String> Function(List<Map<String, dynamic>> messages) summarize,
-  ) async {
-    if (!shouldCompress(messages)) return messages;
+    Future<String> Function(List<Map<String, dynamic>> messages) summarize, {
+    int systemPromptTokens = 0,
+  }) async {
+    // 进入压缩路径前清理 token 缓存，避免长对话中序列化文本 key 跨消息累积
+    // （HistoryManager 实例常驻 controller 生命周期，不清理会随对话变长而增长）。
+    _tokenCache.clear();
+
+    if (!shouldCompress(messages, systemPromptTokens: systemPromptTokens)) {
+      return messages;
+    }
 
     log.i('HistoryManager', 'Starting compression for ${messages.length} messages');
 
