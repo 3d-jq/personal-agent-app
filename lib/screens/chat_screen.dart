@@ -35,6 +35,8 @@ class _ChatScreenState extends State<ChatScreen>
   // 程序主动触发的滚动（点击回到底部 / 流式自动贴底）期间为 true，
   // 避免 _onScroll 把"自己的位移"误判成用户上滑而污染状态
   bool _autoScrolling = false;
+  // Drawer 打开时暂停自动贴底滚动，避免每帧 jumpTo 与 Drawer 动画抢主 isolate 导致卡顿
+  bool _drawerOpen = false;
   late final AnimationController _scrollAnim;
 
   @override
@@ -88,6 +90,8 @@ class _ChatScreenState extends State<ChatScreen>
   /// 流式期间实时贴底：下一帧布局完成后 jump 到末尾，消除 50ms 节流造成的「定期猛跳」。
   /// 用 [_pendingScroll] 去重，避免每个流式 token 都注册一次 postFrame 回调而堆积。
   void _scrollDown() {
+    // Drawer 打开时暂停自动贴底：避免每帧 jumpTo 与 Drawer 打开动画抢主 isolate
+    if (_drawerOpen) return;
     if (_userScrolledUp || _autoScrolling || _pendingScroll) return;
     _pendingScroll = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -187,6 +191,7 @@ class _ChatScreenState extends State<ChatScreen>
           key: _scaffoldKey,
           backgroundColor: nc.background,
           drawerEnableOpenDragGesture: false,
+          onDrawerChanged: (opened) => _drawerOpen = opened,
           drawerScrimColor: Colors.black.withValues(alpha: 0.38),
           drawer: _DrawerContent(
             controller: _controller,
