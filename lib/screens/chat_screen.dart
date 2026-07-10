@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/chat_controller.dart';
@@ -237,27 +236,31 @@ class _ChatScreenState extends State<ChatScreen>
                         curve: Curves.easeOut,
                         child: IgnorePointer(
                           ignoring: !_showScrollBottom,
-                          child: GestureDetector(
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            _scrollToBottom();
-                          },
-                          child: ClipOval(
-                            child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: nc.surface.withValues(alpha: 0.85),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: nc.divider, width: 0.5),
+                      child: GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          _scrollToBottom();
+                        },
+                        child: ClipOval(
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: nc.surface,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: nc.divider, width: 0.5),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.18),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
                                 ),
-                              child: Icon(Icons.keyboard_arrow_down, size: 18, color: nc.textPrimary),
-                              ),
+                              ],
                             ),
+                            child: Icon(Icons.keyboard_arrow_down, size: 18, color: nc.textPrimary),
                           ),
                         ),
+                      ),
                       ),
                     ),
                   ),
@@ -356,17 +359,21 @@ class _MessageList extends StatelessWidget {
           // 必须逐条用 ListenableBuilder(msg) 包住，否则流式期间 controller 不通知、气泡不刷新
           itemBuilder: (c, i) {
             final msg = controller.messages[i];
-            return ListenableBuilder(
-              key: ValueKey(msg.id),
-              listenable: msg,
-              builder: (_, __) => ChatBubble(
-                msg: msg,
-                nc: nc,
-                onRetry: onRetry,
-                onDelete: onDelete == null ? null : () => onDelete!(msg),
-                onRegenerate: (onRegenerate == null || msg.isUser)
-                    ? null
-                    : () => onRegenerate!(msg),
+            // 每个气泡独立 RepaintBoundary：长列表滚动时只重绘进入/离开视口的
+            // 气泡，已离屏/静止气泡不参与重绘，消除整列表滚动时的连带重绘卡顿。
+            return RepaintBoundary(
+              child: ListenableBuilder(
+                key: ValueKey(msg.id),
+                listenable: msg,
+                builder: (_, __) => ChatBubble(
+                  msg: msg,
+                  nc: nc,
+                  onRetry: onRetry,
+                  onDelete: onDelete == null ? null : () => onDelete!(msg),
+                  onRegenerate: (onRegenerate == null || msg.isUser)
+                      ? null
+                      : () => onRegenerate!(msg),
+                ),
               ),
             );
           },

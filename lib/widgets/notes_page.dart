@@ -184,14 +184,31 @@ class _NotesPageState extends State<NotesPage> {
   }
 }
 
-class _NoteDetail extends StatelessWidget {
+class _NoteDetail extends StatefulWidget {
   final Note note;
   final VoidCallback? onEdit;
   const _NoteDetail({required this.note, this.onEdit});
+  @override
+  State<_NoteDetail> createState() => _NoteDetailState();
+}
+
+class _NoteDetailState extends State<_NoteDetail> {
+  // 笔记正文 markdown 解析较重（长笔记可达数千字）。进入详情页只解析一次并缓存，
+  // 避免页面重建（如主题 / InheritedWidget 变化、手势返回重绘）时重复全量解析，
+  // 正是「点开笔记卡顿」的常见根因。缓存后仅首次构建付出解析成本。
+  late final List<Widget> _content;
+
+  @override
+  void initState() {
+    super.initState();
+    final nc = AgentColors.of(context);
+    _content = buildInlineContent(widget.note.content, nc, context);
+  }
 
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
+    final note = widget.note;
     return Scaffold(
       backgroundColor: nc.background,
       appBar: AppTopBar(
@@ -201,13 +218,13 @@ class _NoteDetail extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          if (onEdit != null)
+          if (widget.onEdit != null)
             IconButton(
               icon: Icon(Icons.edit, color: nc.textPrimary),
               onPressed: () {
                 HapticFeedback.lightImpact();
                 Navigator.pop(context);
-                onEdit!();
+                widget.onEdit!();
               },
             ),
           IconButton(
@@ -227,20 +244,22 @@ class _NoteDetail extends StatelessWidget {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(SpaceToken.xl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${note.createdAt.year}/${note.createdAt.month.toString().padLeft(2, '0')}/${note.createdAt.day.toString().padLeft(2, '0')} '
-              '${note.createdAt.hour.toString().padLeft(2, '0')}:${note.createdAt.minute.toString().padLeft(2, '0')} 创建',
-              style: TextStyle(
-                fontSize: FontToken.caption,
-                color: nc.textSecondary.withValues(alpha: 0.5),
+        child: RepaintBoundary(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${note.createdAt.year}/${note.createdAt.month.toString().padLeft(2, '0')}/${note.createdAt.day.toString().padLeft(2, '0')} '
+                '${note.createdAt.hour.toString().padLeft(2, '0')}:${note.createdAt.minute.toString().padLeft(2, '0')} 创建',
+                style: TextStyle(
+                  fontSize: FontToken.caption,
+                  color: nc.textSecondary.withValues(alpha: 0.5),
+                ),
               ),
-            ),
-            const SizedBox(height: SpaceToken.lg),
-            ...buildInlineContent(note.content, nc, context),
-          ],
+              const SizedBox(height: SpaceToken.lg),
+              ..._content,
+            ],
+          ),
         ),
       ),
     );
