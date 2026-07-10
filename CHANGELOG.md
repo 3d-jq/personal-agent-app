@@ -15,6 +15,12 @@
 - **修复流式输出时主界面卡顿（点侧边栏 / 进入子页面掉帧）**：根因有二 —— ① 流式期间 `_AIBubble` 每个 token 都**全量解析整条 markdown**（原有 32ms 节流仍每帧重解析长文本），占满主 isolate，Drawer 打开 / 进入子页面时后台解析与界面渲染抢主线程；② 流式自动贴底每帧 `jumpTo` 与 Drawer 打开动画抢主 isolate。修法：① **增量富文本渲染**（见下条升级）；② Drawer 打开时（`onDrawerChanged` 置 `_drawerOpen`）暂停自动贴底滚动，消除每帧 `jumpTo` 抢占。
 - **升级流式渲染为「增量富文本」（与 ChatGPT / DeepSeek 同级流畅度）**：上一版为快速止血，流式期间退化为**纯文本**渲染，丢了富文本。现改为：把流式文本按 markdown 块边界（空行分段、` ``` ` 围栏跨空行成整块）切分，**已完成块冻结缓存、仅重解析最后一个仍在生长的块**；配合 `ListenableBuilder` 每帧最多重建一次（Flutter 把同帧多个 token 的 `notifyListeners` 合并），单帧成本从「全量重解析整条 O(N)」降为「仅当前块 O(块大小)」。未闭合代码块先以原始态显示、闭合后就地升级为带复制按钮的高亮块。回归测试改为断言流式期间已渲染 `MarkdownBody` 与代码块（复制按钮），锁定富文本不再退化。
 
+### 🚀 性能优化（全面流畅度升级，对齐 ChatGPT / DeepSeek 等主流 APP）
+- **回到底部 FAB 去实时模糊**：原 `BackdropFilter(blur)` 每帧 GPU 采样，长列表滚动时与主线程争抢 → 改为**实心底 + `boxShadow`**（对齐微信 / Telegram 做法，去掉实时模糊）。主聊天屏 + 群聊屏统一修改。
+- **长列表 / 网格 / 气泡重绘隔离**：主聊天屏消息项、群聊屏消息气泡、消息列表页列表项、媒体页网格项、笔记详情 `Column` 全面外包 `RepaintBoundary`，滚动时只重绘进出视口的条目，不再连带头像 / 背景整屏重绘。
+- **笔记详情 markdown 解析缓存**：`_NoteDetail` 由 `StatelessWidget` 改为 `StatefulWidget`，解析结果缓存到 `late final` 字段仅在 `initState` 计算一次、`build` 直接复用，根治"笔记点开长文重复全量解析"卡顿。
+- 路由转场（`IosSlideRoute` 纯横滑无整页 fade）、主聊天列表虚拟化（`ListView.builder`）、群聊入口双帧校正动画、markdown 样式表主题色哈希缓存等**经排查已处于较优状态**，本轮未改动、非卡顿源。
+
 ## v1.4.20 — 上下文占用收进身份牌面板 (2026-07-10)
 
 ### 🎨 UI 优化

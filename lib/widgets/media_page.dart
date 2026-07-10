@@ -74,7 +74,8 @@ class _MediaViewState extends State<MediaView> {
     final isVideo = item.type == MediaType.video;
     final file = File(item.filePath);
 
-    return PressableScale(
+    return RepaintBoundary(
+      child: PressableScale(
       onTap: () {
         HapticFeedback.lightImpact();
         AppRouter.push(context, _MediaDetail(item: item));
@@ -137,6 +138,7 @@ class _MediaViewState extends State<MediaView> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

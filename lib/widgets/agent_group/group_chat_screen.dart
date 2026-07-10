@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -342,13 +340,17 @@ class _GroupChatScreenState extends State<GroupChatScreen>
                             // 每条消息独立监听自身 ChatMessage(ChangeNotifier)，
                             // 流式期间仅正在生成的那个气泡局部重建，不再整屏 setState。
                             // 钉住首条可见消息，加载更早时保持滚动位置不跳动。
-                            return ListenableBuilder(
-                              key: msgIndex == _anchorMsgIndex ? _anchorKey : null,
-                              listenable: m,
-                              builder: (_, __) => GroupMessageBubble(
-                                msg: m,
-                                speaker: m.isUser ? null : _controller.byId[m.speakerId ?? ''],
-                                nc: nc,
+                            // 外层 RepaintBoundary：长讨论滚动时只重绘进出视口的气泡，
+                            // 静止气泡不参与重绘，消除整列表滚动的连带重绘卡顿。
+                            return RepaintBoundary(
+                              child: ListenableBuilder(
+                                key: msgIndex == _anchorMsgIndex ? _anchorKey : null,
+                                listenable: m,
+                                builder: (_, __) => GroupMessageBubble(
+                                  msg: m,
+                                  speaker: m.isUser ? null : _controller.byId[m.speakerId ?? ''],
+                                  nc: nc,
+                                ),
                               ),
                             );
                           },
@@ -363,27 +365,31 @@ class _GroupChatScreenState extends State<GroupChatScreen>
                           curve: Curves.easeOut,
                           child: IgnorePointer(
                             ignoring: !_showScrollBottom,
-                            child: GestureDetector(
-                              onTap: () {
-                                HapticFeedback.lightImpact();
-                                _scrollToBottom();
-                              },
-                              child: ClipOval(
-                                child: BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                              child: GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  _scrollToBottom();
+                                },
+                                child: ClipOval(
                                   child: Container(
                                     width: 36,
                                     height: 36,
                                     decoration: BoxDecoration(
-                                      color: nc.surface.withValues(alpha: 0.85),
+                                      color: nc.surface,
                                       shape: BoxShape.circle,
                                       border: Border.all(color: nc.divider, width: 0.5),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.18),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
                                     child: Icon(Icons.keyboard_arrow_down, size: 18, color: nc.textPrimary),
                                   ),
                                 ),
                               ),
-                            ),
                           ),
                         ),
                       ),

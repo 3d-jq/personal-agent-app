@@ -182,10 +182,12 @@ class _MessageListPageState extends State<MessageListPage> {
                             _deleteSession(item.sessionId!);
                           }
                         },
-                        child: _MessageTile(
-                          item: item,
-                          nc: nc,
-                          onTap: () => _openChat(item),
+                        child: RepaintBoundary(
+                          child: _MessageTile(
+                            item: item,
+                            nc: nc,
+                            onTap: () => _openChat(item),
+                          ),
                         ),
                       );
                     },
