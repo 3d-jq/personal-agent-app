@@ -8,6 +8,7 @@ import '../../core/design_tokens.dart';
 import '../../widgets/common_widgets.dart';
 import '../../core/app_router.dart';
 import '../state_placeholder.dart';
+import '../../widgets/context_usage_bar.dart';
 import 'group_chat_controller.dart';
 import 'group_status_bar.dart';
 import 'group_message_bubble.dart';
@@ -381,6 +382,15 @@ class _GroupChatScreenState extends State<GroupChatScreen>
                         ),
                       ),
                     ],
+                  ),
+                ),
+                // ── 上下文窗口占用可视化（监听用量变更刷新）──
+                ListenableBuilder(
+                  listenable: _controller,
+                  builder: (_, __) => ContextUsageBar(
+                    tokens: _controller.estimatedContextTokens,
+                    windowSize: _controller.contextWindowSize,
+                    threshold: _controller.contextCompressionThreshold,
                   ),
                 ),
                 GroupChatInputBar(

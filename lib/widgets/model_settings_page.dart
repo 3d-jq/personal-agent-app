@@ -148,7 +148,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
                 ),
               ),
               Text(
-                '设置模型的上下文窗口大小，达到 80% 时自动压缩',
+                '设置模型的上下文窗口大小，占用约达 80% 时自动压缩（小窗口会预留输出空间，更早压缩）',
                 style: TextStyle(fontSize: 13, color: nc.textSecondary),
               ),
               const SizedBox(height: 12),
