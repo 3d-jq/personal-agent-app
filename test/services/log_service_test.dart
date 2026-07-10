@@ -65,4 +65,46 @@ void main() {
           matches(RegExp(r'\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}\]')));
     });
   });
+
+  group('LogService.formatMarkdownReport（纯函数，无 I/O）', () {
+    const raw = '''
+[2026-07-10 19:30:01.123] [F] [Uncaught zone error] RangeError (length): Invalid value: -1
+#0      _frozenBlockWidgets.length= (chat_bubble.dart:410)
+#1      _rebuildStreaming (chat_bubble.dart:405)
+[2026-07-10 19:30:02.000] [I] [Tag] hello-world
+[2026-07-10 19:30:03.000] [W] [Net] socket closed
+''';
+
+    test('生成标题、Fatal 章节、提取异常类型、保留完整日志', () {
+      final md = LogService.formatMarkdownReport(raw,
+          appVersion: '1.4.21', buildNumber: '17', platform: 'android');
+
+      // 报告头
+      expect(md, contains('# DWeis 运行日志报告'));
+      expect(md, contains('应用版本：1.4.21 (17)'));
+      expect(md, contains('平台：android'));
+
+      // 致命错误被高亮成独立章节
+      expect(md, contains('## 致命错误（Fatal）'));
+      expect(md, contains('RangeError'));
+      // 异常类型从消息首段提取
+      expect(md, contains('**异常类型**：RangeError'));
+      // 堆栈被收进代码块
+      expect(md, contains('#0      _frozenBlockWidgets.length='));
+
+      // 完整日志保留，含普通/警告行
+      expect(md, contains('## 完整日志'));
+      expect(md, contains('hello-world'));
+      expect(md, contains('socket closed'));
+    });
+
+    test('无致命错误时仍生成完整日志章节', () {
+      const onlyInfo = '[2026-07-10 19:30:02.000] [I] [Tag] hello-world\n';
+      final md = LogService.formatMarkdownReport(onlyInfo);
+      expect(md, contains('# DWeis 运行日志报告'));
+      expect(md, contains('完整日志'));
+      expect(md, isNot(contains('## 致命错误')));
+      expect(md, contains('hello-world'));
+    });
+  });
 }

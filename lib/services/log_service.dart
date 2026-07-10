@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 
 /// 全局日志服务
@@ -203,6 +204,176 @@ class LogService {
       }
     } catch (_) {}
   }
+
+  // ── Markdown 报告（崩溃留痕导出）──
+
+  /// 把 [recordFatal]/普通日志写入的纯文本，转换为易读的 Markdown 报告。
+  ///
+  /// 纯函数（便于单测）：将 `[时间] [级别] [tag] 消息` 拆解为结构化条目，
+  /// 把 `[F]` 致命错误单独高亮成「## 致命错误」章节，并提取异常类型，
+  /// 完整日志原文附在「## 完整日志」代码块内，方便直接发开发者排查。
+  static String formatMarkdownReport(
+    String rawLogs, {
+    String? appVersion,
+    String? buildNumber,
+    String? platform,
+  }) {
+    final lines = rawLogs.split('\n');
+    final entries = <_LogEntry>[];
+    for (final line in lines) {
+      if (line.trim().isEmpty) continue;
+      final m = RegExp(r'^\[(.+?)\] \[(.+?)\] \[(.+?)\] (.*)$')
+          .firstMatch(line);
+      if (m != null) {
+        entries.add(_LogEntry(
+          timestamp: m.group(1)!,
+          level: m.group(2)!,
+          tag: m.group(3)!,
+          message: m.group(4)!,
+        ));
+      } else if (entries.isNotEmpty) {
+        // 续行（如堆栈），附加到上一条
+        entries.last.stack = '${entries.last.stack}\n$line';
+      } else {
+        // 文件开头非标准行，作为单条记录兜底
+        entries.add(_LogEntry(
+          timestamp: '',
+          level: '-',
+          tag: '-',
+          message: line,
+        ));
+      }
+    }
+
+    final fatals = entries.where((e) => e.level == 'F').toList();
+
+    final buf = StringBuffer();
+    buf.writeln('# DWeis 运行日志报告');
+    buf.writeln();
+    buf.writeln('- 生成时间：${_nowString()}');
+    if (appVersion != null) {
+      buf.writeln('- 应用版本：$appVersion'
+          '${buildNumber != null ? ' ($buildNumber)' : ''}');
+    }
+    if (platform != null) buf.writeln('- 平台：$platform');
+    buf.writeln('- 日志条数：${entries.length}'
+        '（致命错误 ${fatals.length} 条）');
+    buf.writeln();
+
+    if (fatals.isNotEmpty) {
+      buf.writeln('## 致命错误（Fatal）');
+      buf.writeln();
+      buf.writeln('> 这些是导致界面崩溃/报错的真正原因，发给我即可精准定位。');
+      buf.writeln();
+      for (var i = 0; i < fatals.length; i++) {
+        final f = fatals[i];
+        buf.writeln('### ${i + 1}. '
+            '${f.timestamp.isNotEmpty ? '[${f.timestamp}] ' : ''}'
+            '${f.tag}');
+        buf.writeln();
+        buf.writeln('**异常类型**：${_exceptionType(f.message)}');
+        buf.writeln();
+        buf.writeln('**信息**：${f.message}');
+        if (f.stack.trim().isNotEmpty) {
+          buf.writeln();
+          buf.writeln('```');
+          buf.writeln(f.stack.trim());
+          buf.writeln('```');
+        }
+        buf.writeln();
+        buf.writeln('---');
+        buf.writeln();
+      }
+    }
+
+    buf.writeln('## 完整日志');
+    buf.writeln();
+    buf.writeln('```');
+    buf.writeln(rawLogs.trim());
+    buf.writeln('```');
+
+    return buf.toString();
+  }
+
+  /// 读取日志文件全文并导出为 Markdown 报告文件，返回 .md 路径。
+  /// 无日志或失败返回 null。
+  Future<String?> exportMarkdownReport() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final logFile = File('${dir.path}/dweis.log');
+      if (!await logFile.exists()) return null;
+      final raw = await logFile.readAsString();
+      if (raw.trim().isEmpty) return null;
+
+      String? version;
+      String? build;
+      String? platform;
+      try {
+        final info = await PackageInfo.fromPlatform();
+        version = info.version;
+        build = info.buildNumber;
+      } catch (_) {}
+      try {
+        platform = Platform.operatingSystem;
+      } catch (_) {}
+
+      final md = formatMarkdownReport(
+        raw,
+        appVersion: version,
+        buildNumber: build,
+        platform: platform,
+      );
+
+      final ts = DateTime.now();
+      String pad(int x) => x.toString().padLeft(2, '0');
+      final name = 'dweis_log_report_'
+          '${ts.year}${pad(ts.month)}${pad(ts.day)}_'
+          '${pad(ts.hour)}${pad(ts.minute)}${pad(ts.second)}.md';
+      final outFile = File('${dir.path}/$name');
+      if (_testFileWriter != null) {
+        await _testFileWriter!(outFile.path, md);
+      } else {
+        await outFile.writeAsString(md);
+      }
+      return outFile.path;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 当前时间戳字符串（yyyy-MM-dd HH:mm:ss.mmm）
+  static String _nowString() {
+    final n = DateTime.now();
+    String pad(int x) => x.toString().padLeft(2, '0');
+    String pad3(int x) => x.toString().padLeft(3, '0');
+    return '${n.year}-${pad(n.month)}-${pad(n.day)} '
+        '${pad(n.hour)}:${pad(n.minute)}:${pad(n.second)}.${pad3(n.millisecond)}';
+  }
+
+  /// 从异常消息中提取异常类型（首段，到空格/括号/冒号为止）。
+  static String _exceptionType(String message) {
+    final cleaned = message.trim();
+    if (cleaned.isEmpty) return '未知';
+    final match =
+        RegExp(r'^([A-Za-z_][\w]*(?:\([^)]*\))?)').firstMatch(cleaned);
+    if (match != null) return match.group(1)!;
+    return cleaned.split(RegExp(r'[\s:]')).first;
+  }
+}
+
+/// 日志条目（仅 [formatMarkdownReport] 内部解析用）。
+class _LogEntry {
+  final String timestamp;
+  final String level;
+  final String tag;
+  final String message;
+  String stack = '';
+  _LogEntry({
+    required this.timestamp,
+    required this.level,
+    required this.tag,
+    required this.message,
+  });
 }
 
 /// 全局日志实例
