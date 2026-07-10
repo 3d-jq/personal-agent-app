@@ -26,7 +26,8 @@ class GroupChatScreen extends StatefulWidget {
   State<GroupChatScreen> createState() => _GroupChatScreenState();
 }
 
-class _GroupChatScreenState extends State<GroupChatScreen> {
+class _GroupChatScreenState extends State<GroupChatScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   final ScrollController _scrollCtrl = ScrollController();
@@ -40,6 +41,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   bool _showScrollBottom = false;
   bool _userScrolledUp = false;
   bool _autoScrolling = false;
+  late final AnimationController _scrollAnim;
 
   // ── 进入群聊：先 invisible 把列表定位到底部再淡入，消除「先显示顶部再猛跳底部」的可见跳变 ──
   bool _ready = false;
@@ -53,6 +55,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     super.initState();
     _controller.onScroll = _scrollDown;
     _scrollCtrl.addListener(_onScroll);
+    _scrollAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _scrollAnim.addListener(_followBottom);
+    _scrollAnim.addStatusListener((status) {
+      if (status == AnimationStatus.completed ||
+          status == AnimationStatus.dismissed) {
+        _autoScrolling = false;
+      }
+    });
     // 首帧 build 完成后再触发异步加载，避免 _load 的 Future 链与首帧渲染竞争
     // （在低性能设备 / 测试 fake-async 调度下，pumpAndSettle 可能早于加载完成返回，
     //  导致集成测试偶发断言群数据未渲染）
@@ -83,6 +96,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _inputFocus.dispose();
     _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
+    _scrollAnim.dispose();
     // 解除对滚动控制器的引用：界面关闭后后台流仍在跑，
     // 避免流回调一个已 dispose 的 ScrollController。
     _controller.onScroll = null;
@@ -119,28 +133,25 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
+  /// 跟随式回到底部：每帧 jump 到「当前」maxScrollExtent。
+  /// 当列表滚到底部时底部 item 才被布局，真实 max 会比动画起点(估算值)更大；
+  /// 旧实现先 animateTo 一个固定目标、结束再 jumpTo 兜底，会在长列表/未布局项上
+  /// 产生「先到错误底部、再 snap 到真底部」的可见跳变。改为每帧跟随当前 max，
+  /// 底部 item 随布局完成自然把 max 推高，滚动平滑到底、无二次 snap。
+  void _followBottom() {
+    if (_scrollCtrl.hasClients) {
+      _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+    }
+  }
+
   /// 平滑回到底部：用于点击「回到底部」按钮。
-  /// 复位 _userScrolledUp 让流式自动贴底能恢复；动画结束后兜底补一次贴底
-  /// （流式期间内容可能已增长，避免落点比真实底部高）。
+  /// 复位 _userScrolledUp 让流式自动贴底能恢复；用跟随式动画代替「animateTo+兜底 jumpTo」。
   void _scrollToBottom() {
     if (!_scrollCtrl.hasClients) return;
     _userScrolledUp = false;
     _autoScrolling = true;
-    _scrollCtrl
-        .animateTo(
-      _scrollCtrl.position.maxScrollExtent,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-    )
-        .then((_) {
-      _autoScrolling = false;
-      // 兜底：若动画期间内容增长导致未真正贴底，补一次
-      if (_scrollCtrl.hasClients &&
-          _scrollCtrl.position.pixels <
-              _scrollCtrl.position.maxScrollExtent - 4) {
-        _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
-      }
-    });
+    _scrollAnim.stop();
+    _scrollAnim.forward(from: 0);
   }
 
   /// 进入群聊时的即时贴底：invisible 地把滚动定位到末尾，完成后再由外部淡入显示。
