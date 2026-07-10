@@ -50,6 +50,80 @@ class SectionHeader extends StatelessWidget {
   }
 }
 
+/// 通用分段选择器（Apple HIG 风格药丸按钮）。
+///
+/// 用于「自动/手动」「OpenAI/Anthropic」等二选一场景，
+/// 保证全 App 分段控件视觉一致（单一真相源，勿再写本地副本）。
+class SegmentedControl<T> extends StatelessWidget {
+  final String? title;
+  final T value;
+  final ValueChanged<T> onChanged;
+  final List<({T value, String label})> options;
+
+  const SegmentedControl({
+    super.key,
+    this.title,
+    required this.value,
+    required this.onChanged,
+    required this.options,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final nc = AgentColors.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (title != null) ...[
+          Text(
+            title!,
+            style: TextStyle(fontSize: 13, color: nc.textSecondary),
+          ),
+          const SizedBox(height: 8),
+        ],
+        Row(
+          children: [
+            for (var i = 0; i < options.length; i++) ...[
+              if (i > 0) const SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => onChanged(options[i].value),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: value == options[i].value
+                          ? nc.primary.withValues(alpha: 0.12)
+                          : nc.fillTertiary,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: value == options[i].value ? nc.primary : nc.divider,
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      options[i].label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: value == options[i].value
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                        color: value == options[i].value
+                            ? nc.primary
+                            : nc.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 /// 公共圆角卡片（无内边距，调用方自行控制内容 padding）
 ///
 /// 旧版仅用 0.5px 边框、无阴影。新设计请用 [ElevatedCard]。

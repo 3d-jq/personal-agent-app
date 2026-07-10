@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import 'ai_settings.dart';
+import 'common_widgets.dart';
 import 'vendor_config.dart';
 
 void showBackendPicker(BuildContext context, AISettings s, VoidCallback cb) {
@@ -456,7 +457,7 @@ class _AddVendorTile extends StatelessWidget {
   }
 }
 
-/// OpenAI / Anthropic 接口协议分段选择器（Apple HIG 风格）
+/// OpenAI / Anthropic 接口协议分段选择器 —— 复用共享 [SegmentedControl]
 class _ProtocolSelector extends StatelessWidget {
   final String value;
   final ValueChanged<String> onChanged;
@@ -465,62 +466,15 @@ class _ProtocolSelector extends StatelessWidget {
     required this.onChanged,
   });
 
-  static const _options = [
-    (value: 'openai', label: 'OpenAI 格式'),
-    (value: 'anthropic', label: 'Anthropic 格式'),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final nc = AgentColors.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '接口协议',
-          style: TextStyle(fontSize: 13, color: nc.textSecondary),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            for (var i = 0; i < _options.length; i++) ...[
-              if (i > 0) const SizedBox(width: 8),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => onChanged(_options[i].value),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: value == _options[i].value
-                          ? nc.primary.withValues(alpha: 0.12)
-                          : nc.fillTertiary,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: value == _options[i].value
-                            ? nc.primary
-                            : nc.divider,
-                        width: 1,
-                      ),
-                    ),
-                    child: Text(
-                      _options[i].label,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: value == _options[i].value
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                        color: value == _options[i].value
-                            ? nc.primary
-                            : nc.textPrimary,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
+    return SegmentedControl<String>(
+      title: '接口协议',
+      value: value,
+      onChanged: onChanged,
+      options: const [
+        (value: 'openai', label: 'OpenAI 格式'),
+        (value: 'anthropic', label: 'Anthropic 格式'),
       ],
     );
   }
