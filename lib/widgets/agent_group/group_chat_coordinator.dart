@@ -12,7 +12,7 @@ enum AgentStatus {
   replied,
   error, // 执行出错（工具/流异常）
   timeout, // 连接或响应超时（长时间无响应）
-  cancelled, // 被主 Agent（terminate_subagent）或用户（停止）终止
+  cancelled, // 被用户「停止」终止（abort 信号）
 }
 
 /// 协作引擎：处理 Agent 调度逻辑

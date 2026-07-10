@@ -30,7 +30,7 @@ enum ChildOutcome {
   ok, // 正常完成
   error, // 执行出错（流/工具异常，气泡含 [错误:）
   timeout, // 连接或响应超时（长时间无响应）
-  cancelled, // 被主 Agent（terminate_subagent）或用户（停止）终止
+  cancelled, // 被用户「停止」终止（abort 信号）
 }
 
 /// 执行一个 Agent 的流式回复，并返回「最终文本 + 结局」。

@@ -14,7 +14,6 @@ import 'package:personal_agent_app/services/connectivity_service.dart';
 import 'package:personal_agent_app/services/history_manager.dart';
 import 'package:personal_agent_app/screens/chat_helpers.dart';
 import 'package:personal_agent_app/tools/tools.dart';
-import 'package:personal_agent_app/tools/terminate_subagent_tool.dart';
 import 'package:personal_agent_app/widgets/agent_group/agent_group_theme.dart';
 import 'package:personal_agent_app/widgets/agent_group/group_chat_coordinator.dart';
 import 'package:personal_agent_app/widgets/ai_settings.dart';
@@ -72,9 +71,9 @@ class GroupChatController extends ChangeNotifier {
   // ── Stop 完整取消：管理所有活跃流 ──
   final List<StreamSubscription<ChatStreamEvent>> _activeSubs = [];
 
-  // ── 中止信号与在跑子任务（供「停止」/ terminate_subagent 取消在飞执行） ──
+  // ── 中止信号与在跑子任务（供「停止」取消在飞执行） ──
   // _abortSignal 由 stop() 完成，中断协调者自身仍在进行的执行流；
-  // _activeChildRuns 记录每个在跑子 Agent 的独立 abort，供 terminate_subagent 精准终止某一子 Agent。
+  // _activeChildRuns 记录每个在跑子 Agent 的独立 abort，供「停止」精准终止某一在跑子 Agent。
   Completer<void>? _abortSignal;
   final Map<String, _ChildRun> _activeChildRuns = {};
 
@@ -427,12 +426,11 @@ class GroupChatController extends ChangeNotifier {
     _notify();
   }
 
-  /// 构造协调者专属工具集：派活（delegate_task）+ 终止子 Agent（terminate_subagent）。
-  /// 子 Agent 被视为协调者可调度的「任务」，故协调者既能派活也能主动结束它。
+  /// 构造协调者专属工具集：派活（delegate_task）。
+  /// 子 Agent 被视为协调者可调度的「任务」，由 delegate_task 派活后由「停止」统一取消。
   List<AgentTool> _coordinatorDispatchTools() {
     return [
       DelegateTaskTool(onDelegate: _onDelegateTask),
-      TerminateSubagentTool(onTerminate: _terminateChild),
     ];
   }
 
@@ -454,7 +452,7 @@ class GroupChatController extends ChangeNotifier {
     }
     _dispatchCount++;
     _activeDispatches.add(_DispatchRecord(agentName, brief));
-    // 注册可取消的子任务句柄：供 terminate_subagent / 停止 在派活执行期间中断它。
+    // 注册可取消的子任务句柄：供「停止」在派活执行期间中断它。
     // 该子 Agent 作为协调者可调度的「任务」，出错/超时/被终止时把结果回灌协调者。
     final childAbort = Completer<void>();
     _activeChildRuns[child.id] = _ChildRun(agent: child, abort: childAbort);
@@ -491,24 +489,6 @@ class GroupChatController extends ChangeNotifier {
     } finally {
       _activeChildRuns.remove(child.id);
     }
-  }
-
-  /// terminate_subagent 工具实现：结束一个正在运行的子 Agent。
-  /// 完成其执行流的 abort 信号，使 runGroupAgentMessage 立即以「[已被终止]」收尾，
-  /// 该结果作为 delegate_task 的工具结果回灌协调者，由协调者继续或汇总。
-  Future<String> _terminateChild(String agentName) async {
-    final child = _byName[agentName];
-    if (child == null) {
-      final known = _members.map((a) => a.name).join('、');
-      return '终止失败：找不到名为「$agentName」的子 Agent。已知成员：$known。'
-          '请使用准确的群内名字。';
-    }
-    final run = _activeChildRuns[child.id];
-    if (run == null) {
-      return '「$agentName」当前没有正在运行的子任务（可能已完成或尚未开始），无需终止。';
-    }
-    if (!run.abort.isCompleted) run.abort.complete();
-    return '已终止「$agentName」的运行，其派发结果将标记为已取消，你可基于已有结果继续或汇总。';
   }
 
   /// 把子 Agent 执行结局映射为状态栏可见的 [AgentStatus]。
@@ -727,7 +707,7 @@ class _DispatchRecord {
 }
 
 /// 一个正在运行的子 Agent 的可取消句柄。
-/// [abort] 由 terminate_subagent / 停止 完成，使其执行流立即以「[已被终止]」收尾，
+/// [abort] 由「停止」完成，使其执行流立即以「[已被终止]」收尾，
 /// 并把结果回灌协调者，由协调者决定继续、重试或汇总。
 class _ChildRun {
   final Agent agent;
