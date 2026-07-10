@@ -9,11 +9,15 @@ import 'log_service.dart';
 /// - 工具输出截断到 2000 字符
 /// - 结构化摘要模板
 class HistoryManager {
-  /// 上下文窗口大小（token 数）
-  final int contextWindowSize;
+  /// 上下文窗口大小（token 数）。
+  ///
+  /// 注意：该值需与 [AISettings.contextWindowSize] 保持一致。controller 每次取
+  /// 实例时会把最新窗口同步进来（见各 controller 的 `_historyManagerInstance`
+  /// getter），请勿在构造后放任其过期——压缩阈值与压缩判断都依赖它。
+  int contextWindowSize;
 
   /// 最大输出 token 数（默认 4096）
-  final int maxOutputTokens;
+  int maxOutputTokens;
 
   /// 保留最近的 token 数（默认 8000）
   final int keepTokens;

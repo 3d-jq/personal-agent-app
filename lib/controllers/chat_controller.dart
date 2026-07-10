@@ -50,12 +50,19 @@ class ChatController extends ChangeNotifier {
 
   /// 对话历史压缩管理器
   HistoryManager? _historyManager;
-  HistoryManager get _historyManagerInstance =>
-      _historyManager ??= HistoryManager(
-        contextWindowSize: _aiSettings.contextWindowSize,
-        maxOutputTokens: 4096,
-        keepTokens: 8000,
-      );
+  HistoryManager get _historyManagerInstance {
+    final hm = _historyManager ??= HistoryManager(
+      contextWindowSize: _aiSettings.contextWindowSize,
+      maxOutputTokens: 4096,
+      keepTokens: 8000,
+    );
+    // 窗口大小可能在 AI 设置中变更，需同步到 HistoryManager——其压缩阈值与
+    // 压缩判断都依赖 contextWindowSize。否则改窗口后阈值/节点位置会固化在旧值。
+    if (hm.contextWindowSize != _aiSettings.contextWindowSize) {
+      hm.contextWindowSize = _aiSettings.contextWindowSize;
+    }
+    return hm;
+  }
 
   String? _sessionId;
   List<ChatMessage> _messages = [];
