@@ -10,6 +10,26 @@ import 'log_service.dart';
 class ExportService {
   ExportService();
 
+  /// 原生分享通道（与 NoteExportService 共用同一 MethodChannel）。
+  static const MethodChannel _shareChannel =
+      MethodChannel('com.example/share_file');
+
+  /// 调起系统分享面板发送任意文件（日志 .md、文本等）。
+  ///
+  /// [mimeType] 用 'text/markdown' 分享日志报告，系统选择器可转发到微信/文件管理器等。
+  Future<void> shareFileByPath(
+      String path, String mimeType, String title) async {
+    try {
+      await _shareChannel.invokeMethod('shareFile', {
+        'path': path,
+        'mimeType': mimeType,
+        'title': title,
+      });
+    } catch (e) {
+      log.e('ExportService', '分享文件失败: $e');
+    }
+  }
+
   Future<String> exportChatAsText(String sessionId) async {
     final sessions = await getIt<ChatStorage>().loadAll();
     final session = sessions.where((s) => s.id == sessionId).firstOrNull;

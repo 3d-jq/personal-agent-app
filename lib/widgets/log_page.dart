@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import '../core/service_locator.dart';
+import '../services/export_service.dart';
 import 'common_widgets.dart';
 import 'app_toast.dart';
 import '../services/log_service.dart';
@@ -55,6 +57,22 @@ class _LogPageState extends State<LogPage> {
         ),
         title: '运行日志',
         actions: [
+          IconButton(
+            icon: Icon(Icons.share, color: nc.textSecondary),
+            tooltip: '导出为 Markdown 并分享',
+            onPressed: _logs.isEmpty
+                ? null
+                : () async {
+                    final path = await log.exportMarkdownReport();
+                    if (path == null) {
+                      AppToast.show(context, '暂无日志可导出');
+                      return;
+                    }
+                    await getIt<ExportService>()
+                        .shareFileByPath(path, 'text/markdown', 'DWeis 运行日志');
+                    AppToast.show(context, '已生成 Markdown 报告，请选择发送方式');
+                  },
+          ),
           IconButton(
             icon: Icon(Icons.content_copy, color: nc.textSecondary),
             onPressed: () {

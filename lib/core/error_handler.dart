@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../core/design_tokens.dart';
 import '../services/log_service.dart';
@@ -78,10 +78,15 @@ class ErrorHandler {
   ///
   /// 通过 [Builder] 在构建期拿到 context，用 [AgentColors] 适配浅/暗双模，
   /// 不再写死浅色色值（暗色下原白底红字会刺眼且与环境割裂）。
+  ///
+  /// 关键改进：异常类型与信息**始终展示**（不再仅限 debug 模式），并在下方
+  /// 提供「导出运行日志并分享」按钮——直击用户「看不到红色异常类型、只能复制
+  /// 500 行控制台」的痛点，一键生成 Markdown 报告并发给开发者。
   static Widget buildErrorWidget(FlutterErrorDetails details) {
     return Builder(
       builder: (context) {
         final nc = AgentColors.of(context);
+        final exceptionText = details.exception.toString();
         return Container(
           color: nc.background,
           padding: const EdgeInsets.all(24),
@@ -105,30 +110,65 @@ class ErrorHandler {
               ),
               const SizedBox(height: 8),
               Text(
-                '请重启应用或返回上一页重试。',
+                '请重启应用或返回上一页重试。完整错误已记录，可一键导出日志。',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: FontToken.body, color: nc.textSecondary),
               ),
-              if (kDebugMode) ...[
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: nc.surface,
-                    borderRadius: BorderRadius.circular(RadiusToken.md),
-                    border: Border.all(color: nc.divider, width: 0.5),
-                  ),
-                  child: Text(
-                    details.exception.toString(),
-                    textAlign: TextAlign.left,
-                    style: TextStyle(fontSize: FontToken.small, color: nc.textSecondary),
+              const SizedBox(height: 20),
+              // 异常类型摘要：始终展示，对应原本红屏顶部那行异常类型
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: nc.surface,
+                  borderRadius: BorderRadius.circular(RadiusToken.md),
+                  border: Border.all(color: nc.divider, width: 0.5),
+                ),
+                child: SelectableText(
+                  exceptionText,
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    fontSize: FontToken.small,
+                    color: nc.textSecondary,
+                    fontFamily: 'monospace',
+                    height: 1.5,
                   ),
                 ),
-              ],
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => _shareLog(),
+                icon: const Icon(Icons.share, size: 18),
+                label: const Text('导出运行日志并分享'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: nc.primary,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+              ),
             ],
           ),
         );
       },
     );
+  }
+
+  /// 生成 Markdown 日志报告并用原生分享通道调起系统选择器。
+  ///
+  /// 与 UI 导航解耦（纯平台调用），即使在错误占位页也能安全触发。
+  static Future<void> _shareLog() async {
+    try {
+      final path = await log.exportMarkdownReport();
+      if (path == null) return;
+      const channel = MethodChannel('com.example/share_file');
+      await channel.invokeMethod('shareFile', {
+        'path': path,
+        'mimeType': 'text/markdown',
+        'title': 'DWeis 运行日志',
+      });
+    } catch (_) {
+      // 分享失败不影响主流程
+    }
   }
 }
