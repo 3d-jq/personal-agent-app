@@ -175,7 +175,7 @@ class SessionInfoSheet {
             'AI 草稿纸',
             () => AppRouter.toScratchViewer(context),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 28),
         ],
       );
     }
