@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -34,13 +33,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   late final GroupChatController _controller = GroupChatController(groupId: widget.groupId);
 
-  // ── 滚动节流 ──
-  Timer? _scrollTimer;
+  // ── 流式贴底节流：下一帧 postFrame jumpTo，去重避免堆积 ──
+  bool _pendingScroll = false;
 
   // ── 滚动状态：上滑后停止自动贴底，避免与阅读打架；程序滚动期间忽略 _onScroll ──
   bool _showScrollBottom = false;
   bool _userScrolledUp = false;
   bool _autoScrolling = false;
+
+  // ── 进入群聊：先 invisible 把列表定位到底部再淡入，消除「先显示顶部再猛跳底部」的可见跳变 ──
+  bool _ready = false;
 
   // ── 加载更早消息的 anchor（纯 UI，钉住首条可见消息保持滚动位置） ──
   final GlobalKey _anchorKey = GlobalKey();
@@ -63,10 +65,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         return;
       }
       // 重新进入群聊：默认滚动到最新消息（贴底），符合聊天惯例。
-      // 必须在 load() 触发的重建完成后再跳；并做两阶段校正（见 _scrollToBottom）。
+      // 必须在 load() 触发的重建（ListView 已 attach 到 ScrollController）完成后再跳；
+      // 先把列表 invisible 地定位到底部（双阶段校正动态高度），完成后再 _ready 淡入，
+      // 避免首帧先渲染顶部旧消息、再猛跳到底部的可见卡顿（见 _jumpToBottomInstant）。
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _scrollToBottom();
+        _jumpToBottomInstant(() {
+          if (mounted) setState(() => _ready = true);
+        });
       });
     });
   }
@@ -77,7 +83,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _inputFocus.dispose();
     _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
-    _scrollTimer?.cancel();
     // 解除对滚动控制器的引用：界面关闭后后台流仍在跑，
     // 避免流回调一个已 dispose 的 ScrollController。
     _controller.onScroll = null;
@@ -85,18 +90,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     super.dispose();
   }
 
-  /// 滚动节流：最多每 80ms 滚一次
+  /// 流式期间实时贴底：下一帧布局完成后 jump 到末尾，消除旧 Timer+animateTo 节流造成的「定期猛跳」。
+  /// 用 [_pendingScroll] 去重，避免每个流式 token 都注册一次 postFrame 回调而堆积。
   void _scrollDown() {
-    if (_userScrolledUp || _autoScrolling) return;
-    _scrollTimer?.cancel();
-    _scrollTimer = Timer(const Duration(milliseconds: 80), () {
-      if (!mounted || !_scrollCtrl.hasClients) return;
+    if (_userScrolledUp || _autoScrolling || _pendingScroll || !_ready) return;
+    _pendingScroll = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _pendingScroll = false;
+      if (!_scrollCtrl.hasClients || _userScrolledUp || _autoScrolling) return;
       _autoScrolling = true;
-      _scrollCtrl.animateTo(
-        _scrollCtrl.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOut,
-      ).then((_) => _autoScrolling = false);
+      _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+      _autoScrolling = false;
     });
   }
 
@@ -115,21 +119,53 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-  /// 立即贴底（重新进入群聊时用）。
-  /// 两阶段校正：首跳让底部未测量项完成布局、把 maxScrollExtent 推到真实值，
-  /// 下一帧再跳一次到真正的最大处。仅跳一次在动态 item 高度下会差一截（底部项
-  /// 首跳时尚未布局，maxScrollExtent 偏小）。
+  /// 平滑回到底部：用于点击「回到底部」按钮。
+  /// 复位 _userScrolledUp 让流式自动贴底能恢复；动画结束后兜底补一次贴底
+  /// （流式期间内容可能已增长，避免落点比真实底部高）。
   void _scrollToBottom() {
     if (!_scrollCtrl.hasClients) return;
+    _userScrolledUp = false;
+    _autoScrolling = true;
+    _scrollCtrl
+        .animateTo(
+      _scrollCtrl.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    )
+        .then((_) {
+      _autoScrolling = false;
+      // 兜底：若动画期间内容增长导致未真正贴底，补一次
+      if (_scrollCtrl.hasClients &&
+          _scrollCtrl.position.pixels <
+              _scrollCtrl.position.maxScrollExtent - 4) {
+        _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+      }
+    });
+  }
+
+  /// 进入群聊时的即时贴底：invisible 地把滚动定位到末尾，完成后再由外部淡入显示。
+  /// 两阶段校正：首跳让动态 item 高度完成布局、把 maxScrollExtent 推到真实值，
+  /// 下一帧再跳一次到真正的最大处（仅跳一次在动态 item 高度下会差一截）。
+  /// 首帧即定位在底部、列表尚未可见，因此用户看不到任何跳变。
+  void _jumpToBottomInstant(VoidCallback onDone) {
+    if (!_scrollCtrl.hasClients) {
+      onDone();
+      return;
+    }
     _userScrolledUp = false;
     _autoScrolling = true;
     _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
     _autoScrolling = false;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollCtrl.hasClients) return;
+      if (!_scrollCtrl.hasClients) {
+        onDone();
+        return;
+      }
       _autoScrolling = true;
       _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
       _autoScrolling = false;
+      // 第三帧（布局稳定后）再通知显示，确保落点已是真实底部
+      WidgetsBinding.instance.addPostFrameCallback((_) => onDone());
     });
   }
 
@@ -251,28 +287,33 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 Expanded(
                   child: Stack(
                     children: [
-                      _controller.messages.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(32),
-                            child: Text(
-                              '直接发消息，系统会自动调度 Agent 回复\n也可以 @名字 指定 Agent 参与讨论',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: nc.textSecondary),
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          controller: _scrollCtrl,
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: SpaceToken.md,
-                            vertical: SpaceToken.md,
-                          ),
-                          itemCount: _controller.messages.length -
-                              _controller.windowStart +
-                              (_controller.windowStart > 0 ? 1 : 0),
-                          itemBuilder: (c, i) {
+                      // 进入群聊时列表先在 opacity:0 下完成贴底（见 _jumpToBottomInstant），
+                      // 完成后 _ready 置 true 才淡入显示，首帧即见底部、无可见跳变；
+                      // Opacity 不改变 onstage 状态，子项照常布局/测量，仅不绘制，降低进入首帧视觉开销。
+                      Opacity(
+                        opacity: _ready ? 1.0 : 0.0,
+                        child: _controller.messages.isEmpty
+                            ? Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(32),
+                                  child: Text(
+                                    '直接发消息，系统会自动调度 Agent 回复\n也可以 @名字 指定 Agent 参与讨论',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: nc.textSecondary),
+                                  ),
+                                ),
+                              )
+                            : ListView.builder(
+                                controller: _scrollCtrl,
+                                physics: const BouncingScrollPhysics(),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: SpaceToken.md,
+                                  vertical: SpaceToken.md,
+                                ),
+                                itemCount: _controller.messages.length -
+                                    _controller.windowStart +
+                                    (_controller.windowStart > 0 ? 1 : 0),
+                                itemBuilder: (c, i) {
                             // 列表首项为"加载更早消息"入口（仅当窗口未到开头）
                             if (_controller.windowStart > 0 && i == 0) {
                               return _buildLoadEarlier();
@@ -294,6 +335,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                             );
                           },
                         ),
+                      ),
                       Positioned(
                         right: 16,
                         bottom: 12,
