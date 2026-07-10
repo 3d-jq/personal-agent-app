@@ -200,7 +200,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
           Padding(
             padding: EdgeInsets.fromLTRB(
               16,
-              12,
+              14,
               16,
               MediaQuery.of(context).viewInsets.bottom + 16,
             ),
@@ -215,7 +215,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
                     color: nc.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Container(
                   decoration: BoxDecoration(
                     color: nc.surface,
@@ -237,7 +237,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16,
-                              vertical: 12,
+                              vertical: 13,
                             ),
                             isDense: true,
                           ),
@@ -246,10 +246,32 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
                       ),
                       Padding(
                         padding: const EdgeInsets.only(right: 6),
-                        child: _SendMiniButton(
-                          active: _modelCtrl.text.trim().isNotEmpty,
-                          onTap: _useManual,
-                          nc: nc,
+                        child: ElevatedButton(
+                          onPressed: _modelCtrl.text.trim().isNotEmpty
+                              ? _useManual
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: nc.primary,
+                            foregroundColor: nc.surface,
+                            disabledBackgroundColor: nc.fillTertiary,
+                            disabledForegroundColor: nc.textDisabled,
+                            elevation: 0,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 11,
+                            ),
+                          ),
+                          child: Text(
+                            '使用',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -315,41 +337,6 @@ class _ModelSkeletonListState extends State<_ModelSkeletonList>
             ),
           );
         }),
-      ),
-    );
-  }
-}
-
-/// 手动输入模型行内发送小按钮，与聊天输入栏发送按钮风格一致。
-class _SendMiniButton extends StatelessWidget {
-  final bool active;
-  final VoidCallback onTap;
-  final AgentColors nc;
-  const _SendMiniButton({
-    required this.active,
-    required this.onTap,
-    required this.nc,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: active ? onTap : null,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: active ? nc.primary : nc.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: active
-              ? null
-              : Border.all(color: nc.divider, width: 0.5),
-        ),
-        child: Icon(
-          Icons.arrow_upward,
-          size: 18,
-          color: active ? nc.surface : nc.textDisabled,
-        ),
       ),
     );
   }

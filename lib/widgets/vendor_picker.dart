@@ -8,10 +8,11 @@ void showBackendPicker(BuildContext context, AISettings s, VoidCallback cb) {
   final nc = AgentColors.of(context);
   showModalBottomSheet(
     context: context,
+    isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
-    builder: (ctx) => Padding(
+    builder: (ctx) => SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -36,57 +37,46 @@ void showBackendPicker(BuildContext context, AISettings s, VoidCallback cb) {
               ),
             ),
           ),
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.6,
-            ),
-            child: ListView(
-              physics: const BouncingScrollPhysics(),
-              shrinkWrap: true,
-              children: [
-                ...s.vendors.map(
-                  (v) => _VendorTile(
-                    vendor: v,
-                    isSelected: s.selectedVendorId == v.id,
-                    onSelect: () {
-                      s.selectVendor(v.id);
-                      cb();
-                      Navigator.pop(ctx);
-                    },
-                    onEdit: () {
-                      Navigator.pop(ctx);
-                      _showEditVendor(context, s, v, cb);
-                    },
-                    onDelete: () async {
-                      Navigator.pop(ctx);
-                      final ok = await showDialog<bool>(
-                        context: context,
-                        builder: (c) => AlertDialog(
-                          title: const Text('删除厂商'),
-                          content: Text('确定要删除「${v.name}」吗？'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(c, false),
-                              child: const Text('取消'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(c, true),
-                              child: const Text('删除'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (ok == true) {
-                        s.removeVendor(v.id);
-                        cb();
-                      }
-                    },
+          ...s.vendors.map(
+            (v) => _VendorTile(
+              vendor: v,
+              isSelected: s.selectedVendorId == v.id,
+              onSelect: () {
+                s.selectVendor(v.id);
+                cb();
+                Navigator.pop(ctx);
+              },
+              onEdit: () {
+                Navigator.pop(ctx);
+                _showEditVendor(context, s, v, cb);
+              },
+              onDelete: () async {
+                Navigator.pop(ctx);
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (c) => AlertDialog(
+                    title: const Text('删除厂商'),
+                    content: Text('确定要删除「${v.name}」吗？'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(c, false),
+                        child: const Text('取消'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(c, true),
+                        child: const Text('删除'),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 8),
-              ],
+                );
+                if (ok == true) {
+                  s.removeVendor(v.id);
+                  cb();
+                }
+              },
             ),
           ),
+          const SizedBox(height: 8),
           _AddVendorTile(
             onTap: () {
               HapticFeedback.lightImpact();

@@ -273,6 +273,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           const SizedBox(height: 8),
+          _SectionHeader(title: '对话设置', nc: nc),
           _RoundedCard(
             nc: nc,
             children: [
