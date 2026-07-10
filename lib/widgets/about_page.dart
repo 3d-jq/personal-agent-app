@@ -44,7 +44,7 @@ class AboutView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 40),
-          _SectionHeader(title: '应用信息', nc: nc),
+          SectionHeader(title: '应用信息', nc: nc),
           _RoundedCard(
             nc: nc,
             children: [
@@ -53,8 +53,8 @@ class AboutView extends StatelessWidget {
               _InfoRow(label: '框架', value: 'Flutter', nc: nc),
             ],
           ),
-          const SizedBox(height: 20),
-          _SectionHeader(title: '能力', nc: nc),
+          const SizedBox(height: SpaceToken.xl),
+          SectionHeader(title: '能力', nc: nc),
           _RoundedCard(
             nc: nc,
             children: [
@@ -82,8 +82,8 @@ class AboutView extends StatelessWidget {
               _CapabilityItem(icon: Icons.note, label: '笔记管理', nc: nc),
             ],
           ),
-          const SizedBox(height: 20),
-          _SectionHeader(title: '开源许可', nc: nc),
+          const SizedBox(height: SpaceToken.xl),
+          SectionHeader(title: '开源许可', nc: nc),
           _RoundedCard(
             nc: nc,
             children: [
@@ -116,27 +116,6 @@ class _RoundedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ElevatedCard(nc: nc, child: Column(children: children));
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final AgentColors nc;
-  const _SectionHeader({required this.title, required this.nc});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 13,
-          color: nc.textSecondary,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
   }
 }
 
