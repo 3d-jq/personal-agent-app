@@ -6,8 +6,8 @@
 - 会话信息面板内容固定，移除上下滑动（`SingleChildScrollView`），改为按内容自然高度一次性完整显示，更利落。
 
 ### 🐞 修正
+- **根治面板「AI 草稿纸」贴底 / 底部留白改了不生效**：真因是 `showModalBottomSheet` 未开 `isScrollControlled`，默认最大高度被限制在屏幕 9/16（约 56%），面板内容超出后底部被**裁剪**，任何底部留白调整都落在被裁区域里、真机上看不出变化。修法：开 `isScrollControlled: true` 让面板按内容自适应高度（`Column` 改 `mainAxisSize: MainAxisSize.min`），并用 `SafeArea(top:false)` 正确避开底部系统手势条。「AI 草稿纸」不再贴底。
 - 同步 `AppConfig._version` / `_buildNumber` 硬编码默认值至 `1.4.21` / `17`（原为 `1.0.0` / `1`，与 pubspec 脱节、易误读为版本未更新；运行时已由 `PackageInfo` 覆盖，此处仅作正确 fallback）。
-- 面板底部留白 `16 → 48`，「AI 草稿纸」条目进一步上抬，远离底部手势条、留足呼吸感。
 
 ## v1.4.20 — 上下文占用收进身份牌面板 (2026-07-10)
 
