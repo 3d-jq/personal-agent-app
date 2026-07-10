@@ -14,6 +14,7 @@ import 'package:personal_agent_app/services/connectivity_service.dart';
 import 'package:personal_agent_app/services/history_manager.dart';
 import 'package:personal_agent_app/screens/chat_helpers.dart';
 import 'package:personal_agent_app/tools/tools.dart';
+import 'package:personal_agent_app/tools/terminate_subagent_tool.dart';
 import 'package:personal_agent_app/widgets/agent_group/agent_group_theme.dart';
 import 'package:personal_agent_app/widgets/agent_group/group_chat_coordinator.dart';
 import 'package:personal_agent_app/widgets/ai_settings.dart';
@@ -70,6 +71,12 @@ class GroupChatController extends ChangeNotifier {
 
   // ── Stop 完整取消：管理所有活跃流 ──
   final List<StreamSubscription<ChatStreamEvent>> _activeSubs = [];
+
+  // ── 中止信号与在跑子任务（供「停止」/ terminate_subagent 取消在飞执行） ──
+  // _abortSignal 由 stop() 完成，中断协调者自身仍在进行的执行流；
+  // _activeChildRuns 记录每个在跑子 Agent 的独立 abort，供 terminate_subagent 精准终止某一子 Agent。
+  Completer<void>? _abortSignal;
+  final Map<String, _ChildRun> _activeChildRuns = {};
 
   // ── 长会话分页：只渲染末尾 _pageSize 条，向上可加载更早 ──
   static const int _pageSize = 30;
@@ -293,6 +300,7 @@ class GroupChatController extends ChangeNotifier {
     _agentStatus = {for (final m in _members) m.id: AgentStatus.idle};
     _notify();
     _stopped = false;
+    _abortSignal = Completer<void>();
     try {
       final handled = <String>{};
       const maxRounds = 5;
@@ -309,9 +317,7 @@ class GroupChatController extends ChangeNotifier {
             _participatedAgents.add(a.id);
             _agentStatus[a.id] = AgentStatus.thinking;
             _notify();
-            await _runOneAndAppend(a);
-            _agentStatus[a.id] = AgentStatus.replied;
-            _notify();
+            await _runOneAndAppend(a, abortSignal: _abortSignal, onFinish: (o) => _applyOutcome(a.id, o));
           }
           await _handleRelay(handled, maxRounds);
         } else {
@@ -324,9 +330,7 @@ class GroupChatController extends ChangeNotifier {
               _participatedAgents.add(firstAgent.id);
               _agentStatus[firstAgent.id] = AgentStatus.thinking;
               _notify();
-              await _runOneAndAppend(firstAgent);
-              _agentStatus[firstAgent.id] = AgentStatus.replied;
-              _notify();
+            await _runOneAndAppend(firstAgent, abortSignal: _abortSignal, onFinish: (o) => _applyOutcome(firstAgent.id, o));
               await _handleRelay(handled, maxRounds);
             }
           }
@@ -391,8 +395,18 @@ class GroupChatController extends ChangeNotifier {
     _activeDispatches.clear();
     final result = await _runOneAndAppend(
       coordinator,
-      dispatchTool: _coordinatorDispatchTool(),
+      dispatchTools: _coordinatorDispatchTools(),
+      abortSignal: _abortSignal,
+      onFinish: (o) => _applyOutcome(coordinator.id, o),
     );
+    // 安全网：delegate_task 同步等待子 Agent 完成后会从 _activeChildRuns 移除句柄，
+    // 正常情况下此处已为空；若异常泄漏则主动 abort 并清理，保证收尾顺序正确。
+    if (_activeChildRuns.isNotEmpty) {
+      for (final run in _activeChildRuns.values) {
+        if (!run.abort.isCompleted) run.abort.complete();
+      }
+      _activeChildRuns.clear();
+    }
     final placeholder = result.placeholder;
     // 派活过：把本轮自然语言收尾移到末尾气泡，原气泡只留派发时间线。
     if (_activeDispatches.isNotEmpty) {
@@ -410,13 +424,16 @@ class GroupChatController extends ChangeNotifier {
       }
       await saveGroup();
     }
-    _agentStatus[coordinator.id] = AgentStatus.replied;
     _notify();
   }
 
-  /// 构造协调者专属的派活工具，把 delegate_task 的回调接到本控制器的确定性派活逻辑。
-  DelegateTaskTool _coordinatorDispatchTool() {
-    return DelegateTaskTool(onDelegate: _onDelegateTask);
+  /// 构造协调者专属工具集：派活（delegate_task）+ 终止子 Agent（terminate_subagent）。
+  /// 子 Agent 被视为协调者可调度的「任务」，故协调者既能派活也能主动结束它。
+  List<AgentTool> _coordinatorDispatchTools() {
+    return [
+      DelegateTaskTool(onDelegate: _onDelegateTask),
+      TerminateSubagentTool(onTerminate: _terminateChild),
+    ];
   }
 
   /// delegate_task 工具的业务实现：
@@ -437,33 +454,71 @@ class GroupChatController extends ChangeNotifier {
     }
     _dispatchCount++;
     _activeDispatches.add(_DispatchRecord(agentName, brief));
-    final childText = await _dispatchLock.run(() async {
-      _discussionRound++;
-      _participatedAgents.add(child.id);
-      _agentStatus[child.id] = AgentStatus.thinking;
-      _notify();
-      final userReq = _messages.lastWhere(
-        (m) => m.isUser,
-        orElse: () => ChatMessage(text: '', isUser: true),
-      );
-      final coordinatorId =
-          _members.where((a) => a.isCoordinator).firstOrNull?.id ?? '';
-      final briefMsg = ChatMessage(
-        text: brief,
-        isUser: false,
-        speakerId: coordinatorId,
-      );
-      final isolated = <ChatMessage>[userReq, briefMsg];
-      final result = await _runOneAndAppend(
-        child,
-        isolatedContext: isolated,
-      );
-      final text = result.text;
-      _agentStatus[child.id] = AgentStatus.replied;
-      _notify();
-      return text;
-    });
-    return childText.isNotEmpty ? childText : '（子 Agent 无文本输出）';
+    // 注册可取消的子任务句柄：供 terminate_subagent / 停止 在派活执行期间中断它。
+    // 该子 Agent 作为协调者可调度的「任务」，出错/超时/被终止时把结果回灌协调者。
+    final childAbort = Completer<void>();
+    _activeChildRuns[child.id] = _ChildRun(agent: child, abort: childAbort);
+    try {
+      final childText = await _dispatchLock.run(() async {
+        _discussionRound++;
+        _participatedAgents.add(child.id);
+        _agentStatus[child.id] = AgentStatus.thinking;
+        _notify();
+        final userReq = _messages.lastWhere(
+          (m) => m.isUser,
+          orElse: () => ChatMessage(text: '', isUser: true),
+        );
+        final coordinatorId =
+            _members.where((a) => a.isCoordinator).firstOrNull?.id ?? '';
+        final briefMsg = ChatMessage(
+          text: brief,
+          isUser: false,
+          speakerId: coordinatorId,
+        );
+        final isolated = <ChatMessage>[userReq, briefMsg];
+        final result = await _runOneAndAppend(
+          child,
+          isolatedContext: isolated,
+          abortSignal: childAbort,
+          onFinish: (o) => _applyOutcome(child.id, o),
+        );
+        final text = result.text;
+        _agentStatus[child.id] = AgentStatus.replied;
+        _notify();
+        return text;
+      });
+      return childText.isNotEmpty ? childText : '（子 Agent 无文本输出）';
+    } finally {
+      _activeChildRuns.remove(child.id);
+    }
+  }
+
+  /// terminate_subagent 工具实现：结束一个正在运行的子 Agent。
+  /// 完成其执行流的 abort 信号，使 runGroupAgentMessage 立即以「[已被终止]」收尾，
+  /// 该结果作为 delegate_task 的工具结果回灌协调者，由协调者继续或汇总。
+  Future<String> _terminateChild(String agentName) async {
+    final child = _byName[agentName];
+    if (child == null) {
+      final known = _members.map((a) => a.name).join('、');
+      return '终止失败：找不到名为「$agentName」的子 Agent。已知成员：$known。'
+          '请使用准确的群内名字。';
+    }
+    final run = _activeChildRuns[child.id];
+    if (run == null) {
+      return '「$agentName」当前没有正在运行的子任务（可能已完成或尚未开始），无需终止。';
+    }
+    if (!run.abort.isCompleted) run.abort.complete();
+    return '已终止「$agentName」的运行，其派发结果将标记为已取消，你可基于已有结果继续或汇总。';
+  }
+
+  /// 把子 Agent 执行结局映射为状态栏可见的 [AgentStatus]。
+  void _applyOutcome(String agentId, ChildOutcome outcome) {
+    _agentStatus[agentId] = switch (outcome) {
+      ChildOutcome.ok || ChildOutcome.cancelled => AgentStatus.replied,
+      ChildOutcome.error => AgentStatus.error,
+      ChildOutcome.timeout => AgentStatus.timeout,
+    };
+    _notify();
   }
 
   /// 处理 Agent 接力：
@@ -517,9 +572,7 @@ class GroupChatController extends ChangeNotifier {
             _participatedAgents.add(a.id);
             _agentStatus[a.id] = AgentStatus.thinking;
             _notify();
-            await _runOneAndAppend(a, isolatedContext: isolated);
-            _agentStatus[a.id] = AgentStatus.replied;
-            _notify();
+            await _runOneAndAppend(a, isolatedContext: isolated, abortSignal: _abortSignal, onFinish: (o) => _applyOutcome(a.id, o));
           }
           continue;
         }
@@ -537,10 +590,8 @@ class GroupChatController extends ChangeNotifier {
         _participatedAgents.add(coordinatorId);
         _agentStatus[coordinatorId] = AgentStatus.thinking;
         _notify();
-        await _runOneAndAppend(_byId[coordinatorId]!);
-        _agentStatus[coordinatorId] = AgentStatus.replied;
-        _notify();
-        break; // 汇总后强制结束，避免与子 Agent 无限接力
+          await _runOneAndAppend(_byId[coordinatorId]!, abortSignal: _abortSignal, onFinish: (o) => _applyOutcome(coordinatorId, o));
+          break; // 汇总后强制结束，避免与子 Agent 无限接力
       }
 
       break;
@@ -580,10 +631,13 @@ class GroupChatController extends ChangeNotifier {
   /// [isolatedContext] 非空时，子 Agent 只看这份隔离上下文（用户原始需求 + 主 Agent
   /// 的任务简报），不看全量群历史——实现「编排者-工作者」隔离执行，避免子 Agent 被
   /// 无关对话干扰、也防止它去翻前面的对话自行发挥。
-  Future<({ChatMessage placeholder, String text})> _runOneAndAppend(
+  Future<({ChatMessage placeholder, String text, ChildOutcome outcome})>
+      _runOneAndAppend(
     Agent agent, {
     List<ChatMessage>? isolatedContext,
-    AgentTool? dispatchTool,
+    List<AgentTool>? dispatchTools,
+    Completer<void>? abortSignal,
+    void Function(ChildOutcome)? onFinish,
   }) async {
     final placeholder = ChatMessage(
       text: '',
@@ -597,7 +651,7 @@ class GroupChatController extends ChangeNotifier {
     onScroll?.call();
     final history =
         isolatedContext ?? _messages.where((m) => m != placeholder).toList();
-    final text = await runGroupAgentMessage(
+    final (text, outcome) = await runGroupAgentMessage(
       agent: agent,
       vendors: _aiSettings.vendors,
       selectedVendor: _aiSettings.selectedVendor,
@@ -613,11 +667,13 @@ class GroupChatController extends ChangeNotifier {
       activeSubs: _activeSubs,
       onScroll: () => onScroll?.call(),
       onChanged: _notify,
-      dispatchTool: dispatchTool,
+      dispatchTools: dispatchTools,
+      abortSignal: abortSignal,
+      onFinish: onFinish,
     );
     // 每个 Agent 回复后立即保存，防止中途崩溃丢失数据
     await saveGroup();
-    return (placeholder: placeholder, text: text);
+    return (placeholder: placeholder, text: text, outcome: outcome);
   }
 
   /// 保证窗口末尾对齐最新消息（活跃讨论时始终显示最新）
@@ -648,6 +704,12 @@ class GroupChatController extends ChangeNotifier {
   /// 完整停止：取消所有活跃流并解除 busy。
   void stop() {
     _stopped = true;
+    // 终止所有在飞的子 Agent 执行（让其 runGroupAgentMessage 以「[已被终止]」收尾并回灌协调者）
+    for (final run in _activeChildRuns.values) {
+      if (!run.abort.isCompleted) run.abort.complete();
+    }
+    // 终止协调者自身的执行流
+    _abortSignal?.complete();
     for (final s in _activeSubs.toList()) {
       s.cancel();
     }
@@ -662,6 +724,15 @@ class _DispatchRecord {
   final String agentName;
   final String brief;
   _DispatchRecord(this.agentName, this.brief);
+}
+
+/// 一个正在运行的子 Agent 的可取消句柄。
+/// [abort] 由 terminate_subagent / 停止 完成，使其执行流立即以「[已被终止]」收尾，
+/// 并把结果回灌协调者，由协调者决定继续、重试或汇总。
+class _ChildRun {
+  final Agent agent;
+  final Completer<void> abort;
+  _ChildRun({required this.agent, required this.abort});
 }
 
 /// 极简串行锁：保证回调一次只跑一个，后续排队依次执行。

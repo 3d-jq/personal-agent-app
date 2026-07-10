@@ -21,14 +21,29 @@ String stripArtifactTokens(String text) {
       .replaceAll(RegExp(r'\[\[[^\]]*\]\]'), '');
 }
 
-/// 执行一个 Agent 的流式回复，并返回最终文本。
+/// 单个 Agent 执行的挂死保护超时：超过即自动以「[连接超时]」收尾，
+/// 避免子 Agent 无响应时协调者死等（原 5 分钟过长，体感像永久卡死）。
+const _agentRunTimeout = Duration(seconds: 90);
+
+/// 子 Agent 一次执行的结局，供调用方更新 [AgentStatus]（错误/超时/被终止可见）。
+enum ChildOutcome {
+  ok, // 正常完成
+  error, // 执行出错（流/工具异常，气泡含 [错误:）
+  timeout, // 连接或响应超时（长时间无响应）
+  cancelled, // 被主 Agent（terminate_subagent）或用户（停止）终止
+}
+
+/// 执行一个 Agent 的流式回复，并返回「最终文本 + 结局」。
 ///
 /// 从 [GroupChatScreen] 的 `_runOneAgent` 抽取为独立函数：群聊主屏只负责 UI 与编排，
 /// 流式解析 / 打字机 / 工具时间线等重逻辑集中在此，互不耦合。
 ///
 /// [placeholder] 由调用方创建并加入消息列表；本函数只负责填充其 `text` 与 `steps`，
 /// 并通过 [onScroll] / [onChanged] 回调触发滚动与重建。
-Future<String> runGroupAgentMessage({
+///
+/// [abortSignal] 非空时，外部（用户停止 / 主 Agent 终止子 Agent）完成它即可立即中断
+/// 本次执行（不再傻等整段流结束）。[onFinish] 在执行结束时回调结局，便于上层更新状态。
+Future<(String, ChildOutcome)> runGroupAgentMessage({
   required Agent agent,
   required List<VendorConfig> vendors,
   required VendorConfig? selectedVendor,
@@ -44,7 +59,9 @@ Future<String> runGroupAgentMessage({
   required List<StreamSubscription<ChatStreamEvent>> activeSubs,
   required void Function() onScroll,
   required void Function() onChanged,
-  AgentTool? dispatchTool,
+  List<AgentTool>? dispatchTools,
+  required Completer<void>? abortSignal,
+  void Function(ChildOutcome)? onFinish,
 }) async {
   VendorConfig? vendor;
   if (agent.vendorId.isNotEmpty) {
@@ -57,7 +74,7 @@ Future<String> runGroupAgentMessage({
     placeholder.text = errText;
     onChanged();
     onScroll();
-    return errText;
+    return (errText, ChildOutcome.error);
   }
 
   final buf = StringBuffer();
@@ -67,6 +84,9 @@ Future<String> runGroupAgentMessage({
   int concurrentStarted = 0;
   final toolInteractions = <Map<String, dynamic>>[];
   StreamSubscription<ChatStreamEvent>? sub;
+  final completer = Completer<void>();
+  final aborted = Completer<void>();
+  var timedOut = false;
   try {
     final stream = runner.run(
       agent: agent,
@@ -78,10 +98,9 @@ Future<String> runGroupAgentMessage({
       groupName: groupName,
       groupDesc: groupDesc,
       thinkingEffort: thinkingEffort,
-      dispatchTool: dispatchTool,
+      dispatchTools: dispatchTools,
       isGroupChat: true,
     );
-    final completer = Completer<void>();
     sub = stream.listen(
       (event) {
         switch (event) {
@@ -231,16 +250,29 @@ Future<String> runGroupAgentMessage({
       cancelOnError: true,
     );
     activeSubs.add(sub);
-    // 超时保护：防止流挂死导致接力永久阻塞
-    await completer.future.timeout(
-      const Duration(minutes: 5),
-      onTimeout: () {
-        buf.write('\n\n[连接超时，请重试]');
-        typewriter.append('\n\n[连接超时，请重试]');
-        typewriter.revealAll();
-        placeholder.text = stripArtifactTokens(buf.toString());
-      },
-    );
+    // 超时 + 中止保护：防止流挂死导致协调者永久阻塞。
+    // abortSignal 由外部（用户停止 / 主 Agent 终止子 Agent）完成即立即中断；
+    // 超过 _agentRunTimeout 仍未结束则自动以「[连接超时]」收尾。
+    abortSignal?.future.then((_) => aborted.complete());
+    await Future.any([
+      completer.future,
+      aborted.future,
+      Future.delayed(_agentRunTimeout),
+    ]);
+    if (aborted.isCompleted && !completer.isCompleted) {
+      await sub.cancel();
+      buf.write('\n\n[已被终止]');
+      typewriter.append('\n\n[已被终止]');
+      typewriter.revealAll();
+      placeholder.text = stripArtifactTokens(buf.toString());
+    } else if (!completer.isCompleted) {
+      timedOut = true;
+      await sub.cancel();
+      buf.write('\n\n[连接超时，已自动结束]');
+      typewriter.append('\n\n[连接超时，已自动结束]');
+      typewriter.revealAll();
+      placeholder.text = stripArtifactTokens(buf.toString());
+    }
   } finally {
     await sub?.cancel();
     typewriterTimer?.cancel();
@@ -260,5 +292,13 @@ Future<String> runGroupAgentMessage({
   }
   onChanged();
   onScroll();
-  return buf.toString();
+  final outcome = aborted.isCompleted && !completer.isCompleted
+      ? ChildOutcome.cancelled
+      : timedOut
+          ? ChildOutcome.timeout
+          : buf.toString().contains('[错误:')
+              ? ChildOutcome.error
+              : ChildOutcome.ok;
+  onFinish?.call(outcome);
+  return (buf.toString(), outcome);
 }

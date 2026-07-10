@@ -115,14 +115,18 @@ class _AgentIndicator extends StatelessWidget {
                 valueColor: AlwaysStoppedAnimation(nc.primary),
               ),
             )
-          : Text(
-              agent.avatar.isNotEmpty ? agent.avatar : agent.name.characters.first,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: _textColor,
-              ),
-            ),
+          : (status == AgentStatus.error || status == AgentStatus.timeout)
+              ? Icon(Icons.error_outline, size: 13, color: Colors.red)
+              : status == AgentStatus.cancelled
+                  ? Icon(Icons.stop_circle_outlined, size: 13, color: Colors.grey)
+                  : Text(
+                      agent.avatar.isNotEmpty ? agent.avatar : agent.name.characters.first,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: _textColor,
+                      ),
+                    ),
     );
   }
 
@@ -132,6 +136,11 @@ class _AgentIndicator extends StatelessWidget {
         return nc.primary.withValues(alpha: 0.2);
       case AgentStatus.replied:
         return nc.success.withValues(alpha: 0.2);
+      case AgentStatus.error:
+      case AgentStatus.timeout:
+        return Colors.red.withValues(alpha: 0.18);
+      case AgentStatus.cancelled:
+        return Colors.grey.withValues(alpha: 0.18);
       case AgentStatus.idle:
         return nc.primarySurface;
     }
@@ -143,6 +152,11 @@ class _AgentIndicator extends StatelessWidget {
         return nc.primary;
       case AgentStatus.replied:
         return nc.success;
+      case AgentStatus.error:
+      case AgentStatus.timeout:
+        return Colors.red;
+      case AgentStatus.cancelled:
+        return Colors.grey;
       case AgentStatus.idle:
         return nc.divider;
     }
@@ -152,6 +166,11 @@ class _AgentIndicator extends StatelessWidget {
     switch (status) {
       case AgentStatus.replied:
         return nc.success;
+      case AgentStatus.error:
+      case AgentStatus.timeout:
+        return Colors.red;
+      case AgentStatus.cancelled:
+        return Colors.grey;
       default:
         return nc.textSecondary;
     }
