@@ -12,6 +12,7 @@ import 'package:personal_agent_app/services/ai_service.dart';
 import 'package:personal_agent_app/services/chat_stream_event.dart';
 import 'package:personal_agent_app/services/connectivity_service.dart';
 import 'package:personal_agent_app/services/history_manager.dart';
+import 'package:personal_agent_app/services/log_service.dart';
 import 'package:personal_agent_app/screens/chat_helpers.dart';
 import 'package:personal_agent_app/tools/tools.dart';
 import 'package:personal_agent_app/widgets/agent_group/agent_group_theme.dart';
@@ -48,6 +49,10 @@ class GroupChatController extends ChangeNotifier {
 
   AgentGroup? _group;
   List<ChatMessage> _messages = [];
+  /// 压缩生成的「发送视图」（含摘要气泡），供非隔离 Agent 构建 history 使用。
+  /// 与单聊对称：压缩只影响发送给模型的视图，不替换 _messages（完整历史保留
+  /// 供 UI 展示与 saveGroup 落盘）。未压缩时为 null，回退到 _messages。
+  List<ChatMessage>? _historyView;
   List<Agent> _members = [];
   Map<String, Agent> _byId = {};
   Map<String, Agent> _byName = {};
@@ -299,34 +304,38 @@ class GroupChatController extends ChangeNotifier {
     // 每次发消息前刷新 MCP 工具，确保新连接的服务器能被大模型发现
     registerMcpTools(_baseRegistry);
 
-    // 上下文压缩
+    // 压缩仅生成「发送视图」，不替换 _messages——完整群聊历史保留在 _messages
+    // 供 UI 展示与 saveGroup 落盘。后续每个非隔离 Agent 通过 _historyView 引用
+    // 该视图（见 _runOneAndAppend），既避免历史永久丢失，也避免二次截断把摘要切掉。
+    List<ChatMessage> sendView = _messages;
     try {
       _isCompressing = true;
       _notify();
-      final ai = AISettings();
-      await ai.load();
       final compressed = await _historyManagerInstance.compressIfNeeded(
         _messages,
         (messages) async {
           final response = await AIService(
-            baseUrl: ai.baseUrl,
-            apiKey: ai.apiKey,
-            model: ai.effectiveModel,
-            thinkingEffort: ai.thinkingEffort,
-            isAnthropic: ai.selectedVendor?.isAnthropic ?? false,
+            baseUrl: _aiSettings.baseUrl,
+            apiKey: _aiSettings.apiKey,
+            model: _aiSettings.effectiveModel,
+            thinkingEffort: _aiSettings.thinkingEffort,
+            isAnthropic: _aiSettings.selectedVendor?.isAnthropic ?? false,
           ).summarize(messages);
           return response;
         },
+        systemPromptTokens: _historyManagerInstance.estimateTokens(
+          _groupSystemPromptEstimate(),
+        ),
       );
-      if (!identical(compressed, _messages)) {
-        _messages = [...compressed];
-      }
-    } catch (_) {
-      // 压缩失败，保持原消息
+      sendView = identical(compressed, _messages) ? _messages : compressed;
+    } catch (e) {
+      log.w('GroupChatController', 'Compression failed, sending full history', e);
+      sendView = _messages;
     } finally {
       _isCompressing = false;
       _notify();
     }
+    _historyView = identical(sendView, _messages) ? null : sendView;
 
     _discussionRound = 0;
     _participatedAgents.clear();
@@ -647,6 +656,19 @@ class GroupChatController extends ChangeNotifier {
   /// [isolatedContext] 非空时，子 Agent 只看这份隔离上下文（用户原始需求 + 主 Agent
   /// 的任务简报），不看全量群历史——实现「编排者-工作者」隔离执行，避免子 Agent 被
   /// 无关对话干扰、也防止它去翻前面的对话自行发挥。
+  /// 估算群聊系统提示占用的 token（用于压缩判断）。群聊未像单聊那样在
+  /// sendMessage 处显式构造 systemPrompt 字符串，这里用群名/描述/成员角色拼一份
+  /// 近似文本做估算，避免压缩判断漏算系统提示开销（systemPrompt 通常有 2k~4k token）。
+  String _groupSystemPromptEstimate() {
+    final buf = StringBuffer();
+    buf.writeln(_group?.name ?? '');
+    buf.writeln(_group?.description ?? '');
+    for (final m in _members) {
+      buf.writeln('${m.name} (${m.role})');
+    }
+    return buf.toString();
+  }
+
   Future<({ChatMessage placeholder, String text, ChildOutcome outcome})>
       _runOneAndAppend(
     Agent agent, {
@@ -665,8 +687,8 @@ class GroupChatController extends ChangeNotifier {
     _ensureTailVisible(); // 活跃讨论时贴底显示该 Agent 的回复
     _notify();
     onScroll?.call();
-    final history =
-        isolatedContext ?? _messages.where((m) => m != placeholder).toList();
+    final history = isolatedContext ??
+        (_historyView ?? _messages).where((m) => m != placeholder).toList();
     final (text, outcome) = await runGroupAgentMessage(
       agent: agent,
       vendors: _aiSettings.vendors,

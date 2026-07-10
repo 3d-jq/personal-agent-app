@@ -17,6 +17,7 @@ import '../services/chat_stream_event.dart';
 import '../services/connectivity_service.dart';
 import '../services/context_doc_service.dart';
 import '../services/history_manager.dart';
+import '../services/log_service.dart';
 import '../services/notification_service.dart';
 import '../services/typewriter_buffer.dart';
 import '../tools/tools.dart';
@@ -370,20 +371,22 @@ class ChatController extends ChangeNotifier {
       toolRegistry: _toolRegistry,
     );
 
-    // 超过阈值时，对早期对话做摘要压缩，避免滑动窗口直接丢弃信息
-    // 摘要失败时用原消息继续，不中断发送流程
+    // 压缩仅生成「发送时视图」，不替换 _messages、不落盘——完整历史保留在
+    // _messages 中供 UI 展示与 saveSession 存盘，用户可随时回溯早期对话。
+    List<ChatMessage> sendView = _messages;
     try {
       _isCompressing = true;
       _notify();
       final compressed = await _historyManagerInstance.compressIfNeeded(
         _messages,
         ai.summarize,
+        systemPromptTokens: _historyManagerInstance.estimateTokens(systemPrompt),
       );
       if (!identical(compressed, _messages)) {
-        _messages = [...compressed];
+        sendView = compressed;
       }
-    } catch (_) {
-      // 摘要失败，保持原消息不变
+    } catch (e) {
+      log.w('ChatController', 'Compression failed, sending full history', e);
     } finally {
       _isCompressing = false;
       _notify();
@@ -391,14 +394,16 @@ class ChatController extends ChangeNotifier {
 
     final history = buildMessageHistory(
       systemPrompt: systemPrompt,
-      messages: _messages,
+      messages: sendView,
       attachmentBase64: attachmentBase64,
       attachmentName: attachmentName,
       attachmentPath: pendingFile?.path,
       pendingType: pendingType,
       text: trimmed,
       pendingFileSize: pendingFile?.lengthSync(),
-      maxMessages: 20,
+      // 压缩后已用摘要控制长度，不再用 maxMessages 二次截断（否则会从尾部切掉
+      // 头部的摘要气泡，使压缩彻底失效）。未压缩时保留原 20 条滑动窗口。
+      maxMessages: identical(sendView, _messages) ? 20 : null,
     );
 
     final aiMsg = _messages.last;
