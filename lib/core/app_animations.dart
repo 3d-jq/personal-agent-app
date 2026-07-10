@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/physics.dart';
 
 /// 统一动画时长 token（Material 3）
@@ -137,33 +137,16 @@ class _PressableScaleState extends State<PressableScale>
   }
 }
 
-/// 页面转场：从右侧滑入 + 淡入（Standard 弹簧，300ms）
-class SlideFadeRoute<T> extends PageRouteBuilder<T> {
-  final Widget page;
-
-  SlideFadeRoute({required this.page})
-    : super(
-        transitionDuration: AppDurations.standard,
-        reverseTransitionDuration: AppDurations.standard,
-        pageBuilder: (_, __, ___) => page,
-        transitionsBuilder: (_, animation, __, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutCubic,
-            reverseCurve: Curves.easeInCubic,
-          );
-          return FadeTransition(
-            opacity: curved,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.04, 0),
-                end: Offset.zero,
-              ).animate(curved),
-              child: child,
-            ),
-          );
-        },
-      );
+/// 页面转场：iOS 横向滑入 + 旧页视差左移 + 右边缘滑动返回手势。
+///
+/// 基于 [CupertinoPageRoute]，**刻意不做整页 fade**——整页 opacity 淡入会让引擎
+/// 在转场的每一帧对整页离屏合成（saveLayer/OpacityLayer），页面越复杂越贵，
+/// 是「逻辑不卡但视觉一顿一顿」的元凶。纯横向平移几乎零合成开销，转场顺滑，
+/// 且自带原生边缘返回手势与视差。
+///
+/// 全项目页面跳转统一走此路由（经由 AppRouter），改这一处即全局生效。
+class IosSlideRoute<T> extends CupertinoPageRoute<T> {
+  IosSlideRoute({required Widget page}) : super(builder: (_) => page);
 }
 
 /// BottomSheet 转场：从底部滑入 + 淡入（350ms，进出对称）
