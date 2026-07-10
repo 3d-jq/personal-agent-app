@@ -15,9 +15,6 @@ class HistoryManager {
   /// 最大输出 token 数（默认 4096）
   final int maxOutputTokens;
 
-  /// 缓冲区大小（默认 20000 token）
-  final int bufferTokens;
-
   /// 保留最近的 token 数（默认 8000）
   final int keepTokens;
 
@@ -27,7 +24,6 @@ class HistoryManager {
   HistoryManager({
     this.contextWindowSize = 256000,
     this.maxOutputTokens = 4096,
-    this.bufferTokens = 20000,
     this.keepTokens = 8000,
   });
 
@@ -97,11 +93,24 @@ class HistoryManager {
     return '${content.substring(0, toolOutputMaxChars)}\n[truncated]';
   }
 
+  /// 压缩阈值（token 数）。
+  ///
+  /// 设计：默认用满约 80% 上下文窗口，但对小窗口自动后退，
+  /// 始终为模型输出（maxOutputTokens）预留安全余量，避免下一轮生成时溢出窗口。
+  int get compressionThreshold {
+    const safetyMargin = 4000;
+    final headroom = maxOutputTokens + safetyMargin; // 给输出留的空间
+    final pct = (contextWindowSize * 0.8).round(); // 目标用满 80%
+    final safe = contextWindowSize - headroom; // 留足余量时的上限
+    final t = pct < safe ? pct : (safe > 0 ? safe : 0);
+    return t;
+  }
+
   /// 检查是否需要压缩
   bool shouldCompress(List<ChatMessage> messages) {
     if (messages.length <= 2) return false;
     final tokens = estimateMessagesTokens(messages);
-    final threshold = contextWindowSize - (maxOutputTokens > bufferTokens ? maxOutputTokens : bufferTokens);
+    final threshold = compressionThreshold;
     final should = tokens > threshold;
     if (should) {
       log.i('HistoryManager', 'Should compress: $tokens > $threshold (context: $contextWindowSize)');

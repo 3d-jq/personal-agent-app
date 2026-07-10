@@ -11,6 +11,7 @@ import '../widgets/chat_identity_button.dart';
 import '../widgets/chat_input_bar.dart';
 import '../widgets/chat_model_chip.dart';
 import '../widgets/chat_new_chat_button.dart';
+import '../widgets/context_usage_bar.dart';
 import '../core/app_animations.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -252,6 +253,15 @@ class _ChatScreenState extends State<ChatScreen>
                     ),
                   ),
                   ],
+                ),
+              ),
+              // ── 上下文窗口占用可视化（监听用量变更刷新）──
+              ListenableBuilder(
+                listenable: _controller,
+                builder: (_, __) => ContextUsageBar(
+                  tokens: _controller.estimatedContextTokens,
+                  windowSize: _controller.contextWindowSize,
+                  threshold: _controller.contextCompressionThreshold,
                 ),
               ),
               _ChatInputBar(

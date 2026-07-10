@@ -10,9 +10,32 @@ void main() {
       manager = HistoryManager(
         contextWindowSize: 100000,
         maxOutputTokens: 4096,
-        bufferTokens: 20000,
         keepTokens: 8000,
       );
+    });
+
+    group('compressionThreshold', () {
+      test('大窗口用满 80%', () {
+        final m = HistoryManager(contextWindowSize: 256000);
+        expect(m.compressionThreshold, 256000 * 0.8);
+      });
+
+      test('128K 窗口也用满 80%', () {
+        final m = HistoryManager(contextWindowSize: 128000);
+        expect(m.compressionThreshold, 128000 * 0.8);
+      });
+
+      test('小窗口为输出留余量、自动后退不到 80%', () {
+        // 32K: 80% = 25600，但需留 maxOutput(4096)+4000=8096 余量 → 阈值 32000-8096=23904
+        final m = HistoryManager(contextWindowSize: 32000);
+        expect(m.compressionThreshold, lessThan(32000 * 0.8));
+        expect(m.compressionThreshold, 32000 - (4096 + 4000));
+      });
+
+      test('极小窗口兜底不为负', () {
+        final m = HistoryManager(contextWindowSize: 8000);
+        expect(m.compressionThreshold, greaterThanOrEqualTo(0));
+      });
     });
 
     group('estimateTokens', () {
@@ -63,7 +86,7 @@ void main() {
       });
 
       test('returns true when over threshold', () {
-        // Create messages that exceed context - buffer = 100000 - 20000 = 80000 tokens
+        // 压缩阈值 = 100000 的 80% = 80000 tokens（小窗口才后退，此处即 80%）
         // Each message with ~1000 chars ≈ 250 tokens
         // Need 320+ messages to exceed 80000 tokens
         final messages = List.generate(
@@ -93,8 +116,7 @@ void main() {
       });
 
       test('compresses messages when threshold exceeded', () async {
-        // Create messages that exceed threshold
-        // contextWindowSize=100000, bufferTokens=20000, so threshold=80000
+        // 压缩阈值 = 100000 的 80% = 80000 tokens
         // Each message with ~2000 chars ≈ 500 tokens
         // Need 160+ messages to exceed 80000 tokens
         final messages = List.generate(

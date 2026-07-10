@@ -54,7 +54,6 @@ class ChatController extends ChangeNotifier {
       _historyManager ??= HistoryManager(
         contextWindowSize: _aiSettings.contextWindowSize,
         maxOutputTokens: 4096,
-        bufferTokens: 20000,
         keepTokens: 8000,
       );
 
@@ -84,6 +83,26 @@ class ChatController extends ChangeNotifier {
   File? get pendingAttachment => _pendingAttachment;
   String get pendingAttachmentType => _pendingAttachmentType;
   AISettings get aiSettings => _aiSettings;
+
+  // ── 上下文窗口占用（供 UI 可视化）──
+  List<ChatMessage>? _usageMsgRef;
+  int? _usageTokenCache;
+  /// 当前对话估算占用的 token 数（基于字符启发式估算，非真实分词）。
+  /// 带轻量缓存：仅当 [_messages] 引用变更（增删/压缩）时才重算，避免无关刷新重复估算。
+  int get estimatedContextTokens {
+    if (_usageMsgRef != _messages) {
+      _usageMsgRef = _messages;
+      _usageTokenCache = _historyManagerInstance.estimateMessagesTokens(_messages);
+    }
+    return _usageTokenCache ?? 0;
+  }
+  /// 上下文窗口大小（token 数）。
+  int get contextWindowSize => _aiSettings.contextWindowSize;
+  /// 触发压缩的 token 阈值。
+  int get contextCompressionThreshold => _historyManagerInstance.compressionThreshold;
+  /// 占用率（0~1+），估算值。
+  double get contextUsageRatio =>
+      contextWindowSize > 0 ? estimatedContextTokens / contextWindowSize : 0.0;
 
   // ═══ Lifecycle ═══
 
