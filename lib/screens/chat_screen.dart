@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -29,7 +28,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final FocusNode _inputFocus = FocusNode();
   final ScrollController _scrollCtrl = ScrollController();
   late final ChatController _controller;
-  Timer? _scrollTimer;
+  bool _pendingScroll = false;
   bool _showScrollBottom = false;
   bool _userScrolledUp = false;
   // 程序主动触发的滚动（点击回到底部 / 流式自动贴底）期间为 true，
@@ -54,7 +53,6 @@ class _ChatScreenState extends State<ChatScreen> {
     _inputFocus.dispose();
     _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
-    _scrollTimer?.cancel();
     super.dispose();
   }
 
@@ -73,16 +71,17 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  /// 流式期间实时贴底：下一帧布局完成后 jump 到末尾，消除 50ms 节流造成的「定期猛跳」。
+  /// 用 [_pendingScroll] 去重，避免每个流式 token 都注册一次 postFrame 回调而堆积。
   void _scrollDown() {
-    // 用户已上滑 / 正在程序滚动时跳过，避免与回到底部动画打架
-    if (_userScrolledUp || _autoScrolling) return;
-    _scrollTimer?.cancel();
-    _scrollTimer = Timer(const Duration(milliseconds: 50), () {
-      if (_scrollCtrl.hasClients) {
-        _autoScrolling = true;
-        _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
-        _autoScrolling = false;
-      }
+    if (_userScrolledUp || _autoScrolling || _pendingScroll) return;
+    _pendingScroll = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _pendingScroll = false;
+      if (!_scrollCtrl.hasClients || _userScrolledUp || _autoScrolling) return;
+      _autoScrolling = true;
+      _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+      _autoScrolling = false;
     });
   }
 
