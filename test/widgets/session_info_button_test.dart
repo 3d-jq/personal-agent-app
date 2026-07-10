@@ -41,8 +41,8 @@ void main() {
     // 面板标题 + 上下文占用卡片
     expect(find.text('会话信息'), findsOneWidget);
     expect(find.text('上下文窗口占用'), findsOneWidget);
-    // 数字格式：约 12K / 256K
-    expect(find.text('约 12K / 256K'), findsOneWidget);
+    // 数字格式：一位小数（几百 token 变化也可见），约 12.3K / 256K
+    expect(find.text('约 12.3K / 256K'), findsOneWidget);
     // 占用正常（绿态文案）
     expect(find.text('占用正常'), findsOneWidget);
 

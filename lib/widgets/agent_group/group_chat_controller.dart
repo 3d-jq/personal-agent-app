@@ -110,12 +110,22 @@ class GroupChatController extends ChangeNotifier {
 
   // ── 上下文窗口占用（供 UI 可视化）──
   List<ChatMessage>? _usageMsgRef;
+  int _usageMsgLen = -1;
+  int _usageLastLen = -1;
   int? _usageTokenCache;
   /// 当前对话估算占用的 token 数（基于字符启发式估算，非真实分词）。
-  /// 带轻量缓存：仅当 [_messages] 引用变更（增删/压缩）时才重算，避免无关刷新重复估算。
+  /// 带轻量缓存：当消息**列表引用**变更（切会话/压缩）、**条数**变化（新增一轮问答）
+  /// 或**最后一条内容长度**变化（流式增长）时重算，其余无关刷新复用缓存。
+  /// 注意：消息是 `_messages.add(...)` 追加的，列表引用不变，故不能只判断引用，
+  /// 否则正常对话中数字永远不刷新。
   int get estimatedContextTokens {
-    if (_usageMsgRef != _messages) {
+    final lastLen = _messages.isEmpty ? 0 : _messages.last.text.length;
+    if (_usageMsgRef != _messages ||
+        _usageMsgLen != _messages.length ||
+        _usageLastLen != lastLen) {
       _usageMsgRef = _messages;
+      _usageMsgLen = _messages.length;
+      _usageLastLen = lastLen;
       _usageTokenCache = _historyManagerInstance.estimateMessagesTokens(_messages);
     }
     return _usageTokenCache ?? 0;
