@@ -273,7 +273,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         children: [
           const SizedBox(height: 8),
-          _SectionHeader(title: '对话设置', nc: nc),
+          SectionHeader(title: '对话设置', nc: nc),
           _RoundedCard(
             nc: nc,
             children: [
@@ -327,9 +327,9 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: SpaceToken.xl),
           if (vendor != null) ...[
-            _SectionHeader(title: '厂商信息', nc: nc),
+            SectionHeader(title: '厂商信息', nc: nc),
             _RoundedCard(
               nc: nc,
               children: [
@@ -413,27 +413,6 @@ class _SettingItem extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final AgentColors nc;
-  const _SectionHeader({required this.title, required this.nc});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 13,
-          color: nc.textSecondary,
-          fontWeight: FontWeight.w500,
         ),
       ),
     );
