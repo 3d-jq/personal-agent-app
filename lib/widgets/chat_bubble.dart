@@ -407,6 +407,11 @@ class _AIBubbleState extends State<_AIBubble>
   List<Widget> _rebuildStreaming(String text) {
     final blocks = _splitBlocks(text);
     final result = <Widget>[];
+    // 防御：流式首帧 text 可能为空（占位消息 text='' 且 isStreaming=true），
+    // 此时 blocks 为空 → completedCount 为负，直接返回空列表，由「思考中」
+    // 状态行占位，避免 _frozenBlockWidgets.length = -1（负长度）或 blocks.last
+    // （空列表）抛异常导致整屏红屏闪一下再恢复。
+    if (blocks.isEmpty) return result;
     final completedCount = blocks.length - 1;
     // 流式文本只增不减，completedCount 应单调增长；异常兜底截断缓存
     if (_frozenBlockWidgets.length > completedCount) {
