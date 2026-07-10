@@ -79,7 +79,13 @@ class SessionInfoSheet {
           : ratio >= 0.6
               ? '占用较高，注意上下文长度'
               : '占用正常';
-      String fmt(int n) => n >= 1000 ? '${(n / 1000).round()}K' : '$n';
+      // <1000 显示精确值；1000~99999 显示一位小数（几百 token 变化也可见）；
+      // ≥100K 用整数避免过长。
+      String fmt(int n) {
+        if (n < 1000) return '$n';
+        final k = n / 1000;
+        return k >= 100 ? '${k.round()}K' : '${k.toStringAsFixed(1)}K';
+      }
       return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
