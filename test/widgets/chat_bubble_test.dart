@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:personal_agent_app/core/agent_colors.dart';
 import 'package:personal_agent_app/models/chat_message.dart';
 import 'package:personal_agent_app/widgets/chat_bubble.dart';
@@ -77,13 +78,28 @@ void main() {
       expect(find.text('删除'), findsOneWidget);
     });
 
-    testWidgets('流式期间用纯文本渲染（markdown 标记原样显示，避免每 token 全量解析卡顿）', (tester) async {
-      final msg = ChatMessage(text: '**粗**', isUser: false);
+    testWidgets('流式期间也渲染富文本（粗体被解析，而非纯文本）', (tester) async {
+      final msg = ChatMessage(text: '这是 **粗体** 示例', isUser: false);
       msg.isStreaming = true;
       await tester.pumpWidget(build(msg));
-      // 纯文本路径：原始 markdown 标记应直接作为文本显示
-      expect(find.text('**粗**'), findsOneWidget);
-      expect(find.text('粗'), findsNothing);
+      // 富文本路径：MarkdownBody 存在（纯文本 Text 路径不会有）
+      expect(find.byType(MarkdownBody), findsWidgets);
+      // 原始 markdown 围栏/标记不应以纯文本整体呈现（粗体被解析）
+      expect(find.text('这是 **粗体** 示例'), findsNothing);
+    });
+
+    testWidgets('流式期间代码块即时富文本化（带复制按钮，而非纯文本）', (tester) async {
+      final msg = ChatMessage(
+        text: '看代码：\n```\nprint("hi")\n```\n结束',
+        isUser: false,
+      );
+      msg.isStreaming = true;
+      await tester.pumpWidget(build(msg));
+      expect(find.byType(MarkdownBody), findsWidgets);
+      // CodeBlockBuilder 渲染了「复制」按钮 → 证明代码块已富文本化
+      expect(find.text('复制'), findsWidgets);
+      // 围栏标记本身不应以纯文本出现
+      expect(find.text('```'), findsNothing);
     });
 
     testWidgets('流结束后用富文本渲染（markdown 标记被解析为粗体）', (tester) async {

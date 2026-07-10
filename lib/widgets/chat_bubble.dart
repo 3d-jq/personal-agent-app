@@ -324,6 +324,9 @@ class _AIBubbleState extends State<_AIBubble>
   String _lastText = '';
   bool _planExpanded = true;
   List<Widget> _cachedContent = [];
+  // 增量富文本缓存：已完成块的渲染结果与对应原文，避免每帧全量重解析
+  final List<List<Widget>> _frozenBlockWidgets = [];
+  final List<String> _frozenBlockTexts = [];
   late AnimationController _enterCtrl;
   late Animation<double> _enterOpacity;
   late Animation<Offset> _enterOffset;
@@ -352,6 +355,8 @@ class _AIBubbleState extends State<_AIBubble>
       _lastText = '';
       _cachedContent = [];
       _planExpanded = true;
+      _frozenBlockWidgets.clear();
+      _frozenBlockTexts.clear();
     }
   }
 
@@ -359,6 +364,77 @@ class _AIBubbleState extends State<_AIBubble>
   void dispose() {
     _enterCtrl.dispose();
     super.dispose();
+  }
+
+  /// 将流式文本按 markdown 块边界切分：空行分隔段落，``` 围栏跨空行保留为整块。
+  /// 仅用于增量渲染的缓存粒度，不影响最终渲染正确性（flutter_markdown 自身按块解析）。
+  static List<String> _splitBlocks(String text) {
+    final lines = text.split('\n');
+    final blocks = <String>[];
+    final buf = <String>[];
+    var inFence = false;
+    for (final line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.startsWith('```')) {
+        if (!inFence) {
+          if (buf.isNotEmpty) {
+            blocks.add(buf.join('\n'));
+            buf.clear();
+          }
+          inFence = true;
+          buf.add(line);
+        } else {
+          buf.add(line);
+          blocks.add(buf.join('\n'));
+          buf.clear();
+          inFence = false;
+        }
+      } else if (!inFence && trimmed.isEmpty) {
+        if (buf.isNotEmpty) {
+          blocks.add(buf.join('\n'));
+          buf.clear();
+        }
+      } else {
+        buf.add(line);
+      }
+    }
+    if (buf.isNotEmpty) blocks.add(buf.join('\n'));
+    return blocks;
+  }
+
+  /// 增量重建流式富文本：已完成块（除最后一块）命中缓存则直接复用，
+  /// 仅对最后一个正在生长的块重新解析并渲染。
+  List<Widget> _rebuildStreaming(String text) {
+    final blocks = _splitBlocks(text);
+    final result = <Widget>[];
+    final completedCount = blocks.length - 1;
+    // 流式文本只增不减，completedCount 应单调增长；异常兜底截断缓存
+    if (_frozenBlockWidgets.length > completedCount) {
+      _frozenBlockWidgets.length = completedCount;
+      _frozenBlockTexts.length = completedCount;
+    }
+    for (var i = 0; i < completedCount; i++) {
+      if (i < _frozenBlockTexts.length &&
+          i < _frozenBlockWidgets.length &&
+          _frozenBlockTexts[i] == blocks[i]) {
+        result.addAll(_frozenBlockWidgets[i]);
+      } else {
+        final w = buildInlineContent(blocks[i], widget.nc, context);
+        if (i < _frozenBlockWidgets.length) {
+          _frozenBlockWidgets[i] = w;
+          _frozenBlockTexts[i] = blocks[i];
+        } else {
+          _frozenBlockWidgets.add(w);
+          _frozenBlockTexts.add(blocks[i]);
+        }
+        result.addAll(w);
+      }
+    }
+    final last = blocks.last;
+    if (last.trim().isNotEmpty) {
+      result.addAll(buildInlineContent(last, widget.nc, context));
+    }
+    return result;
   }
 
   @override
@@ -375,19 +451,23 @@ class _AIBubbleState extends State<_AIBubble>
 
     final showProcessLine = hasSteps || (isStreaming && textContent.isEmpty);
 
-    // 流式期间用纯文本渲染：避免每条 token 全量 markdown 解析占用主 isolate，
-    // 否则 Drawer 打开 / 进入子页面时后台解析会抢占主线程导致明显卡顿。
-    // 流结束（isStreaming=false）后改用富文本，文本变化即重解析、无需时间节流。
+    // 流式期间使用增量富文本渲染：已完成块冻结缓存，仅重解析最后一个仍在
+    // 生长的块。配合 ListenableBuilder 每帧最多重建一次（Flutter 调度合并多个
+    // token 的 notifyListeners），单帧成本从「全量重解析整条 O(N)」降为
+    // 「仅当前块 O(块大小)」，从而达成与 ChatGPT / DeepSeek 同级的边流边富文本
+    // 流畅度。流结束后走下方整体规整一次（处理末块闭合等边界）。
     Widget textBody;
     if (isStreaming) {
-      textBody = Text(
-        textContent,
-        style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.6),
+      textBody = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: _rebuildStreaming(textContent),
       );
     } else {
       if (textContent != _lastText) {
         _lastText = textContent;
         _cachedContent = buildInlineContent(textContent, nc, context);
+        _frozenBlockWidgets.clear();
+        _frozenBlockTexts.clear();
       }
       textBody = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
