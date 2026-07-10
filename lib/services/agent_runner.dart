@@ -216,10 +216,10 @@ class AgentRunner {
 
   final Map<String, ToolRegistry> _scopedCache = {};
 
-  ToolRegistry _scopedRegistry(Agent agent, {AgentTool? dispatchTool}) {
-    // 缓存键加入 dispatchTool 是否存在：协调者（带 dispatchTool）与子 Agent
+  ToolRegistry _scopedRegistry(Agent agent, {List<AgentTool>? dispatchTools}) {
+    // 缓存键加入 dispatchTools 是否存在：协调者（带专属工具集）与子 Agent
     // （不带）即使 allowedToolNames 相同也不会共用同一份 registry。
-    final key = '${agent.allowedToolNames.join(',')}#${dispatchTool != null}';
+    final key = '${agent.allowedToolNames.join(',')}#${dispatchTools != null}';
     return _scopedCache.putIfAbsent(key, () {
       final scoped = ToolRegistry();
       final allowed = agent.allowedToolNames.toSet();
@@ -246,9 +246,11 @@ class AgentRunner {
         scoped.registerDiscoverable(tool);
       }
 
-      // 协调者专属的派活工具：由控制器注入，子 Agent 不注册（调度权独占）。
-      if (dispatchTool != null) {
-        scoped.register(dispatchTool);
+      // 协调者专属工具集（派活 + 终止子 Agent 等）：由控制器注入，子 Agent 不注册（调度权独占）。
+      if (dispatchTools != null) {
+        for (final t in dispatchTools) {
+          scoped.register(t);
+        }
       }
 
       return scoped;
@@ -265,7 +267,7 @@ class AgentRunner {
     String groupName = '',
     String groupDesc = '',
     String thinkingEffort = 'medium',
-    AgentTool? dispatchTool,
+    List<AgentTool>? dispatchTools,
     bool isGroupChat = false,
   }) async* {
     try {
@@ -298,13 +300,18 @@ class AgentRunner {
       }
 
       final messages = _buildHistory(mapped, systemPrompt, agent.name);
+      final scopedRegistry = _scopedRegistry(agent, dispatchTools: dispatchTools);
+      // 每个 Agent 每次执行前重置工具调用计数：配额归该 Agent 当轮独占，
+      // 避免群里权限相同的子 Agent 共用同一缓存 registry、且群聊从不 resetCallCounts
+      // 导致的「跨 Agent / 跨轮次累积撞 10 次上限」问题（见 v1.4.15）。
+      scopedRegistry.resetCallCounts();
       final ai = AIService(
         baseUrl: vendor.baseUrl,
         apiKey: vendor.apiKey,
         model: agent.model.isNotEmpty ? agent.model : vendor.model,
         thinkingEffort: thinkingEffort,
         isAnthropic: vendor.isAnthropic,
-        toolRegistry: _scopedRegistry(agent, dispatchTool: dispatchTool),
+        toolRegistry: scopedRegistry,
       );
       yield* ai.sendMessageStream(messages);
     } catch (e) {
