@@ -6,7 +6,7 @@ import 'log_service.dart';
 /// 参考 opencode 实现：
 /// - 基于 token 估算触发压缩（而非固定消息数）
 /// - 保留最近 N token 的消息
-/// - 工具输出截断到 2000 字符
+/// - 工具输出截断到 20000 字符
 /// - 结构化摘要模板
 class HistoryManager {
   /// 上下文窗口大小（token 数）。
@@ -22,8 +22,8 @@ class HistoryManager {
   /// 保留最近的 token 数（默认 8000）
   final int keepTokens;
 
-  /// 工具输出最大字符数（约 2000 字符 ≈ 500 token）
-  static const int toolOutputMaxChars = 2000;
+  /// 工具输出最大字符数（约 20000 字符 ≈ 5000 token）
+  static const int toolOutputMaxChars = 20000;
 
   HistoryManager({
     this.contextWindowSize = 256000,
