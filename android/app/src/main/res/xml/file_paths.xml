@@ -4,5 +4,5 @@
     <files-path name="files" path="." />
     <external-path name="external_files" path="." />
     <external-cache-path name="external_cache" path="." />
-    <root-path name="flutter_docs" path="data/data/com.example.personal_agent_app/app_flutter/" />
+    <root-path name="flutter_docs" path="data/data/com.dweis.app/app_flutter/" />
 </paths>

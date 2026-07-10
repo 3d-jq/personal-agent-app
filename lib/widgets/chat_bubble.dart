@@ -324,12 +324,9 @@ class _AIBubbleState extends State<_AIBubble>
   String _lastText = '';
   bool _planExpanded = true;
   List<Widget> _cachedContent = [];
-  DateTime _lastRenderTime = DateTime(2000); // far in the past
   late AnimationController _enterCtrl;
   late Animation<double> _enterOpacity;
   late Animation<Offset> _enterOffset;
-
-  static const _renderThrottle = Duration(milliseconds: 32);
 
   @override
   void initState() {
@@ -354,7 +351,6 @@ class _AIBubbleState extends State<_AIBubble>
     if (oldWidget.msg != widget.msg || oldWidget.nc != widget.nc) {
       _lastText = '';
       _cachedContent = [];
-      _lastRenderTime = DateTime(2000);
       _planExpanded = true;
     }
   }
@@ -379,15 +375,24 @@ class _AIBubbleState extends State<_AIBubble>
 
     final showProcessLine = hasSteps || (isStreaming && textContent.isEmpty);
 
-    // Throttle expensive Markdown parsing during streaming
-    final now = DateTime.now();
-    final shouldRender =
-        textContent != _lastText &&
-        (!isStreaming || now.difference(_lastRenderTime) >= _renderThrottle);
-    if (shouldRender) {
-      _lastText = textContent;
-      _lastRenderTime = now;
-      _cachedContent = buildInlineContent(textContent, nc, context);
+    // 流式期间用纯文本渲染：避免每条 token 全量 markdown 解析占用主 isolate，
+    // 否则 Drawer 打开 / 进入子页面时后台解析会抢占主线程导致明显卡顿。
+    // 流结束（isStreaming=false）后改用富文本，文本变化即重解析、无需时间节流。
+    Widget textBody;
+    if (isStreaming) {
+      textBody = Text(
+        textContent,
+        style: TextStyle(fontSize: 15, color: nc.textPrimary, height: 1.6),
+      );
+    } else {
+      if (textContent != _lastText) {
+        _lastText = textContent;
+        _cachedContent = buildInlineContent(textContent, nc, context);
+      }
+      textBody = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: _cachedContent,
+      );
     }
 
     return FadeTransition(
@@ -410,13 +415,7 @@ class _AIBubbleState extends State<_AIBubble>
               expanded: _planExpanded,
               onToggle: () => setState(() => _planExpanded = !_planExpanded),
             ),
-          if (textContent.isNotEmpty)
-            RepaintBoundary(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: _cachedContent,
-              ),
-            ),
+          if (textContent.isNotEmpty) RepaintBoundary(child: textBody),
         ],
       ),
         ),

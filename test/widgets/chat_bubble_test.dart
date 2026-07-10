@@ -76,5 +76,22 @@ void main() {
       expect(find.text('重新生成'), findsOneWidget);
       expect(find.text('删除'), findsOneWidget);
     });
+
+    testWidgets('流式期间用纯文本渲染（markdown 标记原样显示，避免每 token 全量解析卡顿）', (tester) async {
+      final msg = ChatMessage(text: '**粗**', isUser: false);
+      msg.isStreaming = true;
+      await tester.pumpWidget(build(msg));
+      // 纯文本路径：原始 markdown 标记应直接作为文本显示
+      expect(find.text('**粗**'), findsOneWidget);
+      expect(find.text('粗'), findsNothing);
+    });
+
+    testWidgets('流结束后用富文本渲染（markdown 标记被解析为粗体）', (tester) async {
+      final msg = ChatMessage(text: '**粗**', isUser: false);
+      // isStreaming 默认 false
+      await tester.pumpWidget(build(msg));
+      expect(find.text('**粗**'), findsNothing);
+      expect(find.text('粗'), findsOneWidget);
+    });
   });
 }
