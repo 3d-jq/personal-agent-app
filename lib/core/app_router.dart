@@ -28,13 +28,13 @@ import '../widgets/skill_mcp_page.dart';
 /// 应用路由管理入口。
 ///
 /// 集中所有页面跳转逻辑，避免业务代码里直接调用 [Navigator.push]。
-/// 转场动画统一使用 [SlideFadeRoute]。
+/// 转场动画统一使用 [IosSlideRoute]（iOS 横滑视差 + 边缘返回手势）。
 class AppRouter {
   AppRouter._();
 
   /// 通用 push，用于私有页面或一次性跳转。
   static Future<T?> push<T>(BuildContext context, Widget page) {
-    return Navigator.of(context).push<T>(SlideFadeRoute(page: page));
+    return Navigator.of(context).push<T>(IosSlideRoute(page: page));
   }
 
   /// 返回上一页。
