@@ -22,7 +22,8 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen>
+    with SingleTickerProviderStateMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
@@ -34,6 +35,7 @@ class _ChatScreenState extends State<ChatScreen> {
   // 程序主动触发的滚动（点击回到底部 / 流式自动贴底）期间为 true，
   // 避免 _onScroll 把"自己的位移"误判成用户上滑而污染状态
   bool _autoScrolling = false;
+  late final AnimationController _scrollAnim;
 
   @override
   void initState() {
@@ -44,6 +46,17 @@ class _ChatScreenState extends State<ChatScreen> {
     );
     _controller.initialize();
     _scrollCtrl.addListener(_onScroll);
+    _scrollAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _scrollAnim.addListener(_followBottom);
+    _scrollAnim.addStatusListener((status) {
+      if (status == AnimationStatus.completed ||
+          status == AnimationStatus.dismissed) {
+        _autoScrolling = false;
+      }
+    });
   }
 
   @override
@@ -53,6 +66,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _inputFocus.dispose();
     _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
+    _scrollAnim.dispose();
     super.dispose();
   }
 
@@ -85,28 +99,25 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  /// 跟随式回到底部：每帧 jump 到「当前」maxScrollExtent。
+  /// 当列表滚到底部时底部 item 才被布局，真实 max 会比动画起点(估算值)更大；
+  /// 旧实现先 animateTo 一个固定目标、结束再 jumpTo 兜底，会在长列表/未布局项上
+  /// 产生「先到错误底部、再 snap 到真底部」的可见跳变。改为每帧跟随当前 max，
+  /// 底部 item 随布局完成自然把 max 推高，滚动平滑到底、无二次 snap。
+  void _followBottom() {
+    if (_scrollCtrl.hasClients) {
+      _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+    }
+  }
+
   /// 平滑回到底部：用于点击「回到底部」按钮。
-  /// 复位 _userScrolledUp 让流式自动贴底能恢复；动画结束后兜底补一次贴底
-  /// （流式期间内容可能已增长，避免落点比真实底部高）。
+  /// 复位 _userScrolledUp 让流式自动贴底能恢复；用跟随式动画代替「animateTo+兜底 jumpTo」。
   void _scrollToBottom() {
     if (!_scrollCtrl.hasClients) return;
     _userScrolledUp = false;
     _autoScrolling = true;
-    _scrollCtrl
-        .animateTo(
-      _scrollCtrl.position.maxScrollExtent,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-    )
-        .then((_) {
-      _autoScrolling = false;
-      // 兜底：若动画期间内容增长导致未真正贴底，补一次
-      if (_scrollCtrl.hasClients &&
-          _scrollCtrl.position.pixels <
-              _scrollCtrl.position.maxScrollExtent - 4) {
-        _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
-      }
-    });
+    _scrollAnim.stop();
+    _scrollAnim.forward(from: 0);
   }
 
 
