@@ -231,19 +231,7 @@ class ChatBubble extends StatelessWidget {
         ),
       ),
     );
-    return TweenAnimationBuilder<double>(
-      duration: AppDurations.bubble,
-      curve: Curves.easeOut,
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) => Opacity(
-        opacity: value,
-        child: Transform.translate(
-          offset: Offset(0, (1 - value) * 8),
-          child: child,
-        ),
-      ),
-      child: bubble,
-    );
+    return bubble;
   }
 
   Widget _buildImagePreview(
@@ -378,33 +366,12 @@ class _AIBubble extends StatefulWidget {
   State<_AIBubble> createState() => _AIBubbleState();
 }
 
-class _AIBubbleState extends State<_AIBubble>
-    with TickerProviderStateMixin {
+class _AIBubbleState extends State<_AIBubble> {
   String _lastText = '';
   bool _planExpanded = true;
   List<Widget> _cachedContent = [];
   // 增量富文本缓存的持久化存储已移至 _BlockRenderCache（按 msg.id 跨重建存活），
   // 此处不再持有实例字段，避免气泡滚出 cacheExtent 后缓存丢失、回看时整段重解析。
-  late AnimationController _enterCtrl;
-  late Animation<double> _enterOpacity;
-  late Animation<Offset> _enterOffset;
-
-  @override
-  void initState() {
-    super.initState();
-    _enterCtrl = AnimationController(
-      vsync: this,
-      duration: AppDurations.bubble,
-    );
-    _enterOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _enterCtrl, curve: Curves.easeOut),
-    );
-    _enterOffset = Tween<Offset>(
-      begin: const Offset(0, 0.04),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _enterCtrl, curve: Curves.easeOut));
-    _enterCtrl.forward();
-  }
 
   @override
   void didUpdateWidget(_AIBubble oldWidget) {
@@ -414,12 +381,6 @@ class _AIBubbleState extends State<_AIBubble>
       _cachedContent = [];
       _planExpanded = true;
     }
-  }
-
-  @override
-  void dispose() {
-    _enterCtrl.dispose();
-    super.dispose();
   }
 
   /// 将流式文本按 markdown 块边界切分：空行分隔段落，``` 围栏跨空行保留为整块。
@@ -538,13 +499,9 @@ class _AIBubbleState extends State<_AIBubble>
       );
     }
 
-    return FadeTransition(
-      opacity: _enterOpacity,
-      child: SlideTransition(
-        position: _enterOffset,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Column(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 思考中/工具进度占位行：用 AnimatedSize 平滑收起，避免流式首 token
@@ -569,8 +526,6 @@ class _AIBubbleState extends State<_AIBubble>
             ),
           if (textContent.isNotEmpty) RepaintBoundary(child: textBody),
         ],
-      ),
-        ),
       ),
     );
   }
