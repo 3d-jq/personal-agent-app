@@ -71,6 +71,9 @@ class ChatController extends ChangeNotifier {
   List<ChatSession> _sessions = [];
   bool _isLoading = false;
   bool _isCompressing = false;
+  /// 已初始化守卫：控制器被 ChatControllerCache 复用时跳过 initialize 的全部
+  /// await（settings/warmUp/loadSession），直接复用内存消息，二次进入秒开。
+  bool _initialized = false;
 
   // ── 消息分页（微信级内存滑动窗口）──
   /// 下一条新消息的全局序号（取当前最大 seq + 1）。
@@ -103,6 +106,8 @@ class ChatController extends ChangeNotifier {
   List<ChatSession> get sessions => List.unmodifiable(_sessions);
   bool get isLoading => _isLoading;
   bool get isCompressing => _isCompressing;
+  /// 控制器已初始化且已有消息：聊天页进入时可直接显示真实列表，不显示骨架屏。
+  bool get isReady => _initialized && _messages.isNotEmpty;
   bool get isWaitingUserPrompt => _streamState?.isWaitingUserInput ?? false;
   File? get pendingAttachment => _pendingAttachment;
   String get pendingAttachmentType => _pendingAttachmentType;
@@ -151,6 +156,7 @@ class ChatController extends ChangeNotifier {
   // ═══ Lifecycle ═══
 
   Future<void> initialize() async {
+    if (_initialized) return;
     await _aiSettings.load();
     await _warmUpCaches();
     // 只加载单聊会话
@@ -162,6 +168,7 @@ class ChatController extends ChangeNotifier {
     } else {
       newSession();
     }
+    _initialized = true;
     if (!_disposed) _notify();
   }
 
