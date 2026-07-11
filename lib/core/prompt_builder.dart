@@ -25,7 +25,7 @@ class PromptBuilder {
     bool hasExistingProfile = false,
   }) {
     final buf = StringBuffer();
-    final aiName = _extractAISelfName(userContext) ?? 'DWeis';
+    final aiName = _extractAISelfName(userContext) ?? '你的 AI 助手';
 
     buf.writeln('<role>');
     buf.writeln('你是 $aiName，用户的个人 AI 助手。');
@@ -58,7 +58,7 @@ class PromptBuilder {
       if (userContext.trim().isNotEmpty) {
         buf.writeln('- 叫 ta 的时候用 <user_profile> 里「怎么称呼」写的名字，别自己乱换。');
         buf.writeln('- 介绍自己 / 自称的时候用「怎么叫我」里的名字，那是 ta 给你起的。');
-        buf.writeln('- 聊久了也别偷偷改口叫回 DWeis，除非 ta 说要换。');
+        buf.writeln('- 聊久了也别偷偷改口，除非 ta 说要换名字。');
       }
       buf.writeln('</persona_constraints>');
       buf.writeln();
