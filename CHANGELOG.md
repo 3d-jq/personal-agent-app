@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.4.27 — 会话加载骨架屏 + 白屏/键盘根治，侧边栏回滚 (2026-07-11)
+
+### 💀 会话加载骨架屏（错峰重 build，消除冷启动首开卡顿）
+- 新增 `lib/widgets/chat_skeleton.dart`：`ChatListSkeleton`——左右气泡形状交替 + 微光扫过 shimmer（复用现成 `AppDurations.shimmer` 与「思考中」文字同款高亮取法，视觉统一）。
+- `chat_screen.dart` 加 `_loading` 态：`initialize()` 完成前显骨架、完成后 `AnimatedSwitcher` 淡入真实列表，把「转场动画帧」与「首帧 build 200 气泡帧」错峰。`_loading` 初始仅在「有会话 id 且控制器未就绪（冷启动）」时为 true，缓存命中直接显真实列表、不闪骨架。
+- `chat_controller.dart` 加 `_initialized` 守卫：缓存命中的会话跳过 `initialize()` 全部 await，二次进入真正秒开。
+- `chat_screen.dart` 列表 `cacheExtent` 1000→500，减少首帧不可见气泡的 build 压力（群聊/agent 屏保持 1000）。
+
+### 🩹 「回到底部」白屏根治
+- 根因：旧逻辑在 280ms 内逐帧 `jumpTo` 滚过整个列表，从很上面点时 `ListView.builder` 来不及构建沿途重气泡 → 一路白屏才落底。
+- 根治：距底超过 1.2 屏时先瞬跳到「底部前一屏」（只构建最后一屏），再对最后一小段平滑动画收尾；1 屏内保持全程平滑不预跳。
+
+### ⌨️ 键盘弹起不遮挡内容根治
+- 根因：`resizeToAvoidBottomInset` 已抬输入框，但消息列表不自动上滚，最后一条被抬起的输入框盖住。
+- 根治：将「键盘弹起→列表贴底」判断从脆弱的 `_userScrolledUp` 标志改为实时「距底 < 1 屏才贴底」，输入时最后一条永远露出、上翻看历史不打扰。
+
+### ↩️ 侧边栏回滚为标准 Drawer
+- 撤销 v1.4.26 的 `PushDrawer` 3D 推入：删除 `push_drawer.dart`，`agent_side_drawer.dart` / `agent_top_bar.dart` 还原至标准 `Drawer`，`chat_screen.dart` 恢复 `Scaffold.drawer` + 黑遮罩（0.38）+ 边缘拖拽开。（转场 scale 纵深增强保留）
+
 ## v1.4.26 — 侧边栏安全版 3D 推入 + 转场轻量增强（借鉴 Operit）(2026-07-11)
 
 ### 🎨 侧边栏安全版 3D 推入（借鉴 Operit 无遮罩推入式抽屉）

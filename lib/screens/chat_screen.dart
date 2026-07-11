@@ -7,8 +7,8 @@ import '../core/service_locator.dart';
 import '../core/agent_colors.dart';
 import '../widgets/agent_side_drawer.dart';
 import '../widgets/agent_top_bar.dart';
-import '../widgets/push_drawer.dart';
 import '../widgets/chat_bubble.dart';
+import '../widgets/chat_skeleton.dart';
 import '../widgets/chat_input_bar.dart';
 import '../widgets/chat_model_chip.dart';
 import '../widgets/chat_new_chat_button.dart';
@@ -26,7 +26,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  final GlobalKey<PushDrawerState> _drawerKey = GlobalKey<PushDrawerState>();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   final ScrollController _scrollCtrl = ScrollController();
@@ -39,6 +39,9 @@ class _ChatScreenState extends State<ChatScreen>
   bool _autoScrolling = false;
   // Drawer 打开时暂停自动贴底滚动，避免每帧 jumpTo 与 Drawer 动画抢主 isolate 导致卡顿
   bool _drawerOpen = false;
+  // 会话加载态：initialize 完成前显示骨架屏（仅冷启动/未就绪时），
+  // 完成后淡入真实列表，使转场帧与首屏气泡 build 帧错峰。
+  bool _loading = false;
   late final AnimationController _scrollAnim;
   // 点击「回到底部」动画的起点 offset：_followBottom 据此在起点→当前底部间插值，
   // 消除旧实现「每帧直接 jumpTo(max)＝第一帧硬跳到底」的突兀感。
@@ -55,7 +58,11 @@ class _ChatScreenState extends State<ChatScreen>
       widget.sessionId,
       onNeedScroll: _scrollDown,
     );
+    // 加载态：有会话 id 且控制器尚未就绪（首开/冷启动）才显示骨架屏；
+    // 缓存命中（已 initialized 且消息在内存）直接显示真实列表，不闪骨架。
+    _loading = _controller.currentSessionId != null && !_controller.isReady;
     _controller.initialize().then((_) {
+      if (mounted) setState(() => _loading = false);
       // 恢复上次离开时的滚动位置（缓存复用场景）
       if (mounted &&
           _controller.lastScrollOffset != null &&
@@ -106,8 +113,15 @@ class _ChatScreenState extends State<ChatScreen>
       final inset = MediaQuery.of(context).viewInsets.bottom;
       final opening = inset > _lastViewInsetBottom;
       _lastViewInsetBottom = inset;
-      if (opening && !_userScrolledUp && !_drawerOpen) {
-        _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+      if (!opening || _drawerOpen) return;
+      // 键盘弹起时（Scaffold 已 resize 抬起输入框），只要用户本来就在会话底部
+      // 附近（正在输入新消息的典型场景），就把列表补贴到底——确保最后一条消息不被
+      // 抬起的输入框遮挡。用「距底 < 1 屏」判断，比脆弱的 _userScrolledUp 标志更稳，
+      // 且用户明显上翻看历史时（距底很远）不打扰其阅读位置。
+      final pos = _scrollCtrl.position;
+      final distFromBottom = pos.maxScrollExtent - pos.pixels;
+      if (distFromBottom < pos.viewportDimension) {
+        _scrollCtrl.jumpTo(pos.maxScrollExtent);
       }
     });
   }
@@ -158,9 +172,22 @@ class _ChatScreenState extends State<ChatScreen>
 
   /// 平滑回到底部：用于点击「回到底部」按钮。
   /// 复位 _userScrolledUp 让流式自动贴底能恢复；记录起点 offset 供 _followBottom 插值。
+  ///
+  /// 【白屏根治】距底部很远时（用户在很上面点回到底部），若逐帧动画滚过整段，
+  /// ListView.builder 来不及构建沿途几百条重气泡 → 一路白屏才落底。
+  /// 解法：先瞬时 jumpTo 到「底部前约 1.2 屏」，只需构建最后一屏气泡，
+  /// 再对这最后一小段做 easeOutCubic 平滑动画——既无白屏、又保留贴底的顺滑收尾。
   void _scrollToBottom() {
     if (!_scrollCtrl.hasClients) return;
     _userScrolledUp = false;
+    final pos = _scrollCtrl.position;
+    final viewport = pos.viewportDimension;
+    final max = pos.maxScrollExtent;
+    // 预跳阈值：距底部超过 1.2 屏才预跳，避免短距离也硬跳丢失顺滑感。
+    final preJump = (max - viewport * 1.2).clamp(0.0, max);
+    if (_scrollCtrl.offset < preJump) {
+      _scrollCtrl.jumpTo(preJump);
+    }
     _autoScrolling = true;
     _animStartOffset = _scrollCtrl.offset;
     _scrollAnim.stop();
@@ -225,27 +252,26 @@ class _ChatScreenState extends State<ChatScreen>
         systemNavigationBarColor: nc.background,
         systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
-      child: PushDrawer(
-        key: _drawerKey,
-        onChanged: (opened) => _drawerOpen = opened,
-        drawer: _DrawerContent(
-          controller: _controller,
-          onSessionTap: _onSessionTap,
-          onNewChat: _onNewChat,
-          onSessionDeleted: _onSessionDeleted,
-          onRequestClose: () => _drawerKey.currentState?.close(),
-        ),
-        child: GestureDetector(
-          onTap: () {
-            if (!(_drawerKey.currentState?.isOpen ?? false)) {
-              _inputFocus.unfocus();
-            }
-          },
-          child: Scaffold(
-            backgroundColor: nc.background,
-            appBar: AgentTopBar(
-              onMenu: () => _drawerKey.currentState?.open(),
-              afterMenu: _ModelChip(controller: _controller),
+      child: GestureDetector(
+        onTap: () {
+          if (!(_scaffoldKey.currentState?.isDrawerOpen ?? false)) {
+            _inputFocus.unfocus();
+          }
+        },
+        child: Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: nc.background,
+          drawerEnableOpenDragGesture: true,
+          onDrawerChanged: (opened) => _drawerOpen = opened,
+          drawerScrimColor: Colors.black.withValues(alpha: 0.38),
+          drawer: _DrawerContent(
+            controller: _controller,
+            onSessionTap: _onSessionTap,
+            onNewChat: _onNewChat,
+            onSessionDeleted: _onSessionDeleted,
+          ),
+          appBar: AgentTopBar(
+            afterMenu: _ModelChip(controller: _controller),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -266,12 +292,20 @@ class _ChatScreenState extends State<ChatScreen>
               Expanded(
                 child: Stack(
                   children: [
-                    _MessageList(
-                      controller: _controller,
-                      scrollController: _scrollCtrl,
-                      onRetry: _onRetry,
-                      onDelete: (m) => _controller.deleteMessage(m),
-                      onRegenerate: (m) => _controller.regenerate(m),
+                    AnimatedSwitcher(
+                      duration: AppDurations.standard,
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      child: _loading
+                          ? const ChatListSkeleton(key: ValueKey('skeleton'))
+                          : _MessageList(
+                              key: const ValueKey('list'),
+                              controller: _controller,
+                              scrollController: _scrollCtrl,
+                              onRetry: _onRetry,
+                              onDelete: (m) => _controller.deleteMessage(m),
+                              onRegenerate: (m) => _controller.regenerate(m),
+                            ),
                     ),
                     Positioned(
                       right: 16,
@@ -324,7 +358,6 @@ class _ChatScreenState extends State<ChatScreen>
             ],
           ),
         ),
-        ),
       ),
     );
   }
@@ -335,14 +368,12 @@ class _DrawerContent extends StatelessWidget {
   final ValueChanged<String> onSessionTap;
   final VoidCallback onNewChat;
   final ValueChanged<String> onSessionDeleted;
-  final VoidCallback onRequestClose;
 
   const _DrawerContent({
     required this.controller,
     required this.onSessionTap,
     required this.onNewChat,
     required this.onSessionDeleted,
-    required this.onRequestClose,
   });
 
   @override
@@ -356,7 +387,6 @@ class _DrawerContent extends StatelessWidget {
         onSessionTap: onSessionTap,
         onNewChat: onNewChat,
         onSessionDeleted: onSessionDeleted,
-        onRequestClose: onRequestClose,
       ),
     );
   }
@@ -386,6 +416,7 @@ class _MessageList extends StatelessWidget {
   final ValueChanged<ChatMessage>? onRegenerate;
 
   const _MessageList({
+    super.key,
     required this.controller,
     required this.scrollController,
     this.onRetry,
@@ -406,7 +437,7 @@ class _MessageList extends StatelessWidget {
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           itemCount: itemCount,
-          cacheExtent: 1000, // 缓存窗口：视口外多保留 1000px 的气泡，滚回长消息不重建/重测
+          cacheExtent: 500, // 缓存窗口：视口外保留 500px 气泡，滚回长消息不重建/重测（适度收窄，减首帧不可见气泡 build 压力）
           // ChatMessage 是 ChangeNotifier，流式更新时仅对应气泡局部重建；
           // 必须逐条用 ListenableBuilder(msg) 包住，否则流式期间 controller 不通知、气泡不刷新
           itemBuilder: (c, i) {
