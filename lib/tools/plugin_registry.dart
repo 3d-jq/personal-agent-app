@@ -3,6 +3,7 @@ import 'tools.dart';
 import '../core/service_locator.dart';
 import '../services/crypto_util.dart';
 import '../services/mcp_manager.dart';
+import '../services/browser_session.dart';
 
 /// 安全读取环境变量，测试环境未加载 dotenv 时返回空字符串。
 String _safeEnv(String key) {
@@ -89,6 +90,16 @@ class CoreToolsPlugin extends AppPlugin {
     if (!registry.has('skill_read_cookbook')) registry.register(SkillReadCookbookTool());
     if (!registry.has('skill_create')) registry.register(SkillCreateTool());
     if (!registry.has('skill_match')) registry.register(SkillMatchTool());
+    // 浏览器工具（8 个，共享同一 BrowserSession 实例）
+    final browser = BrowserSession();
+    if (!registry.has('browser_open')) registry.register(BrowserOpenTool(browser));
+    if (!registry.has('browser_snapshot')) registry.register(BrowserSnapshotTool(browser));
+    if (!registry.has('browser_click')) registry.register(BrowserClickTool(browser));
+    if (!registry.has('browser_type')) registry.register(BrowserTypeTool(browser));
+    if (!registry.has('browser_scroll')) registry.register(BrowserScrollTool(browser));
+    if (!registry.has('browser_screenshot')) registry.register(BrowserScreenshotTool(browser));
+    if (!registry.has('browser_evaluate')) registry.register(BrowserEvaluateTool(browser));
+    if (!registry.has('browser_close')) registry.register(BrowserCloseTool(browser));
 
     // 工具发现层（需引用 registry，构造一次即可）
     if (!registry.has('tool_search')) {

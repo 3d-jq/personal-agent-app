@@ -1,5 +1,14 @@
 # Changelog
 
+## v1.4.31 — 浏览器工具模块 (2026-07-11)
+
+### 🌐 浏览器工具（8 个）
+- 新增后台无头 WebView 浏览器支持，AI 可操作网页完成填表、搜索、截图等任务。
+- 原生 Android 实现（`BrowserBridge.kt`），后台线程 WebView，通过 MethodChannel 与 Flutter 通信。
+- 8 个工具：`browser_open`(打开URL+快照) / `browser_snapshot`(页面快照) / `browser_click`(点击元素) / `browser_type`(输入文本) / `browser_scroll`(滚动) / `browser_screenshot`(截图base64) / `browser_evaluate`(执行JS) / `browser_close`(关闭会话)。
+- 共享 `BrowserSession` 实例，cookie/localStorage 会话内保持。
+- `.txt` 描述 + 生成器 → `.g.dart`，遵循项目约定。
+
 ## v1.4.30 — action 独立成工具 + UI 动效全量统一 (2026-07-11)
 
 ### 🏗️ Action 拆分：26 个独立工具，各自独占调用配额

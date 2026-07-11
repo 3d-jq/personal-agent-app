@@ -210,6 +210,41 @@ class MainActivity : FlutterActivity() {
                 result.error("CALENDAR_ERROR", ex.message, null)
             }
         }
+
+        // ── Headless Browser ──
+        val BROWSER_CHANNEL = "com.example/browser"
+        val browser = BrowserBridge()
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BROWSER_CHANNEL).setMethodCallHandler { call, result ->
+            try {
+                when (call.method) {
+                    "create" -> {
+                        browser.create()
+                        result.success(true)
+                    }
+                    "navigate" -> {
+                        val url = call.argument<String>("url") ?: ""
+                        result.success(browser.navigate(url))
+                    }
+                    "snapshot" -> {
+                        result.success(browser.snapshot())
+                    }
+                    "evaluateJs" -> {
+                        val js = call.argument<String>("js") ?: ""
+                        result.success(browser.evaluateJs(js))
+                    }
+                    "screenshot" -> {
+                        result.success(browser.screenshot())
+                    }
+                    "close" -> {
+                        browser.close()
+                        result.success(true)
+                    }
+                    else -> result.notImplemented()
+                }
+            } catch (e: Exception) {
+                result.error("BROWSER_ERROR", e.message, null)
+            }
+        }
     }
 
     private fun saveImageToGallery(bytes: ByteArray, name: String) {
