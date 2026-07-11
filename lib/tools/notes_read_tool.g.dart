@@ -3,6 +3,6 @@
 
 /// Tool description for `notes_read_tool`.
 const String notesReadToolDescription = r'''
-读取某条笔记的完整正文与元数据。
+用户让你打开某一篇笔记看看内容的时候用它。需要提供笔记的 id（从 notes_list 的结果里能拿到）。会返回这篇笔记的完整正文和标题、时间等信息。
 '''
 ;

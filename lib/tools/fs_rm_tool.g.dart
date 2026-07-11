@@ -3,6 +3,6 @@
 
 /// Tool description for `fs_rm_tool`.
 const String fsRmToolDescription = r'''
-删除虚拟文件系统中的文件。
+你需要删除某个文件的时候用它。删之前确认一下确实要删——文件删了就没法恢复了。
 '''
 ;

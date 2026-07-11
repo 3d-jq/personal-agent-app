@@ -3,6 +3,6 @@
 
 /// Tool description for `calendar_add_tool`.
 const String calendarAddToolDescription = r'''
-添加一条日历日程（事件标题必填）。
+用户让你帮忙记下某天要做的事，你就用它来添加一条日历日程。标题是必须的——至少让 ta 回头看到的时候知道这是什么。写清楚标题就好，如果能顺手写上时间和备注会更贴心。
 '''
 ;

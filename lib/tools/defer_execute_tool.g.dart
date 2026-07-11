@@ -3,5 +3,6 @@
 
 /// Tool description for `defer_execute_tool`.
 const String deferExecuteToolDescription = r'''
-调用通过 tool_search 发现的延迟工具。你必须先调用 tool_search 确认目标工具存在及其参数，再使用此工具执行。
-''';
+你通过 tool_search 找到了一个工具，现在要真正调用它的时候用它。tool_search 只是"看看有什么"，这个才是"真的去做"。把 tool_search 返回的名字和参数填进去就行。
+'''
+;

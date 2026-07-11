@@ -3,6 +3,6 @@
 
 /// Tool description for `context_doc_update_tool`.
 const String contextDocUpdateToolDescription = r'''
-覆盖写入上下文文档（先 context_doc_read 获取全文，整合后整篇覆盖）。agent 文档写入需设置 reviewed=true，避免覆盖 SOUL 人格设定。
+你需要往上下文文档里写东西的时候用它——比如记住了新信息、更新了偏好。写之前一定要先 context_doc_read 读一遍全文，把新内容整合进去再写回，别直接覆盖。写 agent 文档时记得设 reviewed=true，确保不会误伤 SOUL.md 里的人格设定。
 '''
 ;

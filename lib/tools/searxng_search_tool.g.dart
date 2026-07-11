@@ -3,5 +3,6 @@
 
 /// Tool description for `searxng_search_tool`.
 const String searxngSearchToolDescription = r'''
-通过自托管 SearXNG 搜索互联网。适合一般查询；如果结果不理想，可换用 tavily_search。
-''';
+你需要查互联网上的实时信息时用它。世界每天都在变，你脑子里的知识有截止日期，这个工具就是你的窗口。把你关心的内容用中文搜，结果是一份摘要列表。如果 SearXNG 没找到理想的答案，还可以换用 tavily_search 再试一次。记住：查到了再用，查不到就说查不到，别编。
+'''
+;

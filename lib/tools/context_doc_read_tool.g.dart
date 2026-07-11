@@ -3,6 +3,6 @@
 
 /// Tool description for `context_doc_read_tool`.
 const String contextDocReadToolDescription = r'''
-读取上下文文档全文：soul=人格设定、user=用户资料、agent=任务经验、memory=长期记忆、knowledge=知识库（knowledge 需额外 filename）。
+你需要了解用户的资料、你的性格设定、长期记忆、或知识库的时候用它。soul 是你的性格文件，user 是用户的资料，memory 是跨会话的长期记忆，agent 是你从任务中学到的经验，knowledge 是预设的知识库文件。先读完再做事，别凭空想象。
 '''
 ;

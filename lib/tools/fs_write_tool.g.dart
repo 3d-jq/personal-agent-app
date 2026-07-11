@@ -3,6 +3,6 @@
 
 /// Tool description for `fs_write_tool`.
 const String fsWriteToolDescription = r'''
-向虚拟文件系统中写入文件（覆盖式）。
+你需要往某个文件里写入内容时用它。注意它是覆盖式写入——会把文件里原来有的内容全部替换掉。如果你只是想追加，先读出来，拼上新内容，再写入。
 '''
 ;

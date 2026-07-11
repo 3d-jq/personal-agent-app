@@ -3,6 +3,6 @@
 
 /// Tool description for `fs_read_tool`.
 const String fsReadToolDescription = r'''
-读取虚拟文件系统中某文件的完整内容。
+你需要读取某个文件的全部内容时用它。拿到文件路径后，它会返回文件里写了什么。读之前最好先用 fs_ls 确认一下文件确实存在。
 '''
 ;

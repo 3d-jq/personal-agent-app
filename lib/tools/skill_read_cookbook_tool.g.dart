@@ -3,6 +3,6 @@
 
 /// Tool description for `skill_read_cookbook_tool`.
 const String skillReadCookbookToolDescription = r'''
-读取某个 Skill 的 cookbook 详细步骤文件。
+有些 Skill 附带了 cookbook 文件，里面有更详细的操作流程。当你读完 Skill 基本指令、还需要更具体的步骤指引时用它。
 '''
 ;

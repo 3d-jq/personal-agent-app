@@ -3,6 +3,6 @@
 
 /// Tool description for `fs_mkdir_tool`.
 const String fsMkdirToolDescription = r'''
-在虚拟文件系统中创建目录。
+你需要创建一个新目录的时候用它。比如想在一个目录下面建一个子文件夹来整理文件。
 '''
 ;

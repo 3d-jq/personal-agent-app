@@ -3,6 +3,6 @@
 
 /// Tool description for `skill_read_tool`.
 const String skillReadToolDescription = r'''
-读取某个 Skill 的详细指令正文（SKILL.md）。
+你看到一个 Skill 的描述觉得可能有用，需要读它的完整指令时用它。Skill 里面会写清楚具体的执行步骤和注意事项——读了再照着做，别瞎猜。
 '''
 ;

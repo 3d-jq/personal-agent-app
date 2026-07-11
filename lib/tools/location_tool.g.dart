@@ -3,5 +3,6 @@
 
 /// Tool description for `location_tool`.
 const String locationToolDescription = r'''
-获取设备当前 GPS 定位信息。返回经纬度、城市名（如果可用）和精度。当用户问"天气"、"附近有什么"、需要位置信息时使用。
-''';
+需要知道用户现在在哪个城市的时候用它。比如查天气要地点、搜周边要定位——先拿到位置再做下一步。
+'''
+;
