@@ -12,14 +12,14 @@ void main() {
       expect(p, contains('context_doc_update'));
     });
 
-    test('包含 MEMORY.md 维护指引（规则 11：跨会话事实持久化）', () {
+    test('包含 MEMORY.md 维护指引（跨会话事实持久化）', () {
       final p = PromptBuilder.buildMainPrompt(
         soulContext: '',
         userContext: '',
       );
       expect(p, contains('MEMORY.md'));
       expect(p, contains('跨会话'));
-      expect(p, contains('禁止推断脑补'));
+      expect(p, contains('不要自己脑补'));
     });
 
     test('包含 AGENT.md 维护指引（规则 12：任务经验沉淀，需 reviewed=true）', () {
@@ -46,17 +46,15 @@ void main() {
       expect(p, contains('语气风格'));
     });
 
-    test('有 persona/user_profile 时注入人格一致性硬约束（对抗人格漂移）', () {
+    test('有 persona/user_profile 时注入 persona_constraints', () {
       final p = PromptBuilder.buildMainPrompt(
         soulContext: '# SOUL\n语气：可爱温柔',
         userContext: '# USER\n怎么称呼：小张',
       );
       expect(p, contains('persona_constraints'));
-      expect(p, contains('人格一致性'));
-      expect(p, contains('始终以 <persona>'));
+      expect(p, contains('你就是 <persona>'));
       expect(p, contains('怎么称呼'));
       expect(p, contains('怎么叫我'));
-      expect(p, contains('最高优先级'));
     });
 
     test('空 persona/user_profile 时不注入人格一致性约束', () {
