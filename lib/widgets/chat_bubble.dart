@@ -489,11 +489,20 @@ class _AIBubbleState extends State<_AIBubble>
           child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (showProcessLine)
-            Padding(
-              padding: EdgeInsets.only(bottom: textContent.isNotEmpty ? 8 : 0),
-              child: _buildProcessLine(steps ?? const [], nc, msg.isStreaming),
-            ),
+          // 思考中/工具进度占位行：用 AnimatedSize 平滑收起，避免流式首 token
+          // 到达时占位行瞬间消失导致气泡高度骤降、列表回跳（微信级「高度稳定」原则）。
+          AnimatedSize(
+            duration: const Duration(milliseconds: 160),
+            curve: Curves.easeOut,
+            alignment: Alignment.topLeft,
+            child: showProcessLine
+                ? Padding(
+                    padding:
+                        EdgeInsets.only(bottom: textContent.isNotEmpty ? 8 : 0),
+                    child: _buildProcessLine(steps ?? const [], nc, msg.isStreaming),
+                  )
+                : const SizedBox.shrink(),
+          ),
           if (msg.plan != null)
             TaskPlanView(
               plan: msg.plan!,
