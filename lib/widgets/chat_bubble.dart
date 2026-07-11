@@ -14,6 +14,65 @@ import 'task_plan_panel.dart';
 
 enum _BubbleAction { copy, regenerate, delete }
 
+/// 与 inline_content.dart 中图片正则保持一致，用于判定块是否含图片（不可缓存）。
+final RegExp _kImagePattern =
+    RegExp(r'!\[.*?\]\((https?://[^\s)]+|file://[^\s)]+)\)');
+
+/// 跨重建持久化的 markdown 块渲染缓存（等价 Operit conversionCache +
+/// ChatMessageHeightMemory）。按 msg.id 存储已完成块的渲染结果，使气泡在列表
+/// 中滚出 cacheExtent 再滚回时复用已渲染 widget（不重解析、不重排版），消除回看
+/// 长消息时的跳动/卡顿。代码块(fenced)/图片块依赖 BuildContext（复制 toast /
+/// Hero 路由）不缓存，每次重新渲染（低频且体积小）。LRU 上限保护内存。
+class _BlockRenderCache {
+  static final _stores = <String, _BlockRenderCache>{};
+  static const _maxMessages = 60;
+
+  final List<String> texts = [];
+  final List<Widget?> widgets = []; // null = 不可缓存(代码/图片)，每次重渲染
+  int themeHash = 0;
+
+  static _BlockRenderCache forId(String id, int themeHash) {
+    final hit = _stores[id];
+    if (hit != null) {
+      if (hit.themeHash != themeHash) {
+        hit.texts.clear();
+        hit.widgets.clear();
+        hit.themeHash = themeHash;
+      }
+      // LRU：命中提到末尾
+      _stores.remove(id);
+      _stores[id] = hit;
+      return hit;
+    }
+    if (_stores.length >= _maxMessages) {
+      _stores.remove(_stores.keys.first);
+    }
+    final created = _BlockRenderCache()..themeHash = themeHash;
+    _stores[id] = created;
+    return created;
+  }
+
+  bool has(int i, String text) =>
+      i < widgets.length && widgets[i] != null && texts[i] == text;
+  Widget? get(int i) => i < widgets.length ? widgets[i] : null;
+  void put(int i, String text, Widget widget) {
+    if (i < widgets.length) {
+      texts[i] = text;
+      widgets[i] = widget;
+    } else {
+      texts.add(text);
+      widgets.add(widget);
+    }
+  }
+
+  void truncate(int completedCount) {
+    if (widgets.length > completedCount) {
+      widgets.length = completedCount;
+      texts.length = completedCount;
+    }
+  }
+}
+
 class ChatBubble extends StatelessWidget {
   final ChatMessage msg;
   final AgentColors nc;
@@ -324,9 +383,8 @@ class _AIBubbleState extends State<_AIBubble>
   String _lastText = '';
   bool _planExpanded = true;
   List<Widget> _cachedContent = [];
-  // 增量富文本缓存：已完成块的渲染结果与对应原文，避免每帧全量重解析
-  final List<List<Widget>> _frozenBlockWidgets = [];
-  final List<String> _frozenBlockTexts = [];
+  // 增量富文本缓存的持久化存储已移至 _BlockRenderCache（按 msg.id 跨重建存活），
+  // 此处不再持有实例字段，避免气泡滚出 cacheExtent 后缓存丢失、回看时整段重解析。
   late AnimationController _enterCtrl;
   late Animation<double> _enterOpacity;
   late Animation<Offset> _enterOffset;
@@ -355,8 +413,6 @@ class _AIBubbleState extends State<_AIBubble>
       _lastText = '';
       _cachedContent = [];
       _planExpanded = true;
-      _frozenBlockWidgets.clear();
-      _frozenBlockTexts.clear();
     }
   }
 
@@ -404,34 +460,28 @@ class _AIBubbleState extends State<_AIBubble>
 
   /// 增量重建流式富文本：已完成块（除最后一块）命中缓存则直接复用，
   /// 仅对最后一个正在生长的块重新解析并渲染。
-  List<Widget> _rebuildStreaming(String text) {
+  List<Widget> _rebuildStreaming(String text, _BlockRenderCache cache) {
     final blocks = _splitBlocks(text);
     final result = <Widget>[];
     // 防御：流式首帧 text 可能为空（占位消息 text='' 且 isStreaming=true），
     // 此时 blocks 为空 → completedCount 为负，直接返回空列表，由「思考中」
-    // 状态行占位，避免 _frozenBlockWidgets.length = -1（负长度）或 blocks.last
-    // （空列表）抛异常导致整屏红屏闪一下再恢复。
+    // 状态行占位，避免 blocks.last（空列表）抛异常导致整屏红屏闪一下再恢复。
     if (blocks.isEmpty) return result;
     final completedCount = blocks.length - 1;
     // 流式文本只增不减，completedCount 应单调增长；异常兜底截断缓存
-    if (_frozenBlockWidgets.length > completedCount) {
-      _frozenBlockWidgets.length = completedCount;
-      _frozenBlockTexts.length = completedCount;
-    }
+    cache.truncate(completedCount);
     for (var i = 0; i < completedCount; i++) {
-      if (i < _frozenBlockTexts.length &&
-          i < _frozenBlockWidgets.length &&
-          _frozenBlockTexts[i] == blocks[i]) {
-        result.addAll(_frozenBlockWidgets[i]);
+      final block = blocks[i];
+      // 代码块(fenced)与图片块依赖 BuildContext（复制 toast / Hero 路由），
+      // 不进缓存、每次重渲染；其余纯文本/标题/列表块命中缓存则直接复用已渲染
+      // widget（Flutter 对相同 widget 实例做 no-op update，不重解析、不重排版）。
+      final cacheable =
+          !block.contains('```') && !_kImagePattern.hasMatch(block);
+      if (cacheable && cache.has(i, block)) {
+        result.add(cache.get(i)!);
       } else {
-        final w = buildInlineContent(blocks[i], widget.nc, context);
-        if (i < _frozenBlockWidgets.length) {
-          _frozenBlockWidgets[i] = w;
-          _frozenBlockTexts[i] = blocks[i];
-        } else {
-          _frozenBlockWidgets.add(w);
-          _frozenBlockTexts.add(blocks[i]);
-        }
+        final w = buildInlineContent(block, widget.nc, context);
+        if (cacheable && w.length == 1) cache.put(i, block, w.single);
         result.addAll(w);
       }
     }
@@ -453,26 +503,34 @@ class _AIBubbleState extends State<_AIBubble>
     final hasSteps = steps != null && steps.isNotEmpty;
     final textContent = msg.cleanText;
     final isStreaming = msg.isStreaming;
+    final themeHash = Object.hash(
+      nc.textPrimary,
+      nc.textSecondary,
+      nc.primary,
+      nc.divider,
+      nc.primarySurface,
+      nc.success,
+    );
+    final blockCache = _BlockRenderCache.forId(msg.id, themeHash);
 
     final showProcessLine = hasSteps || (isStreaming && textContent.isEmpty);
 
-    // 流式期间使用增量富文本渲染：已完成块冻结缓存，仅重解析最后一个仍在
-    // 生长的块。配合 ListenableBuilder 每帧最多重建一次（Flutter 调度合并多个
-    // token 的 notifyListeners），单帧成本从「全量重解析整条 O(N)」降为
-    // 「仅当前块 O(块大小)」，从而达成与 ChatGPT / DeepSeek 同级的边流边富文本
-    // 流畅度。流结束后走下方整体规整一次（处理末块闭合等边界）。
+    // 流式期间使用增量富文本渲染：已完成块命中 _BlockRenderCache（按 msg.id
+    // 跨重建持久化）则直接复用已渲染 widget（Flutter 对相同 widget 实例做
+    // no-op update，不重解析、不重排版）；仅最后一个仍在生长的块重新解析。
+    // 配合 ChatMessage.text 的 200ms 节流（≤5Hz 重建），单帧成本从「每 token
+    // 全量重解析」降为「每 200ms 仅重解析当前块」，达成与 Operit / ChatGPT
+    // 同级的边流边富文本流畅度。流结束后走下方整体规整一次（处理末块闭合等边界）。
     Widget textBody;
     if (isStreaming) {
       textBody = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: _rebuildStreaming(textContent),
+        children: _rebuildStreaming(textContent, blockCache),
       );
     } else {
       if (textContent != _lastText) {
         _lastText = textContent;
         _cachedContent = buildInlineContent(textContent, nc, context);
-        _frozenBlockWidgets.clear();
-        _frozenBlockTexts.clear();
       }
       textBody = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
