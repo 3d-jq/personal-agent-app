@@ -24,7 +24,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
@@ -39,6 +39,11 @@ class _ChatScreenState extends State<ChatScreen>
   // Drawer 打开时暂停自动贴底滚动，避免每帧 jumpTo 与 Drawer 动画抢主 isolate 导致卡顿
   bool _drawerOpen = false;
   late final AnimationController _scrollAnim;
+  // 点击「回到底部」动画的起点 offset：_followBottom 据此在起点→当前底部间插值，
+  // 消除旧实现「每帧直接 jumpTo(max)＝第一帧硬跳到底」的突兀感。
+  double _animStartOffset = 0;
+  // 上次键盘遮挡高度：用于在 didChangeMetrics 中判断键盘是否正在弹起。
+  double _lastViewInsetBottom = 0;
 
   @override
   void initState() {
@@ -58,6 +63,7 @@ class _ChatScreenState extends State<ChatScreen>
       }
     });
     _scrollCtrl.addListener(_onScroll);
+    WidgetsBinding.instance.addObserver(this);
     _scrollAnim = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 280),
@@ -79,12 +85,30 @@ class _ChatScreenState extends State<ChatScreen>
     }
     // 仅当控制器未被缓存（新建会话）时才 dispose；缓存的由 ChatControllerCache 持有
     if (widget.sessionId == null) _controller.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     _inputCtrl.dispose();
     _inputFocus.dispose();
     _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
     _scrollAnim.dispose();
     super.dispose();
+  }
+
+  /// 键盘弹起/收起时被系统回调。键盘弹起（viewInsets 增大）且用户本就在底部时，
+  /// 让列表跟随键盘同步贴底——否则 Scaffold resize 后列表可视区缩小、最后一条消息
+  /// 会被抬高的输入框遮挡。用逐帧 jumpTo 跟随键盘上移动画，最跟手、无二次动画抖动。
+  /// 用户上滑看历史（_userScrolledUp）时点输入框不强制拽回底部，保持阅读位置。
+  @override
+  void didChangeMetrics() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollCtrl.hasClients) return;
+      final inset = MediaQuery.of(context).viewInsets.bottom;
+      final opening = inset > _lastViewInsetBottom;
+      _lastViewInsetBottom = inset;
+      if (opening && !_userScrolledUp && !_drawerOpen) {
+        _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+      }
+    });
   }
 
   void _onScroll() {
@@ -118,23 +142,26 @@ class _ChatScreenState extends State<ChatScreen>
     });
   }
 
-  /// 跟随式回到底部：每帧 jump 到「当前」maxScrollExtent。
-  /// 当列表滚到底部时底部 item 才被布局，真实 max 会比动画起点(估算值)更大；
-  /// 旧实现先 animateTo 一个固定目标、结束再 jumpTo 兜底，会在长列表/未布局项上
-  /// 产生「先到错误底部、再 snap 到真底部」的可见跳变。改为每帧跟随当前 max，
-  /// 底部 item 随布局完成自然把 max 推高，滚动平滑到底、无二次 snap。
+  /// 点击「回到底部」的每帧驱动：在动画起点 offset 与「当前」maxScrollExtent 之间
+  /// 用 easeOutCubic 插值（等价 Operit `animateScrollTo` 的 spring 平滑滚动）。
+  /// 每帧重读 max：底部 item 随布局完成把 max 推高、流式期间内容增长，都能自然跟随，
+  /// 既平滑插值又不会「先到错误底部再 snap」。旧实现每帧直接 jumpTo(max)＝第一帧
+  /// 硬跳到底、280ms 时长形同虚设，用户感受为「卡/突兀」——此即修复点。
   void _followBottom() {
-    if (_scrollCtrl.hasClients) {
-      _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
-    }
+    if (!_scrollCtrl.hasClients) return;
+    final target = _scrollCtrl.position.maxScrollExtent;
+    final t = Curves.easeOutCubic.transform(_scrollAnim.value);
+    final pos = _animStartOffset + (target - _animStartOffset) * t;
+    _scrollCtrl.jumpTo(pos);
   }
 
   /// 平滑回到底部：用于点击「回到底部」按钮。
-  /// 复位 _userScrolledUp 让流式自动贴底能恢复；用跟随式动画代替「animateTo+兜底 jumpTo」。
+  /// 复位 _userScrolledUp 让流式自动贴底能恢复；记录起点 offset 供 _followBottom 插值。
   void _scrollToBottom() {
     if (!_scrollCtrl.hasClients) return;
     _userScrolledUp = false;
     _autoScrolling = true;
+    _animStartOffset = _scrollCtrl.offset;
     _scrollAnim.stop();
     _scrollAnim.forward(from: 0);
   }
