@@ -32,14 +32,20 @@ void main() {
     });
   });
 
-  group('ContextDocTool', () {
-    test('declares read and update actions', () {
-      final tool = ContextDocTool();
-      final action = tool.parameters['properties']['action'] as Map;
-      final actions = (action['enum'] as List).cast<String>();
+  group('context_doc split tools', () {
+    test('ContextDocReadTool 要求 doc 参数', () {
+      final tool = ContextDocReadTool();
+      final required = tool.parameters['required'] as List;
+      expect(required, contains('doc'));
+      expect(tool.name, 'context_doc_read');
+    });
 
-      expect(actions, contains('read'));
-      expect(actions, contains('update'));
+    test('ContextDocUpdateTool 要求 doc 和 content 参数', () {
+      final tool = ContextDocUpdateTool();
+      final required = tool.parameters['required'] as List;
+      expect(required, contains('doc'));
+      expect(required, contains('content'));
+      expect(tool.name, 'context_doc_update');
     });
   });
 }

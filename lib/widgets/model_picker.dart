@@ -5,6 +5,7 @@ import '../services/ai_service.dart';
 import 'ai_settings.dart';
 import 'common_widgets.dart';
 import 'vendor_config.dart';
+import '../core/app_animations.dart';
 
 void showModelPicker(BuildContext context, AISettings s, VoidCallback cb) {
   final v = s.selectedVendor;
@@ -402,7 +403,7 @@ class _ModelSkeletonListState extends State<_ModelSkeletonList>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: AppDurations.shimmer,
     )..repeat(reverse: true);
   }
 

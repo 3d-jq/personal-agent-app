@@ -1,0 +1,1 @@
+更新某个任务的状态。需提供 task_id 与 status；blocked/failed 建议填写原因。

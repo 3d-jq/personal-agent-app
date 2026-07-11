@@ -1,0 +1,1 @@
+创建新技能：需提供 name、description（触发场景）、instructions（执行步骤与可用工具）。

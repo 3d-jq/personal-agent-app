@@ -62,7 +62,7 @@ class _GroupChatScreenState extends State<GroupChatScreen>
     WidgetsBinding.instance.addObserver(this);
     _scrollAnim = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 280),
+      duration: AppDurations.standard,
     );
     _scrollAnim.addListener(_followBottom);
     _scrollAnim.addStatusListener((status) {
@@ -163,7 +163,7 @@ class _GroupChatScreenState extends State<GroupChatScreen>
   void _followBottom() {
     if (!_scrollCtrl.hasClients) return;
     final target = _scrollCtrl.position.maxScrollExtent;
-    final t = Curves.easeOutCubic.transform(_scrollAnim.value);
+    final t = AppCurves.standard.transform(_scrollAnim.value);
     final pos = _animStartOffset + (target - _animStartOffset) * t;
     _scrollCtrl.jumpTo(pos);
   }
@@ -388,8 +388,8 @@ class _GroupChatScreenState extends State<GroupChatScreen>
                         bottom: 12,
                         child: AnimatedOpacity(
                           opacity: _showScrollBottom ? 1.0 : 0.0,
-                          duration: const Duration(milliseconds: 150),
-                          curve: Curves.easeOut,
+                          duration: AppDurations.micro,
+                          curve: AppCurves.appear,
                           child: IgnorePointer(
                             ignoring: !_showScrollBottom,
                               child: GestureDetector(

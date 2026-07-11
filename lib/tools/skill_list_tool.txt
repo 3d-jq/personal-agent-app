@@ -1,0 +1,1 @@
+列出所有可用 Skill 的目录（name + description）。

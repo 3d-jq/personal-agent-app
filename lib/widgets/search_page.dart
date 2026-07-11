@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
+import '../core/app_animations.dart';
 import 'common_widgets.dart';
 import '../services/chat_storage.dart';
 import '../core/service_locator.dart';
@@ -124,10 +125,7 @@ class _SearchPageState extends State<SearchPage> {
                   margin: const EdgeInsets.only(bottom: 8),
                   child: Material(
                     color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      splashFactory: NoSplash.splashFactory,
-                      highlightColor: nc.fillTertiary,
+                    child: PressableScale(
                       onTap: () => Navigator.pop(context, r),
                       child: Container(
                         padding: const EdgeInsets.all(14),

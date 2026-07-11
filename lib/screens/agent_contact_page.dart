@@ -241,10 +241,8 @@ class _GroupTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: InkWell(
+      child: PressableScale(
         onTap: onTap,
-        splashFactory: NoSplash.splashFactory,
-        highlightColor: nc.fillTertiary,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: SpaceToken.lg,
@@ -302,10 +300,8 @@ class _AgentTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: InkWell(
+      child: PressableScale(
         onTap: onTap,
-        splashFactory: NoSplash.splashFactory,
-        highlightColor: nc.fillTertiary,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: SpaceToken.lg,

@@ -318,10 +318,9 @@ class _CardItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: InkWell(
+      child: PressableScale(
         onTap: onTap,
         onLongPress: onLongPress,
-        borderRadius: BorderRadius.zero,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/app_animations.dart';
 
 /// 文字上的微光扫过效果
 class ShimmerText extends StatefulWidget {
@@ -14,7 +15,7 @@ class ShimmerText extends StatefulWidget {
     required this.style,
     required this.baseColor,
     required this.highlightColor,
-    this.duration = const Duration(milliseconds: 1600),
+    this.duration = AppDurations.shimmer,
   });
 
   @override
@@ -31,7 +32,7 @@ class _ShimmerTextState extends State<ShimmerText>
     super.initState();
     _controller = AnimationController(vsync: this, duration: widget.duration);
     _animation = Tween<double>(begin: -1.0, end: 2.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+      CurvedAnimation(parent: _controller, curve: AppCurves.shimmer),
     );
     _controller.repeat();
   }

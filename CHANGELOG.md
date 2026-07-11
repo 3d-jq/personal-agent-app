@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.4.30 — action 独立成工具 + UI 动效全量统一 (2026-07-11)
+
+### 🏗️ Action 拆分：26 个独立工具，各自独占调用配额
+- **6 个具有 `action` 参数的工具裂为 26 个独立工具**，每个 action 成为一级 `AgentTool`，各自独占 10 次调用配额（不再被同工具的其他 action 挤占）。
+- 命名统一 `domain_verb`：`notes_*` / `calendar_*` / `context_doc_read|update` / `skill_*` / `fs_*` / `plan_*`。
+- `task_plan` → `plan_create|update|advance|status|clear|verify`，6 工具共享 `TaskPlanStore` 实例（计划状态会话内一致，串行锁防竞态）。`ai_service_base` 计划面板集成同步改造（按 `plan_` 前缀匹配 + `PlanStoreHolder` 取共享状态）。
+- 工具描述改为内联（删除旧 `.g.dart`/`.txt` 生成文件）。
+- 注册层 (`plugin_registry.dart`) 全量刷新；`chat_helpers.toolLabel` 6 个 action 分支改为新工具名直返中文标签；`prompt_builder` / `agent_runner` / `skill_registry` / `context_doc_service` 里的工具名散文引用全部同步。
+
+### 🎨 UI 动效/样式全量统一
+- Token 基建补强：`AppCurves` 补 `standard|shimmer`、`AppDurations` 补 `micro`、`PressableScale` 补 `onLongPress`。
+- 死代码删除：`SlideUpRoute`（底部弹层统一原生 `showModalBottomSheet`）、`MotionToken`（与 AppDurations 口径漂移）。
+- 配色统一：`AgentColors` 新增 `drawerScrim` token；`group_status_bar` 裸色→`nc.error/textTertiary`；FAB 补 `elevation:6`。
+- 散落硬编码收敛：裸 `Duration(...)` / `Curves.*` → `AppDurations`/`AppCurves`（11 处文件）。
+- 按压反馈统一：20 处 `InkWell` → `PressableScale`（Expressive 弹簧，iOS 风）。
+- `notes_page` `_NoteTile` 删除 `FadeTransition+SlideTransition` 进入动画改静态直出。
+
+### 🐛 修复：进/切会话定位最新消息
+- 新增 `_jumpToLatest`/`_jumpToLatestNow`，进会话/切会话跳到底部（聊天软件体验）。
+
 ## v1.4.29 — 会话切换零延迟 + 回到底部平滑 + 切换去冗余序列化 (2026-07-11)
 
 ### 🔥 会话切换零延迟（治「点击要等会才能进入」/ 切换卡点）

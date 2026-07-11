@@ -2,91 +2,42 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'base_tool.dart';
-import 'task_plan_tool.g.dart';
 import 'task_plan_state_machine.dart';
 import '../core/service_locator.dart';
 import '../services/log_service.dart';
+import 'plan_create_tool.g.dart';
+import 'plan_update_tool.g.dart';
+import 'plan_advance_tool.g.dart';
+import 'plan_status_tool.g.dart';
+import 'plan_clear_tool.g.dart';
+import 'plan_verify_tool.g.dart';
 import '../services/virtual_fs.dart';
 
-/// 任务计划工具：帮助大模型在执行复杂多步任务时保持进度。
+/// 任务计划工具的共享状态与串行锁。
 ///
-/// 支持：
-/// - 创建计划（含子任务树）
-/// - 更新任务状态（pending/in_progress/done/failed/blocked）
-/// - advance 自动推进当前 in_progress 任务
-/// - 任务持久化到虚拟文件系统
-/// - 查看当前进度摘要
-class TaskPlanTool extends AgentTool {
+/// 原 `task_plan`（带 action 参数）已拆分为 6 个独立工具
+/// （[PlanCreateTool] / [PlanUpdateTool] / [PlanAdvanceTool] / [PlanStatusTool] /
+/// [PlanClearTool] / [PlanVerifyTool]），它们共享同一个 [TaskPlanStore] 实例，
+/// 因此计划状态在会话内保持一致，且各自独占调用配额。
+///
+/// 串行锁保证所有计划操作（create/update/advance/...）排队执行，避免竞态。
+class TaskPlanStore {
   TaskPlan? _currentPlan;
   TaskPlan? get currentPlan => _currentPlan;
 
   String? lastStatusText;
 
-  /// 串行锁：所有 task_plan 操作必须串行执行，保护 _currentPlan / lastStatusText / plan.json
+  /// 串行锁：所有计划操作必须串行执行，保护 _currentPlan / lastStatusText / plan.json
   Future<void> _queue = Future.value();
 
-  @override
-  String get name => 'task_plan';
-
-  @override
-  String get description => taskPlanToolDescription;
-
-  @override
-  Map<String, dynamic> get parameters => {
-    'type': 'object',
-    'properties': {
-      'action': {
-        'type': 'string',
-        'enum': ['create', 'update', 'advance', 'status', 'clear', 'verify'],
-        'description':
-            'create: 创建新计划; update: 更新任务状态; '
-            'advance: 自动完成当前 in_progress 任务并推进到下一步; '
-            'status: 查看进度; clear: 清除计划; '
-            'verify: 校验所有任务是否已完成/失败，通过后才能输出最终答案',
-      },
-      'title': {'type': 'string', 'description': '计划标题（仅 create 时必填）'},
-      'tasks': {
-        'type': 'array',
-        'items': {
-          'type': 'object',
-          'properties': {
-            'id': {'type': 'string', 'description': '任务ID，如 T1, T2, T1.1'},
-            'title': {'type': 'string', 'description': '任务描述'},
-            'parent': {'type': 'string', 'description': '父任务ID（可选，用于子任务）'},
-            'dependsOn': {
-              'type': 'array',
-              'items': {'type': 'string'},
-              'description': '依赖的任务ID列表（可选），这些任务必须全部 done 后才能开始本任务',
-            },
-          },
-          'required': ['id', 'title'],
-        },
-        'description': '任务列表（仅 create 时使用），支持通过 parent 字段构建子任务树，dependsOn 指定依赖',
-      },
-      'task_id': {
-        'type': 'string',
-        'description': '任务ID（仅 update 时必填），如 T1, T1.1',
-      },
-      'status': {
-        'type': 'string',
-        'enum': ['pending', 'in_progress', 'done', 'failed', 'blocked'],
-        'description': '新状态（仅 update 时使用）',
-      },
-      'note': {'type': 'string', 'description': '状态更新备注（可选）'},
-      'blockedReason': {'type': 'string', 'description': '阻塞原因（仅 blocked 或 failed 状态时推荐填写）'},
-    },
-    'required': ['action'],
-  };
-
-  @override
-  Future<String> execute(Map<String, dynamic> args) async {
-    // 串行锁：所有操作排队执行，防止竞态条件
+  /// 入队一个计划操作，保证串行执行（防止并发竞态）。
+  Future<String> enqueue(Future<String> Function() task) {
     final prev = _queue;
     final completer = Completer<String>();
     _queue = prev.then((_) async {
       // Prevent unhandled exceptions from deadlocking the queue
       try {
-        final result = await _executeLocked(args);
+        final result = await task();
         if (!completer.isCompleted) completer.complete(result);
       } catch (e) {
         if (!completer.isCompleted) completer.complete('执行失败: $e');
@@ -95,41 +46,46 @@ class TaskPlanTool extends AgentTool {
     return completer.future;
   }
 
-  Future<String> _executeLocked(Map<String, dynamic> args) async {
-    final action = args['action'] as String? ?? '';
+  Future<String> create(Map<String, dynamic> args) async {
+    if (_currentPlan == null) await _loadPlan();
+    final result = await _create(args);
+    lastStatusText = result;
+    return result;
+  }
 
-    if (_currentPlan == null) {
-      await _loadPlan();
-    }
+  Future<String> update(Map<String, dynamic> args) async {
+    if (_currentPlan == null) await _loadPlan();
+    final result = await _update(args);
+    lastStatusText = result;
+    return result;
+  }
 
-    switch (action) {
-      case 'create':
-        final result = await _create(args);
-        lastStatusText = result;
-        return result;
-      case 'update':
-        final result = await _update(args);
-        lastStatusText = result;
-        return result;
-      case 'advance':
-        final result = await _advance();
-        lastStatusText = result;
-        return result;
-      case 'status':
-        final result = _status();
-        lastStatusText = result;
-        return result;
-      case 'clear':
-        final result = await _clear();
-        lastStatusText = result;
-        return result;
-      case 'verify':
-        final result = await _verify();
-        lastStatusText = result;
-        return result;
-      default:
-        return '错误: action 必须为 create / update / advance / status / clear / verify 之一';
-    }
+  Future<String> advance() async {
+    if (_currentPlan == null) await _loadPlan();
+    final result = await _advance();
+    lastStatusText = result;
+    return result;
+  }
+
+  Future<String> status() async {
+    if (_currentPlan == null) await _loadPlan();
+    final result = _status();
+    lastStatusText = result;
+    return result;
+  }
+
+  Future<String> clear() async {
+    if (_currentPlan == null) await _loadPlan();
+    final result = await _clear();
+    lastStatusText = result;
+    return result;
+  }
+
+  Future<String> verify() async {
+    if (_currentPlan == null) await _loadPlan();
+    final result = await _verify();
+    lastStatusText = result;
+    return result;
   }
 
   Future<String> _create(Map<String, dynamic> args) async {
@@ -180,7 +136,7 @@ class TaskPlanTool extends AgentTool {
   }
 
   Future<String> _update(Map<String, dynamic> args) async {
-    if (_currentPlan == null) return '当前没有活跃计划，请先用 create 创建';
+    if (_currentPlan == null) return '当前没有活跃计划，请先用 plan_create 创建';
 
     final taskId = args['task_id'] as String?;
     if (taskId == null || taskId.isEmpty) return '错误: update 需要提供 task_id';
@@ -229,7 +185,7 @@ class TaskPlanTool extends AgentTool {
 
   Future<String> _advance() async {
     if (_currentPlan == null) {
-      return '错误: 当前没有活跃计划，请先用 create 创建';
+      return '错误: 当前没有活跃计划，请先用 plan_create 创建';
     }
 
     final sm = TaskPlanStateMachine(_currentPlan!);
@@ -254,8 +210,8 @@ class TaskPlanTool extends AgentTool {
     if (_currentPlan == null) return '当前没有活跃计划';
 
     if (!_currentPlan!.verified) {
-      return '错误: 计划尚未通过 verify 校验，不能清除。\n'
-          '请先调用 verify 校验通过，输出最终答案后再清除。';
+      return '错误: 计划尚未通过 plan_verify 校验，不能清除。\n'
+          '请先调用 plan_verify 校验通过，输出最终答案后再清除。';
     }
 
     _currentPlan = null;
@@ -272,8 +228,6 @@ class TaskPlanTool extends AgentTool {
     await _savePlan(); // 持久化 verified 状态
     return result.message;
   }
-
-
 
   String _formatProgressWithRemaining(String prefix) {
     if (_currentPlan == null) return '当前没有活跃计划';
@@ -297,7 +251,7 @@ class TaskPlanTool extends AgentTool {
       if (_currentPlan!.verified) {
         buf.writeln('✅ 所有步骤已完成且校验通过，现在可以输出最终答案了。');
       } else {
-        buf.writeln('⚠️ 所有步骤已完成，请调用 verify 校验通过后再输出最终答案。');
+        buf.writeln('⚠️ 所有步骤已完成，请调用 plan_verify 校验通过后再输出最终答案。');
       }
       return buf.toString();
     }
@@ -314,7 +268,7 @@ class TaskPlanTool extends AgentTool {
     if (nextInProgress != null) {
       buf.writeln('\n→ 下一步: ${nextInProgress.id} ${nextInProgress.title}');
     } else {
-      buf.writeln('\n→ 下一步: 调用 advance 继续');
+      buf.writeln('\n→ 下一步: 调用 plan_advance 继续');
     }
 
     final failed = allTasks.where((t) => t.status == TaskStatus.failed).length;
@@ -333,7 +287,7 @@ class TaskPlanTool extends AgentTool {
       await fs.mkdir('/scratch');
       await fs.write('/scratch/plan.json', json);
     } catch (e) {
-      log.e('TaskPlanTool', '保存任务计划失败: $e');
+      log.e('TaskPlanStore', '保存任务计划失败: $e');
     }
   }
 
@@ -354,6 +308,193 @@ class TaskPlanTool extends AgentTool {
       debugPrint('[TaskPlan] 加载计划失败: $e');
     }
   }
+}
+
+/// 计划类工具共享的接口：用于从 [ToolRegistry] 取回共享的 [TaskPlanStore]。
+abstract class PlanStoreHolder {
+  TaskPlanStore get store;
+}
+
+/// 创建任务计划（含子任务树）。
+class PlanCreateTool extends AgentTool implements PlanStoreHolder {
+  final TaskPlanStore _store;
+  PlanCreateTool(this._store);
+  @override
+  TaskPlanStore get store => _store;
+
+  @override
+  String get name => 'plan_create';
+  @override
+  bool get readOnly => false;
+  @override
+  String get description => planCreateToolDescription;
+  @override
+  Map<String, dynamic> get parameters => {
+    'type': 'object',
+    'properties': {
+      'title': {'type': 'string', 'description': '计划标题'},
+      'tasks': {
+        'type': 'array',
+        'items': {
+          'type': 'object',
+          'properties': {
+            'id': {'type': 'string', 'description': '任务ID，如 T1, T2, T1.1'},
+            'title': {'type': 'string', 'description': '任务描述'},
+            'parent': {'type': 'string', 'description': '父任务ID（可选，用于子任务）'},
+            'dependsOn': {
+              'type': 'array',
+              'items': {'type': 'string'},
+              'description': '依赖的任务ID列表（可选）',
+            },
+          },
+          'required': ['id', 'title'],
+        },
+        'description': '任务列表，支持通过 parent 字段构建子任务树，dependsOn 指定依赖',
+      },
+    },
+    'required': ['title', 'tasks'],
+  };
+
+  @override
+  Future<String> execute(Map<String, dynamic> args) =>
+      _store.enqueue(() => _store.create(args));
+}
+
+/// 更新任务状态（pending/in_progress/done/failed/blocked）。
+class PlanUpdateTool extends AgentTool implements PlanStoreHolder {
+  final TaskPlanStore _store;
+  PlanUpdateTool(this._store);
+  @override
+  TaskPlanStore get store => _store;
+
+  @override
+  String get name => 'plan_update';
+  @override
+  bool get readOnly => false;
+  @override
+  String get description => planUpdateToolDescription;
+  @override
+  Map<String, dynamic> get parameters => {
+    'type': 'object',
+    'properties': {
+      'task_id': {'type': 'string', 'description': '任务ID，如 T1, T1.1'},
+      'status': {
+        'type': 'string',
+        'enum': ['pending', 'in_progress', 'done', 'failed', 'blocked'],
+        'description': '新状态',
+      },
+      'note': {'type': 'string', 'description': '状态更新备注（可选）'},
+      'blockedReason': {
+        'type': 'string',
+        'description': '阻塞原因（仅 blocked 或 failed 状态时推荐填写）',
+      },
+    },
+    'required': ['task_id', 'status'],
+  };
+
+  @override
+  Future<String> execute(Map<String, dynamic> args) =>
+      _store.enqueue(() => _store.update(args));
+}
+
+/// 自动完成当前进行中任务并推进到下一步。
+class PlanAdvanceTool extends AgentTool implements PlanStoreHolder {
+  final TaskPlanStore _store;
+  PlanAdvanceTool(this._store);
+  @override
+  TaskPlanStore get store => _store;
+
+  @override
+  String get name => 'plan_advance';
+  @override
+  bool get readOnly => false;
+  @override
+  String get description => planAdvanceToolDescription;
+  @override
+  Map<String, dynamic> get parameters => {
+    'type': 'object',
+    'properties': <String, dynamic>{},
+    'required': <String>[],
+  };
+
+  @override
+  Future<String> execute(Map<String, dynamic> args) =>
+      _store.enqueue(() => _store.advance());
+}
+
+/// 查看当前进度摘要。
+class PlanStatusTool extends AgentTool implements PlanStoreHolder {
+  final TaskPlanStore _store;
+  PlanStatusTool(this._store);
+  @override
+  TaskPlanStore get store => _store;
+
+  @override
+  String get name => 'plan_status';
+  @override
+  bool get readOnly => true;
+  @override
+  String get description => planStatusToolDescription;
+  @override
+  Map<String, dynamic> get parameters => {
+    'type': 'object',
+    'properties': <String, dynamic>{},
+    'required': <String>[],
+  };
+
+  @override
+  Future<String> execute(Map<String, dynamic> args) =>
+      _store.enqueue(() => _store.status());
+}
+
+/// 清除计划（需先通过 verify 校验）。
+class PlanClearTool extends AgentTool implements PlanStoreHolder {
+  final TaskPlanStore _store;
+  PlanClearTool(this._store);
+  @override
+  TaskPlanStore get store => _store;
+
+  @override
+  String get name => 'plan_clear';
+  @override
+  bool get readOnly => false;
+  @override
+  String get description => planClearToolDescription;
+  @override
+  Map<String, dynamic> get parameters => {
+    'type': 'object',
+    'properties': <String, dynamic>{},
+    'required': <String>[],
+  };
+
+  @override
+  Future<String> execute(Map<String, dynamic> args) =>
+      _store.enqueue(() => _store.clear());
+}
+
+/// 校验所有任务是否已完成/失败。
+class PlanVerifyTool extends AgentTool implements PlanStoreHolder {
+  final TaskPlanStore _store;
+  PlanVerifyTool(this._store);
+  @override
+  TaskPlanStore get store => _store;
+
+  @override
+  String get name => 'plan_verify';
+  @override
+  bool get readOnly => false;
+  @override
+  String get description => planVerifyToolDescription;
+  @override
+  Map<String, dynamic> get parameters => {
+    'type': 'object',
+    'properties': <String, dynamic>{},
+    'required': <String>[],
+  };
+
+  @override
+  Future<String> execute(Map<String, dynamic> args) =>
+      _store.enqueue(() => _store.verify());
 }
 
 enum TaskStatus { pending, inProgress, done, failed, blocked }

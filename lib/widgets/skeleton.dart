@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
+import '../core/app_animations.dart';
 
 /// 骨架屏组件 - 用于加载时显示占位内容
 class Skeleton extends StatefulWidget {
@@ -28,10 +29,10 @@ class _SkeletonState extends State<Skeleton>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: AppDurations.shimmer,
     )..repeat(reverse: true);
     _animation = Tween<double>(begin: 0.3, end: 0.8).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _controller, curve: AppCurves.state),
     );
   }
 

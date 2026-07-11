@@ -61,12 +61,10 @@ class _ChatScreenState extends State<ChatScreen>
     _loading = _controller.currentSessionId != null && !_controller.isReady;
     _controller.initialize().then((_) {
       if (mounted) setState(() => _loading = false);
-      // 恢复上次离开时的滚动位置（缓存复用场景）
-      if (mounted &&
-          _controller.lastScrollOffset != null &&
-          _scrollCtrl.hasClients) {
-        _scrollCtrl.jumpTo(_controller.lastScrollOffset!);
-      }
+      // 进入会话：定位到最新消息（聊天软件惯例：进会话即见最新），而非恢复上次
+      // 离开位置。_jumpToLatest 用 post-frame 兜底，避免列表尚未 build 时 hasClients
+      // 为 false 导致跳底失效、停在顶部（旧行为即此 bug）。
+      _jumpToLatest();
     });
     _scrollCtrl.addListener(_onScroll);
     WidgetsBinding.instance.addObserver(this);
@@ -143,6 +141,24 @@ class _ChatScreenState extends State<ChatScreen>
     });
   }
 
+  /// 进入/切换会话后定位到最新消息（聊天软件惯例：进会话即见最新）。
+  /// 必须等列表布局完成（maxScrollExtent 已知）再跳，故用 post-frame 回调；
+  /// 列表尚未挂载（hasClients 为 false）时递归延一帧重试，确保最终跳到底部。
+  void _jumpToLatest() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToLatestNow());
+  }
+
+  void _jumpToLatestNow() {
+    if (!mounted) return;
+    if (!_scrollCtrl.hasClients) {
+      // 列表尚未挂载（如仍在骨架屏 / 切换中），下一帧再试一次
+      WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToLatestNow());
+      return;
+    }
+    _userScrolledUp = false;
+    _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+  }
+
   /// 平滑回到底部：用于点击「回到底部」按钮。
   /// 复位 _userScrolledUp 让流式自动贴底能恢复。
   ///
@@ -170,8 +186,8 @@ class _ChatScreenState extends State<ChatScreen>
     _scrollCtrl
         .animateTo(
           max,
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOutCubic,
+          duration: AppDurations.standard,
+          curve: AppCurves.standard,
         )
         .then((_) => _autoScrolling = false)
         .catchError((_) => _autoScrolling = false);
@@ -219,7 +235,11 @@ class _ChatScreenState extends State<ChatScreen>
     // 内容已就绪 → 零人工延迟、无骨架闪烁、无 AnimatedSwitcher 交叉淡入卡点。对齐
     // Operit「抽屉 GPU 动画期间内容不重组 / 切换不卡顿」原则。
     _controller.switchSession(id).then((_) {
-      if (mounted) widget.onSessionChanged?.call();
+      if (mounted) {
+        widget.onSessionChanged?.call();
+        // 切到新会话后定位到最新消息（抽屉背后完成，收起时已是最新）
+        _jumpToLatest();
+      }
     }).catchError((e, st) {
       debugPrint('切换会话失败: $e');
     });
@@ -255,7 +275,7 @@ class _ChatScreenState extends State<ChatScreen>
           backgroundColor: nc.background,
           drawerEnableOpenDragGesture: true,
           onDrawerChanged: (opened) => _drawerOpen = opened,
-          drawerScrimColor: Colors.black.withValues(alpha: 0.38),
+          drawerScrimColor: nc.drawerScrim,
           drawer: _DrawerContent(
             controller: _controller,
             onSessionTap: _onSessionTap,
@@ -286,8 +306,8 @@ class _ChatScreenState extends State<ChatScreen>
                   children: [
                     AnimatedSwitcher(
                       duration: AppDurations.standard,
-                      switchInCurve: Curves.easeOut,
-                      switchOutCurve: Curves.easeIn,
+                      switchInCurve: AppCurves.appear,
+                      switchOutCurve: AppCurves.disappear,
                       child: _loading
                           ? const ChatListSkeleton(key: ValueKey('skeleton'))
                           : _MessageList(
@@ -305,7 +325,7 @@ class _ChatScreenState extends State<ChatScreen>
                       child: AnimatedOpacity(
                         opacity: _showScrollBottom ? 1.0 : 0.0,
                         duration: AppDurations.fast,
-                        curve: Curves.easeOut,
+                        curve: AppCurves.appear,
                         child: IgnorePointer(
                           ignoring: !_showScrollBottom,
                       child: GestureDetector(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import '../core/app_animations.dart';
 
 /// 统一底部导航（Apple 胶囊风格，2-tab：消息 / Agent）。
 ///
@@ -45,11 +46,11 @@ class _AgentBottomNavState extends State<AgentBottomNav>
     _begin = widget.currentIndex.toDouble();
     _end = _begin;
     _ctrl = AnimationController(
-      duration: const Duration(milliseconds: 250),
+      duration: AppDurations.expressive,
       vsync: this,
     );
     _anim = Tween<double>(begin: _begin, end: _end).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
+      CurvedAnimation(parent: _ctrl, curve: AppCurves.standard),
     );
   }
 
@@ -60,7 +61,7 @@ class _AgentBottomNavState extends State<AgentBottomNav>
       _begin = old.currentIndex.toDouble();
       _end = widget.currentIndex.toDouble();
       _anim = Tween<double>(begin: _begin, end: _end).animate(
-        CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
+        CurvedAnimation(parent: _ctrl, curve: AppCurves.standard),
       );
       _ctrl.forward(from: 0);
     }

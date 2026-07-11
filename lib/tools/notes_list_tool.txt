@@ -1,0 +1,1 @@
+列出当前全部笔记（id + 标题 + 摘要）。先调用本工具获取笔记 id，再用于 notes_read / notes_update / notes_delete。

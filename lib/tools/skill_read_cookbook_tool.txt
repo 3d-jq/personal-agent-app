@@ -1,0 +1,1 @@
+读取某个 Skill 的 cookbook 详细步骤文件。

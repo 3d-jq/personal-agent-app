@@ -22,7 +22,7 @@ class _ChatListSkeletonState extends State<ChatListSkeleton>
     duration: AppDurations.shimmer,
   )..repeat();
   late final Animation<double> _anim = Tween<double>(begin: -1.0, end: 2.0).animate(
-    CurvedAnimation(parent: _ctrl, curve: Curves.easeInOutSine),
+    CurvedAnimation(parent: _ctrl, curve: AppCurves.shimmer),
   );
 
   @override

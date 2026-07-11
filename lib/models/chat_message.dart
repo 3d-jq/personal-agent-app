@@ -34,7 +34,7 @@ class ChatMessage extends ChangeNotifier {
   /// 每个元素代表一轮工具调用：{toolCalls: [...], toolResults: [...]}
   List<Map<String, dynamic>>? toolInteractions;
 
-  /// 任务计划（task_plan 工具触发时），渲染在 AI 气泡内的 plan 卡片。
+  /// 任务计划（plan_* 工具触发时），渲染在 AI 气泡内的 plan 卡片。
   /// 不持久化：会话重载后不恢复（与原输入框上方悬浮面板行为一致）。
   TaskPlan? _plan;
 

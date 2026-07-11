@@ -1,0 +1,1 @@
+读取上下文文档全文：soul=人格设定、user=用户资料、agent=任务经验、memory=长期记忆、knowledge=知识库（knowledge 需额外 filename）。

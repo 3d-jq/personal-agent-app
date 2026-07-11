@@ -24,18 +24,10 @@ void registerMcpTools(ToolRegistry registry) {
 /// [detailed] 为 true 时显示更具体的信息（如文档名），用于时间线。
 String toolLabel(String name, {Map<String, dynamic>? arguments, bool detailed = false}) {
   switch (name) {
-    case 'context_doc':
-      final action = arguments?['action'] as String?;
-      final doc = arguments?['doc'] as String?;
-      final verb = switch (action) {
-        'read' => '读',
-        'update' => '写',
-        _ => '',
-      };
-      if (detailed && doc != null) {
-        return '上下文文档 · $verb ${_docLabel(doc)}';
-      }
-      return verb.isNotEmpty ? '上下文文档 · $verb' : '上下文文档';
+    case 'context_doc_read':
+      return '上下文文档 · 读${detailed && arguments?['doc'] != null ? ' ${_docLabel(arguments?['doc'] as String?)}' : ''}';
+    case 'context_doc_update':
+      return '上下文文档 · 写${detailed && arguments?['doc'] != null ? ' ${_docLabel(arguments?['doc'] as String?)}' : ''}';
     case 'weather':
       return '查询天气';
     case 'location':
@@ -54,34 +46,34 @@ String toolLabel(String name, {Map<String, dynamic>? arguments, bool detailed = 
       return '生成视频';
     case 'save_note':
       return '保存笔记';
-    case 'manage_notes':
-      final a = arguments?['action'] as String?;
-      return switch (a) { 'list' => '查看笔记', 'update' => '更新笔记', 'delete' => '删除笔记', _ => '管理笔记' };
+    case 'notes_list':  return '查看笔记';
+    case 'notes_read':  return '读取笔记';
+    case 'notes_update':  return '更新笔记';
+    case 'notes_delete':  return '删除笔记';
     case 'create_rich_note':
       return '图文笔记';
-    case 'calendar':
-      final a = arguments?['action'] as String?;
-      return switch (a) { 'query' => '查看日历', 'add' => '添加日历', 'delete' => '删除日历', _ => '日历' };
+    case 'calendar_query':  return '查看日历';
+    case 'calendar_add':    return '添加日历';
+    case 'calendar_delete': return '删除日历';
     case 'ai_daily':
       return 'AI日报';
-    case 'virtual_fs':
-      final a = arguments?['action'] as String?;
-      return switch (a) { 'ls' => '列出目录', 'read' => '读取文件', 'write' => '写入文件', 'mkdir' => '创建目录', 'rm' => '删除', 'walk' => '遍历目录', _ => '文件系统' };
-    case 'skill_manage':
-      final a = arguments?['action'] as String?;
-      return switch (a) { 'list' => '查看技能', 'read' => '读取技能', 'read_cookbook' => '读取步骤', 'create' => '创建技能', 'match' => '匹配技能', _ => '技能管理' };
-    case 'task_plan':
-      final action = arguments?['action'] as String?;
-      final verb = switch (action) {
-        'create' => '创建',
-        'update' => '更新',
-        'advance' => '推进',
-        'status' => '查看',
-        'verify' => '校验',
-        'clear' => '清除',
-        _ => '',
-      };
-      return verb.isNotEmpty ? '任务计划 · $verb' : '任务计划';
+    case 'fs_ls':    return '列出目录';
+    case 'fs_read':  return '读取文件';
+    case 'fs_write': return '写入文件';
+    case 'fs_mkdir': return '创建目录';
+    case 'fs_rm':    return '删除文件';
+    case 'fs_walk':  return '遍历目录';
+    case 'skill_list':          return '查看技能';
+    case 'skill_read':          return '读取技能';
+    case 'skill_read_cookbook': return '读取步骤';
+    case 'skill_create':        return '创建技能';
+    case 'skill_match':         return '匹配技能';
+    case 'plan_create':  return '任务计划 · 创建';
+    case 'plan_update':  return '任务计划 · 更新';
+    case 'plan_advance': return '任务计划 · 推进';
+    case 'plan_status':  return '任务计划 · 查看';
+    case 'plan_verify':  return '任务计划 · 校验';
+    case 'plan_clear':   return '任务计划 · 清除';
     case 'tool_search':
       return '发现工具';
     case 'defer_execute_tool':

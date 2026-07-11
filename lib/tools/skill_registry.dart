@@ -49,8 +49,8 @@ class SkillRegistry {
 2. 询问 Skill 的描述（应说明什么情况下使用这个 Skill）
 3. 询问 Skill 的指令内容（AI 在什么情况下使用这个 Skill，执行什么步骤，用哪些工具）
 4. 询问 Skill 的触发关键词（可选，用逗号分隔）
-5. 调用 skill_manage 工具创建技能：
-   skill_manage(action="create", name="<名称>", description="<描述>", instructions="<指令内容>", keywords=["关键词1", "关键词2"])
+5. 调用 skill_create 工具创建技能：
+   skill_create(name="<名称>", description="<描述>", instructions="<指令内容>", keywords=["关键词1", "关键词2"])
 6. 告诉用户 Skill 已创建
 
 创建 Skill 时，指令应该清晰描述：
@@ -80,7 +80,7 @@ class SkillRegistry {
   /// 获取 Skill 目录（用于注入到 system prompt）
   ///
   /// 只注入第1层：name + description（渐进式披露）
-  /// AI 需要正文时通过 skill_manage(action=read) 按需读取
+  /// AI 需要正文时通过 skill_read 按需读取
   String getCatalog() {
     if (_skills.isEmpty) return '';
 

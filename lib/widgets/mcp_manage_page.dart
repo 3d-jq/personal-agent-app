@@ -365,6 +365,7 @@ class _McpManagePageState extends State<McpManagePage> {
                     child: FloatingActionButton(
                       onPressed: _showAddMenu,
                       backgroundColor: nc.primary,
+                      elevation: 6,
                       child: Icon(Icons.add, color: Colors.white),
                     ),
                   ),
@@ -403,6 +404,7 @@ class _McpManagePageState extends State<McpManagePage> {
                     child: FloatingActionButton(
                       onPressed: _showAddMenu,
                       backgroundColor: nc.primary,
+                      elevation: 6,
                       child: Icon(Icons.add, color: Colors.white),
                     ),
                   ),

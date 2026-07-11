@@ -22,7 +22,7 @@ String _safeEnv(String key) {
 ///
 /// 重要：本 app 的 [ToolRegistry] 是「每会话实例」（每个对话独立），
 /// 因此插件不持有全局工具列表，而是按会话「注入」。[provideTools] 必须幂等
-/// （用 `registry.has(name)` 守卫），避免重复注册重置 [TaskPlanTool] 等有状态工具。
+/// （用 `registry.has(name)` 守卫），避免重复注册重置有状态工具。
 abstract class AppPlugin {
   String get id;
   Future<void> init();
@@ -40,7 +40,14 @@ class CoreToolsPlugin extends AppPlugin {
   @override
   void provideTools(ToolRegistry registry) {
     // 高频基础工具（用 has 守卫，幂等）
-    if (!registry.has('task_plan')) registry.register(TaskPlanTool());
+    // task_plan 拆分为 6 个独立工具，共享同一 TaskPlanStore 实例（计划状态会话内一致）
+    final planStore = TaskPlanStore();
+    if (!registry.has('plan_create')) registry.register(PlanCreateTool(planStore));
+    if (!registry.has('plan_update')) registry.register(PlanUpdateTool(planStore));
+    if (!registry.has('plan_advance')) registry.register(PlanAdvanceTool(planStore));
+    if (!registry.has('plan_status')) registry.register(PlanStatusTool(planStore));
+    if (!registry.has('plan_clear')) registry.register(PlanClearTool(planStore));
+    if (!registry.has('plan_verify')) registry.register(PlanVerifyTool(planStore));
     if (!registry.has('reminder')) registry.register(ReminderTool());
     if (!registry.has('web_fetch')) registry.register(WebFetchTool());
     if (!registry.has('weather')) {
@@ -59,12 +66,29 @@ class CoreToolsPlugin extends AppPlugin {
       registry.register(AgnesVideoTool(apiKey: agnesKey));
     }
     if (!registry.has('save_note')) registry.register(SaveNoteTool());
-    if (!registry.has('manage_notes')) registry.register(ManageNoteTool());
+    // manage_notes 拆分为 4 个独立工具
+    if (!registry.has('notes_list')) registry.register(NotesListTool());
+    if (!registry.has('notes_read')) registry.register(NotesReadTool());
+    if (!registry.has('notes_update')) registry.register(NotesUpdateTool());
+    if (!registry.has('notes_delete')) registry.register(NotesDeleteTool());
     if (!registry.has('create_rich_note')) registry.register(CreateRichNoteTool());
     if (!registry.has('ai_daily')) registry.register(AiDailyTool());
-    if (!registry.has('context_doc')) registry.register(ContextDocTool());
-    if (!registry.has('virtual_fs')) registry.register(VirtualFSTool());
-    if (!registry.has('skill_manage')) registry.register(SkillManageTool());
+    // context_doc 拆分为 2 个独立工具
+    if (!registry.has('context_doc_read')) registry.register(ContextDocReadTool());
+    if (!registry.has('context_doc_update')) registry.register(ContextDocUpdateTool());
+    // virtual_fs 拆分为 6 个独立工具
+    if (!registry.has('fs_ls')) registry.register(FsLsTool());
+    if (!registry.has('fs_read')) registry.register(FsReadTool());
+    if (!registry.has('fs_write')) registry.register(FsWriteTool());
+    if (!registry.has('fs_mkdir')) registry.register(FsMkdirTool());
+    if (!registry.has('fs_rm')) registry.register(FsRmTool());
+    if (!registry.has('fs_walk')) registry.register(FsWalkTool());
+    // skill_manage 拆分为 5 个独立工具
+    if (!registry.has('skill_list')) registry.register(SkillListTool());
+    if (!registry.has('skill_read')) registry.register(SkillReadTool());
+    if (!registry.has('skill_read_cookbook')) registry.register(SkillReadCookbookTool());
+    if (!registry.has('skill_create')) registry.register(SkillCreateTool());
+    if (!registry.has('skill_match')) registry.register(SkillMatchTool());
 
     // 工具发现层（需引用 registry，构造一次即可）
     if (!registry.has('tool_search')) {
@@ -75,13 +99,15 @@ class CoreToolsPlugin extends AppPlugin {
     }
 
     // 低频/场景化工具（按需发现）
-    if (!registry.has('calendar')) registry.registerDiscoverable(CalendarTool());
+    if (!registry.has('calendar_query')) registry.registerDiscoverable(CalendarQueryTool());
+    if (!registry.has('calendar_add')) registry.registerDiscoverable(CalendarAddTool());
+    if (!registry.has('calendar_delete')) registry.registerDiscoverable(CalendarDeleteTool());
   }
 }
 
 /// 技能插件：确保 [SkillRegistry] 已加载内置/自定义技能。
 ///
-/// 技能本身通过 skill_manage_tool 暴露给模型，无需在此注册工具。
+/// 技能本身通过 skill_* 工具暴露给模型，无需在此注册工具。
 class SkillPlugin extends AppPlugin {
   @override
   String get id => 'skill';
