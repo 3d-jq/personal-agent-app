@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_agent_app/tools/tools.dart';
-import 'package:personal_agent_app/services/browser_session.dart';
 
 /// 全工具契约测试：验证每个工具的基本定义，不依赖网络/API/平台/存储。
 
@@ -45,14 +44,6 @@ List<AgentTool> _allTools() {
     SkillCreateTool(),
     SkillMatchTool(),
     DelegateTaskTool(onDelegate: (_, __) async => 'stub'),
-    BrowserOpenTool(BrowserSession()),
-    BrowserSnapshotTool(BrowserSession()),
-    BrowserClickTool(BrowserSession()),
-    BrowserTypeTool(BrowserSession()),
-    BrowserScrollTool(BrowserSession()),
-    BrowserScreenshotTool(BrowserSession()),
-    BrowserEvaluateTool(BrowserSession()),
-    BrowserCloseTool(BrowserSession()),
   ];
 }
 
@@ -118,7 +109,7 @@ void main() {
       expect(tool.toFunctionDefinition()['type'], 'function');
     });
 
-    test('工具总数 >= 38', () {
+    test('工具总数 >= 30', () {
       expect(_allTools().length, greaterThanOrEqualTo(38));
     });
   });

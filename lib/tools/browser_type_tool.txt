@@ -1,1 +1,0 @@
-向输入框填入文本并触发 input/change 事件。需提供 CSS 选择器定位输入框（从 browser_snapshot 的元素列表获取 ref）。

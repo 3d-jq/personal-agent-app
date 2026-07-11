@@ -36,6 +36,8 @@ String toolLabel(String name, {Map<String, dynamic>? arguments, bool detailed = 
       return 'SearXNG搜索';
     case 'tavily_search':
       return 'Tavily搜索';
+    case 'deep_search':
+      return '深度搜索';
     case 'web_fetch':
       return '获取网页';
     case 'reminder':
@@ -78,14 +80,6 @@ String toolLabel(String name, {Map<String, dynamic>? arguments, bool detailed = 
       return '发现工具';
     case 'defer_execute_tool':
       return '调用延迟工具';
-    case 'browser_open':       return '打开网页';
-    case 'browser_snapshot':   return '网页快照';
-    case 'browser_click':      return '点击元素';
-    case 'browser_type':       return '输入文本';
-    case 'browser_scroll':     return '滚动页面';
-    case 'browser_screenshot': return '截取网页';
-    case 'browser_evaluate':   return '执行JS';
-    case 'browser_close':      return '关闭浏览器';
     case 'get_current_time':
       return '获取时间';
     case 'ask_user':
