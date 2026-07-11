@@ -50,6 +50,7 @@ class CoreToolsPlugin extends AppPlugin {
     if (!registry.has('location')) registry.register(LocationTool());
     if (!registry.has('searxng_search')) registry.register(SearxngSearchTool());
     if (!registry.has('tavily_search')) registry.register(TavilySearchTool());
+    if (!registry.has('deep_search')) registry.register(DeepSearchTool());
     final agnesKey = CryptoUtil.decrypt(_safeEnv('AGNES_API_KEY'));
     if (!registry.has('generate_image')) {
       registry.register(AgnesImageTool(apiKey: agnesKey));

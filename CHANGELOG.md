@@ -16,8 +16,14 @@
 - `executeAllTools`(`ai_service_base.dart`) 加批次计时 + 每工具耗时日志，保持 `Future.wait` 并发结构不变。
 - `chat_helpers` 的 `registerAllTools`/`registerMcpTools` 委托给 `PluginRegistry`（6 处调用点零改动）。
 
+### 🔍 深度搜索工具（方案②：工具内 LLM 综合，借鉴 Operit）
+- 新增 `lib/tools/deep_search_tool.dart` + `.txt` + `.g.dart`：`DeepSearchTool` 先 LLM 拆 3–5 个子问题，多轮（≤4）并行搜索（SearXNG 优先，失败/未配置回退 Tavily），取前 N 条 URL 去重 `WebFetch`(max_length 4000) 后 LLM 综合带 `[n]` 引用 + 「## 来源」。
+- 全程 `ToolProgressBus.__SUMMARY__` 播整批进度；材料充足早停；无 LLM 配置时退化为资料罗列。
+- `AIService.complete()` 新增（消费 `sendMessageStream` 收集 `TextChunkEvent`），工具内按当前厂商 `getIt<AISettings>` 构造，零侵入、不碰 `delegate_task` 内核。
+- `PluginRegistry` 幂等注册 `deep_search`；`tools.dart` 导出。
+
 ### ⚠️ 注意
-- 纯架构重构，无 UI/行为变更；`delegate_task` 阻塞式内核保持不动（此前已评估否决大重构）。
+- 本版本含架构重构 + 新增「深度搜索」工具；`delegate_task` 阻塞式内核保持不动（此前已评估否决大重构）。
 
 ## v1.4.23 — 微信级聊天性能架构（分页存储 + 内存窗口 + 页面缓存）(2026-07-11)
 

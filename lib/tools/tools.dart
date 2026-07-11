@@ -12,6 +12,7 @@ export 'weather_tool.dart';
 export 'searxng_search_tool.dart';
 export 'tavily_search_tool.dart';
 export 'web_fetch_tool.dart';
+export 'deep_search_tool.dart';
 export 'reminder_tool.dart';
 export 'agnes_image_tool.dart';
 export 'agnes_video_tool.dart';
