@@ -22,7 +22,8 @@ class AppDatabase {
   Database? _db;
 
   /// 当前数据库版本。
-  static const int version = 1;
+  /// v2 新增 `messages` 表（会话消息分页存储，避免打开会话时反序列化整包历史）。
+  static const int version = 2;
 
   /// 所有表的名称清单。
   static const tables = [
@@ -44,6 +45,7 @@ class AppDatabase {
       dbPath,
       version: version,
       onCreate: (db, ver) => _createTables(db),
+      onUpgrade: (db, oldV, newV) => _onUpgrade(db, oldV, newV),
     );
   }
 
@@ -56,6 +58,7 @@ class AppDatabase {
       options: OpenDatabaseOptions(
         version: version,
         onCreate: (db, ver) => _createTables(db),
+        onUpgrade: (db, oldV, newV) => _onUpgrade(db, oldV, newV),
       ),
     );
   }
@@ -68,6 +71,39 @@ class AppDatabase {
           data TEXT NOT NULL
         )
       ''');
+    }
+    // 消息分页表：每条消息独立一行，按 (session_id, seq) 排序，支持游标分页
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS messages (
+        session_id TEXT NOT NULL,
+        msg_id TEXT NOT NULL,
+        seq INTEGER NOT NULL,
+        data TEXT NOT NULL,
+        PRIMARY KEY (session_id, msg_id)
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_messages_session_seq '
+      'ON messages(session_id, seq)',
+    );
+  }
+
+  /// 版本升级：v1 → v2 时补建 messages 表（历史数据由 DbMigration 拆分填充）。
+  Future<void> _onUpgrade(Database db, int oldV, int newV) async {
+    if (oldV < 2) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS messages (
+          session_id TEXT NOT NULL,
+          msg_id TEXT NOT NULL,
+          seq INTEGER NOT NULL,
+          data TEXT NOT NULL,
+          PRIMARY KEY (session_id, msg_id)
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_messages_session_seq '
+        'ON messages(session_id, seq)',
+      );
     }
   }
 

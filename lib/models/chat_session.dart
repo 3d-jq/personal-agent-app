@@ -8,6 +8,11 @@ class ChatSession {
   DateTime updatedAt;
   String type; // 'chat' = 单聊, 'agent' = Agent 单聊
 
+  /// 列表页轻量展示用：最后一条消息的文本摘要（不加载完整消息体）。
+  String? preview;
+  /// 列表页轻量展示用：消息总数（来自 messages 表，避免反序列化整包历史）。
+  int messageCount;
+
   ChatSession({
     required this.id,
     this.title = '新对话',
@@ -15,6 +20,8 @@ class ChatSession {
     DateTime? createdAt,
     DateTime? updatedAt,
     this.type = 'chat',
+    this.preview,
+    this.messageCount = 0,
   }) : messages = messages ?? [],
        createdAt = createdAt ?? DateTime.now(),
        updatedAt = updatedAt ?? DateTime.now();
@@ -26,6 +33,8 @@ class ChatSession {
     'createdAt': createdAt.millisecondsSinceEpoch,
     'updatedAt': updatedAt.millisecondsSinceEpoch,
     'type': type,
+    if (preview != null) 'preview': preview,
+    'messageCount': messageCount,
   };
 
   factory ChatSession.fromJson(Map<String, dynamic> json) {
@@ -44,6 +53,8 @@ class ChatSession {
         json['updatedAt'] as int? ?? 0,
       ),
       type: json['type'] as String? ?? 'chat',
+      preview: json['preview'] as String?,
+      messageCount: json['messageCount'] as int? ?? 0,
     );
   }
 }

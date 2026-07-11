@@ -47,7 +47,8 @@ class ChatController extends ChangeNotifier {
   final ChatStorage _chatStorage;
 
   /// UI 层传入的滚屏回调，控制器不关心 ScrollController。
-  final VoidCallback? onNeedScroll;
+  /// 非 final：控制器被页面缓存复用时，需重新绑定到新页面的滚屏回调。
+  VoidCallback? onNeedScroll;
 
   /// 对话历史压缩管理器
   HistoryManager? _historyManager;
@@ -70,6 +71,21 @@ class ChatController extends ChangeNotifier {
   List<ChatSession> _sessions = [];
   bool _isLoading = false;
   bool _isCompressing = false;
+
+  // ── 消息分页（微信级内存滑动窗口）──
+  /// 下一条新消息的全局序号（取当前最大 seq + 1）。
+  int _nextSeq = 0;
+  /// 当前内存窗口中最旧消息的 seq，用于上滑游标分页。
+  int _oldestSeq = 0;
+  /// 更早的消息是否已全部加载完（无需再上滑分页）。
+  bool _allOlderLoaded = true;
+  /// 正在加载更早消息（防止重复触发）。
+  bool _loadingOlder = false;
+  /// 是否还有更早消息可加载（供 UI 显示「加载更多」入口）。
+  bool get hasOlderMessages => !_allOlderLoaded && _sessionId != null;
+
+  /// 页面缓存复用：退出聊天页时记录滚动位置，再次进入时恢复（微信级 L8 页面缓存）。
+  double? lastScrollOffset;
 
   File? _pendingAttachment;
   String _pendingAttachmentType = '';
@@ -179,9 +195,57 @@ class ChatController extends ChangeNotifier {
 
   Future<void> loadSession(String id) async {
     _sessionId = id;
-    final session = await _chatStorage.loadSession(id);
+    final session = await _chatStorage.loadSession(id); // 默认取最近窗口
     _messages = session?.messages.toList() ?? [];
+    _initWindowState();
     _notify();
+  }
+
+  /// 根据当前窗口初始化分页状态与序号计数器。
+  void _initWindowState() {
+    if (_messages.isEmpty) {
+      _nextSeq = 0;
+      _oldestSeq = 0;
+      _allOlderLoaded = true;
+    } else {
+      _nextSeq = _messages.last.seq + 1;
+      _oldestSeq = _messages.first.seq;
+      // 取到的数量小于一窗，说明已无更早消息
+      _allOlderLoaded = _messages.length < ChatStorage.defaultWindow;
+    }
+  }
+
+  /// 上滑加载更早的消息（游标分页），prepend 到内存窗口头部。
+  Future<void> loadOlderMessages() async {
+    if (_allOlderLoaded || _loadingOlder || _sessionId == null || _messages.isEmpty) {
+      return;
+    }
+    _loadingOlder = true;
+    try {
+      final older = await _chatStorage.loadSession(
+        _sessionId!,
+        limit: ChatStorage.defaultWindow,
+        beforeSeq: _oldestSeq,
+      );
+      if (older == null || older.messages.isEmpty) {
+        _allOlderLoaded = true;
+      } else {
+        _messages.insertAll(0, older.messages);
+        _oldestSeq = _messages.first.seq;
+        if (older.messages.length < ChatStorage.defaultWindow) {
+          _allOlderLoaded = true;
+        }
+      }
+    } finally {
+      _loadingOlder = false;
+    }
+    _notify();
+  }
+
+  /// 追加一条消息并分配全局序号（保证分页表排序稳定、增量 upsert 不重排）。
+  void _appendMessage(ChatMessage msg) {
+    msg.seq = _nextSeq++;
+    _messages.add(msg);
   }
 
   Future<void> saveSession() async {
@@ -263,6 +327,9 @@ class ChatController extends ChangeNotifier {
     final idx = _messages.indexOf(msg);
     if (idx < 0) return;
     _messages.removeAt(idx);
+    if (_sessionId != null) {
+      await _chatStorage.deleteMessage(_sessionId!, msg.id);
+    }
     _notify();
     await saveSession();
   }
@@ -298,14 +365,14 @@ class ChatController extends ChangeNotifier {
     registerMcpTools(_toolRegistry);
 
     if (!_aiSettings.hasVendor) {
-      _messages.add(ChatMessage(text: '请先配置 AI 后端（点击输入框内存图标）', isUser: false));
+      _appendMessage(ChatMessage(text: '请先配置 AI 后端（点击输入框内存图标）', isUser: false));
       _notify();
       onNeedScroll?.call();
       return;
     }
 
     if (!await getIt<ConnectivityService>().check()) {
-      _messages.add(ChatMessage(text: '当前无网络连接，请检查网络后重试', isUser: false));
+      _appendMessage(ChatMessage(text: '当前无网络连接，请检查网络后重试', isUser: false));
       _notify();
       onNeedScroll?.call();
       return;
@@ -344,7 +411,7 @@ class ChatController extends ChangeNotifier {
     // 后续消息因 _messages 不空而永久不再触发，用户陷入"既不引导、又算没完成"的死区。
     final isFirstMeeting = !contextDocs.hasUserProfile();
 
-    _messages.add(
+    _appendMessage(
       ChatMessage(
         text: displayText,
         isUser: true,
@@ -354,7 +421,7 @@ class ChatController extends ChangeNotifier {
             : null,
       ),
     );
-    _messages.add(ChatMessage(text: '', isUser: false, isStreaming: true));
+    _appendMessage(ChatMessage(text: '', isUser: false, isStreaming: true));
 
     final pendingFile = _pendingAttachment;
     final pendingType = _pendingAttachmentType;

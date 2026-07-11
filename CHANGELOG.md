@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.4.23 — 微信级聊天性能架构（分页存储 + 内存窗口 + 页面缓存）(2026-07-11)
+
+### 🚀 流式占位行平滑收起（P0 · 修复气泡高度回跳）
+- `chat_bubble` 的「思考中」/工具进度占位行改用 `AnimatedSize(160ms easeOut)` 包裹，首 token 到达时占位行**平滑收起**而非瞬间 pop。
+- 消除流式回复末尾气泡高度骤降导致的列表回跳（微信级「高度稳定」原则）。
+
+### 🗄️ 消息分页存储（P1 · 打开会话不再加载全量）
+- 新增 `messages` 表（`session_id, msg_id, seq, data`，PK=(session_id,msg_id)，索引 (session_id,seq)），`AppDatabase` 版本 1→2，`onUpgrade` 补建。
+- `ChatStorage` 重构：消息走 `messages` 表**游标分页**读取；`chat_sessions` 仅存元数据（标题/时间/类型 + `preview`/`messageCount`）。
+- 保存时**增量 upsert**（按 msg_id 覆盖、绝不 DELETE 其他消息），窗口之外的历史始终安全；`ChatMessage` 新增全局 `seq` 字段保证排序稳定。
+- `DbMigration` 新增迁移：把已有 `chat_sessions` blob 的消息体拆分进 `messages` 表，并把 `chat_sessions` 重写为元数据（幂等，仅执行一次）。
+- `loadAll`/导出/搜索/列表改为读元数据或 `loadSession(full:true)`，不再反序列化整包历史。
+
+### 🪟 内存滑动窗口 + 上滑分页（P2 · 长会话内存有界）
+- 打开会话默认只取最近 200 条（`ChatStorage.defaultWindow`）注入内存；`_messages` 仅持窗口，长会话内存不再无限增长。
+- `ChatController.loadOlderMessages()` 游标分页 prepend 更早消息；`ChatScreen` 列表顶部加「加载更早消息」入口。
+- 新消息分配全局 `seq`（`_appendMessage`），删除单条同步删表行（`deleteMessage`）。
+
+### 📱 页面/控制器缓存（P3 · 进出会话不再重载）
+- 新增 `ChatControllerCache` 单例：同一会话的控制器跨页面进出**复用**，消息已在内存、进入无白屏/重载闪烁。
+- `ChatScreen` 退出时记录滚动位置（`lastScrollOffset`），再次进入 `jumpTo` 恢复（微信级 L8 页面缓存）。
+- `onNeedScroll` 改为可重绑，复用控制器时回调指向新页面；删除会话时 `evict` 缓存。
+
+### ⚠️ 破坏性/注意
+- `ChatSession` 新增 `preview`/`messageCount` 字段；`ChatMessage` 新增 `seq` 字段（序列化兼容旧数据）。
+- 数据库结构变更（v2），旧版数据库经 `DbMigration` 自动拆分迁移，无需手动处理。
+
 ## v1.4.22 — 上下文管理全面优化（Prompt Cache + 纯压缩 + 工具结果截断对齐）(2026-07-10)
 
 ### 🔌 Prompt Cache 命中优化（省 token）

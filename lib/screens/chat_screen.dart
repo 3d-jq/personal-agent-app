@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/chat_controller.dart';
 import '../models/chat_message.dart';
+import '../services/chat_controller_cache.dart';
+import '../core/service_locator.dart';
 import '../core/agent_colors.dart';
 import '../widgets/agent_side_drawer.dart';
 import '../widgets/agent_top_bar.dart';
@@ -41,11 +43,20 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   void initState() {
     super.initState();
-    _controller = ChatController(
-      initialSessionId: widget.sessionId,
+    // 复用会话控制器缓存：再次进入已打开过的会话时直接复用，消息已在内存、
+    // 无需重新从 DB 加载，进入瞬间无白屏/重载闪烁（微信级 L8 页面缓存）。
+    _controller = getIt<ChatControllerCache>().obtain(
+      widget.sessionId,
       onNeedScroll: _scrollDown,
     );
-    _controller.initialize();
+    _controller.initialize().then((_) {
+      // 恢复上次离开时的滚动位置（缓存复用场景）
+      if (mounted &&
+          _controller.lastScrollOffset != null &&
+          _scrollCtrl.hasClients) {
+        _scrollCtrl.jumpTo(_controller.lastScrollOffset!);
+      }
+    });
     _scrollCtrl.addListener(_onScroll);
     _scrollAnim = AnimationController(
       vsync: this,
@@ -62,7 +73,12 @@ class _ChatScreenState extends State<ChatScreen>
 
   @override
   void dispose() {
-    _controller.dispose();
+    // 记录滚动位置供缓存复用恢复
+    if (_scrollCtrl.hasClients) {
+      _controller.lastScrollOffset = _scrollCtrl.offset;
+    }
+    // 仅当控制器未被缓存（新建会话）时才 dispose；缓存的由 ChatControllerCache 持有
+    if (widget.sessionId == null) _controller.dispose();
     _inputCtrl.dispose();
     _inputFocus.dispose();
     _scrollCtrl.removeListener(_onScroll);
@@ -165,6 +181,7 @@ class _ChatScreenState extends State<ChatScreen>
 
   void _onSessionDeleted(String id) async {
     await _controller.deleteSession(id);
+    getIt<ChatControllerCache>().evict(id);
   }
 
   @override
@@ -349,16 +366,24 @@ class _MessageList extends StatelessWidget {
       listenable: controller,
       builder: (context, child) {
         final nc = AgentColors.of(context);
+        final hasOlder = controller.hasOlderMessages;
+        final itemCount = controller.messages.length + (hasOlder ? 1 : 0);
         return ListView.builder(
           controller: scrollController,
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          itemCount: controller.messages.length,
+          itemCount: itemCount,
           cacheExtent: 500,
           // ChatMessage 是 ChangeNotifier，流式更新时仅对应气泡局部重建；
           // 必须逐条用 ListenableBuilder(msg) 包住，否则流式期间 controller 不通知、气泡不刷新
           itemBuilder: (c, i) {
-            final msg = controller.messages[i];
+            // 顶部「加载更早消息」入口：点击游标分页 prepend 更早的历史
+            if (hasOlder && i == 0) {
+              return _OlderMessagesHeader(
+                onLoad: controller.loadOlderMessages,
+              );
+            }
+            final msg = controller.messages[i - (hasOlder ? 1 : 0)];
             // 每个气泡独立 RepaintBoundary：长列表滚动时只重绘进入/离开视口的
             // 气泡，已离屏/静止气泡不参与重绘，消除整列表滚动时的连带重绘卡顿。
             return RepaintBoundary(
@@ -379,6 +404,35 @@ class _MessageList extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+class _OlderMessagesHeader extends StatelessWidget {
+  final Future<void> Function() onLoad;
+  const _OlderMessagesHeader({required this.onLoad});
+
+  @override
+  Widget build(BuildContext context) {
+    final nc = AgentColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Center(
+        child: TextButton.icon(
+          onPressed: () => onLoad(),
+          icon: Icon(Icons.history, size: 16, color: nc.textSecondary),
+          label: Text(
+            '加载更早消息',
+            style: TextStyle(fontSize: 13, color: nc.textSecondary),
+          ),
+          style: TextButton.styleFrom(
+            backgroundColor: nc.surface.withValues(alpha: 0.6),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

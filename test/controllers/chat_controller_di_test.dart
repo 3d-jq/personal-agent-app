@@ -115,7 +115,8 @@ class _FakeChatStorage implements ChatStorage {
   Future<List<ChatSession>> loadChatSessions() async => sessions;
 
   @override
-  Future<ChatSession?> loadSession(String id) async {
+  Future<ChatSession?> loadSession(String id,
+      {int? limit, int? beforeSeq, bool full = false}) async {
     return sessions.where((s) => s.id == id).firstOrNull;
   }
 
@@ -128,4 +129,10 @@ class _FakeChatStorage implements ChatStorage {
       sessions.add(session);
     }
   }
+
+  @override
+  Future<int> countMessages(String sessionId) async => 0;
+
+  @override
+  Future<void> deleteMessage(String sessionId, String msgId) async {}
 }

@@ -77,8 +77,16 @@ class _FakeChatStorage implements ChatStorage {
   Future<List<ChatSession>> loadChatSessions() async => [];
 
   @override
-  Future<ChatSession?> loadSession(String id) async => null;
+  Future<ChatSession?> loadSession(String id,
+          {int? limit, int? beforeSeq, bool full = false}) async =>
+      null;
 
   @override
   Future<void> save(ChatSession session) async {}
+
+  @override
+  Future<int> countMessages(String sessionId) async => 0;
+
+  @override
+  Future<void> deleteMessage(String sessionId, String msgId) async {}
 }

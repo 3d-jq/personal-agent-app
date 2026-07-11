@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import '../services/chat_storage.dart';
+import '../models/chat_session.dart';
 import '../core/service_locator.dart';
 import '../services/note_storage.dart';
 import 'log_service.dart';
@@ -31,9 +32,10 @@ class ExportService {
   }
 
   Future<String> exportChatAsText(String sessionId) async {
-    final sessions = await getIt<ChatStorage>().loadAll();
-    final session = sessions.where((s) => s.id == sessionId).firstOrNull;
-    if (session == null) return '';
+    // 加载完整消息体（full: true 忽略内存窗口）
+    final session =
+        await getIt<ChatStorage>().loadSession(sessionId, full: true);
+    if (session == null || session.messages.isEmpty) return '';
 
     final buf = StringBuffer();
     buf.writeln('=== DWeis 对话记录 ===');
@@ -52,8 +54,14 @@ class ExportService {
   }
 
   Future<String> exportAllChatsAsJson() async {
-    final sessions = await getIt<ChatStorage>().loadAll();
-    final data = sessions.map((s) => s.toJson()).toList();
+    final metas = await getIt<ChatStorage>().loadAll();
+    final full = <ChatSession>[];
+    for (final m in metas) {
+      final s =
+          await getIt<ChatStorage>().loadSession(m.id, full: true);
+      if (s != null) full.add(s);
+    }
+    final data = full.map((s) => s.toJson()).toList();
     return const JsonEncoder.withIndent('  ').convert(data);
   }
 

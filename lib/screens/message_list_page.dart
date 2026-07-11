@@ -46,19 +46,15 @@ class _MessageListPageState extends State<MessageListPage> {
 
     // 所有 Agent（没有聊天记录的也显示）
     for (final a in agents) {
-      // 查找是否有对应的聊天记录
+      // 查找是否有对应的聊天记录（列表只存 preview，不加载完整消息体）
       final session = sessions.where((s) => s.title == a.name).firstOrNull;
-      final lastMsg = session != null && session.messages.isNotEmpty
-          ? session.messages.last
-          : null;
+      final lastMsg = session?.preview;
 
       items.add(_ChatItem(
         id: a.id,
         name: a.name,
         avatar: a.avatar,
-        lastMessage: lastMsg != null
-            ? (lastMsg.isUser ? '你: ${lastMsg.text}' : lastMsg.text)
-            : a.role,
+        lastMessage: lastMsg != null && lastMsg.isNotEmpty ? lastMsg : a.role,
         time: session?.updatedAt ?? DateTime(2000),
         isGroup: false,
         agentId: a.id,
