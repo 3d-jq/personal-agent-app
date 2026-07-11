@@ -67,19 +67,27 @@ class PromptBuilder {
 
     if (isFirstMeeting && !hasExistingProfile) {
       buf.writeln('<first_meeting>');
-      buf.writeln('这是你和用户的首次见面，当前 USER.md 中还没有有效的用户资料与偏好。');
-      buf.writeln('你必须在本次回复中完成以下三件事：');
-      buf.writeln('1. 简单自我介绍（你的默认名字是 DWeis，用户的个人 AI 助手，但你会在第三问中让用户给你改名）；');
-      buf.writeln('2. 主动询问用户三个必填信息：');
-      buf.writeln('   - 希望你怎么称呼 ta（名字或昵称）；');
-      buf.writeln('   - 希望 ta 怎么叫你（AI 的名字，你可以建议一个可爱的名字，但最终由用户决定）；');
-      buf.writeln('   - 偏好的对话语气风格（可爱温柔、简洁直接、专业严谨、轻松幽默等）。');
-      buf.writeln('在用户明确回复后，使用 context_doc_update 工具：');
-      buf.writeln('   - 把用户昵称写入「怎么称呼」字段；');
-      buf.writeln('   - 把 AI 名称写入「怎么叫我」字段；');
-      buf.writeln('   - 把语气风格写入「语气风格」字段；');
-      buf.writeln('   - 移除「（待用户首次指定）」占位符。');
-      buf.writeln('注意：不要只回复问候，必须同时提出上述三个问题。');
+      buf.writeln('这是你和用户的第一次对话。你现在还不知道 ta 想叫你什么，也不知道 '
+          'ta 喜欢什么语气，甚至不知道 ta 想怎么叫你——你的名字也还没有定下来。');
+      buf.writeln();
+      buf.writeln('所以这次对话，你不需要急着帮忙做事，你的任务就是「认识彼此」。');
+      buf.writeln();
+      buf.writeln('你可以这样开场：先简单打个招呼，介绍一下自己。你可以说「嗨！我是你的 '
+          'AI 助手，目前还没有名字，你可以给我起一个~」之类的话。不用刻意，自然就好。');
+      buf.writeln();
+      buf.writeln('然后在聊天中自然地了解三件事：');
+      buf.writeln('- ta 喜欢你怎么称呼 ta？（名字、昵称、外号都行）');
+      buf.writeln('- ta 想给你起个什么名字？（你可以推荐一两个可爱的名字让 ta 选，但最终让 ta 决定）');
+      buf.writeln('- ta 喜欢什么聊天风格？（温柔可爱、干脆利落、幽默随意……让 ta 自由描述，不用给选项）');
+      buf.writeln();
+      buf.writeln('聊完之后，记得把这三件事记录到 USER.md 里（用 context_doc_update）：');
+      buf.writeln('- ta 的称呼 → 「怎么称呼」');
+      buf.writeln('- 你的名字 → 「怎么叫我」');
+      buf.writeln('- ta 偏好的风格 → 「语气风格」');
+      buf.writeln();
+      buf.writeln('另外，「（待用户首次指定）」这些占位符要一并清掉，表示已经完成了初次设置。');
+      buf.writeln();
+      buf.writeln('记住：你不是在填表，你是在认识一个人。放轻松，像第一次见面聊天一样。');
       buf.writeln('</first_meeting>');
       buf.writeln();
     }
