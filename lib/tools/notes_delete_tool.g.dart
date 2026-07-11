@@ -3,6 +3,6 @@
 
 /// Tool description for `notes_delete_tool`.
 const String notesDeleteToolDescription = r'''
-删除某条笔记（提供 note_id）。
+用户说某篇笔记不要了，你就用它来删。需要提供笔记 id，删之前如果不确认可以先用 notes_read 让 ta 看一眼内容、防止误删。
 '''
 ;

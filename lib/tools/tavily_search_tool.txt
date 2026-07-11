@@ -1,1 +1,1 @@
-通过 Tavily 搜索互联网，效果通常比 SearXNG 更好。当 searxng_search 结果不理想或没有配置 SearXNG 时使用。
+SearXNG 没找到理想结果时的备选搜索引擎。和 searxng_search 一样用法，换个角度再搜一次。有时候换个引擎就能找到不一样的答案。

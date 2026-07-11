@@ -1,1 +1,1 @@
-更新某个任务的状态。需提供 task_id 与 status；blocked/failed 建议填写原因。
+一个任务状态发生变化时用它——开始做了就标 in_progress，做完了标 done，做不了标 blocked，失败了标 failed。每完成一步、再开始下一步，就像在清单上打勾和做下一个，让你的工作有条不紊。

@@ -3,6 +3,6 @@
 
 /// Tool description for `skill_create_tool`.
 const String skillCreateToolDescription = r'''
-创建新技能：需提供 name、description（触发场景）、instructions（执行步骤与可用工具）。
+用户想让你学会一个新的技能时用它。技能需要有个名字、一段描述说明什么情况下用到它、以及完整的执行指令。创建完告诉用户一声。
 '''
 ;

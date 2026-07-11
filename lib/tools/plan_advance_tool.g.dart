@@ -3,6 +3,6 @@
 
 /// Tool description for `plan_advance_tool`.
 const String planAdvanceToolDescription = r'''
-自动将当前 in_progress 任务标记为 done，并推进到下一个可执行任务。
+当前正在做的任务搞定了，自动把它标成 done、并推进到下一个能做的任务。省得你手动 update 来 update 去。适合那种做完一个就自然推进下一步的场景。
 '''
 ;

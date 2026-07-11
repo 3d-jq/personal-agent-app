@@ -1,1 +1,1 @@
-列出当前全部笔记（id + 标题 + 摘要）。先调用本工具获取笔记 id，再用于 notes_read / notes_update / notes_delete。
+当你想看看用户都记了哪些笔记的时候用这个。它会列出每篇笔记的 id、标题和内容摘要——拿到 id 之后，你就可以用 notes_read 打开某一篇看全文，或者用 notes_update / notes_delete 去改或删。

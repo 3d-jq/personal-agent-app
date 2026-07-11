@@ -3,5 +3,6 @@
 
 /// Tool description for `weather_tool`.
 const String weatherToolDescription = r'''
-【必须】当用户询问任何城市的当前天气、气温、下雨、未来天气预报时调用此工具。禁止凭经验或训练数据猜测天气。
-''';
+用户问你天气怎么样、会不会下雨、要不要带伞的时候用它。去查实时数据，别凭感觉猜。需要知道在哪个城市——如果用户没说的话，你可以用 location 工具获取位置，或者直接问 ta。
+'''
+;

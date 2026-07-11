@@ -3,6 +3,6 @@
 
 /// Tool description for `plan_status_tool`.
 const String planStatusToolDescription = r'''
-查看当前任务计划的进度摘要（已完成/剩余步骤）。
+想看看你的任务计划整体进度怎么样时用它。会告诉你完成了多少、还剩多少、当前卡在哪一步——就像扫一眼清单确认一下"做到哪儿了"。
 '''
 ;

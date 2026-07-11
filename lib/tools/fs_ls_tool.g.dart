@@ -3,6 +3,6 @@
 
 /// Tool description for `fs_ls_tool`.
 const String fsLsToolDescription = r'''
-列出虚拟文件系统中某目录的内容（目录/文件）。
+你需要看看某个目录下有什么文件的时候用它。就像在电脑上打开一个文件夹——看到里面有哪些文件和子目录，才能知道下一步该读哪个、写哪个。
 '''
 ;
