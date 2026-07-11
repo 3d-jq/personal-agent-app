@@ -114,6 +114,18 @@ class AIService {
     }
   }
 
+  /// 非流式单次补全，供工具内部（如 deep_search）做子问题拆解 / 答案综合。
+  ///
+  /// 复用 [sendMessageStream]：以默认空 [ToolRegistry] 构造的 [AIService] 不会
+  /// 触发工具循环，只会产出正文；这里消费流并收集纯文本（忽略思考步）。
+  Future<String> complete(List<Map<String, dynamic>> messages) async {
+    final buf = StringBuffer();
+    await for (final ev in sendMessageStream(messages)) {
+      if (ev is TextChunkEvent) buf.write(ev.text);
+    }
+    return buf.toString().trim();
+  }
+
   Stream<ChatStreamEvent> _sendMessageWithTools(
     List<Map<String, dynamic>> messages,
   ) async* {
