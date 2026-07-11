@@ -7,6 +7,9 @@ import '../tools/task_plan_tool.dart';
 
 class ChatMessage extends ChangeNotifier {
   final String id;
+  /// 全局序号（插入顺序）。用于消息分页表的稳定排序与增量 upsert，
+  /// 不依赖内存中列表的下标，避免窗口化后重排导致顺序错乱。
+  int seq;
   String _text;
   final bool isUser;
   bool _isStreaming;
@@ -38,6 +41,7 @@ class ChatMessage extends ChangeNotifier {
     String? id,
     required String text,
     required this.isUser,
+    this.seq = -1,
     bool isStreaming = false,
     List<TimelineStep>? steps,
     this.speakerId,
@@ -98,6 +102,7 @@ class ChatMessage extends ChangeNotifier {
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'seq': seq,
     'text': _text,
     'isUser': isUser,
     'isStreaming': _isStreaming,
@@ -114,6 +119,7 @@ class ChatMessage extends ChangeNotifier {
       id: json['id'] as String?,
       text: json['text'] as String? ?? '',
       isUser: json['isUser'] as bool? ?? false,
+      seq: json['seq'] as int? ?? -1,
       isStreaming: json['isStreaming'] as bool? ?? false,
       steps: (json['steps'] as List?)
           ?.map((s) => TimelineStep.fromJson(s as Map<String, dynamic>))

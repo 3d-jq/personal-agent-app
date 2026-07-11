@@ -47,7 +47,7 @@ class _SearchPageState extends State<SearchPage> {
           _SearchResult(
             type: '对话',
             title: s.title,
-            subtitle: '${s.messages.length} 条消息',
+            subtitle: '${s.messageCount} 条消息',
             icon: Icons.chat_bubble_outline,
           ),
         );

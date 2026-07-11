@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
 
+import '../../models/chat_message.dart';
 import 'app_database.dart';
 
 /// 将现有的 JSON 文件数据一次性迁移到 SQLite。
@@ -112,6 +114,56 @@ class DbMigration {
       }
     }
 
+    // chat_sessions 消息体拆分到 messages 表（仅当 messages 表为空且 chat_sessions 有数据）
+    // 拆分后 chat_sessions 仅保留元数据（preview/messageCount），消除「打开会话加载全量」。
+    if (await db.count('messages') == 0 && await db.count('chat_sessions') > 0) {
+      final rows = await db.db.query('chat_sessions', columns: ['id', 'data']);
+      for (final row in rows) {
+        final id = row['id'] as String;
+        final map =
+            jsonDecode(row['data'] as String) as Map<String, dynamic>;
+        final msgs = (map['messages'] as List?)
+                ?.map((m) => ChatMessage.fromJson(m as Map<String, dynamic>))
+                .toList() ??
+            <ChatMessage>[];
+        // 写入 messages 表（seq = 下标，保证全局顺序稳定）
+        await db.db.transaction((txn) async {
+          for (var i = 0; i < msgs.length; i++) {
+            final m = msgs[i];
+            m.seq = i;
+            await txn.insert(
+              'messages',
+              {
+                'session_id': id,
+                'msg_id': m.id,
+                'seq': m.seq,
+                'data': jsonEncode(m.toJson()),
+              },
+              conflictAlgorithm: ConflictAlgorithm.replace,
+            );
+          }
+        });
+        // 重写 chat_sessions 为元数据（去掉 messages 数组，加 preview/count）
+        final preview = msgs.isNotEmpty ? _previewOf(msgs.last) : null;
+        final newMap = {
+          'id': id,
+          'title': map['title'] ?? '新对话',
+          'createdAt': map['createdAt'] ?? 0,
+          'updatedAt': map['updatedAt'] ?? 0,
+          'type': map['type'] ?? 'chat',
+          if (preview != null) 'preview': preview,
+          'messageCount': msgs.length,
+        };
+        await db.db.update(
+          'chat_sessions',
+          {'data': jsonEncode(newMap)},
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+      }
+      migrated++;
+    }
+
     return migrated;
   }
 
@@ -138,5 +190,12 @@ class DbMigration {
     } catch (_) {
       return null;
     }
+  }
+
+  /// 取最后一条消息的预览文本（最多 40 字，去换行）。
+  static String? _previewOf(ChatMessage m) {
+    final t = m.text.replaceAll('\n', ' ').trim();
+    if (t.isEmpty) return null;
+    return t.length > 40 ? '${t.substring(0, 40)}…' : t;
   }
 }

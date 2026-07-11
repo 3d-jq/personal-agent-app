@@ -56,13 +56,14 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
   }
 
   Future<void> _loadSession() async {
-    // 查找是否已有会话
+    // 查找是否已有会话（列表只存元数据，消息体按需加载）
     final sessions = await _chatStorage.loadAll();
     final existing = sessions.where((s) => s.title == widget.agent.name).firstOrNull;
     if (existing != null) {
+      final full = await _chatStorage.loadSession(existing.id);
       setState(() {
         _sessionId = existing.id;
-        _messages = existing.messages;
+        _messages = full?.messages ?? [];
       });
       _scrollDown();
     }
@@ -83,8 +84,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
       _sessionId = session.id;
     } else {
       // 更新现有会话
-      final sessions = await _chatStorage.loadAll();
-      final session = sessions.where((s) => s.id == _sessionId).firstOrNull;
+      final session = await _chatStorage.loadSession(_sessionId!);
       if (session != null) {
         session.messages = _messages;
         session.updatedAt = DateTime.now();

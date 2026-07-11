@@ -3,6 +3,7 @@ import '../services/foreground_service.dart';
 import '../services/agent_group_storage.dart';
 import '../services/agent_storage.dart';
 import '../services/chat_storage.dart';
+import '../services/chat_controller_cache.dart';
 import '../services/connectivity_service.dart';
 import '../services/context_doc_service.dart';
 import '../services/export_service.dart';
@@ -36,6 +37,7 @@ Future<void> configureDependencies() async {
     ..registerSingleton<AgentGroupStorage>(AgentGroupStorage())
     ..registerSingleton<AISettings>(AISettings())
     ..registerSingleton<ChatStorage>(ChatStorage())
+    ..registerSingleton<ChatControllerCache>(ChatControllerCache.instance)
     ..registerSingleton<ConnectivityService>(ConnectivityService())
     ..registerSingleton<ContextDocService>(ContextDocService())
     ..registerSingleton<ExportService>(ExportService())
@@ -58,6 +60,8 @@ Future<void> configureDependencies() async {
 /// 随各自 ToolRegistry 实例隔离，无需在此清理。
 Future<void> resetDependencies() async {
   ForegroundService.reset();
+  // 清空聊天控制器缓存，避免跨测试复用已 dispose 的控制器导致泄漏/状态串扰
+  ChatControllerCache.instance.clear();
   await AppDatabase.instance.close();
   await getIt.reset();
 }
