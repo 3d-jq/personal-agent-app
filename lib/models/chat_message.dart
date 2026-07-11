@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../core/text_sanitizer.dart';
@@ -57,18 +58,49 @@ class ChatMessage extends ChangeNotifier {
        _plan = plan;
 
   String get text => _text;
+  /// 流式渲染节流：把高频 token 写入合并为 ≤5Hz 的 UI 重建（与 Operit
+  /// `RENDER_INTERVAL_MS=200` 批处理层等价），避免每帧重解析活跃块导致卡顿。
+  /// 逻辑文本 `_text` 始终即时更新（存取/复制正确），仅 `notifyListeners` 被节流：
+  /// 首包 leading-edge 即时上屏（慢速流不延迟），窗口内合并、200ms 边界 trailing flush。
+  Timer? _textThrottleTimer;
+  bool _textThrottleTrailing = false;
+
   set text(String value) {
     final cleaned = sanitizeUtf16(value);
-    if (_text != cleaned) {
-      _text = cleaned;
+    if (_text == cleaned) return;
+    _text = cleaned;
+    _scheduleTextNotify();
+  }
+
+  void _scheduleTextNotify() {
+    if (_textThrottleTimer == null && !_textThrottleTrailing) {
+      notifyListeners();
+      _textThrottleTimer =
+          Timer(const Duration(milliseconds: 200), _flushTextNotify);
+    } else {
+      _textThrottleTrailing = true;
+    }
+  }
+
+  void _flushTextNotify() {
+    _textThrottleTimer = null;
+    if (_textThrottleTrailing) {
+      _textThrottleTrailing = false;
       notifyListeners();
     }
+  }
+
+  void _cancelTextThrottle() {
+    _textThrottleTimer?.cancel();
+    _textThrottleTimer = null;
+    _textThrottleTrailing = false;
   }
 
   bool get isStreaming => _isStreaming;
   set isStreaming(bool value) {
     if (_isStreaming != value) {
       _isStreaming = value;
+      if (!value) _cancelTextThrottle(); // 流结束立即刷新最终文本，避免残留定时器
       notifyListeners();
     }
   }
@@ -99,6 +131,12 @@ class ChatMessage extends ChangeNotifier {
 
   /// 正文已天然干净（工具状态走独立事件），无需再剥离标记。
   String get cleanText => _text;
+
+  @override
+  void dispose() {
+    _cancelTextThrottle();
+    super.dispose();
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,

@@ -373,7 +373,7 @@ class _MessageList extends StatelessWidget {
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           itemCount: itemCount,
-          cacheExtent: 500,
+          cacheExtent: 1000, // 缓存窗口：视口外多保留 1000px 的气泡，滚回长消息不重建/重测
           // ChatMessage 是 ChangeNotifier，流式更新时仅对应气泡局部重建；
           // 必须逐条用 ListenableBuilder(msg) 包住，否则流式期间 controller 不通知、气泡不刷新
           itemBuilder: (c, i) {
