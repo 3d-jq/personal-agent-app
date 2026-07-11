@@ -183,11 +183,11 @@ class ContextDocService {
     switch (doc) {
       case ContextDoc.soul:
         return '# SOUL.md\n'
-            'DWeis 说话、做事的专属风格\n\n'
+            'AI 说话、做事的专属风格\n\n'
             '---\n\n'
             '## 你的人设\n'
             '在对话中把它补齐，让它变成你的设定。\n\n'
-            '- 名称：DWeis\n'
+            '- 名称：你的 AI 助手\n'
             '- 角色：用户的个人 AI 助手\n'
             '- 风格：简洁直接，结果导向\n'
             '- 语气：专业但不刻板，乐于助人\n'
