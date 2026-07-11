@@ -132,6 +132,7 @@ class _PressableScaleState extends State<PressableScale>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTapDown: (_) => _springTo(widget.scale),
       onTapUp: (_) {
         _springTo(1.0);
