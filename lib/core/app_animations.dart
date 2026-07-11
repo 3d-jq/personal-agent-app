@@ -145,8 +145,40 @@ class _PressableScaleState extends State<PressableScale>
 /// 且自带原生边缘返回手势与视差。
 ///
 /// 全项目页面跳转统一走此路由（经由 AppRouter），改这一处即全局生效。
+///
+/// 在原生横滑基础上叠加**轻微 scale 纵深**（借鉴 Operit 的 0.985→1.0 推入感）：
+/// 进入页从 0.98 放大到 1.0，被覆盖的旧页轻微缩到 0.98「往后沉」。scale 是纯
+/// GPU transform、无离屏合成开销，因此保留「不做整页 fade」的性能取向，只加深空间感。
 class IosSlideRoute<T> extends CupertinoPageRoute<T> {
   IosSlideRoute({required Widget page}) : super(builder: (_) => page);
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    // 先取原生 Cupertino 横滑 + 视差 + 边缘返回手势。
+    final base = super.buildTransitions(
+      context,
+      animation,
+      secondaryAnimation,
+      child,
+    );
+    // 进入页：0.98 → 1.0（本页入场）
+    final enterScale = Tween<double>(begin: 0.98, end: 1.0).animate(
+      CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+    );
+    // 旧页：1.0 → 0.98（被新页覆盖时轻微后沉）
+    final exitScale = Tween<double>(begin: 1.0, end: 0.98).animate(
+      CurvedAnimation(parent: secondaryAnimation, curve: Curves.easeInOut),
+    );
+    return ScaleTransition(
+      scale: exitScale,
+      child: ScaleTransition(scale: enterScale, child: base),
+    );
+  }
 }
 
 /// BottomSheet 转场：从底部滑入 + 淡入（350ms，进出对称）

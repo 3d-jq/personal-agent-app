@@ -7,6 +7,7 @@ import '../core/service_locator.dart';
 import '../core/agent_colors.dart';
 import '../widgets/agent_side_drawer.dart';
 import '../widgets/agent_top_bar.dart';
+import '../widgets/push_drawer.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input_bar.dart';
 import '../widgets/chat_model_chip.dart';
@@ -25,7 +26,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<PushDrawerState> _drawerKey = GlobalKey<PushDrawerState>();
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   final ScrollController _scrollCtrl = ScrollController();
@@ -224,26 +225,27 @@ class _ChatScreenState extends State<ChatScreen>
         systemNavigationBarColor: nc.background,
         systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
       ),
-      child: GestureDetector(
-        onTap: () {
-          if (!(_scaffoldKey.currentState?.isDrawerOpen ?? false)) {
-            _inputFocus.unfocus();
-          }
-        },
-        child: Scaffold(
-          key: _scaffoldKey,
-          backgroundColor: nc.background,
-          drawerEnableOpenDragGesture: false,
-          onDrawerChanged: (opened) => _drawerOpen = opened,
-          drawerScrimColor: Colors.black.withValues(alpha: 0.38),
-          drawer: _DrawerContent(
-            controller: _controller,
-            onSessionTap: _onSessionTap,
-            onNewChat: _onNewChat,
-            onSessionDeleted: _onSessionDeleted,
-          ),
-          appBar: AgentTopBar(
-            afterMenu: _ModelChip(controller: _controller),
+      child: PushDrawer(
+        key: _drawerKey,
+        onChanged: (opened) => _drawerOpen = opened,
+        drawer: _DrawerContent(
+          controller: _controller,
+          onSessionTap: _onSessionTap,
+          onNewChat: _onNewChat,
+          onSessionDeleted: _onSessionDeleted,
+          onRequestClose: () => _drawerKey.currentState?.close(),
+        ),
+        child: GestureDetector(
+          onTap: () {
+            if (!(_drawerKey.currentState?.isOpen ?? false)) {
+              _inputFocus.unfocus();
+            }
+          },
+          child: Scaffold(
+            backgroundColor: nc.background,
+            appBar: AgentTopBar(
+              onMenu: () => _drawerKey.currentState?.open(),
+              afterMenu: _ModelChip(controller: _controller),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -322,6 +324,7 @@ class _ChatScreenState extends State<ChatScreen>
             ],
           ),
         ),
+        ),
       ),
     );
   }
@@ -332,12 +335,14 @@ class _DrawerContent extends StatelessWidget {
   final ValueChanged<String> onSessionTap;
   final VoidCallback onNewChat;
   final ValueChanged<String> onSessionDeleted;
+  final VoidCallback onRequestClose;
 
   const _DrawerContent({
     required this.controller,
     required this.onSessionTap,
     required this.onNewChat,
     required this.onSessionDeleted,
+    required this.onRequestClose,
   });
 
   @override
@@ -351,6 +356,7 @@ class _DrawerContent extends StatelessWidget {
         onSessionTap: onSessionTap,
         onNewChat: onNewChat,
         onSessionDeleted: onSessionDeleted,
+        onRequestClose: onRequestClose,
       ),
     );
   }
