@@ -116,9 +116,9 @@ class _AgentIndicator extends StatelessWidget {
               ),
             )
           : (status == AgentStatus.error || status == AgentStatus.timeout)
-              ? Icon(Icons.error_outline, size: 13, color: Colors.red)
+              ? Icon(Icons.error_outline, size: 13, color: nc.error)
               : status == AgentStatus.cancelled
-                  ? Icon(Icons.stop_circle_outlined, size: 13, color: Colors.grey)
+                  ? Icon(Icons.stop_circle_outlined, size: 13, color: nc.textTertiary)
                   : Text(
                       agent.avatar.isNotEmpty ? agent.avatar : agent.name.characters.first,
                       style: TextStyle(
@@ -138,9 +138,9 @@ class _AgentIndicator extends StatelessWidget {
         return nc.success.withValues(alpha: 0.2);
       case AgentStatus.error:
       case AgentStatus.timeout:
-        return Colors.red.withValues(alpha: 0.18);
+        return nc.error.withValues(alpha: 0.18);
       case AgentStatus.cancelled:
-        return Colors.grey.withValues(alpha: 0.18);
+        return nc.textTertiary.withValues(alpha: 0.18);
       case AgentStatus.idle:
         return nc.primarySurface;
     }
@@ -154,9 +154,9 @@ class _AgentIndicator extends StatelessWidget {
         return nc.success;
       case AgentStatus.error:
       case AgentStatus.timeout:
-        return Colors.red;
+        return nc.error;
       case AgentStatus.cancelled:
-        return Colors.grey;
+        return nc.textTertiary;
       case AgentStatus.idle:
         return nc.divider;
     }
@@ -168,9 +168,9 @@ class _AgentIndicator extends StatelessWidget {
         return nc.success;
       case AgentStatus.error:
       case AgentStatus.timeout:
-        return Colors.red;
+        return nc.error;
       case AgentStatus.cancelled:
-        return Colors.grey;
+        return nc.textTertiary;
       default:
         return nc.textSecondary;
     }

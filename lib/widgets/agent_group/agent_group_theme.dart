@@ -41,7 +41,8 @@ const Set<String> kAgentWriteStateTools = {
   'reminder',
   'file_manager',
   'clipboard',
-  'calendar',
+  'calendar_add',
+  'calendar_delete',
 };
 
 /// 已下线的工具：旧 Agent 数据迁移时自动剔除

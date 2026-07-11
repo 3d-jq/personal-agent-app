@@ -27,7 +27,7 @@ class ToolStartEvent extends ChatStreamEvent {
   final String name;
   /// 本轮并发执行的工具总数（>1 时表示并行执行）。
   final int concurrentCount;
-  /// 工具调用参数，用于生成更具体的标签（如 context_doc 的 action/doc）。
+  /// 工具调用参数，用于生成标签（如 context_doc_read 的 doc）。
   final Map<String, dynamic>? arguments;
   /// 工具调用唯一 id（与模型返回的 tool_call_id 对应），用于完成时精确匹配步骤。
   final String? id;

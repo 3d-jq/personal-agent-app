@@ -155,6 +155,7 @@ class _NotesPageState extends State<NotesPage> {
           _openEditor(null);
         },
         backgroundColor: nc.primary,
+        elevation: 6,
         foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),
@@ -483,8 +484,8 @@ class _NoteEditorState extends State<_NoteEditor> {
   }
 }
 
-/// 笔记列表项（带动画）
-class _NoteTile extends StatefulWidget {
+/// 笔记列表项（静态直出，无进入动画，符合全局列表项规范）
+class _NoteTile extends StatelessWidget {
   final Note note;
   final AgentColors nc;
   final VoidCallback onTap;
@@ -496,59 +497,16 @@ class _NoteTile extends StatefulWidget {
   });
 
   @override
-  State<_NoteTile> createState() => _NoteTileState();
-}
-
-class _NoteTileState extends State<_NoteTile>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0.02, 0),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final nc = widget.nc;
-    final note = widget.note;
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: ElevatedCard(
-          nc: nc,
-          shadow: nc.shadowSm,
-          borderRadius: BorderRadius.circular(RadiusToken.md),
-          padding: EdgeInsets.all(SpaceToken.lg),
-          child: InkWell(
-            onTap: widget.onTap,
-            splashFactory: NoSplash.splashFactory,
-            highlightColor: nc.fillTertiary,
-            borderRadius: BorderRadius.circular(RadiusToken.md),
-            child: Row(
+    final note = this.note;
+    return ElevatedCard(
+      nc: nc,
+      shadow: nc.shadowSm,
+      borderRadius: BorderRadius.circular(RadiusToken.md),
+      padding: EdgeInsets.all(SpaceToken.lg),
+      child: PressableScale(
+        onTap: onTap,
+        child: Row(
                 children: [
                   Expanded(
                     child: Column(
@@ -587,9 +545,7 @@ class _NoteTileState extends State<_NoteTile>
                 ],
               ),
             ),
-          ),
-        ),
-    );
+          );
   }
 
   String _formatTime(DateTime dt) {

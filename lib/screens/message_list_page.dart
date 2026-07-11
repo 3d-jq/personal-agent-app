@@ -287,10 +287,8 @@ class _MessageTile extends StatelessWidget {
     final nc = this.nc;
     return Material(
       color: Colors.transparent,
-      child: InkWell(
+      child: PressableScale(
         onTap: onTap,
-        splashFactory: NoSplash.splashFactory,
-        highlightColor: nc.fillTertiary,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: SpaceToken.lg,

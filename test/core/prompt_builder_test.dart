@@ -9,7 +9,7 @@ void main() {
         userContext: '',
       );
       expect(p, contains('USER.md'));
-      expect(p, contains('context_doc'));
+      expect(p, contains('context_doc_update'));
     });
 
     test('包含 MEMORY.md 维护指引（规则 11：跨会话事实持久化）', () {
@@ -40,7 +40,7 @@ void main() {
         hasExistingProfile: false,
       );
       expect(p, contains('first_meeting'));
-      expect(p, contains('context_doc'));
+      expect(p, contains('context_doc_update'));
     });
 
     test('有 persona/user_profile 时注入人格一致性硬约束（对抗人格漂移）', () {

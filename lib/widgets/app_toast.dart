@@ -84,13 +84,13 @@ class _ToastWidgetState extends State<_ToastWidget>
       duration: const Duration(milliseconds: 220),
     );
     _opacity = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
+      CurvedAnimation(parent: _ctrl, curve: AppCurves.standard),
     );
     _offset = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
     ).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
+      CurvedAnimation(parent: _ctrl, curve: AppCurves.standard),
     );
     _ctrl.forward();
     Future.delayed(widget.duration, () {

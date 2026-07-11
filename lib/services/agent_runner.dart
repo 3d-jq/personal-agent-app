@@ -154,8 +154,8 @@ class AgentRunner {
         buf.writeln();
         buf.writeln('<skill_usage>');
         buf.writeln('以上是所有可用 Skills 的目录。当任务匹配某个 Skill 的描述时：');
-        buf.writeln('1. 先调用 skill_manage(action="read", name="技能名") 读取该 Skill 的详细指令');
-        buf.writeln('2. 如果该 Skill 有 cookbook 文件，再用 skill_manage(action="read_cookbook", name="技能名", file="文件名") 读取详细步骤');
+        buf.writeln('1. 先调用 skill_read(name="技能名") 读取该 Skill 的详细指令');
+        buf.writeln('2. 如果该 Skill 有 cookbook 文件，再用 skill_read_cookbook(name="技能名", file="文件名") 读取详细步骤');
         buf.writeln('3. 按照读取到的指令执行任务');
         buf.writeln('</skill_usage>');
         buf.writeln();

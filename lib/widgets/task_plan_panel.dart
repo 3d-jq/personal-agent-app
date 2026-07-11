@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../tools/task_plan_tool.dart';
+import '../core/app_animations.dart';
 
 /// 气泡内嵌的任务计划视图（极简 callout 风格）
 ///
@@ -228,7 +229,7 @@ class _PopCheckState extends State<_PopCheck>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 340),
+      duration: AppDurations.sheet,
     );
     _scale = Tween<double>(begin: 0.4, end: 1.0).animate(
       CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut),

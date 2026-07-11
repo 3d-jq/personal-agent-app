@@ -412,11 +412,8 @@ class _SettingItem extends StatelessWidget {
     final nc = AgentColors.of(context);
     return Material(
       color: Colors.transparent,
-      child: InkWell(
+      child: PressableScale(
         onTap: onTap ?? () {},
-        splashFactory: NoSplash.splashFactory,
-        highlightColor: nc.fillTertiary,
-        borderRadius: BorderRadius.zero,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: SpaceToken.lg,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+export 'app_animations.dart';
 
 /// 极简对话式设计令牌（Design Tokens）。
 ///
@@ -98,23 +99,6 @@ class WeightToken {
 
   /// 粗（大标题 / 强调）
   static const FontWeight bold = FontWeight.w700;
-}
-
-/// 动画时长。
-class MotionToken {
-  MotionToken._();
-
-  /// 微交互（hover / 按压 / 按钮态切换）
-  static const Duration fast = Duration(milliseconds: 150);
-
-  /// 页面 / 浮层进出
-  static const Duration normal = Duration(milliseconds: 250);
-
-  /// 大转场 / 向导
-  static const Duration slow = Duration(milliseconds: 350);
-
-  /// 标准缓动曲线
-  static const Curve standard = Curves.easeOutCubic;
 }
 
 /// 统一按压态透明度（极克制，靠背景色微变而非位移/阴影）。

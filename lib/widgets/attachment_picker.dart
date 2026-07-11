@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
+import '../core/app_animations.dart';
 import '../widgets/app_toast.dart';
 
 class AttachmentPicker extends StatelessWidget {
@@ -124,9 +125,8 @@ class _PickerItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: InkWell(
+      child: PressableScale(
         onTap: onTap,
-        borderRadius: BorderRadius.zero,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(

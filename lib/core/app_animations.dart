@@ -20,6 +20,9 @@ class AppDurations {
   /// 慢速（500ms）
   static const slow = Duration(milliseconds: 500);
 
+  /// 微交互 / 流式增量出场（150ms）
+  static const micro = Duration(milliseconds: 150);
+
   /// 骨架屏闪烁（1500ms 循环）
   static const shimmer = Duration(milliseconds: 1500);
 
@@ -40,6 +43,12 @@ class AppCurves {
   // ── 兼容旧代码 ──
   static const press = Curves.easeOut;
   static const expand = Curves.easeInOut;
+
+  /// 标准缓动（= easeOutCubic）：滚动/转场插值、通用出场，比 easeOut 收尾更利落
+  static const standard = Curves.easeOutCubic;
+
+  /// 骨架屏呼吸/扫光（= easeInOutSine）：循环 shimmer 相位过渡
+  static const shimmer = Curves.easeInOutSine;
 }
 
 /// Material 3 Expressive 弹簧参数
@@ -72,12 +81,14 @@ class ExpressiveSpring {
 class PressableScale extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final double scale;
 
   const PressableScale({
     super.key,
     required this.child,
     this.onTap,
+    this.onLongPress,
     this.scale = 0.95,
   });
 
@@ -127,6 +138,7 @@ class _PressableScaleState extends State<PressableScale>
         widget.onTap?.call();
       },
       onTapCancel: () => _springTo(1.0),
+      onLongPress: widget.onLongPress,
       child: AnimatedBuilder(
         animation: _ctrl,
         builder: (_, child) =>
@@ -168,11 +180,11 @@ class IosSlideRoute<T> extends CupertinoPageRoute<T> {
     );
     // 进入页：0.98 → 1.0（本页入场）
     final enterScale = Tween<double>(begin: 0.98, end: 1.0).animate(
-      CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+      CurvedAnimation(parent: animation, curve: AppCurves.standard),
     );
     // 旧页：1.0 → 0.98（被新页覆盖时轻微后沉）
     final exitScale = Tween<double>(begin: 1.0, end: 0.98).animate(
-      CurvedAnimation(parent: secondaryAnimation, curve: Curves.easeInOut),
+      CurvedAnimation(parent: secondaryAnimation, curve: AppCurves.page),
     );
     return ScaleTransition(
       scale: exitScale,
@@ -181,32 +193,5 @@ class IosSlideRoute<T> extends CupertinoPageRoute<T> {
   }
 }
 
-/// BottomSheet 转场：从底部滑入 + 淡入（350ms，进出对称）
-class SlideUpRoute<T> extends PageRouteBuilder<T> {
-  final Widget page;
-
-  SlideUpRoute({required this.page})
-    : super(
-        transitionDuration: AppDurations.sheet,
-        reverseTransitionDuration: AppDurations.sheet,
-        pageBuilder: (_, __, ___) => page,
-        opaque: false,
-        transitionsBuilder: (_, animation, __, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutCubic,
-            reverseCurve: Curves.easeInCubic,
-          );
-          return FadeTransition(
-            opacity: curved,
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0, 0.08),
-                end: Offset.zero,
-              ).animate(curved),
-              child: child,
-            ),
-          );
-        },
-      );
-}
+/// BottomSheet 转场：全项目统一走 Flutter 原生 `showModalBottomSheet`，
+/// 其默认转场（底部滑入）已满足一致性需求。此文件不再提供自定义底部弹层路由。

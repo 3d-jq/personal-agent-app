@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import '../core/app_animations.dart';
 import '../core/app_router.dart';
 import '../services/context_doc_service.dart';
 import 'context_docs_panel.dart';
@@ -32,8 +33,7 @@ class SessionInfoButton extends StatelessWidget {
     final nc = AgentColors.of(context);
     return Material(
       color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+      child: PressableScale(
         onTap: () => SessionInfoSheet.show(
           context,
           listenable: listenable,
@@ -213,7 +213,7 @@ class SessionInfoSheet {
     String title,
     VoidCallback onTap,
   ) {
-    return InkWell(
+    return PressableScale(
       onTap: () {
         HapticFeedback.lightImpact();
         onTap();

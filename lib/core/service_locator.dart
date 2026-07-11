@@ -61,7 +61,7 @@ Future<void> configureDependencies() async {
 /// 除重建 getIt 单例外，还会清理非 DI 持有的全局可变状态
 /// （如 ForegroundService 的静态运行标志、数据库连接），避免跨测试泄漏。
 ///
-/// 注意：TaskPlanTool / ReminderTool 等工具的状态已改为实例字段，
+/// 注意：TaskPlanStore / ReminderTool 等工具的状态已改为实例字段，
 /// 随各自 ToolRegistry 实例隔离，无需在此清理。
 Future<void> resetDependencies() async {
   ForegroundService.reset();

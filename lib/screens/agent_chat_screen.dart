@@ -129,7 +129,7 @@ class _AgentChatScreenState extends State<AgentChatScreen>
       _scrollCtrl.animateTo(
         _scrollCtrl.position.maxScrollExtent,
         duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOut,
+        curve: AppCurves.appear,
       );
     });
   }

@@ -1,0 +1,1 @@
+覆盖写入上下文文档（先 context_doc_read 获取全文，整合后整篇覆盖）。agent 文档写入需设置 reviewed=true，避免覆盖 SOUL 人格设定。

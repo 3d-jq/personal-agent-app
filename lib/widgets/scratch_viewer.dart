@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
+import '../core/app_animations.dart';
 import 'common_widgets.dart';
 import '../core/service_locator.dart';
 import '../services/virtual_fs.dart';
@@ -205,10 +206,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
         final file = _files[i];
         return Material(
           color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          splashFactory: NoSplash.splashFactory,
-          highlightColor: nc.fillTertiary,
+        child: PressableScale(
           onTap: () => _openFile(file),
           child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

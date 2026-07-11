@@ -3,26 +3,49 @@ import 'package:personal_agent_app/tools/tools.dart';
 
 /// 全工具契约测试：验证每个工具的基本定义，不依赖网络/API/平台/存储。
 
-List<AgentTool> _allTools() => [
-  TaskPlanTool(),
-  ReminderTool(),
-  WebFetchTool(),
-  WeatherTool(apiKey: ''),
-  LocationTool(),
-  SearxngSearchTool(),
-  TavilySearchTool(),
-  AgnesImageTool(apiKey: ''),
-  AgnesVideoTool(apiKey: ''),
-  SaveNoteTool(),
-  ManageNoteTool(),
-  CreateRichNoteTool(),
-  AiDailyTool(),
-  ContextDocTool(),
-  CalendarTool(),
-  VirtualFSTool(),
-  SkillManageTool(),
-  DelegateTaskTool(onDelegate: (_, __) async => 'stub'),
-];
+List<AgentTool> _allTools() {
+  final planStore = TaskPlanStore();
+  return [
+    PlanCreateTool(planStore),
+    PlanUpdateTool(planStore),
+    PlanAdvanceTool(planStore),
+    PlanStatusTool(planStore),
+    PlanClearTool(planStore),
+    PlanVerifyTool(planStore),
+    ReminderTool(),
+    WebFetchTool(),
+    WeatherTool(apiKey: ''),
+    LocationTool(),
+    SearxngSearchTool(),
+    TavilySearchTool(),
+    AgnesImageTool(apiKey: ''),
+    AgnesVideoTool(apiKey: ''),
+    SaveNoteTool(),
+    NotesListTool(),
+    NotesReadTool(),
+    NotesUpdateTool(),
+    NotesDeleteTool(),
+    CreateRichNoteTool(),
+    AiDailyTool(),
+    ContextDocReadTool(),
+    ContextDocUpdateTool(),
+    CalendarQueryTool(),
+    CalendarAddTool(),
+    CalendarDeleteTool(),
+    FsLsTool(),
+    FsReadTool(),
+    FsWriteTool(),
+    FsMkdirTool(),
+    FsRmTool(),
+    FsWalkTool(),
+    SkillListTool(),
+    SkillReadTool(),
+    SkillReadCookbookTool(),
+    SkillCreateTool(),
+    SkillMatchTool(),
+    DelegateTaskTool(onDelegate: (_, __) async => 'stub'),
+  ];
+}
 
 void _testContract(AgentTool tool) {
   test('$tool 契约', () {
@@ -86,8 +109,8 @@ void main() {
       expect(tool.toFunctionDefinition()['type'], 'function');
     });
 
-    test('工具总数 >= 18', () {
-      expect(_allTools().length, greaterThanOrEqualTo(18));
+    test('工具总数 >= 30', () {
+      expect(_allTools().length, greaterThanOrEqualTo(30));
     });
   });
 

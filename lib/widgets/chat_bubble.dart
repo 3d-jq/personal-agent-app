@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import '../models/chat_message.dart';
 import '../core/agent_colors.dart';
 import '../core/design_tokens.dart';
-import '../core/app_animations.dart';
 import '../core/app_router.dart';
 import '../widgets/app_toast.dart';
 import 'inline_content.dart';
@@ -507,8 +506,8 @@ class _AIBubbleState extends State<_AIBubble> {
           // 思考中/工具进度占位行：用 AnimatedSize 平滑收起，避免流式首 token
           // 到达时占位行瞬间消失导致气泡高度骤降、列表回跳（微信级「高度稳定」原则）。
           AnimatedSize(
-            duration: const Duration(milliseconds: 160),
-            curve: Curves.easeOut,
+            duration: AppDurations.micro,
+            curve: AppCurves.appear,
             alignment: Alignment.topLeft,
             child: showProcessLine
                 ? Padding(
@@ -626,9 +625,8 @@ class _AIBubbleState extends State<_AIBubble> {
     }
 
     if (isAllDone) {
-      return InkWell(
+      return PressableScale(
         onTap: () => _showTimelineDetail(steps, nc),
-        borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           child: Row(
@@ -690,9 +688,8 @@ class _AIBubbleState extends State<_AIBubble> {
 
     // 最后一步是 done 但前面有步骤不是（如 error），按已完成样式渲染
     if (!isRunning && !isError) {
-      return InkWell(
+      return PressableScale(
         onTap: () => _showTimelineDetail(steps, nc),
-        borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
           child: Row(

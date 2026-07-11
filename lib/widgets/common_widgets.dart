@@ -506,10 +506,8 @@ class AppListTile extends StatelessWidget {
     );
 
     final tile = onTap != null
-        ? InkWell(
+        ? PressableScale(
             onTap: onTap,
-            splashFactory: NoSplash.splashFactory,
-            highlightColor: nc.fillTertiary,
             child: content,
           )
         : content;

@@ -72,7 +72,7 @@ class ContextDocService {
     // knowledge 不是单个文件，由 readKnowledge 按需读取
     if (doc == ContextDoc.knowledge) {
       return '知识库包含 8 个文件（00_ai_era_correction.md ~ 07_new_gaokao_subject_selection.md），'
-          '请通过 Agent 对话中的 context_doc 工具按需查阅，或直接查看 assets/knowledge/ 目录。';
+          '请通过 Agent 对话中的 context_doc_read 工具按需查阅，或直接查看 assets/knowledge/ 目录。';
     }
     final cached = _cache[doc];
     if (cached != null) return cached;

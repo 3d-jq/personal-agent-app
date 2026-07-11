@@ -273,7 +273,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
                       Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: 48),
                     Material(
                       color: Colors.transparent,
-                      child: InkWell(
+                      child: PressableScale(
                         onTap: () {
                           HapticFeedback.lightImpact();
                           setState(() {
@@ -284,8 +284,6 @@ class _AgentEditPageState extends State<AgentEditPage> {
                             }
                           });
                         },
-                        splashFactory: NoSplash.splashFactory,
-                        highlightColor: nc.fillTertiary,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: SpaceToken.lg, vertical: SpaceToken.md),
                           child: Row(
@@ -358,10 +356,8 @@ class _VendorOption extends StatelessWidget {
           Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: 48),
         Material(
           color: Colors.transparent,
-          child: InkWell(
+          child: PressableScale(
             onTap: onTap,
-            splashFactory: NoSplash.splashFactory,
-            highlightColor: nc.fillTertiary,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: SpaceToken.lg, vertical: SpaceToken.md),
               child: Row(

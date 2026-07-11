@@ -53,10 +53,10 @@ void main() {
     await resetDependencies();
   });
 
-  group('ManageNoteTool.read', () {
+  group('NotesReadTool', () {
     test('read 返回指定笔记的完整正文（含标题与 Markdown 内容）', () async {
-      final tool = ManageNoteTool();
-      final out = await tool.execute({'action': 'read', 'note_id': '1'});
+      final tool = NotesReadTool();
+      final out = await tool.execute({'note_id': '1'});
       expect(out, contains('购物清单'));
       expect(out, contains('id: 1'));
       expect(out, contains('# 超市'));
@@ -64,23 +64,16 @@ void main() {
     });
 
     test('read 找不到 id 时自动回退到 list 并给出提示', () async {
-      final tool = ManageNoteTool();
-      final out = await tool.execute({'action': 'read', 'note_id': '999'});
+      final tool = NotesReadTool();
+      final out = await tool.execute({'note_id': '999'});
       expect(out, contains('找不到 id 为 "999" 的笔记'));
       expect(out, contains('购物清单')); // 列表里能看到可用 id
     });
 
     test('read 未提供 note_id 时给出提示', () async {
-      final tool = ManageNoteTool();
-      final out = await tool.execute({'action': 'read'});
+      final tool = NotesReadTool();
+      final out = await tool.execute({});
       expect(out, contains('未提供 note_id'));
     });
-  });
-
-  test('action 枚举已包含 read', () {
-    final tool = ManageNoteTool();
-    final actionEnum =
-        (tool.parameters['properties'] as Map)['action']['enum'] as List;
-    expect(actionEnum, contains('read'));
   });
 }

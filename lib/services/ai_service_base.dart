@@ -119,8 +119,8 @@ Future<List<ToolResult>> executeAllTools(
       ));
     }
 
-    final planCalls = toolCalls.where((tc) => tc.name == 'task_plan').toList();
-    final otherCalls = toolCalls.where((tc) => tc.name != 'task_plan').toList();
+    final planCalls = toolCalls.where((tc) => tc.name.startsWith('plan_')).toList();
+    final otherCalls = toolCalls.where((tc) => !tc.name.startsWith('plan_')).toList();
     final results = <String, ToolResult>{};
     var done = 0;
 
@@ -157,9 +157,10 @@ Future<List<ToolResult>> executeAllTools(
           result.content.isNotEmpty && !result.failed) {
         sink.add(ToolMediaEvent(result.content));
       }
-      if (tc.name == 'task_plan' && result.content.isNotEmpty && !result.failed) {
-        final taskPlanTool = toolRegistry.get('task_plan');
-        final plan = taskPlanTool is TaskPlanTool ? taskPlanTool.currentPlan : null;
+      if (tc.name.startsWith('plan_') && result.content.isNotEmpty && !result.failed) {
+        final planTool = toolRegistry.get(tc.name);
+        TaskPlan? plan;
+        plan = (planTool as PlanStoreHolder?)?.store.currentPlan;
         if (plan != null) {
           sink.add(TaskPlanEvent(
             title: plan.title,

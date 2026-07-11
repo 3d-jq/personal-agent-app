@@ -50,7 +50,9 @@ class ToolProgressBus {
         return 100;
       case 'web_fetch':
         return 10;
-      case 'virtual_fs':
+      case 'fs_write':
+      case 'fs_mkdir':
+      case 'fs_rm':
         return 5;
       default:
         return 0;

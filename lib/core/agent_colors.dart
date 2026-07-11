@@ -35,6 +35,9 @@ class AgentColors extends ThemeExtension<AgentColors> {
   // ── Dividers & borders ──
   final Color divider;
 
+  // ── Overlay scrim ──
+  final Color drawerScrim;
+
   // ── Elevation / shadow ──
   final Color shadowColor;
   final List<BoxShadow> shadowSm;
@@ -70,6 +73,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
     required this.warning,
     required this.error,
     required this.divider,
+    required this.drawerScrim,
     required this.shadowColor,
     required this.shadowSm,
     required this.shadowMd,
@@ -97,6 +101,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
     warning: Color(0xFFFF9500),
     error: Color(0xFFFF3B30),
     divider: Color(0x333C3C43),
+    drawerScrim: Color(0x61000000),
     shadowColor: Color(0x1A000000),
     shadowSm: <BoxShadow>[
       BoxShadow(offset: Offset(0, 1), blurRadius: 2, color: Color(0x0A000000)),
@@ -133,6 +138,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
     warning: Color(0xFFFF9F0A),
     error: Color(0xFFFF453A),
     divider: Color(0x33EBEBF5),
+    drawerScrim: Color(0x61000000),
     shadowColor: Color(0x80000000),
     shadowSm: <BoxShadow>[
       BoxShadow(offset: Offset(0, 1), blurRadius: 2, color: Color(0x80000000)),
@@ -174,6 +180,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
     Color? warning,
     Color? error,
     Color? divider,
+    Color? drawerScrim,
     Color? shadowColor,
     List<BoxShadow>? shadowSm,
     List<BoxShadow>? shadowMd,
@@ -199,6 +206,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
       warning: warning ?? this.warning,
       error: error ?? this.error,
       divider: divider ?? this.divider,
+      drawerScrim: drawerScrim ?? this.drawerScrim,
       shadowColor: shadowColor ?? this.shadowColor,
       shadowSm: shadowSm ?? this.shadowSm,
       shadowMd: shadowMd ?? this.shadowMd,
@@ -230,6 +238,7 @@ class AgentColors extends ThemeExtension<AgentColors> {
       warning: Color.lerp(warning, other.warning, t)!,
       error: Color.lerp(error, other.error, t)!,
       divider: Color.lerp(divider, other.divider, t)!,
+      drawerScrim: Color.lerp(drawerScrim, other.drawerScrim, t)!,
       shadowColor: Color.lerp(shadowColor, other.shadowColor, t)!,
       shadowSm: BoxShadow.lerpList(shadowSm, other.shadowSm, t)!,
       shadowMd: BoxShadow.lerpList(shadowMd, other.shadowMd, t)!,
