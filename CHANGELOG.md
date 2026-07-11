@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.4.24 — 插件化架构 + 工具可观测性（借鉴 Operit）(2026-07-11)
+
+### 🔌 PluginRegistry 插件骨架
+- 新增 `lib/tools/plugin_registry.dart`：单例 `PluginRegistry` 编排能力插件，`registerCapabilities(registry)` 向每会话 `ToolRegistry` 注入工具；`AppPlugin` 接口（`id` + `init()` + `provideTools`），内置 CoreTools/Skill/Mcp 三插件，幂等按 id 去重。
+
+### 🧰 工具四件套（core/tools 细化）
+- `ToolExecutionLimits`：统一护栏常量（最大结果字符 20000 / 单工具连续调用 10 / 并发 8 / 超时告警 30s）。
+- `ToolProgressBus`：单例进度总线，`__SUMMARY__` 优先级 1000 做整批进度，工具级实时进度广播。
+- `ToolHook`：sealed 拦截决策 + 7 生命周期钩子（before/after/异常/完成），`ToolHookChain` 串跑。
+- `ToolResultData`：sealed 结构化结果（文本/错误/列表/键值），`ToolResult.structured` 工厂。
+
+### 📊 内核可观测性增强（不碰 delegate_task 阻塞内核）
+- `ToolRegistry.execute()` 接入钩子链 + 进度总线（调用前可拦截、频率硬阻止、全周期打点）。
+- `executeAllTools`(`ai_service_base.dart`) 加批次计时 + 每工具耗时日志，保持 `Future.wait` 并发结构不变。
+- `chat_helpers` 的 `registerAllTools`/`registerMcpTools` 委托给 `PluginRegistry`（6 处调用点零改动）。
+
+### ⚠️ 注意
+- 纯架构重构，无 UI/行为变更；`delegate_task` 阻塞式内核保持不动（此前已评估否决大重构）。
+
 ## v1.4.23 — 微信级聊天性能架构（分页存储 + 内存窗口 + 页面缓存）(2026-07-11)
 
 ### 🚀 流式占位行平滑收起（P0 · 修复气泡高度回跳）

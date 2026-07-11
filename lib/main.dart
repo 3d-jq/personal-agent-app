@@ -10,10 +10,9 @@ import 'core/service_locator.dart';
 import 'services/connectivity_service.dart';
 import 'services/log_service.dart';
 import 'services/foreground_service.dart';
-import 'services/mcp_manager.dart';
 import 'services/storage/app_database.dart';
 import 'services/storage/db_migration.dart';
-import 'tools/skill_registry.dart';
+import 'tools/plugin_registry.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,13 +43,9 @@ Future<void> main() async {
     await AppConfig.init();
     await getIt<ConnectivityService>().init();
 
-    // 加载已持久化的自定义 Skill 和激活状态，再注册内置 Skill
-    final skillRegistry = getIt<SkillRegistry>();
-    await skillRegistry.loadFromDisk();
-    skillRegistry.registerBuiltInSkills();
-
-    // 自动连接所有已启用的 MCP 服务器（失败不阻塞启动）
-    unawaited(getIt<McpManager>().autoConnect());
+    // 统一初始化能力插件：加载自定义/内置 Skill、自动连接已启用的 MCP 服务器。
+    // （内置插件清单在 configureDependencies 中注册，此处执行一次性副作用。）
+    await PluginRegistry.instance.init();
 
     // 启动前台服务，保持应用在后台运行（均不阻塞首屏冷启动）
     unawaited(ForegroundService.start());
