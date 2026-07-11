@@ -344,6 +344,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
                 : ListView.builder(
                     controller: _scrollCtrl,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    cacheExtent: 1000, // 缓存窗口：视口外多保留 1000px 的气泡，滚回长消息不重建/重测
                     itemCount: _messages.length,
                     // ChatMessage 是 ChangeNotifier，流式更新时仅对应气泡局部重建
                     itemBuilder: (c, i) => ListenableBuilder(

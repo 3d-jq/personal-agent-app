@@ -326,6 +326,7 @@ class _GroupChatScreenState extends State<GroupChatScreen>
                                   horizontal: SpaceToken.md,
                                   vertical: SpaceToken.md,
                                 ),
+                                cacheExtent: 1000, // 缓存窗口：视口外多保留 1000px 的气泡，滚回长消息不重建/重测
                                 itemCount: _controller.messages.length -
                                     _controller.windowStart +
                                     (_controller.windowStart > 0 ? 1 : 0),
