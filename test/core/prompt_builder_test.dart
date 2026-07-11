@@ -32,7 +32,7 @@ void main() {
       expect(p, contains('SOUL.md'));
     });
 
-    test('首次见面分支仍要求写入 USER.md', () {
+    test('首次见面分支包含三个必填问题（称呼 + AI名 + 语气）', () {
       final p = PromptBuilder.buildMainPrompt(
         soulContext: '',
         userContext: '',
@@ -41,6 +41,9 @@ void main() {
       );
       expect(p, contains('first_meeting'));
       expect(p, contains('context_doc_update'));
+      expect(p, contains('怎么称呼 ta'));
+      expect(p, contains('怎么叫你'));
+      expect(p, contains('语气风格'));
     });
 
     test('有 persona/user_profile 时注入人格一致性硬约束（对抗人格漂移）', () {
@@ -52,6 +55,7 @@ void main() {
       expect(p, contains('人格一致性'));
       expect(p, contains('始终以 <persona>'));
       expect(p, contains('怎么称呼'));
+      expect(p, contains('怎么叫我'));
       expect(p, contains('最高优先级'));
     });
 
