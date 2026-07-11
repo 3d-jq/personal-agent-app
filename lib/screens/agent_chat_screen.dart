@@ -30,7 +30,8 @@ class AgentChatScreen extends StatefulWidget {
   State<AgentChatScreen> createState() => _AgentChatScreenState();
 }
 
-class _AgentChatScreenState extends State<AgentChatScreen> {
+class _AgentChatScreenState extends State<AgentChatScreen>
+    with WidgetsBindingObserver {
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   final ScrollController _scrollCtrl = ScrollController();
@@ -44,6 +45,8 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
   bool _busy = false;
   bool _stopped = false;
   Timer? _scrollTimer;
+  // 上次键盘遮挡高度：用于在 didChangeMetrics 中判断键盘是否正在弹起。
+  double _lastViewInsetBottom = 0;
 
   @override
   void initState() {
@@ -51,6 +54,7 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
     _baseRegistry = ToolRegistry();
     if (_baseRegistry.all.isEmpty) registerAllTools(_baseRegistry);
     _runner = AgentRunner(baseRegistry: _baseRegistry);
+    WidgetsBinding.instance.addObserver(this);
     _aiSettings.load();
     _loadSession();
   }
@@ -95,11 +99,27 @@ class _AgentChatScreenState extends State<AgentChatScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _inputCtrl.dispose();
     _inputFocus.dispose();
     _scrollCtrl.dispose();
     _scrollTimer?.cancel();
     super.dispose();
+  }
+
+  /// 键盘弹起时把列表跟随贴底，避免 Scaffold resize 后最后一条被抬高的输入框遮挡。
+  /// 逐帧 jumpTo 跟随键盘上移动画，最跟手。
+  @override
+  void didChangeMetrics() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollCtrl.hasClients) return;
+      final inset = MediaQuery.of(context).viewInsets.bottom;
+      final opening = inset > _lastViewInsetBottom;
+      _lastViewInsetBottom = inset;
+      if (opening) {
+        _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
+      }
+    });
   }
 
   void _scrollDown() {

@@ -13,6 +13,8 @@
 - 块渲染缓存**跨重建持久化**：原 `_AIBubble` 实例字段 `_frozenBlockWidgets` 移至 `_BlockRenderCache`（按 `msg.id` + 主题哈希 LRU 缓存，上限 60 条），气泡滚出 `cacheExtent` 再滚回时复用已渲染 widget（Flutter 对相同 widget 实例做 no-op update，不重解析、不重排版），消除回看长消息的跳动/卡顿；代码块(fenced)/图片块依赖 BuildContext 不缓存，每次重渲染。
 - `chat_screen.dart` 列表 `cacheExtent` 500→1000（缓存窗口：视口外多保留 1000px 气泡，滚回不重建/重测）。
 - **对齐至群聊与 agent 单聊**：群聊屏 `group_chat_screen.dart`、agent 单聊屏 `agent_chat_screen.dart` 的 `ListView.builder` 均补 `cacheExtent: 1000`；二者正文渲染复用 `ChatBubble`，故 200ms 节流与块渲染缓存已自动同步，仅缺缓存窗口一项。
+- **「回到底部」平滑滚动修复**：旧 `_followBottom` 每帧直接 `jumpTo(maxScrollExtent)`＝第一帧硬跳到底、280ms 动画时长形同虚设（用户感受为「卡/突兀」）。改为在动画起点 offset 与「当前」max 间用 `Curves.easeOutCubic` 插值（等价 Operit `animateScrollTo` 的 spring 平滑滚动），每帧重读 max 兼顾未测量尾部/流式增长的自然跟随。主聊天屏 + 群聊屏同步修复。
+- **键盘弹起不再遮挡内容**：三屏（`chat_screen` / `group_chat_screen` / `agent_chat_screen`）加 `WidgetsBindingObserver.didChangeMetrics` 监听：键盘弹起（`MediaQuery.viewInsets.bottom` 增大）时逐帧 `jumpTo` 跟随键盘上移贴底，消除 Scaffold resize 后最后一条消息被抬高的输入框遮挡；主/群聊在用户上滑看历史（`_userScrolledUp`）时不强制拽回底部，保持阅读位置。
 
 ## v1.4.24 — 插件化架构 + 工具可观测性（借鉴 Operit）(2026-07-11)
 
