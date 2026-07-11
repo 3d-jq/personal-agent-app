@@ -190,7 +190,7 @@ class _AddVendorBodyState extends State<_AddVendorBody> {
                     name: n,
                     apiKey: k,
                     baseUrl: u,
-                    model: 'deepseek-chat',
+                    model: '',
                     protocol: _protocol,
                   ),
                 );
