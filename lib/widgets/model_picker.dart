@@ -108,8 +108,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
     }
     return _fetched!;
   }
-  String get _current =>
-      widget.vendor.model.isNotEmpty ? widget.vendor.model : 'deepseek-chat';
+  String get _current => widget.vendor.model;
 
   @override
   Widget build(BuildContext context) {

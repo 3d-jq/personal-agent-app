@@ -55,7 +55,7 @@ class AISettings extends ChangeNotifier {
     save();
     final v = vendors.where((x) => x.id == id).firstOrNull;
     if (v != null && v.model.isEmpty) {
-      final defaultModel = id == 'Agnes-2.0-Flash' ? 'agnes-2.0-flash' : 'deepseek-chat';
+      final defaultModel = id == 'Agnes-2.0-Flash' ? 'agnes-2.0-flash' : '';
       final index = vendors.indexWhere((x) => x.id == id);
       if (index >= 0) {
         vendors[index] = v.copyWith(model: defaultModel);

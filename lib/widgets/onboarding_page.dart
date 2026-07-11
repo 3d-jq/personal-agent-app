@@ -20,7 +20,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   int _step = 0;
 
   final _presets = [
-    ('DeepSeek', 'https://api.deepseek.com/v1', 'deepseek-chat'),
+    ('DeepSeek', 'https://api.deepseek.com/v1', ''),
     ('OpenAI', 'https://api.openai.com/v1', 'gpt-4o'),
     ('Agnes', 'https://apihub.agnes-ai.com/v1', 'agnes-2.0-flash'),
   ];
