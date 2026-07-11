@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.4.26 — 侧边栏安全版 3D 推入 + 转场轻量增强（借鉴 Operit）(2026-07-11)
+
+### 🎨 侧边栏安全版 3D 推入（借鉴 Operit 无遮罩推入式抽屉）
+- 新增 `lib/widgets/push_drawer.dart`：`PushDrawer` 推入式抽屉容器。打开时主内容右移 82% + 缩放至 0.92 + 圆角 24 + 阴影 18，**无遮罩**（叠透明点击层关闭），打开用弹簧（轻微回弹）、关闭无回弹，支持左缘横滑手势开关。
+- 刻意**不加 rotationY 3D 翻转**（即此前回滚的 3D 折叠效果），规避回归风险，取 Operit 推入式层次感而避其坑。
+- `agent_side_drawer.dart`：去掉 Material `Drawer` 外壳，菜单项改用 `onRequestClose` 回调关闭——推入式抽屉是内联组件而非路由，原 `Navigator.pop()` 会误弹当前页。
+- `agent_top_bar.dart`：菜单按钮新增 `onMenu` 回调驱动抽屉，保留对旧 `openDrawer()` 用法的回退兼容。
+- `chat_screen.dart`：接入 `PushDrawer` 替换标准 `Scaffold.drawer` + 黑遮罩（0.38）。
+
+### ✨ 转场轻量增强（IosSlideRoute 叠加 scale 纵深）
+- `app_animations.dart`：在现有 iOS 横滑视差基础上叠加 `ScaleTransition`——进入页 0.98→1.0、旧页往后沉至 0.98。纯 GPU transform，**不引入整页 fade 离屏合成**，保留「聊天流畅度优先」取向。
+
+### 🧹 其他
+- 清理 Operit 源码研究残留 `op_research/`。
+
 ## v1.4.25 — 深度搜索 + 聊天流畅度（借鉴 Operit）(2026-07-11)
 
 ### 🔍 深度搜索工具（方案②：工具内 LLM 综合，借鉴 Operit）

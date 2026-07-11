@@ -16,6 +16,9 @@ class AgentSideDrawer extends StatefulWidget {
   final VoidCallback onNewChat;
   final ValueChanged<String> onSessionDeleted;
 
+  /// 关闭抽屉回调。推入式抽屉是内联组件（非路由），关闭须走此回调而非 Navigator.pop()。
+  final VoidCallback? onRequestClose;
+
   const AgentSideDrawer({
     super.key,
     this.sessions = const [],
@@ -24,6 +27,7 @@ class AgentSideDrawer extends StatefulWidget {
     required this.onSessionTap,
     required this.onNewChat,
     required this.onSessionDeleted,
+    this.onRequestClose,
   });
 
   @override
@@ -33,20 +37,20 @@ class AgentSideDrawer extends StatefulWidget {
 class _AgentSideDrawerState extends State<AgentSideDrawer> {
   void _closeAnd(void Function(BuildContext rootContext) action) {
     HapticFeedback.lightImpact();
-    final navigator = Navigator.of(context);
-    final rootContext = navigator.context;
-    navigator.pop();
-    WidgetsBinding.instance.addPostFrameCallback((_) => action(rootContext));
+    // 推入式抽屉：先请求关闭动画，再在当前（内联）context 上执行导航。
+    // 新路由会盖住抽屉，关闭动画在其后进行，返回时抽屉已收起。
+    widget.onRequestClose?.call();
+    action(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
 
-    // 不再用 SizedBox(width: 整屏宽) 包裹，让 Drawer 用默认 304dp 宽度，
-    // 这样侧边栏是标准的部分覆盖（露出右侧一截聊天内容），而非全屏遮罩。
-    return Drawer(
-      backgroundColor: nc.background,
+    // 推入式抽屉：宽度由外层 PushDrawer 约束，这里只提供背景 + 内容，
+    // 不再套 Material Drawer 外壳（避免其自带 elevation 阴影与推入卡片阴影叠加）。
+    return Material(
+      color: nc.background,
       child: SafeArea(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,7 +164,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                                 isLast: i == widget.sessions.length - 1,
                                 onTap: () {
                                   HapticFeedback.lightImpact();
-                                  Navigator.of(context).pop();
+                                  widget.onRequestClose?.call();
                                   widget.onSessionTap(s.id);
                                 },
                                 onLongPress: () => _confirmDelete(s),
@@ -205,7 +209,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                     GestureDetector(
                       onTap: () {
                         HapticFeedback.lightImpact();
-                        Navigator.of(context).pop();
+                        widget.onRequestClose?.call();
                         widget.onNewChat();
                       },
                       child: Container(
