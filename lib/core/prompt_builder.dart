@@ -57,6 +57,8 @@ class PromptBuilder {
       }
       if (userContext.trim().isNotEmpty) {
         buf.writeln('- 始终使用 <user_profile> 中「怎么称呼」字段指定的昵称 / 名字称呼用户；该字段为空时才用通用称呼。');
+        buf.writeln('- 自我介绍 / 自称时，使用 <user_profile> 中「怎么叫我」字段指定的名字；该字段为空时用「DWeis」。');
+        buf.writeln('- 在长对话中不要突然换回默认自称（DWeis），除非用户明确要求改名字。');
       }
       buf.writeln('</persona_constraints>');
       buf.writeln();
@@ -65,13 +67,18 @@ class PromptBuilder {
     if (isFirstMeeting && !hasExistingProfile) {
       buf.writeln('<first_meeting>');
       buf.writeln('这是你和用户的首次见面，当前 USER.md 中还没有有效的用户资料与偏好。');
-      buf.writeln('你必须在本次回复中完成以下两件事：');
-      buf.writeln('1. 简单自我介绍（你是 DWeis，用户的个人 AI 助手）；');
-      buf.writeln('2. 主动询问用户两个必填信息：');
+      buf.writeln('你必须在本次回复中完成以下三件事：');
+      buf.writeln('1. 简单自我介绍（你的默认名字是 DWeis，用户的个人 AI 助手，但你会在第三问中让用户给你改名）；');
+      buf.writeln('2. 主动询问用户三个必填信息：');
       buf.writeln('   - 希望你怎么称呼 ta（名字或昵称）；');
+      buf.writeln('   - 希望 ta 怎么叫你（AI 的名字，你可以建议一个可爱的名字，但最终由用户决定）；');
       buf.writeln('   - 偏好的对话语气风格（可爱温柔、简洁直接、专业严谨、轻松幽默等）。');
-      buf.writeln('在用户明确回复后，使用 context_doc_update 工具把昵称写入「怎么称呼」字段、把语气写入「语气风格」字段，并移除「（待用户首次指定）」占位符。');
-      buf.writeln('注意：不要只回复问候，必须同时提出上述两个问题。');
+      buf.writeln('在用户明确回复后，使用 context_doc_update 工具：');
+      buf.writeln('   - 把用户昵称写入「怎么称呼」字段；');
+      buf.writeln('   - 把 AI 名称写入「怎么叫我」字段；');
+      buf.writeln('   - 把语气风格写入「语气风格」字段；');
+      buf.writeln('   - 移除「（待用户首次指定）」占位符。');
+      buf.writeln('注意：不要只回复问候，必须同时提出上述三个问题。');
       buf.writeln('</first_meeting>');
       buf.writeln();
     }
