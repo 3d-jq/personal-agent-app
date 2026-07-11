@@ -1,1 +1,0 @@
-按 CSS 选择器点击页面元素。selector 优先使用 browser_snapshot 返回的元素 ref。点击可能触发导航，之后应调用 browser_snapshot 查看新页面。

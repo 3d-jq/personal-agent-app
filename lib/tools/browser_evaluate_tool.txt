@@ -1,1 +1,0 @@
-在当前页面执行任意 JavaScript 代码并返回执行结果。适用于提取 browser_snapshot 未覆盖的页面数据。
