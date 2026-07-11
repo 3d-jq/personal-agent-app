@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import '../tools/tools.dart';
+import '../tools/tool_progress_bus.dart';
+import '../services/log_service.dart';
 import 'chat_stream_event.dart';
 
 String normalizeUrl(String url) => url.trim().replaceAll(RegExp(r'/+$'), '');
@@ -98,8 +100,16 @@ Future<List<ToolResult>> executeAllTools(
   ToolRegistry toolRegistry,
   EventSink<ChatStreamEvent> sink,
 ) async {
+  final batchSw = Stopwatch()..start();
   try {
     final count = toolCalls.length;
+    // 整体进度汇总（最高优先级，UI 可据此画总进度条）
+    ToolProgressBus.instance.updateDetailed(
+      ToolProgressBus.summaryToolName,
+      0.0,
+      message: '执行 $count 个工具',
+    );
+
     for (final tc in toolCalls) {
       sink.add(ToolStartEvent(
         tc.name,
@@ -112,15 +122,26 @@ Future<List<ToolResult>> executeAllTools(
     final planCalls = toolCalls.where((tc) => tc.name == 'task_plan').toList();
     final otherCalls = toolCalls.where((tc) => tc.name != 'task_plan').toList();
     final results = <String, ToolResult>{};
+    var done = 0;
 
-    await Future.wait(
-      otherCalls.map((tc) async {
-        results[tc.id] = await toolRegistry.execute(tc);
-      }),
-    );
+    // 单工具执行包装：计时 + 进度汇总（保持原 Future.wait 并发结构不变，
+    // 不触碰 delegate_task 阻塞式内核）。
+    Future<void> runOne(ToolCall tc) async {
+      final sw = Stopwatch()..start();
+      results[tc.id] = await toolRegistry.execute(tc);
+      done++;
+      ToolProgressBus.instance.updateDetailed(
+        ToolProgressBus.summaryToolName,
+        done / count,
+        message: '已完成 $done/$count',
+      );
+      log.i('ToolExec', '${tc.name} 耗时 ${sw.elapsedMilliseconds}ms');
+    }
+
+    await Future.wait(otherCalls.map(runOne));
 
     for (final tc in planCalls) {
-      results[tc.id] = await toolRegistry.execute(tc);
+      await runOne(tc);
     }
 
     final ordered = <ToolResult>[];
@@ -156,6 +177,8 @@ Future<List<ToolResult>> executeAllTools(
       }
     }
 
+    ToolProgressBus.instance.clear();
+    log.i('ToolExec', '批次完成 $count 个工具，总耗时 ${batchSw.elapsedMilliseconds}ms');
     return ordered;
   } finally {
     sink.close();

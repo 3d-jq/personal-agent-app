@@ -16,6 +16,7 @@ import '../services/storage/app_database.dart';
 import '../services/theme_service.dart';
 import '../services/virtual_fs.dart';
 import '../tools/skill_registry.dart';
+import '../tools/plugin_registry.dart';
 import '../widgets/ai_settings_sheet.dart';
 
 /// 全局依赖注入容器。
@@ -49,6 +50,10 @@ Future<void> configureDependencies() async {
     ..registerSingleton<ThemeService>(ThemeService())
     ..registerSingleton<VirtualFileSystem>(VirtualFileSystem())
     ..registerSingleton<SkillRegistry>(SkillRegistry());
+
+  // 注册内置能力插件（核心工具 + Skill + MCP）。初始化副作用（加载技能、
+  // 连接 MCP）由 PluginRegistry.instance.init() 在 main 中执行。
+  PluginRegistry.instance.registerBuiltins();
 }
 
 /// 重置所有已注册依赖，主要用于测试。
@@ -62,6 +67,8 @@ Future<void> resetDependencies() async {
   ForegroundService.reset();
   // 清空聊天控制器缓存，避免跨测试复用已 dispose 的控制器导致泄漏/状态串扰
   ChatControllerCache.instance.clear();
+  // 复位插件注册表（清空已安装标记与插件列表），避免跨测试泄漏
+  PluginRegistry.instance.reset();
   await AppDatabase.instance.close();
   await getIt.reset();
 }

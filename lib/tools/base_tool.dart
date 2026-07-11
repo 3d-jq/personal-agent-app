@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'tool_result_data.dart';
+
 /// Base class for all agent tools.
 /// Each tool defines: name, description, parameters (JSON Schema), and execute logic.
 abstract class AgentTool {
@@ -78,6 +80,8 @@ class ToolResult {
   final String? warning;
   /// 显式声明是否成功
   final bool isSuccess;
+  /// 可选结构化结果（[ToolResultData]），供 UI / 下游按类型消费。
+  final ToolResultData? data;
 
   const ToolResult({
     required this.toolName,
@@ -85,6 +89,7 @@ class ToolResult {
     this.toolCallId,
     this.warning,
     this.isSuccess = true,
+    this.data,
   });
 
   /// 创建成功结果
@@ -93,6 +98,7 @@ class ToolResult {
     required this.content,
     this.toolCallId,
     this.warning,
+    this.data,
   }) : isSuccess = true;
 
   /// 创建失败结果
@@ -101,7 +107,17 @@ class ToolResult {
     required this.content,
     this.toolCallId,
     this.warning,
+    this.data,
   }) : isSuccess = false;
+
+  /// 用结构化结果创建成功结果（content 取 [ToolResultData.toDisplayString]）。
+  ToolResult.structured({
+    required this.toolName,
+    required this.data,
+    this.toolCallId,
+    this.warning,
+  })  : content = data!.toDisplayString(),
+        isSuccess = true;
 
   /// Whether this result indicates a failure.
   bool get failed => !isSuccess;

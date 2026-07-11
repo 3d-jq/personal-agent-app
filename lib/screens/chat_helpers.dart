@@ -1,92 +1,23 @@
 import 'dart:io';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../core/service_locator.dart';
 import '../core/prompt_builder.dart';
 import '../models/chat_message.dart';
-import '../services/crypto_util.dart';
-import '../services/mcp_manager.dart';
 import '../tools/tools.dart';
+import '../tools/plugin_registry.dart';
 
-/// 安全读取环境变量，测试环境未加载 dotenv 时返回空字符串。
-String _safeEnv(String key) {
-  try {
-    return dotenv.env[key] ?? '';
-  } catch (_) {
-    return '';
-  }
-}
-
-/// 注册所有内置工具到 ToolRegistry
+/// 注册所有内置工具到 ToolRegistry。
 ///
-/// - 高频/基础工具：直接进入默认 function definitions，对话前预加载。
-/// - 低频/场景化工具：注册为 discoverable，不占用默认上下文；
-///   需要时由模型先调用 tool_search 查找，再用 defer_execute_tool 执行。
+/// 现已统一委托给 [PluginRegistry]（核心工具 + Skill + MCP 三套能力插件），
+/// 见 [PluginRegistry.registerCapabilities]。保持此函数仅为兼容旧调用点。
 void registerAllTools(ToolRegistry registry) {
-  // 高频基础工具（预加载）
-  registry.register(TaskPlanTool());
-  registry.register(ReminderTool());
-  registry.register(WebFetchTool());
-  registry.register(WeatherTool(apiKey: CryptoUtil.decrypt(_safeEnv('GAODE_API_KEY'))));
-  registry.register(LocationTool());
-  registry.register(SearxngSearchTool());
-  registry.register(TavilySearchTool());
-  final agnesKey = CryptoUtil.decrypt(_safeEnv('AGNES_API_KEY'));
-  registry.register(AgnesImageTool(apiKey: agnesKey));
-  registry.register(AgnesVideoTool(apiKey: agnesKey));
-  registry.register(SaveNoteTool());
-  registry.register(ManageNoteTool());
-  registry.register(CreateRichNoteTool());
-  registry.register(AiDailyTool());
-  registry.register(ContextDocTool());
-  registry.register(VirtualFSTool());
-  registry.register(SkillManageTool());
-
-  // 工具发现层（本身也是预加载工具）
-  registry.register(ToolSearchTool(registry: registry));
-  registry.register(DeferExecuteTool(registry: registry));
-
-  // 低频/场景化工具（按需发现）
-  registry.registerDiscoverable(CalendarTool());
-
-  // 注入所有已连接 MCP 服务器的工具
-  registerMcpTools(registry);
+  PluginRegistry.instance.registerCapabilities(registry);
 }
 
 /// 把所有已连接 MCP 服务器的工具注册进 ToolRegistry。
 ///
-/// 每个 MCP 工具用 [McpToolAdapter] 包装，工具名加 `mcp_{serverId}_` 前缀
-/// 防止多个服务器之间工具重名冲突。
-///
-/// 应在每次发消息前调用，确保用户在 MCP 管理页新连接的服务器
-/// 能被及时注册。
+/// MCP 工具同步已并入 [PluginRegistry] 的 [McpPlugin]，故此处直接委托。
+/// 应在每次发消息前调用，确保用户新连接的服务器能被及时注册。
 void registerMcpTools(ToolRegistry registry) {
-  try {
-    final mcpManager = getIt<McpManager>();
-    // 先移除所有旧的 MCP 工具，避免断开的服务器工具残留
-    final oldMcpNames = registry.all
-        .where((t) => t.name.startsWith('mcp_'))
-        .map((t) => t.name)
-        .toList();
-    for (final name in oldMcpNames) {
-      registry.unregister(name);
-    }
-    // 重新注册所有当前已连接的服务器工具
-    for (final entry in mcpManager.clients.entries) {
-      final serverId = entry.key;
-      final client = entry.value;
-      for (final tool in client.tools) {
-        final adapter = McpToolAdapter(
-          serverId: serverId,
-          name: tool.name,
-          description: tool.description,
-          inputSchema: tool.inputSchema,
-        );
-        registry.register(adapter);
-      }
-    }
-  } catch (_) {
-    // McpManager 未初始化时忽略
-  }
+  PluginRegistry.instance.registerCapabilities(registry);
 }
 
 /// 工具名称 → 中文标签，支持通过 arguments 显示具体操作。

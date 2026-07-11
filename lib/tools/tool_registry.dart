@@ -1,4 +1,7 @@
 import 'base_tool.dart';
+import 'tool_execution_limits.dart';
+import 'tool_hook.dart';
+import 'tool_progress_bus.dart';
 import '../utils/tool_result_truncator.dart';
 
 /// Registry that manages and dispatches agent tools.
@@ -16,7 +19,13 @@ class ToolRegistry {
   final Map<String, int> _callCounts = {};
 
   /// 同一工具连续调用超过此次数时触发提醒
-  static const int maxConsecutiveCalls = 10;
+  static const int maxConsecutiveCalls = ToolExecutionLimits.maxConsecutiveCallsPerTool;
+
+  /// 工具调用生命周期钩子（审计 / 权限 / 限流 / 埋点）。
+  final List<ToolHook> _hooks = [];
+
+  /// 注册一个工具钩子。
+  void addHook(ToolHook hook) => _hooks.add(hook);
 
   /// 通用工具结果截断器，防止单个工具输出撑爆上下文
   final ToolResultTruncator _truncator = const ToolResultTruncator();
@@ -129,6 +138,19 @@ class ToolRegistry {
       );
     }
 
+    // 钩子：请求通知 + 拦截（可阻止执行）
+    for (final h in _hooks) {
+      h.onToolCallRequested(tool);
+    }
+    final intercept = _runIntercept(tool);
+    if (intercept is ToolHookBlock) {
+      return ToolResult.failure(
+        toolName: toolCall.name,
+        content: intercept.reason,
+        toolCallId: toolCall.id,
+      );
+    }
+
     // 频率限制检查（硬阻止）
     final limitMsg = checkFrequencyLimit(toolCall.name);
     if (limitMsg != null) {
@@ -139,21 +161,47 @@ class ToolRegistry {
       );
     }
 
+    for (final h in _hooks) {
+      h.onToolExecutionStarted(tool);
+    }
+    ToolProgressBus.instance.update(toolCall.name, 0.0, message: '执行中');
     try {
       final result = await tool.execute(toolCall.arguments);
       final warning = checkFrequencyWarning(toolCall.name);
-      return ToolResult.success(
+      final content = _truncator.truncate(result);
+      final tr = ToolResult.success(
         toolName: toolCall.name,
-        content: _truncator.truncate(result),
+        content: content,
         toolCallId: toolCall.id,
         warning: warning,
       );
+      for (final h in _hooks) {
+        h.onToolExecutionResult(tool, tr);
+      }
+      ToolProgressBus.instance.update(toolCall.name, 1.0, message: '完成');
+      return tr;
     } catch (e) {
+      for (final h in _hooks) {
+        h.onToolExecutionError(tool, e);
+      }
       return ToolResult.failure(
         toolName: toolCall.name,
         content: '执行失败: $e',
         toolCallId: toolCall.id,
       );
+    } finally {
+      for (final h in _hooks) {
+        h.onToolExecutionFinished(tool);
+      }
     }
+  }
+
+  /// 串跑所有钩子的拦截决策，返回首个 [ToolHookBlock]。
+  ToolHookDecision _runIntercept(AgentTool tool) {
+    for (final h in _hooks) {
+      final d = h.onToolCallIntercept(tool);
+      if (d is ToolHookBlock) return d;
+    }
+    return const ToolHookAllow();
   }
 }
