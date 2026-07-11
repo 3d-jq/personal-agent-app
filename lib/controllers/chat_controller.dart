@@ -277,9 +277,16 @@ class ChatController extends ChangeNotifier {
   }
 
   Future<void> switchSession(String id) async {
-    // 先停止当前流（会触发存盘），再切换，避免流回调往已替换的消息列表写数据
-    if (_isLoading) stopStream();
-    await saveSession();
+    // 先停止当前流（stopStream 内部已 saveSession 存盘），再切换，避免流回调
+    // 往已替换的消息列表写数据。
+    if (_isLoading) {
+      stopStream();
+    } else if (_sessionId != null && _messages.isNotEmpty) {
+      // 【流畅度】已流式收尾的会话此前已在 _finalizeStreamDone 落盘，无需每次切换都
+      // 全量序列化全部消息（主线程尖刺 → 抽屉背后重建仍可能被感知为卡顿）。仅轻量
+      // 刷新会话列表顺序供抽屉展示。流式进行中才走上面的 stopStream 全量存盘。
+      _sessions = await _chatStorage.loadChatSessions();
+    }
     await loadSession(id);
   }
 

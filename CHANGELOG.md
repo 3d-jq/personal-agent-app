@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.4.29 — 会话切换零延迟 + 回到底部平滑 + 切换去冗余序列化 (2026-07-11)
+
+### 🔥 会话切换零延迟（治「点击要等会才能进入」/ 切换卡点）
+- 撤销上轮误加的 260ms 骨架延迟方案：删除 `_loading` 骨架态 + `Future.delayed(260ms)` + `AnimatedSwitcher` 骨架↔列表交叉淡入（该方案反而让每次点会话先转圈 260ms 再进，且骨架切换本身有卡点）。
+- 对齐 Operit「抽屉 GPU 动画期间内容不重组」真实机制：点会话**立即 `switchSession` + 立即 `closeDrawer`**。标准 Drawer 不透明、完全覆盖内容，切会话的列表重建在抽屉关闭动画背后发生、被遮挡不可见；抽屉收起时内容已就绪 → 零延迟、无转圈、无闪烁。
+- `cacheExtent` 500→4000：滚出视口的长消息气泡不再被销毁/重建/重测 markdown（对齐 Operit 大缓存窗口，治切换后回看卡顿）。
+
+### 🟢 「回到底部」平滑滚动（治回到底部不流畅）
+- 删除旧 `_followBottom` 每帧 `jumpTo` 手动循环 + 整个 `AnimationController`（连带去掉 `SingleTickerProviderStateMixin`）。旧实现第一帧硬跳到底、动画时长形同虚设，用户感受为「瞬移 + 割裂」。
+- 改用原生 `animateTo(max)`：距底 ≤ `cacheExtent×0.8`（≈3200px≈4 屏）**整体平滑滚动**（该范围气泡已被 cacheExtent 预构建，沿途无白屏、无突兀跳变）；仅极远处（>4 屏）点回到底部才先瞬跳最后一屏再收尾。预跳前先置 `_autoScrolling=true` 避免误判用户上滑。
+
+### 🪶 switchSession 去冗余序列化（降切换主线程尖刺）
+- 非流式态下不再每次 `saveSession()` 全量序列化当前会话所有消息（已收尾会话此前已落盘），仅流式中 `stopStream` 才存盘，其余仅轻量刷新会话列表。
+
+### 🧹 消息列表页（治返回卡点）
+- `_MessageTile` 删除 `FadeTransition`+`SlideTransition` 进入动画，静态直出，返回重建不重播动画。
+- `_openChat` 返回后的 `_load()` 包进 `addPostFrameCallback`，延到 pop 转场结束后再跑，不与 IosSlideRoute 返回转场抢帧。
+
 ## v1.4.28 — 删除气泡进入动画，根治切会话卡顿 (2026-07-11)
 
 ### 🚀 删除气泡进入动画（根治切历史对话卡顿）
