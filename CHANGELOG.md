@@ -12,6 +12,7 @@
 - `ChatMessage.text` 加 **200ms 流式节流层**（首包 leading-edge 即时上屏 + 200ms 边界 trailing flush，≤5Hz 重建）：逻辑文本 `_text` 始终即时更新（存取/复制正确），仅 `notifyListeners` 被节流，等价 Operit `RENDER_INTERVAL_MS=200` 批处理层；流结束 `isStreaming=false` 立即 flush 最终文本并取消残留定时器。
 - 块渲染缓存**跨重建持久化**：原 `_AIBubble` 实例字段 `_frozenBlockWidgets` 移至 `_BlockRenderCache`（按 `msg.id` + 主题哈希 LRU 缓存，上限 60 条），气泡滚出 `cacheExtent` 再滚回时复用已渲染 widget（Flutter 对相同 widget 实例做 no-op update，不重解析、不重排版），消除回看长消息的跳动/卡顿；代码块(fenced)/图片块依赖 BuildContext 不缓存，每次重渲染。
 - `chat_screen.dart` 列表 `cacheExtent` 500→1000（缓存窗口：视口外多保留 1000px 气泡，滚回不重建/重测）。
+- **对齐至群聊与 agent 单聊**：群聊屏 `group_chat_screen.dart`、agent 单聊屏 `agent_chat_screen.dart` 的 `ListView.builder` 均补 `cacheExtent: 1000`；二者正文渲染复用 `ChatBubble`，故 200ms 节流与块渲染缓存已自动同步，仅缺缓存窗口一项。
 
 ## v1.4.24 — 插件化架构 + 工具可观测性（借鉴 Operit）(2026-07-11)
 
