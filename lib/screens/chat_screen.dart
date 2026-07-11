@@ -25,7 +25,7 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
@@ -42,10 +42,8 @@ class _ChatScreenState extends State<ChatScreen>
   // 会话加载态：initialize 完成前显示骨架屏（仅冷启动/未就绪时），
   // 完成后淡入真实列表，使转场帧与首屏气泡 build 帧错峰。
   bool _loading = false;
-  late final AnimationController _scrollAnim;
-  // 点击「回到底部」动画的起点 offset：_followBottom 据此在起点→当前底部间插值，
-  // 消除旧实现「每帧直接 jumpTo(max)＝第一帧硬跳到底」的突兀感。
-  double _animStartOffset = 0;
+  // 点击「回到底部」：原生 animateTo 平滑滚动，不再用 AnimationController 手动循环。
+  // 见 _scrollToBottom。
   // 上次键盘遮挡高度：用于在 didChangeMetrics 中判断键盘是否正在弹起。
   double _lastViewInsetBottom = 0;
 
@@ -72,17 +70,6 @@ class _ChatScreenState extends State<ChatScreen>
     });
     _scrollCtrl.addListener(_onScroll);
     WidgetsBinding.instance.addObserver(this);
-    _scrollAnim = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 280),
-    );
-    _scrollAnim.addListener(_followBottom);
-    _scrollAnim.addStatusListener((status) {
-      if (status == AnimationStatus.completed ||
-          status == AnimationStatus.dismissed) {
-        _autoScrolling = false;
-      }
-    });
   }
 
   @override
@@ -98,7 +85,6 @@ class _ChatScreenState extends State<ChatScreen>
     _inputFocus.dispose();
     _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
-    _scrollAnim.dispose();
     super.dispose();
   }
 
@@ -157,41 +143,38 @@ class _ChatScreenState extends State<ChatScreen>
     });
   }
 
-  /// 点击「回到底部」的每帧驱动：在动画起点 offset 与「当前」maxScrollExtent 之间
-  /// 用 easeOutCubic 插值（等价 Operit `animateScrollTo` 的 spring 平滑滚动）。
-  /// 每帧重读 max：底部 item 随布局完成把 max 推高、流式期间内容增长，都能自然跟随，
-  /// 既平滑插值又不会「先到错误底部再 snap」。旧实现每帧直接 jumpTo(max)＝第一帧
-  /// 硬跳到底、280ms 时长形同虚设，用户感受为「卡/突兀」——此即修复点。
-  void _followBottom() {
-    if (!_scrollCtrl.hasClients) return;
-    final target = _scrollCtrl.position.maxScrollExtent;
-    final t = Curves.easeOutCubic.transform(_scrollAnim.value);
-    final pos = _animStartOffset + (target - _animStartOffset) * t;
-    _scrollCtrl.jumpTo(pos);
-  }
-
   /// 平滑回到底部：用于点击「回到底部」按钮。
-  /// 复位 _userScrolledUp 让流式自动贴底能恢复；记录起点 offset 供 _followBottom 插值。
+  /// 复位 _userScrolledUp 让流式自动贴底能恢复。
   ///
-  /// 【白屏根治】距底部很远时（用户在很上面点回到底部），若逐帧动画滚过整段，
-  /// ListView.builder 来不及构建沿途几百条重气泡 → 一路白屏才落底。
-  /// 解法：先瞬时 jumpTo 到「底部前约 1.2 屏」，只需构建最后一屏气泡，
-  /// 再对这最后一小段做 easeOutCubic 平滑动画——既无白屏、又保留贴底的顺滑收尾。
+  /// 【顺滑 + 无白屏】距底不超过 cacheExtent 的 ~80%（约 3200px≈4 屏）时直接整体用
+  /// 原生 `animateTo` 平滑滚动：该范围内气泡已由 cacheExtent 预构建，沿途无白屏、无
+  /// 突兀跳变，最跟手。仅当用户在极远处（>4 屏）点回到底部，才先瞬时 jumpTo 到
+  /// 「底部前约 1.5 屏」（只构建最后一屏气泡，避免 animateTo 一路白屏），再对最后一
+  /// 小段做平滑动画收尾。旧实现每帧 jumpTo 手动循环 + 1.2 屏即硬跳，导致中距离也有
+  /// "先瞬移再滑"的割裂感——此即「回到底部不流畅」的根因。
   void _scrollToBottom() {
     if (!_scrollCtrl.hasClients) return;
     _userScrolledUp = false;
     final pos = _scrollCtrl.position;
     final viewport = pos.viewportDimension;
     final max = pos.maxScrollExtent;
-    // 预跳阈值：距底部超过 1.2 屏才预跳，避免短距离也硬跳丢失顺滑感。
-    final preJump = (max - viewport * 1.2).clamp(0.0, max);
-    if (_scrollCtrl.offset < preJump) {
+    // 先置位程序滚动守卫，使下方预跳 jumpTo 不被 _onScroll 误判为用户上滑/重复 setState
+    _autoScrolling = true;
+    const cacheExtentPx = 4000.0; // 与 _MessageList cacheExtent 对齐
+    final smoothLimit = (cacheExtentPx * 0.8).clamp(0.0, max);
+    if (max - _scrollCtrl.offset > smoothLimit) {
+      // 超远：先瞬时跳到「底部前约 1.5 屏」，只构建最后一屏，避免 animateTo 沿途白屏
+      final preJump = (max - viewport * 1.5).clamp(0.0, max);
       _scrollCtrl.jumpTo(preJump);
     }
-    _autoScrolling = true;
-    _animStartOffset = _scrollCtrl.offset;
-    _scrollAnim.stop();
-    _scrollAnim.forward(from: 0);
+    _scrollCtrl
+        .animateTo(
+          max,
+          duration: const Duration(milliseconds: 280),
+          curve: Curves.easeOutCubic,
+        )
+        .then((_) => _autoScrolling = false)
+        .catchError((_) => _autoScrolling = false);
   }
 
 
@@ -224,14 +207,23 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _onSessionTap(String id) {
-    if (id != _controller.currentSessionId) {
-      _resetInput();
-      _controller.switchSession(id).then((_) {
-        widget.onSessionChanged?.call();
-      }, onError: (e, st) {
-        debugPrint('切换会话失败: $e');
-      });
+    if (id == _controller.currentSessionId) {
+      // 已是当前会话：直接关抽屉即可，无需切换
+      _scaffoldKey.currentState?.closeDrawer();
+      return;
     }
+    _resetInput();
+    // 【流畅度修正】去掉旧版「260ms 骨架延迟」——那是上一轮为避开抽屉与列表同帧打架
+    // 而加的，却带来"点完要等转圈才进"的割裂感。现改为：点会话立即在抽屉关闭动画
+    // "背后"切会话。标准 Drawer 不透明、完全覆盖内容，重建被遮挡不可见；抽屉收起时
+    // 内容已就绪 → 零人工延迟、无骨架闪烁、无 AnimatedSwitcher 交叉淡入卡点。对齐
+    // Operit「抽屉 GPU 动画期间内容不重组 / 切换不卡顿」原则。
+    _controller.switchSession(id).then((_) {
+      if (mounted) widget.onSessionChanged?.call();
+    }).catchError((e, st) {
+      debugPrint('切换会话失败: $e');
+    });
+    _scaffoldKey.currentState?.closeDrawer();
   }
 
   void _onSessionDeleted(String id) async {
@@ -437,7 +429,7 @@ class _MessageList extends StatelessWidget {
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           itemCount: itemCount,
-          cacheExtent: 500, // 缓存窗口：视口外保留 500px 气泡，滚回长消息不重建/重测（适度收窄，减首帧不可见气泡 build 压力）
+          cacheExtent: 4000, // 【流畅度·治 B】放大缓存窗口：视口外保留 4000px 气泡，滚回长消息不销毁/不重测 markdown（对齐 Operit 大缓存窗口原则）。原 500px 太小，长消息滚回频繁重建→卡顿。
           // ChatMessage 是 ChangeNotifier，流式更新时仅对应气泡局部重建；
           // 必须逐条用 ListenableBuilder(msg) 包住，否则流式期间 controller 不通知、气泡不刷新
           itemBuilder: (c, i) {

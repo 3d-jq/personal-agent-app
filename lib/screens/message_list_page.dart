@@ -198,8 +198,13 @@ class _MessageListPageState extends State<MessageListPage> {
     } else if (item.agentId != null) {
       await _openAgentChat(item.agentId!);
     }
-    // 返回后刷新数据
-    if (mounted) _load();
+    // 【流畅度·治 D】返回后重载延后到 pop 转场结束后的下一帧，避免 _load() 的
+    // 存储读取 + setState 重建与 IosSlideRoute 返回转场抢同一帧 → 卡顿。
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _load();
+      });
+    }
   }
 
   Future<void> _openAgentChat(String agentId) async {
@@ -263,8 +268,9 @@ class _ChatItem {
   });
 }
 
-/// 消息列表项
-class _MessageTile extends StatefulWidget {
+/// 消息列表项（无进入动画：返回重建时静态直出，避免与 IosSlideRoute 返回转场抢帧——
+/// 对齐 Operit「消息项零进入/退出动画」原则，切回消息列表不再重播淡入+滑入）
+class _MessageTile extends StatelessWidget {
   final _ChatItem item;
   final AgentColors nc;
   final VoidCallback onTap;
@@ -276,135 +282,94 @@ class _MessageTile extends StatefulWidget {
   });
 
   @override
-  State<_MessageTile> createState() => _MessageTileState();
-}
-
-class _MessageTileState extends State<_MessageTile>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: MotionToken.normal,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0.02, 0),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final nc = widget.nc;
-    final item = widget.item;
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: widget.onTap,
-            splashFactory: NoSplash.splashFactory,
-            highlightColor: nc.fillTertiary,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: SpaceToken.lg,
-                vertical: SpaceToken.md,
+    final item = this.item;
+    final nc = this.nc;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: nc.fillTertiary,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: SpaceToken.lg,
+            vertical: SpaceToken.md,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 圆形头像
+              Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: item.isGroup ? nc.primary : nc.primarySurface,
+                  borderRadius: BorderRadius.circular(RadiusToken.pill),
+                ),
+                child: item.isGroup
+                    ? Icon(Icons.group, size: 24, color: Colors.white)
+                    : Text(
+                        item.avatar.isNotEmpty
+                            ? item.avatar
+                            : item.name.characters.first,
+                        style: TextStyle(
+                          fontSize: FontToken.title,
+                          fontWeight: WeightToken.medium,
+                          color: nc.textPrimary,
+                        ),
+                      ),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 圆形头像
-                  Container(
-                    width: 48,
-                    height: 48,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: item.isGroup ? nc.primary : nc.primarySurface,
-                      borderRadius: BorderRadius.circular(RadiusToken.pill),
-                    ),
-                    child: item.isGroup
-                        ? Icon(Icons.group, size: 24, color: Colors.white)
-                        : Text(
-                            item.avatar.isNotEmpty
-                                ? item.avatar
-                                : item.name.characters.first,
+              const SizedBox(width: SpaceToken.md),
+              // 消息内容
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.name,
                             style: TextStyle(
                               fontSize: FontToken.title,
                               fontWeight: WeightToken.medium,
                               color: nc.textPrimary,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                  ),
-                  const SizedBox(width: SpaceToken.md),
-                  // 消息内容
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                item.name,
-                                style: TextStyle(
-                                  fontSize: FontToken.title,
-                                  fontWeight: WeightToken.medium,
-                                  color: nc.textPrimary,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Text(
-                              _formatTime(item.time),
-                              style: TextStyle(
-                                fontSize: FontToken.caption,
-                                color: nc.textSecondary,
-                              ),
-                            ),
-                          ],
                         ),
-                        const SizedBox(height: SpaceToken.xs),
                         Text(
-                          item.lastMessage,
+                          _formatTime(item.time),
                           style: TextStyle(
-                            fontSize: FontToken.body,
+                            fontSize: FontToken.caption,
                             color: nc.textSecondary,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: SpaceToken.md),
-                        Divider(
-                          height: 0.5,
-                          thickness: 0.5,
-                          color: nc.divider,
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: SpaceToken.xs),
+                    Text(
+                      item.lastMessage,
+                      style: TextStyle(
+                        fontSize: FontToken.body,
+                        color: nc.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: SpaceToken.md),
+                    Divider(
+                      height: 0.5,
+                      thickness: 0.5,
+                      color: nc.divider,
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
