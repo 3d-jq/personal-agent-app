@@ -25,9 +25,10 @@ class PromptBuilder {
     bool hasExistingProfile = false,
   }) {
     final buf = StringBuffer();
+    final aiName = _extractAISelfName(userContext) ?? 'DWeis';
 
     buf.writeln('<role>');
-    buf.writeln('你是 DWeis，用户的个人 AI 助手。');
+    buf.writeln('你是 $aiName，用户的个人 AI 助手。');
     buf.writeln('风格跟随 <persona> 中的人格设定，若未设定则默认简洁直接。');
     buf.writeln('</role>');
     buf.writeln();
@@ -137,5 +138,17 @@ class PromptBuilder {
     buf.writeln();
 
     return buf.toString();
+  }
+
+  /// 从 USER.md 内容中提取「怎么叫我」字段的值。
+  ///
+  /// 匹配格式：`- 怎么叫我：xxx`，返回 `xxx` 去掉首尾空白。
+  /// 如果用户尚未指定（占位符 "（待用户首次指定）" 或无此字段），返回 null。
+  static String? _extractAISelfName(String content) {
+    final m = RegExp(r'^-\s*怎么叫我[：:]\s*(.+)$', multiLine: true).firstMatch(content);
+    if (m == null) return null;
+    final raw = m.group(1)!.trim();
+    if (raw.isEmpty || raw.contains('待用户首次指定')) return null;
+    return raw;
   }
 }
