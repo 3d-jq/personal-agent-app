@@ -80,5 +80,29 @@ void main() {
       expect(s, contains('2026'));
       expect(s, contains('13:44'));
     });
+
+    test('<role> 使用默认名字 DWeis（未指定怎么叫我时）', () {
+      final p = PromptBuilder.buildMainPrompt(
+        soulContext: '',
+        userContext: '',
+      );
+      expect(p, contains('你是 DWeis，用户的个人 AI 助手'));
+    });
+
+    test('<role> 使用用户指定的 AI 名字', () {
+      final p = PromptBuilder.buildMainPrompt(
+        soulContext: '',
+        userContext: '- 怎么叫我：小辣椒\n- 怎么称呼：老大',
+      );
+      expect(p, contains('你是 小辣椒，用户的个人 AI 助手'));
+    });
+
+    test('<role> 占位符时回退到 DWeis', () {
+      final p = PromptBuilder.buildMainPrompt(
+        soulContext: '',
+        userContext: '- 怎么叫我：（待用户首次指定）',
+      );
+      expect(p, contains('你是 DWeis，用户的个人 AI 助手'));
+    });
   });
 }
