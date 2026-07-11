@@ -98,7 +98,16 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
     }
   }
 
-  List<String> get _models => _fetched ?? [];
+  List<String> get _models {
+    if (_fetched == null) return [];
+    final current = widget.vendor.model;
+    // 将当前模型排在最前面，即使接口没返回也让它可选（API 的 /models 接口
+    // 返回的 ID 可能与实际可用模型名不一致，不应阻塞用户选择已在用的模型）。
+    if (current.isNotEmpty && !_fetched!.contains(current)) {
+      return [current, ..._fetched!];
+    }
+    return _fetched!;
+  }
   String get _current =>
       widget.vendor.model.isNotEmpty ? widget.vendor.model : 'deepseek-chat';
 
@@ -230,46 +239,8 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
         ),
       );
     }
-    final currentModel = widget.vendor.model;
-    final currentNotListed =
-        currentModel.isNotEmpty && !_models.contains(currentModel);
     return Column(
       children: [
-        if (currentNotListed)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: GestureDetector(
-              onTap: () => setState(() => _mode = 'manual'),
-              child: Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: nc.primarySurface,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: RichText(
-                  text: TextSpan(
-                    style: TextStyle(fontSize: 13, color: nc.textSecondary),
-                    children: [
-                      const TextSpan(text: '当前模型「'),
-                      TextSpan(
-                        text: currentModel,
-                        style: TextStyle(
-                            fontWeight: FontWeight.w600, color: nc.textPrimary),
-                      ),
-                      const TextSpan(text: '」不在列表中，'),
-                      TextSpan(
-                        text: '改用手动输入',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w600, color: nc.primary),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
         Expanded(
           child: ListView(
             physics: const BouncingScrollPhysics(),
