@@ -686,6 +686,24 @@ class _AIBubbleState extends State<_AIBubble> {
       );
     }
 
+    // 最后一步已解决，但列表中仍有其他步骤在运行 → 继续扫光，不要过早显示完结样式
+    if (!isRunning &&
+        !isError &&
+        !isAllDone &&
+        step.type == TimelineStepType.tool &&
+        steps.any((s) => s.status == TimelineStepStatus.running)) {
+      return ShimmerText(
+        text: step.label,
+        style: TextStyle(
+          fontSize: 13,
+          color: nc.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+        baseColor: nc.textSecondary,
+        highlightColor: shimmerHighlight,
+      );
+    }
+
     // 最后一步是 done 但前面有步骤不是（如 error），按已完成样式渲染
     if (!isRunning && !isError) {
       return PressableScale(
