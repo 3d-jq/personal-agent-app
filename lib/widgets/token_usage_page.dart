@@ -522,9 +522,10 @@ class _DistributionSection extends StatelessWidget {
                 ),
                 const SizedBox(width: SpaceToken.sm),
                 SizedBox(
-                  width: 44,
+                  width: 50,
                   child: Text('${(pct * 100).toStringAsFixed(1)}%',
                       textAlign: TextAlign.right,
+                      maxLines: 1,
                       style: TextStyle(fontSize: FontToken.small, color: nc.textSecondary)),
                 ),
               ],
