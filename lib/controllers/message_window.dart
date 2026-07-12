@@ -24,11 +24,11 @@ class MessageWindow {
 
   /// UI 视口窗口大小：仅决定「界面首次加载并显示多少条」以节省性能，**与模型
   /// 上下文无关**。模型上下文由 [ChatController] 的发送视图单独取全量历史构造
-  /// （见 ChatController.buildSendView），从而能按 80% 阈值触发压缩。40 是纯
-  /// UI 调优值，不参与、也不影响大模型的上下文窗口——切勿把它当成模型数据源。
-  static const int windowSize = 40;
+  /// （见 ChatController.buildSendView），从而能按 80% 阈值触发压缩。30 是纯
+  /// UI 调优值（较 40 更省首屏加载），不参与、也不影响大模型的上下文窗口——切勿把它当成模型数据源。
+  static const int windowSize = 30;
   /// 翻页大小：上滑/下滑一次加载的条数。
-  static const int pageSize = 40;
+  static const int pageSize = 30;
 
   // ── Getters ──
 
@@ -56,7 +56,7 @@ class MessageWindow {
 
   // ── Loading ──
 
-  /// 首次加载窗口（40 条）
+  /// 首次加载窗口（30 条）
   Future<void> load() async {
     final id = _sessionId;
     if (id == null) return;
@@ -71,7 +71,7 @@ class MessageWindow {
 
   /// 全量历史（**无视** UI 视口窗口）：仅供构造发送给大模型的「全量上下文视图」使用。
   ///
-  /// 与 [windowSize] 彻底解耦——UI 只加载显示 40 条以省性能，但模型必须看到**全部**
+  /// 与 [windowSize] 彻底解耦——UI 只加载显示 30 条以省性能，但模型必须看到**全部**
   /// 历史，才能按 80% 阈值触发 [HistoryManager] 压缩。绝不要用它填充 UI 列表。
   Future<List<ChatMessage>> loadFullHistory() async {
     final id = _sessionId;
@@ -80,7 +80,7 @@ class MessageWindow {
     return session?.messages ?? const [];
   }
 
-  /// 上滑翻页：加载更早的 40 条，prepend 到列表头
+  /// 上滑翻页：加载更早的 30 条，prepend 到列表头
   Future<void> loadOlder() async {
     if (_allOlderLoaded || _loadingOlder || _sessionId == null || _messages.isEmpty) {
       return;
@@ -106,7 +106,7 @@ class MessageWindow {
     _onChanged();
   }
 
-  /// 下滑翻页：加载较新的 40 条，追加到列表尾
+  /// 下滑翻页：加载较新的 30 条，追加到列表尾
   Future<void> loadNewer() async {
     if (_allNewerLoaded || _loadingNewer || _sessionId == null || _messages.isEmpty) {
       return;
