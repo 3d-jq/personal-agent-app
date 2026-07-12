@@ -396,16 +396,17 @@ class _ChatScreenState extends State<ChatScreen>
     if (!_draggingSidebar) return;
     final w = MediaQuery.of(context).size.width;
     final delta = (d.globalPosition.dx - _dragStartX) / w;
-    // 关闭态：向右拖 → 打开（值增加）；打开态：向右拖 → 关闭（值减少）
-    final sign = _sidebarCtrl.isDismissed ? 1.0 : -1.0;
-    _sidebarCtrl.value = (_dragStartValue + delta * sign).clamp(0.0, 1.0);
+    // 统一逻辑：手指往右 → 值增加，手指往左 → 值减少
+    // 关闭态右拉打开，打开态左推关闭
+    _sidebarCtrl.value = (_dragStartValue + delta).clamp(0.0, 1.0);
   }
 
   void _onDragEnd(DragEndDetails d) {
     if (!_draggingSidebar) return;
     _draggingSidebar = false;
-    if (_sidebarCtrl.value > 0.5 ||
-        (d.primaryVelocity != null && d.primaryVelocity! > 500)) {
+    final velocity = d.primaryVelocity ?? 0;
+    // 过半 → 打开；快速右拉(>500) → 打开；快速左拉(<-500) → 关闭
+    if (_sidebarCtrl.value > 0.5 || velocity > 500) {
       _sidebarCtrl.forward();
     } else {
       _sidebarCtrl.reverse();
