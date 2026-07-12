@@ -1,5 +1,6 @@
 import '../models/chat_message.dart';
 import 'log_service.dart';
+import '../services/performance_monitor.dart';
 
 /// 对话历史摘要压缩管理器。
 ///
@@ -148,6 +149,7 @@ class HistoryManager {
     }
 
     log.d('HistoryManager', 'Starting compression for ${messages.length} messages');
+    perf.compression('开始', '${messages.length} 条消息');
 
     // 从后往前遍历，找到保留 keepTokens 的分割点
     int totalTokens = 0;
@@ -178,6 +180,7 @@ class HistoryManager {
     }
 
     log.d('HistoryManager', 'Compression done: ${summaryText.length} chars summary');
+    perf.compression('完成', '${summaryText.length} 字符摘要');
 
     final summaryMessage = ChatMessage(
       text: '[历史摘要]\n$summaryText',

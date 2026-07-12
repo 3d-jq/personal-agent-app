@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import '../services/performance_monitor.dart';
 import 'package:dio/dio.dart';
 import '../tools/tools.dart';
 import 'ai_service_base.dart';
@@ -158,6 +159,7 @@ class AnthropicProtocol {
               final creation = usage['cache_creation_input_tokens'];
               if (read != null || creation != null) {
                 log.d('AnthropicProtocol', 'Cache usage — read: $read, creation: $creation');
+          perf.cacheHit('Anthropic', 'read: $read write: $creation');
               }
             }
           } else if (type == 'content_block_delta') {
@@ -241,6 +243,7 @@ class AnthropicProtocol {
           ]
         : null;
     log.d('AnthropicProtocol', 'Summarize request: ${messages.length} messages');
+      perf.summarize('Anthropic 请求', '${messages.length} 条消息');
     try {
       final response = await AiHttpClient.retryPost(
         url,
@@ -266,6 +269,7 @@ class AnthropicProtocol {
             .map((c) => (c['text'] ?? '').toString())
             .join('');
         log.d('AnthropicProtocol', 'Summarize success: ${text.length} chars');
+      perf.summarize('Anthropic 完成', '${text.length} 字符');
         return text.trim();
       }
       return '';

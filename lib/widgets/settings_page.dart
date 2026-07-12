@@ -9,6 +9,7 @@ import '../services/log_service.dart';
 import '../services/theme_service.dart';
 import '../services/update_service.dart';
 import 'common_widgets.dart';
+import 'performance_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -367,6 +368,15 @@ class _SettingsPageState extends State<SettingsPage> {
                   onTap: () {
                     HapticFeedback.lightImpact();
                     AppRouter.toLog(context);
+                  },
+                ),
+                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                _SettingItem(
+                  label: '性能指标',
+                  trailing: '工具耗时 / 缓存命中 / 压缩',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.push(context, IosSlideRoute(page: const PerformancePage()));
                   },
                 ),
                 Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),

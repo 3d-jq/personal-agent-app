@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
+import '../services/performance_monitor.dart';
 import '../tools/tools.dart';
 import '../tools/tool_progress_bus.dart';
 import '../services/log_service.dart';
@@ -136,6 +137,7 @@ Future<List<ToolResult>> executeAllTools(
         message: '已完成 $done/$count',
       );
       log.d('ToolExec', '${tc.name} 耗时 ${sw.elapsedMilliseconds}ms');
+      perf.toolTiming(tc.name, sw.elapsedMilliseconds);
     }
 
     await Future.wait(otherCalls.map(runOne));
@@ -180,6 +182,7 @@ Future<List<ToolResult>> executeAllTools(
 
     ToolProgressBus.instance.clear();
     log.d('ToolExec', '批次完成 $count 个工具，总耗时 ${batchSw.elapsedMilliseconds}ms');
+    perf.toolBatch(count, batchSw.elapsedMilliseconds);
     return ordered;
   } finally {
     sink.close();

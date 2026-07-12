@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import '../services/performance_monitor.dart';
 import 'package:dio/dio.dart';
 import '../tools/tools.dart';
 import 'ai_service_base.dart';
@@ -98,6 +99,7 @@ class OpenAiProtocol {
         final cached = details is Map ? details['cached_tokens'] : null;
         if (cached != null) {
           log.d('OpenAiProtocol', 'Cache usage — cached_tokens: $cached');
+          perf.cacheHit('OpenAI', 'cached_tokens: $cached');
         }
       }
       if (choice == null || choice['message'] == null) {
@@ -211,6 +213,7 @@ class OpenAiProtocol {
               final cached = details is Map ? details['cached_tokens'] : null;
               if (cached != null) {
                 log.d('OpenAiProtocol', 'Cache usage — cached_tokens: $cached');
+          perf.cacheHit('OpenAI', 'cached_tokens: $cached');
               }
             }
             final choice = firstChoice(decoded);
