@@ -294,9 +294,10 @@ class _ChatScreenState extends State<ChatScreen>
                               listenable: last ?? const AlwaysStoppedAnimation(0),
                               builder: (_, __) => ChatScrollToBottomButton(
                                 unread: userScrolledUp ? unreadCount() : 0,
-                                onTap: () {
+                                onTap: () async {
                                   HapticFeedback.lightImpact();
-                                  scrollToBottom();
+                                  await _controller.jumpToLatestPage();
+                                  jumpToLatest();
                                 },
                               ),
                             );
@@ -344,8 +345,12 @@ class _MessageList extends StatelessWidget {
       listenable: controller,
       builder: (context, child) {
         final nc = AgentColors.of(context);
+        final canPage = controller.canPageMessages;
         final hasOlder = controller.hasOlderMessages;
-        final itemCount = controller.messages.length + (hasOlder ? 1 : 0);
+        final hasNewer = controller.hasNewerMessages;
+        final visible = controller.visibleMessages;
+        // 列表长度恒为 windowSize（窗口页）+ 2 个翻页控件（顶/底永远在，到头/到底变灰）。
+        final itemCount = visible.length + (canPage ? 2 : 0);
         return ListView.builder(
             controller: scrollController,
           physics: const BouncingScrollPhysics(),
@@ -355,15 +360,41 @@ class _MessageList extends StatelessWidget {
           // ChatMessage 是 ChangeNotifier，流式更新时仅对应气泡局部重建；
           // 必须逐条用 ListenableBuilder(msg) 包住，否则流式期间 controller 不通知、气泡不刷新
           itemBuilder: (c, i) {
-            // 顶部「加载更早消息」
-            if (hasOlder && i == 0) {
+            // 顶部「加载更早消息」（永远渲染；翻到最老时禁用灰）
+            if (canPage && i == 0) {
               return _OlderMessagesHeader(
-                onLoad: controller.loadOlderMessages,
+                onLoad: hasOlder
+                    ? () async {
+                        await controller.loadOlderMessages();
+                        if (scrollController.hasClients) {
+                          scrollController.jumpTo(0);
+                        }
+                      }
+                    : null,
               );
             }
-            // 列表项
-            final msgIdx = i - (hasOlder ? 1 : 0);
-            final msg = controller.messages[msgIdx];
+            // 底部「加载最新消息」（永远渲染；翻到最新时禁用灰）
+            if (canPage && i == itemCount - 1) {
+              return _NewerMessagesFooter(
+                onLoad: hasNewer
+                    ? () async {
+                        await controller.loadNewerMessages();
+                        if (scrollController.hasClients) {
+                          // 等列表重建完再跳到底部，否则 maxScrollExtent 还是旧值
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (scrollController.hasClients) {
+                              scrollController
+                                  .jumpTo(scrollController.position.maxScrollExtent);
+                            }
+                          });
+                        }
+                      }
+                    : null,
+              );
+            }
+            // 列表项（当前窗口页 20 条）
+            final msgIdx = i - (canPage ? 1 : 0);
+            final msg = visible[msgIdx];
             // 每个气泡独立 RepaintBoundary：长列表滚动时只重绘进入/离开视口的
             // 气泡，已离屏/静止气泡不参与重绘，消除整列表滚动时的连带重绘卡顿。
             return RepaintBoundary(
@@ -388,22 +419,30 @@ class _MessageList extends StatelessWidget {
   }
 }
 
-class _OlderMessagesHeader extends StatelessWidget {
-  final Future<void> Function() onLoad;
-  const _OlderMessagesHeader({required this.onLoad});
+class _PagerTile extends StatelessWidget {
+  final Future<void> Function()? onLoad;
+  final IconData icon;
+  final String label;
+  const _PagerTile({
+    required this.onLoad,
+    required this.icon,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
+    final disabled = onLoad == null;
+    final color = disabled ? nc.textDisabled : nc.textSecondary;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Center(
         child: TextButton.icon(
-          onPressed: () => onLoad(),
-          icon: Icon(Icons.history, size: 16, color: nc.textSecondary),
+          onPressed: onLoad == null ? null : () => onLoad!(),
+          icon: Icon(icon, size: 16, color: color),
           label: Text(
-            '加载更早消息',
-            style: TextStyle(fontSize: 13, color: nc.textSecondary),
+            label,
+            style: TextStyle(fontSize: 13, color: color),
           ),
           style: TextButton.styleFrom(
             backgroundColor: nc.surface.withValues(alpha: 0.6),
@@ -415,6 +454,30 @@ class _OlderMessagesHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+class _OlderMessagesHeader extends StatelessWidget {
+  final Future<void> Function()? onLoad;
+  const _OlderMessagesHeader({this.onLoad});
+
+  @override
+  Widget build(BuildContext context) => _PagerTile(
+        onLoad: onLoad,
+        icon: Icons.history,
+        label: '加载更早消息',
+      );
+}
+
+class _NewerMessagesFooter extends StatelessWidget {
+  final Future<void> Function()? onLoad;
+  const _NewerMessagesFooter({this.onLoad});
+
+  @override
+  Widget build(BuildContext context) => _PagerTile(
+        onLoad: onLoad,
+        icon: Icons.arrow_downward,
+        label: '加载最新消息',
+      );
 }
 
 class _ChatInputBar extends StatelessWidget {

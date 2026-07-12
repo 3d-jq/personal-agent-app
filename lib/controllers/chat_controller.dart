@@ -81,6 +81,9 @@ class ChatController extends ChangeNotifier {
   late final MessageWindow _window;
 
   bool get hasOlderMessages => _window.hasOlder;
+  bool get hasNewerMessages => _window.hasNewer;
+  bool get canPageMessages => _window.canPage;
+  List<ChatMessage> get visibleMessages => _window.visible;
 
   /// 页面缓存复用：退出聊天页时记录滚动位置，再次进入时恢复（微信级 L8 页面缓存）。
   double? lastScrollOffset;
@@ -209,8 +212,14 @@ class ChatController extends ChangeNotifier {
     _notify();
   }
 
-  /// 上滑加载更早的消息（游标分页），prepend 到内存窗口头部。
+  /// 上滑加载更早的消息（游标分页），移动到更早的一页。
   Future<void> loadOlderMessages() => _window.loadOlder();
+
+  /// 下滑加载更新的消息（游标分页），移动到更新的一页。
+  Future<void> loadNewerMessages() => _window.loadNewer();
+
+  /// 一键翻到最新页（供「n 条新消息」浮条到达底部）。
+  Future<void> jumpToLatestPage() => _window.jumpToLatestPage();
 
   /// 追加一条消息并分配全局序号（保证分页表排序稳定、增量 upsert 不重排）。
   void _appendMessage(ChatMessage msg) => _window.append(msg);
