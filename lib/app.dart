@@ -5,6 +5,8 @@ import 'screens/chat_screen.dart';
 import 'services/theme_service.dart';
 import 'widgets/ai_settings_sheet.dart';
 import 'widgets/onboarding_page.dart';
+import 'services/tts_settings.dart';
+import 'services/tts_service.dart';
 
 class App extends StatefulWidget {
   const App({super.key});
@@ -25,6 +27,8 @@ class _AppState extends State<App> {
     final aiSettings = getIt<AISettings>();
     _themeService.load().then((_) async {
       await aiSettings.load();
+      await TtsSettings().load();
+      TtsService().setSelectedVoice(TtsSettings().selectedVoice);
       if (!mounted) return;
       setState(() {
         _loaded = true;

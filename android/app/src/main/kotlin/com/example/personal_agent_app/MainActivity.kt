@@ -7,6 +7,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.provider.Settings
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -24,6 +25,7 @@ class MainActivity : FlutterActivity() {
     private val LIVE_CHANNEL = "com.example/live_activity"
     private val REMINDER_CHANNEL = "com.example/reminder"
     private val SHARE_CHANNEL = "com.example/share_file"
+    private val TTS_CHANNEL = "com.example/open_tts_settings"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -180,6 +182,20 @@ class MainActivity : FlutterActivity() {
             } catch (e: Exception) {
                 result.error("REMINDER_ERROR", e.message, null)
             }
+        }
+
+        // ── Open system TTS settings (install/select voice packs) ──
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, TTS_CHANNEL).setMethodCallHandler { call, result ->
+            if (call.method == "open") {
+                try {
+                    val intent = Intent(Settings.ACTION_TTS_SETTINGS)
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(intent)
+                    result.success(true)
+                } catch (e: Exception) {
+                    result.error("TTS_SETTINGS_ERROR", e.message, null)
+                }
+            } else result.notImplemented()
         }
 
         // ── Calendar ──

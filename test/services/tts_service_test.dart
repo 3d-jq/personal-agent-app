@@ -14,6 +14,11 @@ class FakeTtsEngine implements TtsEngine {
   final bool speakThrows;
 
   final List<String> setLanguageCalls = [];
+  final List<Map<String, String>> setVoiceCalls = [];
+  List<dynamic> availableVoices = const [
+    {'name': 'Google 普通话 (Chinese)', 'locale': 'zh-CN'},
+    {'name': 'Google UK English', 'locale': 'en-GB'},
+  ];
   int speakCount = 0;
   int stopCount = 0;
   void Function()? startHandler;
@@ -28,8 +33,17 @@ class FakeTtsEngine implements TtsEngine {
   Future<dynamic> getLanguages() async => availableLangs;
 
   @override
+  Future<dynamic> getVoices() async => availableVoices;
+
+  @override
   Future<dynamic> setLanguage(String language) async {
     setLanguageCalls.add(language);
+    return true;
+  }
+
+  @override
+  Future<dynamic> setVoice(Map<String, String> voice) async {
+    setVoiceCalls.add(voice);
     return true;
   }
 
@@ -137,5 +151,52 @@ void main() {
     expect(svc.isSpeaking, isTrue);
     fake.errorHandler?.call('boom');
     expect(svc.isSpeaking, isFalse);
+  });
+
+  test('选定语音后朗读：用 setVoice 且不再用 setLanguage', () async {
+    final fake = FakeTtsEngine();
+    final svc = TtsService.withEngine(fake);
+    svc.setSelectedVoice(const {'name': 'Google 普通话 (Chinese)', 'locale': 'zh-CN'});
+    final res = await svc.speak('你好');
+
+    expect(res.success, isTrue);
+    expect(fake.setVoiceCalls, isNotEmpty);
+    expect(fake.setVoiceCalls.last['name'], 'Google 普通话 (Chinese)');
+    expect(fake.setLanguageCalls, isEmpty); // 选定语音时不应再 setLanguage
+    expect(res.warning, isNull); // 已显式选语音，不误报缺包
+  });
+
+  test('运行时切换语音：speak 重新应用 setVoice', () async {
+    final fake = FakeTtsEngine();
+    final svc = TtsService.withEngine(fake);
+    await svc.speak('你好');
+    expect(fake.setLanguageCalls, contains('zh-CN')); // 首次用默认语言
+
+    svc.setSelectedVoice(const {'name': 'Google UK English', 'locale': 'en-GB'});
+    await svc.speak('hello');
+    expect(fake.setVoiceCalls, isNotEmpty);
+    expect(fake.setVoiceCalls.last['name'], 'Google UK English');
+  });
+
+  test('availableVoices 解析为 TtsVoice 列表', () async {
+    final fake = FakeTtsEngine();
+    final svc = TtsService.withEngine(fake);
+    final voices = await svc.availableVoices();
+    expect(voices, hasLength(2));
+    expect(voices.first.name, 'Google 普通话 (Chinese)');
+    expect(voices.first.locale, 'zh-CN');
+    expect(voices.first.isChinese, isTrue);
+  });
+
+  test('清除语音选择：回退默认语言', () async {
+    final fake = FakeTtsEngine();
+    final svc = TtsService.withEngine(fake);
+    svc.setSelectedVoice(const {'name': 'Google 普通话 (Chinese)', 'locale': 'zh-CN'});
+    await svc.speak('你好');
+    expect(fake.setVoiceCalls, isNotEmpty);
+
+    svc.setSelectedVoice(null);
+    await svc.speak('你好');
+    expect(fake.setLanguageCalls, contains('zh-CN')); // 清除后回退语言
   });
 }
