@@ -22,6 +22,13 @@ class MessageWindow {
 
   MessageWindow(this._storage, this._messages, this._onChanged);
 
+  /// 视口窗口大小：首次加载保留在内存的条数，也作为翻页大小基准。
+  /// 命名常量以便调优（避免魔法数字）。40 兼顾上下文与安全；切会话的加载成本
+  /// 已被 ChatScreen 的「延迟加载 + 骨架屏」隐藏，故无需为性能下调。
+  static const int windowSize = 40;
+  /// 翻页大小：上滑/下滑一次加载的条数。
+  static const int pageSize = 40;
+
   // ── Getters ──
 
   bool get hasOlder => !_allOlderLoaded && _sessionId != null;
@@ -52,7 +59,6 @@ class MessageWindow {
   Future<void> load() async {
     final id = _sessionId;
     if (id == null) return;
-    const windowSize = 40;
     final session = await _storage.loadSession(id, limit: windowSize);
     _messages.clear();
     if (session != null) {
@@ -70,7 +76,6 @@ class MessageWindow {
     _loadingOlder = true;
     _onChanged();
     try {
-      const pageSize = 40;
       final older = await _storage.loadSession(
         _sessionId!,
         limit: pageSize,
@@ -97,7 +102,6 @@ class MessageWindow {
     _loadingNewer = true;
     _onChanged();
     try {
-      const pageSize = 40;
       final newer = await _storage.loadSession(
         _sessionId!,
         limit: pageSize,
@@ -136,8 +140,8 @@ class MessageWindow {
       _nextSeq = _messages.last.seq + 1;
       _oldestSeq = _messages.first.seq;
       _newestSeq = _messages.last.seq;
-      _allOlderLoaded = _messages.length < 40;
-      _allNewerLoaded = _messages.length < 40;
+      _allOlderLoaded = _messages.length < windowSize;
+      _allNewerLoaded = _messages.length < windowSize;
     }
   }
 }

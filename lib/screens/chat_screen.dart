@@ -34,8 +34,12 @@ class _ChatScreenState extends State<ChatScreen>
   // 当前消息条数（供 ChatScrollMixin 上滑检测使用）
   @override
   int get messageCount => _controller.messages.length;
-  // 抽屉关闭动画期间完成了会话切换 → 标记，等动画结束再刷新 UI
-  bool _pendingSwitchOnDrawerClose = false;
+  // 侧边栏切会话的「延迟加载」标志：true 时显示「加载对话中」骨架屏，
+  // 把真正耗时的 switchSession（DB 加载 + 气泡重建）推迟到抽屉关闭动画结束后再跑。
+  bool _switching = false;
+  // 待切换的会话 id：点选抽屉里的对话时先记下，待抽屉关闭动画结束（onDrawerChanged
+  // 回调）再执行真正耗时的 switchSession。空值同时防御「pop + closeDrawer」双触发。
+  String? _pendingSwitchId;
   // 会话加载态：initialize 完成前显示骨架屏（仅冷启动/未就绪时），
   // 完成后淡入真实列表，使转场帧与首屏气泡 build 帧错峰。
   bool _loading = false;
@@ -137,10 +141,11 @@ class _ChatScreenState extends State<ChatScreen>
 
   void _onDrawerChanged(bool opened) {
     drawerOpen = opened;
-    if (!opened && _pendingSwitchOnDrawerClose) {
-      _pendingSwitchOnDrawerClose = false;
-      widget.onSessionChanged?.call();
-      jumpToLatest();
+    // 抽屉关闭动画结束时（closeDrawer() 路径）触发切换；Navigator.pop 路径下该回调
+    // 可能不触发，由 _onSessionTap 里的兜底定时器保证执行。_pendingSwitchId 空值
+    // 防御「回调 + 定时器」双触发，且只在确有 pending 切会话时执行。
+    if (!opened && _switching && _pendingSwitchId != null) {
+      _triggerPendingSwitch();
     }
   }
 
@@ -150,21 +155,41 @@ class _ChatScreenState extends State<ChatScreen>
       return;
     }
     _resetInput();
-    // 抽屉背后切会话：switchSession 可能很快（缓存命中）或较慢（DB 加载）。
-    // 如果切换在抽屉关闭动画期间完成 → 推迟 UI 刷新到动画结束，
-    // 避免会话重建与抽屉 GPU 动画同帧竞争导致卡顿。
-    _controller.switchSession(id).then((_) {
-      if (!mounted) return;
-      if (!drawerOpen) {
-        widget.onSessionChanged?.call();
-        jumpToLatest();
-      } else {
-        _pendingSwitchOnDrawerClose = true;
-      }
-    }).catchError((e, st) {
-      debugPrint('切换会话失败: $e');
-    });
+    // 关键优化：点开对话时立刻切到「加载对话中」骨架屏，让抽屉关闭动画期间
+    // 不重建真实列表（40 条气泡）。真正耗时的 switchSession（DB 加载 + 气泡重建）
+    // 推迟到抽屉关闭动画结束后再执行，从根本上消除「抽屉返回动画」与「列表重建」
+    // 同帧竞争导致的卡顿（延迟加载 + 转场动画错峰）。
+    // 双触发保证稳健：抽屉关闭动画结束（onDrawerChanged 回调）触发切换；同时起一个
+    // 兜底定时器（抽屉关闭动画标准时长附近），即使该回调因关闭路径差异未触发也能切。
+    // _pendingSwitchId 空值检查防御「回调 + 定时器」双触发。
+    setState(() => _switching = true);
+    _pendingSwitchId = id;
     _scaffoldKey.currentState?.closeDrawer();
+    // 兜底定时器：最迟在抽屉关闭动画结束附近执行切换，不依赖单一回调路径。
+    Future.delayed(AppDurations.expressive, _triggerPendingSwitch);
+  }
+
+  /// 触发待切换会话：仅在确有 pending id 时执行，并立即清空，防御双触发。
+  void _triggerPendingSwitch() {
+    final id = _pendingSwitchId;
+    if (id == null) return;
+    _pendingSwitchId = null;
+    _performSwitch(id);
+  }
+
+  /// 延迟切会话的实际执行：抽屉关闭动画结束后才跑真正耗时的
+  /// [ChatController.switchSession]（DB 读取 + 40 条气泡重建），配合 [_switching]
+  /// 驱动的骨架屏，抽屉滑动丝滑无卡顿。
+  Future<void> _performSwitch(String id) async {
+    try {
+      await _controller.switchSession(id);
+    } catch (e) {
+      debugPrint('切换会话失败: $e');
+    }
+    if (!mounted) return;
+    setState(() => _switching = false);
+    widget.onSessionChanged?.call();
+    jumpToLatest();
   }
 
   void _onSessionDeleted(String id) async {
@@ -229,8 +254,11 @@ class _ChatScreenState extends State<ChatScreen>
                       duration: AppDurations.standard,
                       switchInCurve: AppCurves.appear,
                       switchOutCurve: AppCurves.disappear,
-                      child: _loading
-                          ? const ChatListSkeleton(key: ValueKey('skeleton'))
+                      child: (_loading || _switching)
+                          ? ChatListSkeleton(
+                              key: const ValueKey('skeleton'),
+                              label: _switching ? '加载对话中' : null,
+                            )
                           : _MessageList(
                               key: const ValueKey('list'),
                               controller: _controller,

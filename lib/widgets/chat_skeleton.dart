@@ -9,7 +9,10 @@ import '../core/app_animations.dart';
 /// 把「转场动画帧」与「首屏气泡 build 帧」错峰，改善冷启动体感。
 class ChatListSkeleton extends StatefulWidget {
   final int itemCount;
-  const ChatListSkeleton({super.key, this.itemCount = 12});
+  /// 可选标签：传入时在骨架屏中央叠加「加载说明」（如「加载对话中」），
+  /// 用于侧边栏切会话的延迟加载态；为 null 时保持纯气泡骨架。
+  final String? label;
+  const ChatListSkeleton({super.key, this.itemCount = 12, this.label});
 
   @override
   State<ChatListSkeleton> createState() => _ChatListSkeletonState();
@@ -37,7 +40,7 @@ class _ChatListSkeletonState extends State<ChatListSkeleton>
     final highlight = Theme.of(context).brightness == Brightness.dark
         ? Colors.white.withValues(alpha: 0.35)
         : Colors.white.withValues(alpha: 0.65);
-    return ListView.builder(
+    final list = ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       physics: const NeverScrollableScrollPhysics(),
       itemCount: widget.itemCount,
@@ -50,6 +53,40 @@ class _ChatListSkeletonState extends State<ChatListSkeleton>
           anim: _anim,
         );
       },
+    );
+    if (widget.label == null) return list;
+    // 会话切换的「延迟加载」态：骨架屏中央叠加「加载说明」，告知用户正在加载对话。
+    return Stack(
+      children: [
+        list,
+        Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: nc.bgSubtle,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(nc.primary),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  widget.label!,
+                  style: TextStyle(color: nc.textSecondary, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
