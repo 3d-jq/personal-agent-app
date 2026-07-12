@@ -69,6 +69,44 @@ void main() {
     expect(aiMsg.text, contains('助手'));
     expect(aiMsg.isStreaming, isFalse);
   });
+
+  test('ask_user：被问的问题对用户在气泡里可见（回归守卫）', () async {
+    // 用会先返回 tool_calls（含一段前置正文，触发打字机计时器）的假后端
+    // 覆盖默认 SSE 适配器——这正是旧 bug 的触发路径：打字机定时器会周期覆盖
+    // aiMsg.text，把只写进 state.buf、没写进 state.typewriter 的问题覆盖掉。
+    AiHttpClient.sharedDio.httpClientAdapter = _FakeAskUserAdapter();
+
+    final controller = ChatController(chatStorage: _FakeChatStorage());
+
+    // 不 await：sendMessage 内部订阅流后即返回，ask_user 会在流里阻塞等待用户回复。
+    controller.sendMessage('帮我选个水果');
+
+    // 等待控制器进入「等待用户输入」状态（即 _onAskUser 已执行并写入问题）。
+    final sw = Stopwatch()..start();
+    while (!controller.isWaitingUserPrompt &&
+        sw.elapsed < const Duration(seconds: 15)) {
+      await Future.delayed(const Duration(milliseconds: 20));
+    }
+    expect(controller.isWaitingUserPrompt, isTrue,
+        reason: '应进入等待用户输入状态');
+
+    final aiMsg = controller.messages.last;
+    expect(aiMsg.isUser, isFalse);
+    // —— 回归核心：被问的问题必须出现在可见气泡文本里 ——
+    // 修复前打字机定时器会把它覆盖掉，用户根本看不到模型在问什么。
+    expect(aiMsg.text, contains('你喜欢苹果还是香蕉？'));
+
+    // 用户回复后，流程应继续并完成。
+    controller.submitUserPromptResponse('苹果');
+    final sw2 = Stopwatch()..start();
+    while (controller.isLoading && sw2.elapsed < const Duration(seconds: 15)) {
+      await Future.delayed(const Duration(milliseconds: 20));
+    }
+    expect(controller.isLoading, isFalse, reason: '回复后 AI 流应跑完');
+    expect(controller.isWaitingUserPrompt, isFalse);
+    // 问题在最终气泡中仍然可见（未被覆盖）。
+    expect(controller.messages.last.text, contains('你喜欢苹果还是香蕉？'));
+  });
 }
 
 Future<void> _waitUntilDone(ChatController c) async {
@@ -99,6 +137,76 @@ class _FakeChatAdapter implements HttpClientAdapter {
       sse,
       200,
       headers: {'content-type': ['text/event-stream']},
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+/// 脚本化 AI 后端（ask_user 回归专用）：
+/// - 非流式 callNonStreaming 首次请求返回「前置正文 + ask_user 工具调用」。
+///   前置正文会触发打字机定时器（旧 bug 的覆盖源），tool_calls 驱动 _onAskUser。
+/// - 用户回复后的第二轮 callNonStreaming 返回纯文本收尾，使流程正常结束。
+/// - 流式兜底（正常不会走到）：返回一段收尾文本。
+class _FakeAskUserAdapter implements HttpClientAdapter {
+  int _nonStreamCalls = 0;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    if (options.responseType == ResponseType.stream) {
+      final sse = 'data: ${jsonEncode({
+        'choices': [
+          {
+            'delta': {'content': '好的，已记录你的选择。'}
+          }
+        ]
+      })}\n'
+          'data: [DONE]\n';
+      return ResponseBody.fromString(
+        sse,
+        200,
+        headers: {'content-type': ['text/event-stream']},
+      );
+    }
+
+    _nonStreamCalls++;
+    final body = _nonStreamCalls == 1
+        ? {
+            'choices': [
+              {
+                'message': {
+                  'content': '让我确认一下你的偏好。',
+                  'tool_calls': [
+                    {
+                      'id': 'call_1',
+                      'type': 'function',
+                      'function': {
+                        'name': 'ask_user',
+                        'arguments':
+                            jsonEncode({'prompt': '你喜欢苹果还是香蕉？'}),
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        : {
+            'choices': [
+              {
+                'message': {'content': '好的，已记录你的选择。'}
+              }
+            ]
+          };
+    return ResponseBody.fromString(
+      jsonEncode(body),
+      200,
+      headers: {'content-type': ['application/json']},
     );
   }
 

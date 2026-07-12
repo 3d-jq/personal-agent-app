@@ -27,7 +27,9 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
   }
 
   Future<void> _loadVoices() async {
-    final list = await TtsService().availableVoices();
+    // 注意：HTTP 厂商（OpenAI 等）的 availableVoices 返回 const []（不可修改列表），
+    // 直接 .sort() 会抛「Cannot modify an unmodifiable list」。先 .toList() 拷贝一份。
+    final list = (await TtsService().availableVoices()).toList();
     if (!mounted) return;
     // 中文语音排前面，方便优先选择
     list.sort((a, b) {

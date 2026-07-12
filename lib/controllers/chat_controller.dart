@@ -692,7 +692,12 @@ class ChatController extends ChangeNotifier {
     }
 
     state.buf.write('\n\n---\n💬 $prompt\n\n');
-    aiMsg.text = state.buf.toString();
+    // 同步进打字机并立即全展开：否则打字机定时器后续会以
+    // state.typewriter.visibleText（不含本问题）覆盖 aiMsg.text，
+    // 导致用户看不到被问的问题。
+    state.typewriter.append('\n\n---\n💬 $prompt\n\n');
+    state.typewriter.revealAll();
+    aiMsg.text = state.typewriter.visibleText;
     _isLoading = false;
     _notify();
     onNeedScroll?.call();
