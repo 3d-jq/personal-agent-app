@@ -202,10 +202,39 @@ class ChatController extends ChangeNotifier {
 
   Future<void> loadSession(String id) async {
     _sessionId = id;
-    final session = await _chatStorage.loadSession(id); // 默认取最近窗口
-    _messages = session?.messages.toList() ?? [];
-    _initWindowState();
+    // 渐进式恢复：先取首屏 30 条立即显示，再后台异步补齐剩余窗口。
+    const firstPage = 30;
+    final first = await _chatStorage.loadSession(id, limit: firstPage);
+    _messages = first?.messages.toList() ?? [];
+    _allOlderLoaded = (_messages.length < firstPage);
+    _initWindowStatePartial();
     _notify();
+
+    // 后台补齐剩余（如果首屏已满且还有更多）
+    if (!_allOlderLoaded && _sessionId == id) {
+      final rest = await _chatStorage.loadSession(
+        id,
+        limit: ChatStorage.defaultWindow - firstPage,
+        beforeSeq: _messages.first.seq, // 取首屏最旧消息之前的更早消息
+      );
+      if (rest != null && rest.messages.isNotEmpty && _sessionId == id) {
+        _messages.addAll(rest.messages);
+      }
+      // 补齐后重新校准窗口状态
+      _initWindowState();
+      _notify();
+    }
+  }
+
+  /// 部分加载后的轻量初始化（仅设 seq，不定 _allOlderLoaded）。
+  void _initWindowStatePartial() {
+    if (_messages.isEmpty) {
+      _nextSeq = 0;
+      _oldestSeq = 0;
+    } else {
+      _nextSeq = _messages.last.seq + 1;
+      _oldestSeq = _messages.first.seq;
+    }
   }
 
   /// 根据当前窗口初始化分页状态与序号计数器。
