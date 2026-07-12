@@ -74,6 +74,8 @@ class _ChatScreenState extends State<ChatScreen>
   bool _autoScrolling = false;
   // Drawer 打开时暂停自动贴底滚动，避免每帧 jumpTo 与 Drawer 动画抢主 isolate 导致卡顿
   bool _drawerOpen = false;
+  // 抽屉关闭动画期间完成了会话切换 → 标记，等动画结束再刷新 UI
+  bool _pendingSwitchOnDrawerClose = false;
   // 会话加载态：initialize 完成前显示骨架屏（仅冷启动/未就绪时），
   // 完成后淡入真实列表，使转场帧与首屏气泡 build 帧错峰。
   bool _loading = false;
@@ -260,23 +262,31 @@ class _ChatScreenState extends State<ChatScreen>
     await _controller.refreshSessions();
   }
 
+  void _onDrawerChanged(bool opened) {
+    _drawerOpen = opened;
+    if (!opened && _pendingSwitchOnDrawerClose) {
+      _pendingSwitchOnDrawerClose = false;
+      widget.onSessionChanged?.call();
+      _jumpToLatest();
+    }
+  }
+
   void _onSessionTap(String id) {
     if (id == _controller.currentSessionId) {
-      // 已是当前会话：直接关抽屉即可，无需切换
       _scaffoldKey.currentState?.closeDrawer();
       return;
     }
     _resetInput();
-    // 【流畅度修正】去掉旧版「260ms 骨架延迟」——那是上一轮为避开抽屉与列表同帧打架
-    // 而加的，却带来"点完要等转圈才进"的割裂感。现改为：点会话立即在抽屉关闭动画
-    // "背后"切会话。标准 Drawer 不透明、完全覆盖内容，重建被遮挡不可见；抽屉收起时
-    // 内容已就绪 → 零人工延迟、无骨架闪烁、无 AnimatedSwitcher 交叉淡入卡点。对齐
-    // Operit「抽屉 GPU 动画期间内容不重组 / 切换不卡顿」原则。
+    // 抽屉背后切会话：switchSession 可能很快（缓存命中）或较慢（DB 加载）。
+    // 如果切换在抽屉关闭动画期间完成 → 推迟 UI 刷新到动画结束，
+    // 避免会话重建与抽屉 GPU 动画同帧竞争导致卡顿。
     _controller.switchSession(id).then((_) {
-      if (mounted) {
+      if (!mounted) return;
+      if (!_drawerOpen) {
         widget.onSessionChanged?.call();
-        // 切到新会话后定位到最新消息（抽屉背后完成，收起时已是最新）
         _jumpToLatest();
+      } else {
+        _pendingSwitchOnDrawerClose = true;
       }
     }).catchError((e, st) {
       debugPrint('切换会话失败: $e');
@@ -312,7 +322,7 @@ class _ChatScreenState extends State<ChatScreen>
           key: _scaffoldKey,
           backgroundColor: nc.background,
           drawerEnableOpenDragGesture: true,
-          onDrawerChanged: (opened) => _drawerOpen = opened,
+          onDrawerChanged: _onDrawerChanged,
           drawerScrimColor: nc.drawerScrim,
           drawer: _DrawerContent(
             controller: _controller,
