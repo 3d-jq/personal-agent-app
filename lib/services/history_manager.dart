@@ -127,7 +127,7 @@ class HistoryManager {
     final threshold = compressionThreshold;
     final should = tokens > threshold;
     if (should) {
-      log.i('HistoryManager',
+      log.d('HistoryManager',
           'Should compress: $tokens > $threshold (msg+system, context: $contextWindowSize)');
     }
     return should;
@@ -147,7 +147,7 @@ class HistoryManager {
       return messages;
     }
 
-    log.i('HistoryManager', 'Starting compression for ${messages.length} messages');
+    log.d('HistoryManager', 'Starting compression for ${messages.length} messages');
 
     // 从后往前遍历，找到保留 keepTokens 的分割点
     int totalTokens = 0;
@@ -167,7 +167,7 @@ class HistoryManager {
     final toCompress = messages.sublist(0, splitIndex);
     final recent = messages.sublist(splitIndex);
 
-    log.i('HistoryManager', 'Compressing ${toCompress.length} messages, keeping ${recent.length}');
+    log.d('HistoryManager', 'Compressing ${toCompress.length} messages, keeping ${recent.length}');
 
     final summaryInput = _buildSummaryInput(toCompress);
     final summaryText = await summarize(summaryInput);
@@ -177,7 +177,7 @@ class HistoryManager {
       return messages;
     }
 
-    log.i('HistoryManager', 'Compression done: ${summaryText.length} chars summary');
+    log.d('HistoryManager', 'Compression done: ${summaryText.length} chars summary');
 
     final summaryMessage = ChatMessage(
       text: '[历史摘要]\n$summaryText',

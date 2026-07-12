@@ -82,7 +82,7 @@ class AIService {
       return _anthropic.summarize(messages);
     }
     final url = '${normalizeUrl(baseUrl)}/chat/completions';
-    log.i('AIService', 'Summarize request: ${messages.length} messages');
+    log.d('AIService', 'Summarize request: ${messages.length} messages');
     try {
       final response = await AiHttpClient.retryPost(
         url,
@@ -106,7 +106,7 @@ class AIService {
           ? choices[0] as Map<String, dynamic>
           : null;
       final result = (choice?['message']?['content'] as String? ?? '').trim();
-      log.i('AIService', 'Summarize success: ${result.length} chars');
+      log.d('AIService', 'Summarize success: ${result.length} chars');
       return result;
     } catch (e) {
       log.e('AIService', 'Summarize failed', e);
