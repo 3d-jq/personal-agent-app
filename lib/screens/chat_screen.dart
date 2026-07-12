@@ -9,6 +9,7 @@ import '../core/agent_colors.dart';
 import '../widgets/agent_top_bar.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_skeleton.dart';
+import '../widgets/chat_scroll_to_bottom_button.dart';
 import '../widgets/chat_input_bar.dart';
 import '../widgets/chat_new_chat_button.dart';
 import '../widgets/session_info_button.dart';
@@ -268,90 +269,24 @@ class _ChatScreenState extends State<ChatScreen>
                               onRegenerate: (m) => _controller.regenerate(m),
                             ),
                     ),
-                    ...(showScrollBottom
-                        ? [
-                            () {
-                              final unread = userScrolledUp
-                                  ? (_controller.messages.length -
-                                          msgCountWhenScrolledUp)
-                                      .clamp(0, 999)
-                                  : 0;
-                              return Positioned(
-                                right: 16,
-                                bottom: 12,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    HapticFeedback.lightImpact();
-                                    msgCountWhenScrolledUp =
-                                        _controller.messages.length;
-                                    scrollToBottom();
-                                  },
-                                  child: AnimatedContainer(
-                                    duration: AppDurations.fast,
-                                    curve: AppCurves.appear,
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: unread > 0 ? 16 : 0,
-                                      vertical: unread > 0 ? 10 : 0,
-                                    ),
-                                    decoration: unread > 0
-                                        ? BoxDecoration(
-                                            color: nc.primary,
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: nc.primary
-                                                    .withValues(alpha: 0.3),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
-                                          )
-                                        : BoxDecoration(
-                                            color: nc.surface,
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                                color: nc.divider, width: 0.5),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black
-                                                    .withValues(alpha: 0.18),
-                                                blurRadius: 6,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
-                                          ),
-                                    child: unread > 0
-                                        ? Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                '$unread 条新消息',
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.white,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              const Icon(
-                                                Icons.keyboard_arrow_down,
-                                                size: 18,
-                                                color: Colors.white,
-                                              ),
-                                            ],
-                                          )
-                                        : Icon(
-                                            Icons.keyboard_arrow_down,
-                                            size: 18,
-                                            color: nc.textPrimary,
-                                          ),
-                                  ),
-                                ),
-                              );
-                            }(),
-                          ]
-                        : []),
+                    if (showScrollBottom)
+                      Positioned(
+                        right: 16,
+                        bottom: 12,
+                        child: ChatScrollToBottomButton(
+                          unread: userScrolledUp
+                              ? (_controller.messages.length -
+                                      msgCountWhenScrolledUp)
+                                  .clamp(0, 999)
+                              : 0,
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            msgCountWhenScrolledUp =
+                                _controller.messages.length;
+                            scrollToBottom();
+                          },
+                        ),
+                      ),
                   ],
                 ),
               ),
