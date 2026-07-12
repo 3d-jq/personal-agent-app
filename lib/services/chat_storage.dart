@@ -28,20 +28,34 @@ class ChatStorage {
   static const int defaultWindow = 200;
 
   /// 加载所有会话元数据（不含消息体）。按 updatedAt 倒序。
-  Future<List<ChatSession>> loadAll() async {
+  /// 支持 [offset]/[limit] 分页，典型侧边栏无限滚动场景。
+  Future<List<ChatSession>> loadAll({int? offset, int? limit}) async {
     final rows = await _db.db.query('chat_sessions', columns: ['data']);
     final sessions = rows.map((r) {
       final map = jsonDecode(r['data'] as String) as Map<String, dynamic>;
       return ChatSession.fromJson(map);
     }).toList();
     sessions.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    if (offset != null && offset > 0) {
+      return sessions.skip(offset).take(limit ?? sessions.length).toList();
+    }
+    if (limit != null) {
+      return sessions.take(limit).toList();
+    }
     return sessions;
   }
 
   /// 只加载单聊会话元数据（排除 Agent 单聊）。
-  Future<List<ChatSession>> loadChatSessions() async {
+  Future<List<ChatSession>> loadChatSessions({int? offset, int? limit}) async {
     final all = await loadAll();
-    return all.where((s) => s.type != 'agent').toList();
+    final filtered = all.where((s) => s.type != 'agent').toList();
+    if (offset != null && offset > 0) {
+      return filtered.skip(offset).take(limit ?? filtered.length).toList();
+    }
+    if (limit != null) {
+      return filtered.take(limit).toList();
+    }
+    return filtered;
   }
 
   /// 加载指定会话。
