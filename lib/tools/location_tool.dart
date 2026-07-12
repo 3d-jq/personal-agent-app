@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../tools/base_tool.dart';
@@ -45,20 +46,32 @@ class LocationTool extends AgentTool {
       return '定位失败：设备定位服务未开启，请在系统设置中打开 GPS。';
     }
 
-    // 3. 获取实时高精度位置
+    // 3. 优先用缓存位置（10 分钟内有效）
     Position? position;
+    try {
+      position = await Geolocator.getLastKnownPosition();
+      if (position != null) {
+        final age = DateTime.now().difference(position.timestamp).inMinutes;
+        if (age < 10) {
+          // 缓存位置足够新鲜，直接使用，不触发实时请求
+          return _formatResult(position);
+        }
+      }
+    } catch (_) {}
+
+    // 4. 缓存过期 → 获取实时位置（10 秒超时）
     try {
       position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.best,
-          timeLimit: Duration(seconds: 30),
+          timeLimit: Duration(seconds: 10),
         ),
       );
     } catch (e) {
       log.w('LocationTool', '实时定位失败: $e');
     }
 
-    // 4. 如果实时定位失败，尝试获取缓存位置
+    // 5. 实时失败 → 回退到缓存（即使过期也用，好过无数据）
     if (position == null) {
       try {
         position = await Geolocator.getLastKnownPosition();
@@ -71,7 +84,11 @@ class LocationTool extends AgentTool {
       return '定位失败：无法获取位置。请移动到开阔区域或确保 GPS 已开启后重试。';
     }
 
-    // 5. 反向地理编码：获取精确地址和附近 POI
+    return _formatResult(position);
+  }
+
+  /// 格式化位置输出（含反向地理编码）
+  Future<String> _formatResult(Position position) async {
     final geocodeResult = await _reverseGeocode(
       position.latitude,
       position.longitude,
@@ -197,7 +214,33 @@ class LocationTool extends AgentTool {
       log.w('LocationTool', '反向地理编码失败: $e');
     }
 
+    // 高德 API 不可用时，回退到系统原生 Geocoder
+    if (result.address.isEmpty) {
+      await _systemGeocodeFallback(latitude, longitude, result);
+    }
+
     return result;
+  }
+
+  /// Android 原生 Geocoder 兜底（无需 API key）
+  Future<void> _systemGeocodeFallback(
+    double latitude,
+    double longitude,
+    _GeocodeResult result,
+  ) async {
+    try {
+      final placemarks = await Geocoding()
+          .placemarkFromCoordinates(latitude, longitude);
+      if (placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        result.address = [
+          if (p.street?.isNotEmpty == true) p.street,
+          if (p.locality?.isNotEmpty == true) p.locality,
+          if (p.administrativeArea?.isNotEmpty == true) p.administrativeArea,
+          if (p.country?.isNotEmpty == true) p.country,
+        ].join(', ');
+      }
+    } catch (_) {}
   }
 }
 
