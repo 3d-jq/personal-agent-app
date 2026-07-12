@@ -156,7 +156,23 @@ class ChatBubble extends StatelessWidget {
       case _BubbleAction.copy:
         _copy(context);
       case _BubbleAction.speak:
-        TtsService().speak(msg.text);
+        final res = await TtsService().speak(msg.text);
+        if (!res.success) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('朗读失败：${res.error ?? '未知错误'}')),
+            );
+          }
+        } else if (res.warning != null) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(res.warning!),
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        }
       case _BubbleAction.regenerate:
         onRegenerate?.call();
       case _BubbleAction.delete:
