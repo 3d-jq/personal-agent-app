@@ -50,7 +50,7 @@ void main() {
     expect(find.text('Token 消耗统计'), findsOneWidget);
     expect(find.text('暂无 token 统计'), findsOneWidget);
     // 空状态时无重置按钮、无汇总卡。
-    expect(find.byIcon(Icons.restart_alt), findsNothing);
+    expect(find.byIcon(Icons.delete_outline), findsNothing);
     expect(find.text('消耗汇总'), findsNothing);
   });
 
@@ -122,10 +122,10 @@ void main() {
     await pumpPage(tester);
     expect(find.text('消耗汇总'), findsOneWidget);
 
-    // 顶部 AppBar 的重置按钮（模型卡里也有一个 restart_alt，须精确到 AppTopBar 内）。
+    // 顶部 AppBar 的清空按钮（模型卡里也有一个 delete_outline，须精确到 AppTopBar 内）。
     final appBarReset = find.descendant(
       of: find.byType(AppTopBar),
-      matching: find.byIcon(Icons.restart_alt),
+      matching: find.byIcon(Icons.delete_outline),
     );
     await tester.tap(appBarReset);
     await tester.pumpAndSettle();

@@ -72,7 +72,7 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
         actions: [
           if (entries.isNotEmpty)
             IconButton(
-              icon: Icon(Icons.restart_alt, color: nc.error),
+              icon: Icon(Icons.delete_outline, color: nc.error),
               onPressed: _confirmResetAll,
             ),
         ],
