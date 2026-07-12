@@ -22,6 +22,7 @@ import '../services/notification_service.dart';
 import '../services/typewriter_buffer.dart';
 import '../tools/tools.dart';
 import '../widgets/ai_settings_sheet.dart';
+import 'message_window.dart';
 
 /// 单聊页面的业务控制器。
 ///
@@ -37,6 +38,7 @@ class ChatController extends ChangeNotifier {
   }) : _aiSettings = aiSettings ?? getIt<AISettings>(),
        _toolRegistry = toolRegistry ?? ToolRegistry(),
        _chatStorage = chatStorage ?? getIt<ChatStorage>() {
+    _window = MessageWindow(_chatStorage, _messages, _notify);
     registerAllTools(_toolRegistry);
     _toolRegistry.register(AskUserTool(onAsk: _onAskUser));
   }
@@ -75,19 +77,11 @@ class ChatController extends ChangeNotifier {
   /// await（settings/warmUp/loadSession），直接复用内存消息，二次进入秒开。
   bool _initialized = false;
 
-  // ── 消息分页（视口滑动窗口）──
-  int _nextSeq = 0;
-  int _oldestSeq = 0;
-  bool _allOlderLoaded = true;
-  bool _loadingOlder = false;
+  // ── 消息分页（视口滑动窗口，委托给 MessageWindow）──
+  late final MessageWindow _window;
 
-  /// 窗口最新消息 seq，用于下滑加载较新消息
-  int _newestSeq = 0;
-  bool _allNewerLoaded = true;
-  bool _loadingNewer = false;
-
-  bool get hasOlderMessages => !_allOlderLoaded && _sessionId != null;
-  bool get hasNewerMessages => !_allNewerLoaded && _sessionId != null;
+  bool get hasOlderMessages => _window.hasOlder;
+  bool get hasNewerMessages => _window.hasNewer;
 
   /// 页面缓存复用：退出聊天页时记录滚动位置，再次进入时恢复（微信级 L8 页面缓存）。
   double? lastScrollOffset;
@@ -199,94 +193,25 @@ class ChatController extends ChangeNotifier {
   void newSession() {
     _sessionId = const Uuid().v4();
     _messages = [];
+    _window.reset();
     _notify();
   }
 
   Future<void> loadSession(String id) async {
     _sessionId = id;
-    const windowSize = 40; // 视口窗口：只加载屏幕附近的消息
-    final session = await _chatStorage.loadSession(id, limit: windowSize);
-    _messages = session?.messages.toList() ?? [];
-    _initWindowState();
+    _window.bindSession(id);
+    await _window.load();
     _notify();
-  }
-
-  void _initWindowState() {
-    if (_messages.isEmpty) {
-      _nextSeq = 0;
-      _oldestSeq = 0;
-      _newestSeq = 0;
-      _allOlderLoaded = true;
-      _allNewerLoaded = true;
-    } else {
-      _nextSeq = _messages.last.seq + 1;
-      _oldestSeq = _messages.first.seq;
-      _newestSeq = _messages.last.seq;
-      _allOlderLoaded = _messages.length < 40;
-      _allNewerLoaded = _messages.length < 40;
-    }
   }
 
   /// 上滑加载更早的消息（游标分页），prepend 到内存窗口头部。
-  Future<void> loadOlderMessages() async {
-    if (_allOlderLoaded || _loadingOlder || _sessionId == null || _messages.isEmpty) {
-      return;
-    }
-    _loadingOlder = true;
-    _notify();
-    try {
-      const pageSize = 40;
-      final older = await _chatStorage.loadSession(
-        _sessionId!,
-        limit: pageSize,
-        beforeSeq: _oldestSeq,
-      );
-      if (older == null || older.messages.isEmpty) {
-        _allOlderLoaded = true;
-      } else {
-        _messages.insertAll(0, older.messages);
-        _oldestSeq = _messages.first.seq;
-        _allOlderLoaded = older.messages.length < pageSize;
-      }
-    } finally {
-      _loadingOlder = false;
-    }
-    _notify();
-  }
+  Future<void> loadOlderMessages() => _window.loadOlder();
 
   /// 下滑加载较新的消息（用户看过更早历史后回到窗口边缘时触发）。
-  Future<void> loadNewerMessages() async {
-    if (_allNewerLoaded || _loadingNewer || _sessionId == null || _messages.isEmpty) {
-      return;
-    }
-    _loadingNewer = true;
-    _notify();
-    try {
-      const pageSize = 40;
-      final newer = await _chatStorage.loadSession(
-        _sessionId!,
-        limit: pageSize,
-        afterSeq: _newestSeq,
-      );
-      if (newer == null || newer.messages.isEmpty) {
-        _allNewerLoaded = true;
-      } else {
-        _messages.addAll(newer.messages);
-        _newestSeq = _messages.last.seq;
-        _nextSeq = _newestSeq + 1;
-        _allNewerLoaded = newer.messages.length < pageSize;
-      }
-    } finally {
-      _loadingNewer = false;
-    }
-    _notify();
-  }
+  Future<void> loadNewerMessages() => _window.loadNewer();
 
   /// 追加一条消息并分配全局序号（保证分页表排序稳定、增量 upsert 不重排）。
-  void _appendMessage(ChatMessage msg) {
-    msg.seq = _nextSeq++;
-    _messages.add(msg);
-  }
+  void _appendMessage(ChatMessage msg) => _window.append(msg);
 
   Future<void> saveSession() async {
     if (_sessionId == null || _messages.isEmpty) return;
