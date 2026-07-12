@@ -22,7 +22,7 @@ enum BillingMode {
       s == 'count' ? BillingMode.count : BillingMode.token;
 }
 
-/// 单价配置（均以 USD 计价，per 1M tokens；按次模式用 [pricePerRequest]）。
+/// 单价配置（均以 CNY 计价，per 1M tokens；按次模式用 [pricePerRequest]）。
 ///
 /// 此为「持久化的用户配置」——默认空（未配置时回落到 UI 层参考价，
 /// 见 [ModelPricingDefaults]）。本服务层不内置任何模型名/价格。
@@ -121,11 +121,11 @@ class TokenUsageRecord {
       );
 }
 
-/// 纯函数：按 [PriceConfig] 计算单条记录的 USD 成本。
+/// 纯函数：按 [PriceConfig] 计算单条记录的 CNY 成本。
 ///
 /// - token 模式：非缓存 input + output + cachedInput 分别计价。
 /// - count 模式：requestCount × pricePerRequest。
-double computeCostUsd(TokenUsageRecord r, PriceConfig p) {
+double computeCost(TokenUsageRecord r, PriceConfig p) {
   if (p.mode == BillingMode.count) {
     return r.requestCount * p.pricePerRequest;
   }
@@ -139,13 +139,10 @@ double computeCostUsd(TokenUsageRecord r, PriceConfig p) {
 /// Token 用量追踪（借鉴 Operit TokenUsageStatisticsScreen，按厂商+模型核算成本）。
 ///
 /// - 全量持久化到本地 JSON（增量累加，不依赖服务端返回历史）。
-/// - 单价（USD）由用户配置；未配置时回落 UI 层参考价。
+/// - 单价（CNY）由用户配置；未配置时回落 UI 层参考价。
 /// - 暴露 [ChangeNotifier]，UI 可实时刷新汇总。
 class TokenUsageTracker {
   TokenUsageTracker._();
-
-  /// USD → CNY 汇率（默认 7.2，可编辑；用于把 USD 成本折算成 ¥ 展示）。
-  double usdToCnyRate = 7.2;
 
   final Map<String, TokenUsageRecord> _records = {};
   final Map<String, PriceConfig> _prices = {};
@@ -201,7 +198,7 @@ class TokenUsageTracker {
     _scheduleSave();
   }
 
-  /// 设置某 (厂商,模型) 的单价配置（USD）。
+  /// 设置某 (厂商,模型) 的单价配置（CNY）。
   void setPrice(String vendor, String model, PriceConfig price) {
     _prices[key(vendor, model)] = price;
     _notify();
@@ -212,13 +209,6 @@ class TokenUsageTracker {
     final k = key(vendor, model);
     final cur = _prices[k] ?? const PriceConfig();
     _prices[k] = cur.copyWith(mode: mode);
-    _notify();
-    _scheduleSave();
-  }
-
-  void setUsdToCnyRate(double rate) {
-    if (rate <= 0) return;
-    usdToCnyRate = rate;
     _notify();
     _scheduleSave();
   }
@@ -245,8 +235,6 @@ class TokenUsageTracker {
       final f = await _file();
       if (await f.exists()) {
         final d = jsonDecode(await f.readAsString()) as Map<String, dynamic>;
-        final rate = (d['usdToCnyRate'] as num?)?.toDouble();
-        if (rate != null && rate > 0) usdToCnyRate = rate;
         final recs = d['records'];
         if (recs is Map) {
           for (final e in recs.entries) {
@@ -288,7 +276,6 @@ class TokenUsageTracker {
     try {
       final f = await _file();
       await f.writeAsString(jsonEncode({
-        'usdToCnyRate': usdToCnyRate,
         'records': {for (final e in _records.entries) e.key: e.value.toJson()},
         'prices': {for (final e in _prices.entries) e.key: e.value.toJson()},
       }));
@@ -309,11 +296,10 @@ class TokenUsageTracker {
   void addListener(void Function() cb) => _listeners.add(cb);
   void removeListener(void Function() cb) => _listeners.remove(cb);
 
-  /// 仅供测试：清空内存（不删文件）并重置汇率。
+  /// 仅供测试：清空内存（不删文件）。
   void resetForTest() {
     _records.clear();
     _prices.clear();
-    usdToCnyRate = 7.2;
     _loaded = false;
     _saveTimer?.cancel();
     _saveTimer = null;

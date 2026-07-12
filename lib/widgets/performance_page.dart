@@ -37,11 +37,12 @@ class _PerformancePageState extends State<PerformancePage> {
       appBar: AppBar(
         backgroundColor: nc.background,
         elevation: 0,
+        centerTitle: true,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios, size: 18, color: nc.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text('性能指标', style: TextStyle(color: nc.textPrimary)),
+        title: Text('性能', style: TextStyle(color: nc.textPrimary)),
         actions: [
           if (entries.isNotEmpty)
             IconButton(

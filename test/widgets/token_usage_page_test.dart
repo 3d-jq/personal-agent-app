@@ -54,7 +54,7 @@ void main() {
     expect(find.text('消耗汇总'), findsNothing);
   });
 
-  testWidgets('有数据：显示汇率卡/汇总卡/分布/模型明细', (tester) async {
+  testWidgets('有数据：显示汇总卡/分布/模型明细', (tester) async {
     tokenTracker.record(
       vendor: 'OpenAI',
       model: 'gpt-4o',
@@ -71,7 +71,7 @@ void main() {
     expect(find.text('gpt-4o'), findsWidgets);
     // 模型卡初始在视口下方（off-stage），find.text 默认跳过，故显式包含。
     expect(find.text('OpenAI', skipOffstage: false), findsWidgets);
-    // 汇总卡含总成本（¥/$）与请求次数。
+    // 汇总卡含总成本（¥）与请求次数。
     expect(find.text('总成本'), findsOneWidget);
     expect(find.text('请求次数'), findsOneWidget);
     // 冲刷防抖保存定时器（record 后 300ms 落盘），避免测试结束时仍有挂起定时器。
