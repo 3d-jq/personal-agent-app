@@ -63,13 +63,13 @@ void main() {
     });
 
     test('loadNewer 下滑加载较新一页（存储中已有窗口外的新消息）', () async {
-      // 初始窗口只装下最近 windowSize 条（windowSize=30 时为 10..39）
+      // 初始窗口只装下最近 windowSize 条（windowSize=20 时 store=40 → seq 20..39）
       storage.store['s1'] = _makeStore(40);
       window.bindSession('s1');
       await window.load();
       expect(messages.last.seq, 39);
 
-      // 存储中后续追加了 40..89（50 条，非 pageSize 整数倍），窗口尚未拉取；
+      // 存储中后续追加了 40..89（newerTotal 条，非 pageSize 整数倍），窗口尚未拉取；
       // 用非整数倍可验证「最后一次拉到不足一页 → hasNewer 翻 false」的边界
       // （代码对「恰好一页」保守保留 hasNewer=true，属标准分页 hasMore 行为）。
       const int newerTotal = 90;
@@ -79,7 +79,10 @@ void main() {
       expect(messages.last.seq, 39 + MessageWindow.pageSize);
       expect(window.hasNewer, isTrue);
 
-      await window.loadNewer(); // 拉剩余 70..89（不足一页）
+      // 循环拉取直到没有更新消息（不假设固定页数，避免页面大小相关脆弱断言）
+      while (window.hasNewer) {
+        await window.loadNewer();
+      }
       expect(messages.last.seq, newerTotal - 1);
       expect(window.hasNewer, isFalse);
     });
