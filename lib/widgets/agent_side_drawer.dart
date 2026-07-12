@@ -287,15 +287,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
     // Material 包装确保主题继承正常（避免缺少祖先导致黄色下划线等异常），
     // 同时加水平拖拽手势让用户能从左往右滑关闭侧边栏。
     if (_isPush) {
-      return GestureDetector(
-        onHorizontalDragEnd: (d) {
-          // 右滑 → 关闭（拖速 > 300 或拖过半屏）
-          if (d.primaryVelocity != null && d.primaryVelocity! > 300) {
-            widget.onClose!();
-          }
-        },
-        child: Material(color: nc.background, child: content),
-      );
+      return Material(color: nc.background, child: content);
     }
     return Drawer(backgroundColor: nc.background, child: content);
   }
