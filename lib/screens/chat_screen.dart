@@ -35,6 +35,13 @@ class _ChatScreenState extends State<ChatScreen>
   // 当前消息条数（供 ChatScrollMixin 上滑检测使用）
   @override
   int get messageCount => _controller.messages.length;
+  // 当前最后一条消息（供上滑「已读锚点」记录）
+  @override
+  ChatMessage? get lastMessage =>
+      _controller.messages.isEmpty ? null : _controller.messages.last;
+  // 全部消息（供「n 条新消息」未读数计算）
+  @override
+  List<ChatMessage> get allMessages => _controller.messages;
   // 侧边栏切会话的「延迟加载」标志：true 时显示「加载对话中」骨架屏，
   // 把真正耗时的 switchSession（DB 加载 + 气泡重建）推迟到抽屉关闭动画结束后再跑。
   bool _switching = false;
@@ -273,17 +280,26 @@ class _ChatScreenState extends State<ChatScreen>
                       Positioned(
                         right: 16,
                         bottom: 12,
-                        child: ChatScrollToBottomButton(
-                          unread: userScrolledUp
-                              ? (_controller.messages.length -
-                                      msgCountWhenScrolledUp)
-                                  .clamp(0, 999)
-                              : 0,
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            msgCountWhenScrolledUp =
-                                _controller.messages.length;
-                            scrollToBottom();
+                        // 双层 ListenableBuilder：
+                        // - 外层监听 _controller：消息条数变化（新一轮新气泡）时重建；
+                        // - 内层监听最后一条消息：AI 流式变长时（≤200ms 节流）实时重建。
+                        // 两层互补，保证「n 条新消息」在上滑期间实时刷新。
+                        child: ListenableBuilder(
+                          listenable: _controller,
+                          builder: (ctx, _) {
+                            final last = _controller.messages.isEmpty
+                                ? null
+                                : _controller.messages.last;
+                            return ListenableBuilder(
+                              listenable: last ?? const AlwaysStoppedAnimation(0),
+                              builder: (_, __) => ChatScrollToBottomButton(
+                                unread: userScrolledUp ? unreadCount() : 0,
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  scrollToBottom();
+                                },
+                              ),
+                            );
                           },
                         ),
                       ),
