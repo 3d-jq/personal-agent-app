@@ -219,9 +219,8 @@ class _ChatScreenState extends State<ChatScreen>
     final bottomSafe = MediaQuery.of(context).padding.bottom;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final sidebarWidth = MediaQuery.of(context).size.width;
-    // 只推到 85% 宽度，始终留出约一行聊天在右侧可见，形成"连成一片"的视觉效果
+    // 推到 85% 屏宽，始终留右侧主界面可见，形成"连成一片"效果
     final pushRange = sidebarWidth * 0.85;
-    final slideX = pushRange * _sidebarAnim.value;
 
     final scaffold = Scaffold(
       backgroundColor: nc.background,
@@ -313,59 +312,47 @@ class _ChatScreenState extends State<ChatScreen>
         systemNavigationBarIconBrightness:
             isDark ? Brightness.light : Brightness.dark,
       ),
-      child: Stack(
-        children: [
-          // ── 侧边栏：固定在左侧屏幕外，主界面滑开时露出来 ──
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: sidebarWidth,
-            child: ChatDrawerContent(
-              controller: _controller,
-              onSessionTap: _onSessionTap,
-              onNewChat: _onNewChat,
-              onSessionDeleted: _onSessionDeleted,
-              onClose: _closeSidebar,
-            ),
-          ),
-          // ── 主界面：随侧边栏开合整体右移 ──
-          GestureDetector(
-            // 只收译在视口内的命中（deferToChild），避免 translucent 吞掉侧边栏区域的触摸
-            onTap: _sidebarOpen ? _closeSidebar : () => _inputFocus.unfocus(),
-            onHorizontalDragStart: _onDragStart,
-            onHorizontalDragUpdate: _onDragUpdate,
-            onHorizontalDragEnd: _onDragEnd,
-            child: Transform.translate(
-              offset: Offset(slideX, 0),
-              child: scaffold,
-            ),
-          ),
-          // ── 左边缘拖拽条：侧边栏关闭时用，透明条捕获从屏幕左边缘开始的水平拖拽 ──
-          if (!_sidebarOpen)
-            Positioned(
-              left: 0,
-              top: 0,
-              bottom: 0,
-              width: 24,
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onHorizontalDragStart: _onDragStart,
-                onHorizontalDragUpdate: _onDragUpdate,
-                onHorizontalDragEnd: _onDragEnd,
+      child: GestureDetector(
+        onHorizontalDragStart: _onDragStart,
+        onHorizontalDragUpdate: _onDragUpdate,
+        onHorizontalDragEnd: _onDragEnd,
+        // OverflowBox 解除父级 800px 约束，让 1480px 的 Row 可以完整布局
+        child: OverflowBox(
+          maxWidth: double.infinity,
+          alignment: Alignment.topLeft,
+          child: Transform.translate(
+            // 整个画布平移：closed 时主界面居中，open 时侧边栏居中
+            offset: Offset(-pushRange + pushRange * _sidebarAnim.value, 0),
+            child: SizedBox(
+              width: sidebarWidth + pushRange, // 侧边栏(85%) + 主界面(100%)
+              child: Row(
+                children: [
+                  // ── 侧边栏（Row 左孩子，与主界面同一 Z 层）──
+                  SizedBox(
+                    width: pushRange,
+                    child: ChatDrawerContent(
+                      controller: _controller,
+                      onSessionTap: _onSessionTap,
+                      onNewChat: _onNewChat,
+                      onSessionDeleted: _onSessionDeleted,
+                      onClose: _closeSidebar,
+                    ),
+                  ),
+                  // ── 主界面（Row 右孩子，同一 Z 层）──
+                  SizedBox(
+                    width: sidebarWidth,
+                    child: GestureDetector(
+                      onTap: _sidebarOpen
+                          ? _closeSidebar
+                          : () => _inputFocus.unfocus(),
+                      child: scaffold,
+                    ),
+                  ),
+                ],
               ),
             ),
-          // ── 侧边栏关闭手势透明层：打开时全屏覆盖，捕获右滑关闭 ──
-          if (_sidebarOpen)
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onHorizontalDragStart: _onDragStart,
-                onHorizontalDragUpdate: _onDragUpdate,
-                onHorizontalDragEnd: _onDragEnd,
-              ),
-            ),
-        ],
+          ),
+        ),
       ),
     );
   }
