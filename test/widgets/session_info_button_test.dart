@@ -5,12 +5,12 @@ import 'package:personal_agent_app/widgets/session_info_button.dart';
 
 /// 放大视口以容纳固定高度的面板（真机屏幕够高，面板不滚动、一次性全显示）。
 Future<void> _pumpWithLargeViewport(WidgetTester tester, Widget widget) async {
-  tester.binding.window.physicalSizeTestValue = const Size(400, 1000);
-  tester.binding.window.devicePixelRatioTestValue = 1.0;
+  tester.view.physicalSize = const Size(400, 1000);
+  tester.view.devicePixelRatio = 1.0;
   await tester.pumpWidget(widget);
   addTearDown(() {
-    tester.binding.window.physicalSizeTestValue = const Size(800, 600);
-    tester.binding.window.devicePixelRatioTestValue = 3.0;
+    tester.view.physicalSize = const Size(800, 600);
+    tester.view.devicePixelRatio = 3.0;
   });
 }
 

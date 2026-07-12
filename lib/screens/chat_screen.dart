@@ -6,15 +6,15 @@ import '../models/chat_message.dart';
 import '../services/chat_controller_cache.dart';
 import '../core/service_locator.dart';
 import '../core/agent_colors.dart';
-import '../widgets/agent_side_drawer.dart';
 import '../widgets/agent_top_bar.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_skeleton.dart';
 import '../widgets/chat_input_bar.dart';
-import '../widgets/chat_model_chip.dart';
 import '../widgets/chat_new_chat_button.dart';
 import '../widgets/session_info_button.dart';
 import '../core/app_animations.dart';
+import 'chat_drawer_content.dart';
+import 'chat_scroll_mixin.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sessionId;
@@ -26,29 +26,21 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, ChatScrollMixin {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
-  final ScrollController _scrollCtrl = ScrollController();
   late final ChatController _controller;
-  bool _pendingScroll = false;
-  bool _showScrollBottom = false;
-  bool _userScrolledUp = false;
-  // 用户上滑时的消息数，用于计算「n 条新消息」浮条
-  int _msgCountWhenScrolledUp = 0;
-  // 程序主动触发的滚动（点击回到底部 / 流式自动贴底）期间为 true，
-  // 避免 _onScroll 把"自己的位移"误判成用户上滑而污染状态
-  bool _autoScrolling = false;
-  // Drawer 打开时暂停自动贴底滚动，避免每帧 jumpTo 与 Drawer 动画抢主 isolate 导致卡顿
-  bool _drawerOpen = false;
+  // 当前消息条数（供 ChatScrollMixin 上滑检测使用）
+  @override
+  int get messageCount => _controller.messages.length;
   // 抽屉关闭动画期间完成了会话切换 → 标记，等动画结束再刷新 UI
   bool _pendingSwitchOnDrawerClose = false;
   // 会话加载态：initialize 完成前显示骨架屏（仅冷启动/未就绪时），
   // 完成后淡入真实列表，使转场帧与首屏气泡 build 帧错峰。
   bool _loading = false;
   // 点击「回到底部」：原生 animateTo 平滑滚动，不再用 AnimationController 手动循环。
-  // 见 _scrollToBottom。
+  // 见 scrollToBottom（ChatScrollMixin）。
   // 上次键盘遮挡高度：用于在 didChangeMetrics 中判断键盘是否正在弹起。
   double _lastViewInsetBottom = 0;
 
@@ -59,7 +51,7 @@ class _ChatScreenState extends State<ChatScreen>
     // 无需重新从 DB 加载，进入瞬间无白屏/重载闪烁（微信级 L8 页面缓存）。
     _controller = getIt<ChatControllerCache>().obtain(
       widget.sessionId,
-      onNeedScroll: _scrollDown,
+      onNeedScroll: scrollDown,
     );
     // 加载态：有会话 id 且控制器尚未就绪（首开/冷启动）才显示骨架屏；
     // 缓存命中（已 initialized 且消息在内存）直接显示真实列表，不闪骨架。
@@ -67,143 +59,56 @@ class _ChatScreenState extends State<ChatScreen>
     _controller.initialize().then((_) {
       if (mounted) setState(() => _loading = false);
       // 进入会话：定位到最新消息（聊天软件惯例：进会话即见最新），而非恢复上次
-      // 离开位置。_jumpToLatest 用 post-frame 兜底，避免列表尚未 build 时 hasClients
+      // 离开位置。jumpToLatest 用 post-frame 兜底，避免列表尚未 build 时 hasClients
       // 为 false 导致跳底失效、停在顶部（旧行为即此 bug）。
-      _jumpToLatest();
+      jumpToLatest();
     });
-    _scrollCtrl.addListener(_onScroll);
+    scrollController.addListener(onScroll);
     WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
     // 记录滚动位置供缓存复用恢复
-    if (_scrollCtrl.hasClients) {
-      _controller.lastScrollOffset = _scrollCtrl.offset;
+    if (scrollController.hasClients) {
+      _controller.lastScrollOffset = scrollController.offset;
     }
     // 仅当控制器未被缓存（新建会话）时才 dispose；缓存的由 ChatControllerCache 持有
     if (widget.sessionId == null) _controller.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _inputCtrl.dispose();
     _inputFocus.dispose();
-    _scrollCtrl.removeListener(_onScroll);
-    _scrollCtrl.dispose();
+    scrollController.removeListener(onScroll);
+    scrollController.dispose();
     super.dispose();
   }
 
   /// 键盘弹起/收起时被系统回调。键盘弹起（viewInsets 增大）且用户本就在底部时，
   /// 让列表跟随键盘同步贴底——否则 Scaffold resize 后列表可视区缩小、最后一条消息
   /// 会被抬高的输入框遮挡。用逐帧 jumpTo 跟随键盘上移动画，最跟手、无二次动画抖动。
-  /// 用户上滑看历史（_userScrolledUp）时点输入框不强制拽回底部，保持阅读位置。
+  /// 用户上滑看历史（userScrolledUp）时点输入框不强制拽回底部，保持阅读位置。
   @override
   void didChangeMetrics() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollCtrl.hasClients) return;
+      if (!mounted || !scrollController.hasClients) return;
       final inset = MediaQuery.of(context).viewInsets.bottom;
       final opening = inset > _lastViewInsetBottom;
       _lastViewInsetBottom = inset;
-      if (!opening || _drawerOpen) return;
+      if (!opening || drawerOpen) return;
       // 键盘弹起时（Scaffold 已 resize 抬起输入框），只要用户本来就在会话底部
       // 附近（正在输入新消息的典型场景），就把列表补贴到底——确保最后一条消息不被
-      // 抬起的输入框遮挡。用「距底 < 1 屏」判断，比脆弱的 _userScrolledUp 标志更稳，
+      // 抬起的输入框遮挡。用「距底 < 1 屏」判断，比脆弱的 userScrolledUp 标志更稳，
       // 且用户明显上翻看历史时（距底很远）不打扰其阅读位置。
-      final pos = _scrollCtrl.position;
+      final pos = scrollController.position;
       final distFromBottom = pos.maxScrollExtent - pos.pixels;
       if (distFromBottom < pos.viewportDimension) {
-        _scrollCtrl.jumpTo(pos.maxScrollExtent);
+        scrollController.jumpTo(pos.maxScrollExtent);
       }
     });
   }
-
-  void _onScroll() {
-    // 程序主动滚动期间忽略，避免误判用户上滑
-    if (!_scrollCtrl.hasClients || _autoScrolling) return;
-    final max = _scrollCtrl.position.maxScrollExtent;
-    final current = _scrollCtrl.position.pixels;
-    final distFromBottom = max - current;
-    final shouldShow = distFromBottom > 120;
-    if (shouldShow != _showScrollBottom) {
-      setState(() => _showScrollBottom = shouldShow);
-    }
-    if (distFromBottom > 60) {
-      if (!_userScrolledUp) {
-        _userScrolledUp = true;
-        _msgCountWhenScrolledUp = _controller.messages.length;
-      }
-    }
-  }
-
-  /// 流式期间实时贴底：下一帧布局完成后 jump 到末尾，消除 50ms 节流造成的「定期猛跳」。
-  /// 用 [_pendingScroll] 去重，避免每个流式 token 都注册一次 postFrame 回调而堆积。
-  void _scrollDown() {
-    // Drawer 打开时暂停自动贴底：避免每帧 jumpTo 与 Drawer 打开动画抢主 isolate
-    if (_drawerOpen) return;
-    if (_userScrolledUp || _autoScrolling || _pendingScroll) return;
-    _pendingScroll = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _pendingScroll = false;
-      if (!_scrollCtrl.hasClients || _userScrolledUp || _autoScrolling) return;
-      _autoScrolling = true;
-      _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
-      _autoScrolling = false;
-    });
-  }
-
-  /// 进入/切换会话后定位到最新消息（聊天软件惯例：进会话即见最新）。
-  /// 必须等列表布局完成（maxScrollExtent 已知）再跳，故用 post-frame 回调；
-  /// 列表尚未挂载（hasClients 为 false）时递归延一帧重试，确保最终跳到底部。
-  void _jumpToLatest() {
-    WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToLatestNow());
-  }
-
-  void _jumpToLatestNow() {
-    if (!mounted) return;
-    if (!_scrollCtrl.hasClients) {
-      // 列表尚未挂载（如仍在骨架屏 / 切换中），下一帧再试一次
-      WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToLatestNow());
-      return;
-    }
-    _userScrolledUp = false;
-    _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
-  }
-
-  /// 平滑回到底部：用于点击「回到底部」按钮。
-  /// 复位 _userScrolledUp 让流式自动贴底能恢复。
-  ///
-  /// 【顺滑 + 无白屏】距底不超过 cacheExtent 的 ~80%（约 3200px≈4 屏）时直接整体用
-  /// 原生 `animateTo` 平滑滚动：该范围内气泡已由 cacheExtent 预构建，沿途无白屏、无
-  /// 突兀跳变，最跟手。仅当用户在极远处（>4 屏）点回到底部，才先瞬时 jumpTo 到
-  /// 「底部前约 1.5 屏」（只构建最后一屏气泡，避免 animateTo 一路白屏），再对最后一
-  /// 小段做平滑动画收尾。旧实现每帧 jumpTo 手动循环 + 1.2 屏即硬跳，导致中距离也有
-  /// "先瞬移再滑"的割裂感——此即「回到底部不流畅」的根因。
-  void _scrollToBottom() {
-    if (!_scrollCtrl.hasClients) return;
-    _userScrolledUp = false;
-    final pos = _scrollCtrl.position;
-    final viewport = pos.viewportDimension;
-    final max = pos.maxScrollExtent;
-    // 先置位程序滚动守卫，使下方预跳 jumpTo 不被 _onScroll 误判为用户上滑/重复 setState
-    _autoScrolling = true;
-    const cacheExtentPx = 4000.0; // 与 _MessageList cacheExtent 对齐
-    final smoothLimit = (cacheExtentPx * 0.8).clamp(0.0, max);
-    if (max - _scrollCtrl.offset > smoothLimit) {
-      // 超远：先瞬时跳到「底部前约 1.5 屏」，只构建最后一屏，避免 animateTo 沿途白屏
-      final preJump = (max - viewport * 1.5).clamp(0.0, max);
-      _scrollCtrl.jumpTo(preJump);
-    }
-    _scrollCtrl
-        .animateTo(
-          max,
-          duration: AppDurations.standard,
-          curve: AppCurves.standard,
-        )
-        .then((_) => _autoScrolling = false)
-        .catchError((_) => _autoScrolling = false);
-  }
-
 
   void _handleSend() {
-    _userScrolledUp = false;
+    userScrolledUp = false;
     final text = _inputCtrl.text;
     if (_controller.isWaitingUserPrompt) {
       _resetInput();
@@ -231,11 +136,11 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _onDrawerChanged(bool opened) {
-    _drawerOpen = opened;
+    drawerOpen = opened;
     if (!opened && _pendingSwitchOnDrawerClose) {
       _pendingSwitchOnDrawerClose = false;
       widget.onSessionChanged?.call();
-      _jumpToLatest();
+      jumpToLatest();
     }
   }
 
@@ -250,9 +155,9 @@ class _ChatScreenState extends State<ChatScreen>
     // 避免会话重建与抽屉 GPU 动画同帧竞争导致卡顿。
     _controller.switchSession(id).then((_) {
       if (!mounted) return;
-      if (!_drawerOpen) {
+      if (!drawerOpen) {
         widget.onSessionChanged?.call();
-        _jumpToLatest();
+        jumpToLatest();
       } else {
         _pendingSwitchOnDrawerClose = true;
       }
@@ -292,14 +197,14 @@ class _ChatScreenState extends State<ChatScreen>
           drawerEnableOpenDragGesture: true,
           onDrawerChanged: _onDrawerChanged,
           drawerScrimColor: nc.drawerScrim,
-          drawer: _DrawerContent(
+          drawer: ChatDrawerContent(
             controller: _controller,
             onSessionTap: _onSessionTap,
             onNewChat: _onNewChat,
             onSessionDeleted: _onSessionDeleted,
           ),
           appBar: AgentTopBar(
-            afterMenu: _ModelChip(controller: _controller),
+            afterMenu: ChatModelChipButton(controller: _controller),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -329,18 +234,18 @@ class _ChatScreenState extends State<ChatScreen>
                           : _MessageList(
                               key: const ValueKey('list'),
                               controller: _controller,
-                              scrollController: _scrollCtrl,
+                              scrollController: scrollController,
                               onRetry: _onRetry,
                               onDelete: (m) => _controller.deleteMessage(m),
                               onRegenerate: (m) => _controller.regenerate(m),
                             ),
                     ),
-                    ...(_showScrollBottom
+                    ...(showScrollBottom
                         ? [
                             () {
-                              final unread = _userScrolledUp
+                              final unread = userScrolledUp
                                   ? (_controller.messages.length -
-                                          _msgCountWhenScrolledUp)
+                                          msgCountWhenScrolledUp)
                                       .clamp(0, 999)
                                   : 0;
                               return Positioned(
@@ -349,9 +254,9 @@ class _ChatScreenState extends State<ChatScreen>
                                 child: GestureDetector(
                                   onTap: () {
                                     HapticFeedback.lightImpact();
-                                    _msgCountWhenScrolledUp =
+                                    msgCountWhenScrolledUp =
                                         _controller.messages.length;
-                                    _scrollToBottom();
+                                    scrollToBottom();
                                   },
                                   child: AnimatedContainer(
                                     duration: AppDurations.fast,
@@ -433,51 +338,6 @@ class _ChatScreenState extends State<ChatScreen>
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _DrawerContent extends StatelessWidget {
-  final ChatController controller;
-  final ValueChanged<String> onSessionTap;
-  final VoidCallback onNewChat;
-  final ValueChanged<String> onSessionDeleted;
-
-  const _DrawerContent({
-    required this.controller,
-    required this.onSessionTap,
-    required this.onNewChat,
-    required this.onSessionDeleted,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, child) => AgentSideDrawer(
-        sessions: controller.sessions,
-        currentSessionId: controller.currentSessionId,
-        isLoading: controller.isLoading,
-        onSessionTap: onSessionTap,
-        onNewChat: onNewChat,
-        onSessionDeleted: onSessionDeleted,
-      ),
-    );
-  }
-}
-
-class _ModelChip extends StatelessWidget {
-  final ChatController controller;
-  const _ModelChip({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: controller.aiSettings,
-      builder: (context, child) => ChatModelChip(
-        settings: controller.aiSettings,
-        onChanged: () {},
       ),
     );
   }

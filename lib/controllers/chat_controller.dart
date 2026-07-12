@@ -69,7 +69,7 @@ class ChatController extends ChangeNotifier {
   }
 
   String? _sessionId;
-  List<ChatMessage> _messages = [];
+  final List<ChatMessage> _messages = [];
   List<ChatSession> _sessions = [];
   bool _isLoading = false;
   bool _isCompressing = false;
@@ -192,7 +192,13 @@ class ChatController extends ChangeNotifier {
 
   void newSession() {
     _sessionId = const Uuid().v4();
-    _messages = [];
+    // 【关键】必须原地清空，不能重新赋值 `_messages = []`！
+    // MessageWindow 在构造时持有 `_messages` 的引用（见 _window 初始化），
+    // 若此处重新赋值一个新列表，MessageWindow 仍指向旧列表，而 `messages`
+    // getter 返回新空列表 → 发送的消息进了孤儿列表、UI 读空列表、且
+    // `sendMessage` 里 `_messages.last` 在空列表上抛 StateError 导致流不启动。
+    // 这正是「发送消息不显示 + 大模型不返回」回归的根因（MessageWindow 拆分引入）。
+    _messages.clear();
     _window.reset();
     _notify();
   }

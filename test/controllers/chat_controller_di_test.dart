@@ -109,14 +109,16 @@ class _FakeChatStorage implements ChatStorage {
   }
 
   @override
-  Future<List<ChatSession>> loadAll() async => sessions;
+  Future<List<ChatSession>> loadAll({int? limit, int? offset}) async =>
+      sessions;
 
   @override
-  Future<List<ChatSession>> loadChatSessions() async => sessions;
+  Future<List<ChatSession>> loadChatSessions({int? limit, int? offset}) async =>
+      sessions;
 
   @override
   Future<ChatSession?> loadSession(String id,
-      {int? limit, int? beforeSeq, bool full = false}) async {
+      {int? afterSeq, int? limit, int? beforeSeq, bool full = false}) async {
     return sessions.where((s) => s.id == id).firstOrNull;
   }
 

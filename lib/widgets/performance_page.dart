@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
-import '../core/design_tokens.dart';
 import '../services/performance_monitor.dart';
 
 class PerformancePage extends StatefulWidget {
@@ -71,7 +70,7 @@ class _PerformancePageState extends State<PerformancePage> {
             )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: grouped.length + (entries.length > 0 ? 1 : 0),
+              itemCount: grouped.length + (entries.isNotEmpty ? 1 : 0),
               itemBuilder: (context, i) {
                 if (i == grouped.length) return const SizedBox(height: 32);
                 final tag = grouped.keys.elementAt(i);

@@ -19,6 +19,9 @@ import 'package:personal_agent_app/widgets/agent_group/agent_group_theme.dart';
 import 'package:personal_agent_app/widgets/agent_group/group_chat_coordinator.dart';
 import 'package:personal_agent_app/widgets/ai_settings.dart';
 import 'package:personal_agent_app/widgets/agent_group/group_chat_runner.dart';
+import 'package:personal_agent_app/widgets/agent_group/group_dispatch_models.dart';
+import 'package:personal_agent_app/widgets/agent_group/group_message_window.dart';
+import 'package:personal_agent_app/widgets/agent_group/group_context_usage.dart';
 
 /// 群聊的「状态 + 编排」控制器。
 ///
@@ -66,12 +69,12 @@ class GroupChatController extends ChangeNotifier {
   final Set<String> _participatedAgents = {};
 
   // ── 派活工具串行锁与上限（工具调用派活模式用） ──
-  final _dispatchLock = _SerialLock();
+  final _dispatchLock = SerialLock();
   int _dispatchCount = 0;
   static const int _maxDelegates = 5;
 
   /// 本轮协调者调用 delegate_task 的派发记录（用于把协调者气泡转为派发卡片）。
-  final List<_DispatchRecord> _activeDispatches = [];
+  final List<DispatchRecord> _activeDispatches = [];
 
   // ── Stop 完整取消：管理所有活跃流 ──
   final List<StreamSubscription<ChatStreamEvent>> _activeSubs = [];
@@ -80,11 +83,10 @@ class GroupChatController extends ChangeNotifier {
   // _abortSignal 由 stop() 完成，中断协调者自身仍在进行的执行流；
   // _activeChildRuns 记录每个在跑子 Agent 的独立 abort，供「停止」精准终止某一在跑子 Agent。
   Completer<void>? _abortSignal;
-  final Map<String, _ChildRun> _activeChildRuns = {};
+  final Map<String, ChildRun> _activeChildRuns = {};
 
-  // ── 长会话分页：只渲染末尾 _pageSize 条，向上可加载更早 ──
-  static const int _pageSize = 30;
-  int _windowStart = 0;
+  // ── 长会话分页窗口（逻辑收拢至 GroupMessageWindow） ──
+  final GroupMessageWindow _window = GroupMessageWindow();
 
   // ── 上下文压缩管理器 ──
   HistoryManager? _historyManager;
@@ -117,40 +119,20 @@ class GroupChatController extends ChangeNotifier {
   Map<String, AgentStatus> get agentStatus => _agentStatus;
   int get discussionRound => _discussionRound;
   Set<String> get participatedAgents => _participatedAgents;
-  int get windowStart => _windowStart;
-  bool get hasEarlier => _windowStart > 0;
+  int get windowStart => _window.start;
+  bool get hasEarlier => _window.hasEarlier;
 
-  // ── 上下文窗口占用（供 UI 可视化）──
-  List<ChatMessage>? _usageMsgRef;
-  int _usageMsgLen = -1;
-  int _usageLastLen = -1;
-  int? _usageTokenCache;
+  // ── 上下文窗口占用（供 UI 可视化，估算与缓存收拢至 GroupContextUsage）──
+  final GroupContextUsage _usage = GroupContextUsage();
   /// 系统提示（群名/描述/成员角色）估算 token，计入面板占用展示。
   int? _systemPromptTokens;
-  /// 上一次计算缓存时「最后一条消息是否在流式」；翻转时强制重算，
-  /// 避免「流式结束 isStreaming 翻 false 但文本长度恰好未变」导致缓存不失效、
-  /// 面板漏算该 Agent 回复（群聊每帧 _notify，此 case 比单聊更易触发）。
-  bool? _usageLastStreaming;
   /// 当前对话估算占用的 token 数（消息估算 + 系统提示估算，均为字符启发式，非真实分词）。
-  /// 带轻量缓存：当消息**列表引用**变更（切会话/压缩）、**条数**变化（新增一轮问答）、
-  /// **最后一条内容长度**变化（流式增长）或**最后一条流式状态翻转**（流式收尾）时重算，
-  /// 其余无关刷新复用缓存。
-  int get estimatedContextTokens {
-    final last = _messages.isEmpty ? null : _messages.last;
-    final lastLen = last?.text.length ?? 0;
-    final lastStreaming = last?.isStreaming ?? false;
-    if (_usageMsgRef != _messages ||
-        _usageMsgLen != _messages.length ||
-        _usageLastLen != lastLen ||
-        _usageLastStreaming != lastStreaming) {
-      _usageMsgRef = _messages;
-      _usageMsgLen = _messages.length;
-      _usageLastLen = lastLen;
-      _usageLastStreaming = lastStreaming;
-      _usageTokenCache = _historyManagerInstance.estimateMessagesTokens(_messages);
-    }
-    return (_usageTokenCache ?? 0) + (_systemPromptTokens ?? 0);
-  }
+  /// 缓存与估算逻辑委托给 [GroupContextUsage]。
+  int get estimatedContextTokens => _usage.compute(
+        messages: _messages,
+        systemPromptTokens: _systemPromptTokens ?? 0,
+        estimateMessages: _historyManagerInstance.estimateMessagesTokens,
+      );
   /// 上下文窗口大小（token 数）。
   int get contextWindowSize => _aiSettings.contextWindowSize;
   /// 触发压缩的 token 阈值。
@@ -215,9 +197,7 @@ class GroupChatController extends ChangeNotifier {
       aiSettings: _aiSettings,
       members: ms,
     );
-    _windowStart = _messages.length > _pageSize
-        ? _messages.length - _pageSize
-        : 0;
+    _window.reset(_messages.length);
     _notify();
   }
 
@@ -318,7 +298,7 @@ class GroupChatController extends ChangeNotifier {
     // 该视图（见 _runOneAndAppend），既避免历史永久丢失，也避免二次截断把摘要切掉。
     // 系统提示占用计入面板上下文统计（之前只算消息、漏算群名/描述/成员角色）。
     _systemPromptTokens = _historyManagerInstance.estimateTokens(
-      _groupSystemPromptEstimate(),
+      estimateGroupSystemPrompt(_group, _members),
     );
     List<ChatMessage> sendView = _messages;
     try {
@@ -507,11 +487,11 @@ class GroupChatController extends ChangeNotifier {
           '请使用准确的群内名字。';
     }
     _dispatchCount++;
-    _activeDispatches.add(_DispatchRecord(agentName, brief));
+    _activeDispatches.add(DispatchRecord(agentName, brief));
     // 注册可取消的子任务句柄：供「停止」在派活执行期间中断它。
     // 该子 Agent 作为协调者可调度的「任务」，出错/超时/被终止时把结果回灌协调者。
     final childAbort = Completer<void>();
-    _activeChildRuns[child.id] = _ChildRun(agent: child, abort: childAbort);
+    _activeChildRuns[child.id] = ChildRun(agent: child, abort: childAbort);
     try {
       final childText = await _dispatchLock.run(() async {
         _discussionRound++;
@@ -667,19 +647,6 @@ class GroupChatController extends ChangeNotifier {
   /// [isolatedContext] 非空时，子 Agent 只看这份隔离上下文（用户原始需求 + 主 Agent
   /// 的任务简报），不看全量群历史——实现「编排者-工作者」隔离执行，避免子 Agent 被
   /// 无关对话干扰、也防止它去翻前面的对话自行发挥。
-  /// 估算群聊系统提示占用的 token（用于压缩判断）。群聊未像单聊那样在
-  /// sendMessage 处显式构造 systemPrompt 字符串，这里用群名/描述/成员角色拼一份
-  /// 近似文本做估算，避免压缩判断漏算系统提示开销（systemPrompt 通常有 2k~4k token）。
-  String _groupSystemPromptEstimate() {
-    final buf = StringBuffer();
-    buf.writeln(_group?.name ?? '');
-    buf.writeln(_group?.description ?? '');
-    for (final m in _members) {
-      buf.writeln('${m.name} (${m.role})');
-    }
-    return buf.toString();
-  }
-
   Future<({ChatMessage placeholder, String text, ChildOutcome outcome})>
       _runOneAndAppend(
     Agent agent, {
@@ -726,11 +693,7 @@ class GroupChatController extends ChangeNotifier {
   }
 
   /// 保证窗口末尾对齐最新消息（活跃讨论时始终显示最新）
-  void _ensureTailVisible() {
-    _windowStart = _messages.length > _pageSize
-        ? _messages.length - _pageSize
-        : 0;
-  }
+  void _ensureTailVisible() => _window.ensureTailVisible(_messages.length);
 
   /// 找到 [dispatch] 之前最近的一条用户消息，作为子 Agent 隔离执行的「原始需求」，
   /// 让子 Agent 即便不看全量历史也能理解用户到底在问什么。
@@ -745,8 +708,7 @@ class GroupChatController extends ChangeNotifier {
 
   /// 加载更早的消息：窗口向前提一页（滚动位置保持由页面 anchor 负责）。
   void loadEarlierPage() {
-    if (_windowStart <= 0) return;
-    _windowStart = _windowStart > _pageSize ? _windowStart - _pageSize : 0;
+    _window.loadEarlierPage();
     _notify();
   }
 
@@ -765,42 +727,5 @@ class GroupChatController extends ChangeNotifier {
     _activeSubs.clear();
     _busy = false;
     _notify();
-  }
-}
-
-/// 一次 delegate_task 派发的记录，用于在协调者轮结束后把其气泡渲染成派发卡片。
-class _DispatchRecord {
-  final String agentName;
-  final String brief;
-  _DispatchRecord(this.agentName, this.brief);
-}
-
-/// 一个正在运行的子 Agent 的可取消句柄。
-/// [abort] 由「停止」完成，使其执行流立即以「[已被终止]」收尾，
-/// 并把结果回灌协调者，由协调者决定继续、重试或汇总。
-class _ChildRun {
-  final Agent agent;
-  final Completer<void> abort;
-  _ChildRun({required this.agent, required this.abort});
-}
-
-/// 极简串行锁：保证回调一次只跑一个，后续排队依次执行。
-///
-/// 群聊协调者可能在一次回复里并行发起多个 [DelegateTaskTool] 调用
-/// （[executeAllTools] 用 Future.wait 并发执行），用本锁把子 Agent 的派活
-/// 串行化，避免并发修改消息列表与状态、保证可预测的执行顺序。
-class _SerialLock {
-  Future<void> _chain = Future.value();
-
-  Future<T> run<T>(Future<T> Function() task) {
-    final completer = Completer<T>();
-    _chain = _chain.then((_) async {
-      try {
-        completer.complete(await task());
-      } catch (e, st) {
-        completer.completeError(e, st);
-      }
-    });
-    return completer.future;
   }
 }
