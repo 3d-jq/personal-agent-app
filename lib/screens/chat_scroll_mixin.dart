@@ -3,6 +3,33 @@ import 'package:flutter/material.dart';
 import 'package:personal_agent_app/core/app_animations.dart';
 import 'package:personal_agent_app/models/chat_message.dart';
 
+/// 计算「n 条新消息」未读数（纯函数，单聊/群聊共用，避免算法重复）。
+///
+/// 计算规则（贴近微信）：
+/// - [userScrolledUp] 为 false 时恒为 0（用户没离开底部就不算未读）；
+/// - 任何 [ChatMessage.seq] 大于 [anchorSeq] 的消息都算 1 条未读（新一轮新气泡）；
+/// - 若没有更新的消息对象，但锚点那条本身仍在流式变长（同一消息内容增长），
+///   也计为 1 条未读——用户上滑离开它后它继续吐字，应提示「1 条新消息」；
+/// - [messages] 为空时恒为 0。
+int computeUnreadCount(
+  List<ChatMessage> messages,
+  int anchorSeq,
+  int anchorLen,
+  bool userScrolledUp,
+) {
+  if (!userScrolledUp) return 0;
+  if (messages.isEmpty) return 0;
+  int count = 0;
+  for (final m in messages) {
+    if (m.seq > anchorSeq) count++;
+  }
+  if (count == 0) {
+    final last = messages.last;
+    if (last.seq == anchorSeq && last.text.length > anchorLen) count = 1;
+  }
+  return count.clamp(0, 999);
+}
+
 /// 聊天列表滚动行为：贴底 / 回到底部 / 上滑浮条 / 抽屉期间暂停等。
 ///
 /// 从 [_ChatScreenState] 抽出滚动相关的字段与方法，避免 State 类过长。
@@ -81,20 +108,8 @@ mixin ChatScrollMixin<T extends StatefulWidget> on State<T> {
   /// - 若没有更新消息对象，但锚点那条本身仍在流式变长（同一消息内容增长），
   ///   也计为 1 条未读——用户上滑离开它后它继续吐字，应提示「1 条新消息」；
   /// - 用户未上滑（[userScrolledUp] 为 false）时恒为 0。
-  int unreadCount() {
-    if (!userScrolledUp) return 0;
-    final msgs = allMessages;
-    if (msgs.isEmpty) return 0;
-    int count = 0;
-    for (final m in msgs) {
-      if (m.seq > anchorSeq) count++;
-    }
-    if (count == 0) {
-      final last = msgs.last;
-      if (last.seq == anchorSeq && last.text.length > anchorLen) count = 1;
-    }
-    return count.clamp(0, 999);
-  }
+  int unreadCount() =>
+      computeUnreadCount(allMessages, anchorSeq, anchorLen, userScrolledUp);
 
   /// 流式期间实时贴底：下一帧布局完成后 jump 到末尾，消除 50ms 节流造成的「定期猛跳」。
   /// 用 [_pendingScroll] 去重，避免每个流式 token 都注册一次 postFrame 回调而堆积。

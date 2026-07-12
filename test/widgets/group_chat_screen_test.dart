@@ -13,6 +13,7 @@ import 'package:personal_agent_app/widgets/agent_group/group_message_bubble.dart
 import 'package:personal_agent_app/widgets/agent_group/group_status_bar.dart';
 import 'package:personal_agent_app/widgets/agent_group/group_chat_coordinator.dart';
 import 'package:personal_agent_app/widgets/ai_settings.dart';
+import 'package:personal_agent_app/widgets/chat_scroll_to_bottom_button.dart';
 
 /// 集成测试用的假数据：一个包含 1 个成员、2 条消息的群。
 final _member = Agent(
@@ -326,6 +327,40 @@ void main() {
           tester.widget<Scrollable>(find.byType(Scrollable).first);
       final pos = scrollable.controller!.position;
       // 动态 item 高度下首跳 maxScrollExtent 偏小，两阶段校正后允许少量容差
+      expect(pos.pixels, greaterThanOrEqualTo(pos.maxScrollExtent - 100));
+    });
+
+    testWidgets('wires the scroll-to-bottom button (unread pill) and clears on tap',
+        (tester) async {
+      // 用大群使列表可滚动、能离开底部
+      getIt.unregister<AgentGroupStorage>();
+      getIt.registerSingleton<AgentGroupStorage>(_FakeBigGroupStorage());
+
+      await tester.pumpWidget(MaterialApp(
+        theme: ThemeData(extensions: [AgentColors.light()]),
+        home: GroupChatScreen(groupId: 'g_big'),
+      ));
+      await tester.pumpAndSettle();
+
+      // 组件已接入到树中（贴底时由 AnimatedOpacity 隐藏，但存在）
+      expect(find.byType(ChatScrollToBottomButton), findsOneWidget);
+      // 无新消息时不应显示「N 条新消息」文案
+      expect(find.textContaining('条新消息'), findsNothing);
+
+      // 滚到顶部（离开底部）触发浮条锚点记录
+      final scrollable =
+          tester.widget<Scrollable>(find.byType(Scrollable).first);
+      scrollable.controller!.jumpTo(0);
+      await tester.pumpAndSettle();
+
+      // 上滑后按钮仍在（未读为 0 时显示圆形，无文案）
+      expect(find.byType(ChatScrollToBottomButton), findsOneWidget);
+      expect(find.textContaining('条新消息'), findsNothing);
+
+      // 点击回到底部：滚动回到接近最大处（说明按钮可交互且锚点已复位）
+      await tester.tap(find.byType(ChatScrollToBottomButton));
+      await tester.pumpAndSettle();
+      final pos = scrollable.controller!.position;
       expect(pos.pixels, greaterThanOrEqualTo(pos.maxScrollExtent - 100));
     });
   });
