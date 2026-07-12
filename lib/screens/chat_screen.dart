@@ -67,6 +67,8 @@ class _ChatScreenState extends State<ChatScreen>
   bool _pendingScroll = false;
   bool _showScrollBottom = false;
   bool _userScrolledUp = false;
+  // 用户上滑时的消息数，用于计算「n 条新消息」浮条
+  int _msgCountWhenScrolledUp = 0;
   // 程序主动触发的滚动（点击回到底部 / 流式自动贴底）期间为 true，
   // 避免 _onScroll 把"自己的位移"误判成用户上滑而污染状态
   bool _autoScrolling = false;
@@ -154,7 +156,10 @@ class _ChatScreenState extends State<ChatScreen>
       setState(() => _showScrollBottom = shouldShow);
     }
     if (distFromBottom > 60) {
-      _userScrolledUp = true;
+      if (!_userScrolledUp) {
+        _userScrolledUp = true;
+        _msgCountWhenScrolledUp = _controller.messages.length;
+      }
     }
   }
 
@@ -352,43 +357,90 @@ class _ChatScreenState extends State<ChatScreen>
                               onRegenerate: (m) => _controller.regenerate(m),
                             ),
                     ),
-                    Positioned(
-                      right: 16,
-                      bottom: 12,
-                      child: AnimatedOpacity(
-                        opacity: _showScrollBottom ? 1.0 : 0.0,
-                        duration: AppDurations.fast,
-                        curve: AppCurves.appear,
-                        child: IgnorePointer(
-                          ignoring: !_showScrollBottom,
-                      child: GestureDetector(
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          _scrollToBottom();
-                        },
-                        child: ClipOval(
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: nc.surface,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: nc.divider, width: 0.5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.18),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
+                    ...(_showScrollBottom
+                        ? [
+                            () {
+                              final unread = _userScrolledUp
+                                  ? (_controller.messages.length -
+                                          _msgCountWhenScrolledUp)
+                                      .clamp(0, 999)
+                                  : 0;
+                              return Positioned(
+                                right: 16,
+                                bottom: 12,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    _msgCountWhenScrolledUp =
+                                        _controller.messages.length;
+                                    _scrollToBottom();
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: AppDurations.fast,
+                                    curve: AppCurves.appear,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: unread > 0 ? 16 : 0,
+                                      vertical: unread > 0 ? 10 : 0,
+                                    ),
+                                    decoration: unread > 0
+                                        ? BoxDecoration(
+                                            color: nc.primary,
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: nc.primary
+                                                    .withValues(alpha: 0.3),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          )
+                                        : BoxDecoration(
+                                            color: nc.surface,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                                color: nc.divider, width: 0.5),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black
+                                                    .withValues(alpha: 0.18),
+                                                blurRadius: 6,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                    child: unread > 0
+                                        ? Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                '$unread 条新消息',
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              const Icon(
+                                                Icons.keyboard_arrow_down,
+                                                size: 18,
+                                                color: Colors.white,
+                                              ),
+                                            ],
+                                          )
+                                        : Icon(
+                                            Icons.keyboard_arrow_down,
+                                            size: 18,
+                                            color: nc.textPrimary,
+                                          ),
+                                  ),
                                 ),
-                              ],
-                            ),
-                            child: Icon(Icons.keyboard_arrow_down, size: 18, color: nc.textPrimary),
-                          ),
-                        ),
-                      ),
-                      ),
-                    ),
-                  ),
+                              );
+                            }(),
+                          ]
+                        : []),
                   ],
                 ),
               ),
