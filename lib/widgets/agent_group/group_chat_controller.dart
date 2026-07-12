@@ -313,6 +313,7 @@ class GroupChatController extends ChangeNotifier {
             model: _aiSettings.effectiveModel,
             thinkingEffort: _aiSettings.thinkingEffort,
             isAnthropic: _aiSettings.selectedVendor?.isAnthropic ?? false,
+            provider: _aiSettings.selectedVendor?.name ?? '',
           ).summarize(messages);
           return response;
         },

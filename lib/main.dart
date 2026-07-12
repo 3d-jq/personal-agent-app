@@ -12,6 +12,8 @@ import 'services/log_service.dart';
 import 'services/foreground_service.dart';
 import 'services/storage/app_database.dart';
 import 'services/storage/db_migration.dart';
+import 'services/tts_service_config.dart';
+import 'services/token_usage_tracker.dart';
 import 'tools/plugin_registry.dart';
 
 Future<void> main() async {
@@ -36,6 +38,21 @@ Future<void> main() async {
     await DbMigration.run();
   } catch (e) {
     debugPrint('数据库迁移失败: $e');
+  }
+
+  // 加载语音服务配置并接线工厂（多厂商 TTS 切换，不阻塞首屏）
+  try {
+    await TtsServiceConfig.instance.load();
+    TtsServiceConfig.instance.wire();
+  } catch (e) {
+    debugPrint('语音服务配置加载失败: $e');
+  }
+
+  // 加载 token 用量统计（按厂商+模型核算成本，不阻塞首屏）
+  try {
+    await tokenTracker.load();
+  } catch (e) {
+    debugPrint('token 用量加载失败: $e');
   }
 
     await runZonedGuarded(() async {

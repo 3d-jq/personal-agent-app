@@ -23,6 +23,8 @@ import '../widgets/reminders_page.dart';
 import '../widgets/scratch_viewer.dart';
 import '../widgets/search_page.dart';
 import '../widgets/settings_page.dart';
+import '../widgets/speech_services_settings_page.dart';
+import '../widgets/token_usage_page.dart';
 import '../widgets/skill_mcp_page.dart';
 
 /// 应用路由管理入口。
@@ -74,6 +76,14 @@ class AppRouter {
 
   static Future<void> toSettings(BuildContext context) =>
       push(context, const SettingsPage());
+
+  /// 语音服务设置（多厂商 TTS 配置，借鉴 Operit）
+  static Future<void> toSpeechServices(BuildContext context) =>
+      push(context, const SpeechServicesSettingsPage());
+
+  /// Token 消耗统计（按厂商+模型核算成本，借鉴 Operit TokenUsageStatisticsScreen）
+  static Future<void> toTokenUsage(BuildContext context) =>
+      push(context, const TokenUsagePage());
 
   // ── 设置子页 ──
   static Future<void> toModelSettings(BuildContext context) =>
