@@ -54,8 +54,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
 
-    Widget content = SafeArea(
-      child: Column(
+    Widget content = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Header ──
@@ -257,8 +256,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                 ),
               ),
             ],
-          ),  // close Column
-        );    // close SafeArea + end assignment
+          ); // close Column + end assignment
 
     // 平推模式：侧边栏作为独立区域渲染，不由 Drawer 管理，不加壳。
     if (_isPush) return Container(color: nc.background, child: content);
