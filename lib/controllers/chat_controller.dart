@@ -219,6 +219,22 @@ class ChatController extends ChangeNotifier {
   /// 追加一条消息并分配全局序号（保证分页表排序稳定、增量 upsert 不重排）。
   void _appendMessage(ChatMessage msg) => _window.append(msg);
 
+  /// 构造发送给大模型的「全量上下文视图」——与 UI 视口窗口（40 条）完全解耦。
+  ///
+  /// 以 DB 全量历史为基准（[_window.loadFullHistory]），再合并当前内存中尚未落盘
+  /// 的最新消息（如当前轮用户消息），保证模型看到**全部**历史上下文，从而能按 80%
+  /// 阈值触发 [HistoryManager] 压缩。UI 窗口 40 条只影响界面显示，绝不参与模型上下文。
+  Future<List<ChatMessage>> buildSendView() async {
+    if (_sessionId == null) return List.of(_messages);
+    final full = await _window.loadFullHistory();
+    if (full.isEmpty) return List.of(_messages);
+    final lastSeq = full.last.seq;
+    // 合并内存中比全量历史更新的、尚未落盘的消息（按全局 seq 判定，避免重复计入）。
+    final pending = _messages.where((m) => m.seq > lastSeq).toList();
+    if (pending.isEmpty) return full;
+    return [...full, ...pending];
+  }
+
   Future<void> saveSession() async {
     if (_sessionId == null || _messages.isEmpty) return;
     final userMsg = _messages.where((m) => m.isUser).firstOrNull;
@@ -429,16 +445,19 @@ class ChatController extends ChangeNotifier {
 
     // 压缩仅生成「发送时视图」，不替换 _messages、不落盘——完整历史保留在
     // _messages 中供 UI 展示与 saveSession 存盘，用户可随时回溯早期对话。
-    List<ChatMessage> sendView = _messages;
+    // 关键修正：发送视图基于「全量历史」而非 UI 视口窗口（40 条）。UI 窗口只影响
+    // 界面显示以省性能，与模型上下文无关；模型必须看到全部历史，才能按 80% 阈值
+    // 触发压缩（否则窗口 40 条永远到不了阈值，压缩形同虚设）。
+    List<ChatMessage> sendView = await buildSendView();
     try {
       _isCompressing = true;
       _notify();
       final compressed = await _historyManagerInstance.compressIfNeeded(
-        _messages,
+        sendView,
         ai.summarize,
         systemPromptTokens: _historyManagerInstance.estimateTokens(systemPrompt),
       );
-      if (!identical(compressed, _messages)) {
+      if (!identical(compressed, sendView)) {
         sendView = compressed;
       }
     } catch (e) {
