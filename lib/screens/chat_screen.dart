@@ -16,38 +16,6 @@ import '../widgets/chat_new_chat_button.dart';
 import '../widgets/session_info_button.dart';
 import '../core/app_animations.dart';
 
-// ── 快速滚动降级：模块级变量，跨 _ChatScreenState → _MessageList 共享 ──
-double _scrollLastOffset = 0;
-double _scrollVelocity = 0;
-DateTime _scrollLastTime = DateTime.now();
-Timer? _fastScrollTimer;
-const double _fastScrollThresholdPxPerMs = 1.5;
-
-bool _onFastScroll(ScrollNotification n) {
-  if (n is ScrollStartNotification) {
-    _scrollLastOffset = n.metrics.pixels;
-    _scrollLastTime = DateTime.now();
-  } else if (n is ScrollUpdateNotification) {
-    final now = DateTime.now();
-    final dt = now.difference(_scrollLastTime).inMilliseconds;
-    if (dt > 0) {
-      _scrollVelocity = (n.metrics.pixels - _scrollLastOffset).abs() / dt;
-    }
-    _scrollLastOffset = n.metrics.pixels;
-    _scrollLastTime = now;
-    final fast = _scrollVelocity > _fastScrollThresholdPxPerMs;
-    if (fast != isFastScrolling.value) {
-      isFastScrolling.value = fast;
-    }
-  } else if (n is ScrollEndNotification) {
-    _fastScrollTimer?.cancel();
-    _fastScrollTimer = Timer(const Duration(milliseconds: 250), () {
-      isFastScrolling.value = false;
-    });
-  }
-  return false;
-}
-
 class ChatScreen extends StatefulWidget {
   final String? sessionId;
   final VoidCallback? onSessionChanged;
@@ -538,10 +506,9 @@ class _MessageList extends StatelessWidget {
       builder: (context, child) {
         final nc = AgentColors.of(context);
         final hasOlder = controller.hasOlderMessages;
-        final itemCount = controller.messages.length + (hasOlder ? 1 : 0);
-        return NotificationListener<ScrollNotification>(
-          onNotification: _onFastScroll,
-          child: ListView.builder(
+        final hasNewer = controller.hasNewerMessages;
+        final itemCount = controller.messages.length + (hasOlder ? 1 : 0) + (hasNewer ? 1 : 0);
+        return ListView.builder(
             controller: scrollController,
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -550,13 +517,20 @@ class _MessageList extends StatelessWidget {
           // ChatMessage 是 ChangeNotifier，流式更新时仅对应气泡局部重建；
           // 必须逐条用 ListenableBuilder(msg) 包住，否则流式期间 controller 不通知、气泡不刷新
           itemBuilder: (c, i) {
-            // 顶部「加载更早消息」入口：点击游标分页 prepend 更早的历史
+            // 顶部「加载更早消息」
             if (hasOlder && i == 0) {
               return _OlderMessagesHeader(
                 onLoad: controller.loadOlderMessages,
               );
             }
-            final msg = controller.messages[i - (hasOlder ? 1 : 0)];
+            // 底部「加载较新消息」
+            final msgIdx = i - (hasOlder ? 1 : 0);
+            if (hasNewer && msgIdx == controller.messages.length) {
+              return _NewerMessagesFooter(
+                onLoad: controller.loadNewerMessages,
+              );
+            }
+            final msg = controller.messages[msgIdx];
             // 每个气泡独立 RepaintBoundary：长列表滚动时只重绘进入/离开视口的
             // 气泡，已离屏/静止气泡不参与重绘，消除整列表滚动时的连带重绘卡顿。
             return RepaintBoundary(
@@ -575,8 +549,7 @@ class _MessageList extends StatelessWidget {
               )
             );
           },
-        )
-      ); // close NotificationListener, end return
+        ); // close ListView.builder, end return
       },
     );
   }
@@ -604,6 +577,29 @@ class _OlderMessagesHeader extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NewerMessagesFooter extends StatelessWidget {
+  final Future<void> Function() onLoad;
+  const _NewerMessagesFooter({required this.onLoad});
+
+  @override
+  Widget build(BuildContext context) {
+    final nc = AgentColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Center(
+        child: TextButton.icon(
+          onPressed: () => onLoad(),
+          icon: Icon(Icons.history, size: 16, color: nc.textSecondary),
+          label: Text(
+            '加载较新消息',
+            style: TextStyle(fontSize: 13, color: nc.textSecondary),
           ),
         ),
       ),
