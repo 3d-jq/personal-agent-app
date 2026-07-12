@@ -10,8 +10,8 @@ import 'package:personal_agent_app/services/context_doc_service.dart';
 import 'package:personal_agent_app/widgets/ai_settings.dart';
 import 'package:personal_agent_app/widgets/vendor_config.dart';
 
-/// 验证「UI 视口窗口（40 条，为加载性能）」与「模型上下文（全量历史）」彻底解耦：
-/// 界面只加载显示 40 条，但发送给大模型的视图必须包含全部历史，才能按 80% 阈值压缩。
+/// 验证「UI 视口窗口（30 条，为加载性能）」与「模型上下文（全量历史）」彻底解耦：
+/// 界面只加载显示 30 条，但发送给大模型的视图必须包含全部历史，才能按 80% 阈值压缩。
 void main() {
   setUp(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -32,14 +32,14 @@ void main() {
 
   tearDown(() async => await resetDependencies());
 
-  test('MessageWindow：UI 窗口 40 与全量历史解耦（loadFullHistory 取全量）', () async {
+  test('MessageWindow：UI 窗口 30 与全量历史解耦（loadFullHistory 取全量）', () async {
     final storage = _FakeBigStorage();
     final messages = <ChatMessage>[];
     final window = MessageWindow(storage, messages, () {});
     window.bindSession('big');
     await window.load();
 
-    // UI 内存窗口只装 40 条（最近 windowSize 条），并非全量历史。
+    // UI 内存窗口只装 30 条（最近 windowSize 条），并非全量历史。
     expect(messages.length, MessageWindow.windowSize);
     expect(messages.length, lessThan(_FakeBigStorage.total));
 
@@ -48,12 +48,12 @@ void main() {
     expect(full.length, _FakeBigStorage.total - 1); // 全量视图少一条最新（模拟未落盘）
   });
 
-  test('ChatController.buildSendView：模型看到全量历史，UI 窗口 40 不参与', () async {
+  test('ChatController.buildSendView：模型看到全量历史，UI 窗口 30 不参与', () async {
     final storage = _FakeBigStorage();
     final controller = ChatController(chatStorage: storage);
     await controller.loadSession('big');
 
-    // 界面视图仍只有窗口 40 条。
+    // 界面视图仍只有窗口 30 条。
     expect(controller.messages.length, MessageWindow.windowSize);
 
     // 但发送给大模型的视图必须包含全部历史（全量 + 窗口中尚未落盘的最新消息）。
