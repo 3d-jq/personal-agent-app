@@ -34,6 +34,7 @@ class _ChatScreenState extends State<ChatScreen>
   bool get _sidebarOpen => _sidebarCtrl.isCompleted || _sidebarCtrl.value > 0.5;
   // 拖拽手势内部状态
   double _dragStartX = 0;
+  double _dragStartValue = 0;
   bool _draggingSidebar = false;
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
@@ -218,7 +219,9 @@ class _ChatScreenState extends State<ChatScreen>
     final bottomSafe = MediaQuery.of(context).padding.bottom;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final sidebarWidth = MediaQuery.of(context).size.width;
-    final slideX = sidebarWidth * _sidebarAnim.value;
+    // 只推到 85% 宽度，始终留出约一行聊天在右侧可见，形成"连成一片"的视觉效果
+    final pushRange = sidebarWidth * 0.85;
+    final slideX = pushRange * _sidebarAnim.value;
 
     final scaffold = Scaffold(
       backgroundColor: nc.background,
@@ -352,6 +355,16 @@ class _ChatScreenState extends State<ChatScreen>
                 onHorizontalDragEnd: _onDragEnd,
               ),
             ),
+          // ── 侧边栏关闭手势透明层：打开时全屏覆盖，捕获右滑关闭 ──
+          if (_sidebarOpen)
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onHorizontalDragStart: _onDragStart,
+                onHorizontalDragUpdate: _onDragUpdate,
+                onHorizontalDragEnd: _onDragEnd,
+              ),
+            ),
         ],
       ),
     );
@@ -370,28 +383,22 @@ class _ChatScreenState extends State<ChatScreen>
     if (!_sidebarCtrl.isDismissed) _sidebarCtrl.reverse();
   }
 
-  // ── 左边缘手势拖出 / 推回侧边栏 ──
+  // ── 拖拽手势：打开（从左边向右拖）/ 关闭（侧边栏上向右拖） ──
 
   void _onDragStart(DragStartDetails d) {
     _dragStartX = d.globalPosition.dx;
-    if (_dragStartX < 20 && _sidebarCtrl.isDismissed) {
-      _draggingSidebar = true;
-    } else if (_sidebarOpen) {
-      _draggingSidebar = true;
-    }
+    _dragStartValue = _sidebarCtrl.value;
+    final onEdge = _dragStartX < 24 && _sidebarCtrl.isDismissed;
+    _draggingSidebar = onEdge || _sidebarOpen;
   }
 
   void _onDragUpdate(DragUpdateDetails d) {
     if (!_draggingSidebar) return;
     final w = MediaQuery.of(context).size.width;
-    final rawOffset = d.globalPosition.dx - _dragStartX;
-    double newValue;
-    if (_sidebarCtrl.value > 0) {
-      newValue = (_sidebarCtrl.value * w + rawOffset) / w;
-    } else {
-      newValue = rawOffset / w;
-    }
-    _sidebarCtrl.value = newValue.clamp(0.0, 1.0);
+    final delta = (d.globalPosition.dx - _dragStartX) / w;
+    // 关闭态：向右拖 → 打开（值增加）；打开态：向右拖 → 关闭（值减少）
+    final sign = _sidebarCtrl.isDismissed ? 1.0 : -1.0;
+    _sidebarCtrl.value = (_dragStartValue + delta * sign).clamp(0.0, 1.0);
   }
 
   void _onDragEnd(DragEndDetails d) {
