@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.4.36 — TTS 语音选择 + 窗口 20 游标翻页 (2026-07-12)
+
+### ✨ 应用内 TTS 语音选择 + 一键打开系统 TTS 设置
+- 新增 `TtsSettings` 单例：持久化用户选中的朗读语音（JSON 落盘）。
+- `TtsService` 接入选中语音（`setVoice`），可用时不再回退 `setLanguage`；选了语音不误报缺包。
+- 新增 `TtsSettingsPage`：本机已有语音列表（中文语音置顶）、试听、清除选择、跳转系统 TTS 设置；接入 `SettingsPage` 与路由。
+- `MainActivity` 注册 `open_tts_settings` MethodChannel 唤起系统「文字转语音输出」设置。
+
+### ✨ 消息列表恒为 20 的可移动视口翻页
+- 列表长度恒为 20：顶部「加载更早消息」+ 底部「加载最新消息」两按钮永远在，翻到头/翻到底变灰禁用。
+- `MessageWindow` 重构为游标窗口模型（`_windowStart` 游标 + `visible` 恒为 20）；已加载范围内纯移动游标（O(1) 不查 DB），越界才查 DB 分页。
+- 修复 `ChatStorage.loadSession` 的 `afterSeq` 分支被误反转导致 `loadNewer` 翻页倒序的历史 bug。
+
 ## v1.4.35 — UI 窗口 20 + 回到底部按钮修复 + 群聊未读胶囊 (2026-07-12)
 
 ### ⚡ UI 视口窗口 30→20
