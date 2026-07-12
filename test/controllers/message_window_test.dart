@@ -35,6 +35,24 @@ void main() {
       expect(window.hasOlder, isTrue);
     });
 
+    test('hasOlder 边界：总数恰为窗口大小 → 没有更早消息', () async {
+      // 窗口大小整数倍时，旧逻辑用「长度 < windowSize」会误报 hasOlder=true；
+      // 正确实现应结合 DB 总数判断。
+      storage.store['s1'] = _makeStore(MessageWindow.windowSize);
+      window.bindSession('s1');
+      await window.load();
+      expect(messages.length, MessageWindow.windowSize);
+      expect(window.hasOlder, isFalse);
+    });
+
+    test('hasOlder 边界：总数比窗口多 1 → 仍有更早消息', () async {
+      storage.store['s1'] = _makeStore(MessageWindow.windowSize + 1);
+      window.bindSession('s1');
+      await window.load();
+      expect(messages.length, MessageWindow.windowSize);
+      expect(window.hasOlder, isTrue);
+    });
+
     test('loadOlder 上滑加载更早一页并 prepend 到列表头', () async {
       window.bindSession('s1');
       await window.load();
@@ -62,31 +80,6 @@ void main() {
       expect(messages.length, _storeTotal);
     });
 
-    test('loadNewer 下滑加载较新一页（存储中已有窗口外的新消息）', () async {
-      // 初始窗口只装下最近 windowSize 条（windowSize=20 时 store=40 → seq 20..39）
-      storage.store['s1'] = _makeStore(40);
-      window.bindSession('s1');
-      await window.load();
-      expect(messages.last.seq, 39);
-
-      // 存储中后续追加了 40..89（newerTotal 条，非 pageSize 整数倍），窗口尚未拉取；
-      // 用非整数倍可验证「最后一次拉到不足一页 → hasNewer 翻 false」的边界
-      // （代码对「恰好一页」保守保留 hasNewer=true，属标准分页 hasMore 行为）。
-      const int newerTotal = 90;
-      storage.store['s1'] = _makeStore(newerTotal);
-      await window.loadNewer(); // afterSeq=39 → 拉 seq 40..(39+pageSize)
-      expect(messages.length, MessageWindow.windowSize + MessageWindow.pageSize);
-      expect(messages.last.seq, 39 + MessageWindow.pageSize);
-      expect(window.hasNewer, isTrue);
-
-      // 循环拉取直到没有更新消息（不假设固定页数，避免页面大小相关脆弱断言）
-      while (window.hasNewer) {
-        await window.loadNewer();
-      }
-      expect(messages.last.seq, newerTotal - 1);
-      expect(window.hasNewer, isFalse);
-    });
-
     test('append 分配递增的全局序号并写入同一引用列表', () {
       final a = ChatMessage(text: 'a', isUser: true);
       final b = ChatMessage(text: 'b', isUser: false);
@@ -106,7 +99,6 @@ void main() {
       window.reset();
       // 窗口状态复位
       expect(window.hasOlder, isFalse);
-      expect(window.hasNewer, isFalse);
       expect(window.nextSeq, 0);
       // 重置后重新加载会从存储取回窗口（覆盖旧内容）
       window.bindSession('s1');

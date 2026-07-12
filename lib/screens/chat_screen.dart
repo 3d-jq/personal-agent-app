@@ -345,8 +345,7 @@ class _MessageList extends StatelessWidget {
       builder: (context, child) {
         final nc = AgentColors.of(context);
         final hasOlder = controller.hasOlderMessages;
-        final hasNewer = controller.hasNewerMessages;
-        final itemCount = controller.messages.length + (hasOlder ? 1 : 0) + (hasNewer ? 1 : 0);
+        final itemCount = controller.messages.length + (hasOlder ? 1 : 0);
         return ListView.builder(
             controller: scrollController,
           physics: const BouncingScrollPhysics(),
@@ -362,13 +361,8 @@ class _MessageList extends StatelessWidget {
                 onLoad: controller.loadOlderMessages,
               );
             }
-            // 底部「加载较新消息」
+            // 列表项
             final msgIdx = i - (hasOlder ? 1 : 0);
-            if (hasNewer && msgIdx == controller.messages.length) {
-              return _NewerMessagesFooter(
-                onLoad: controller.loadNewerMessages,
-              );
-            }
             final msg = controller.messages[msgIdx];
             // 每个气泡独立 RepaintBoundary：长列表滚动时只重绘进入/离开视口的
             // 气泡，已离屏/静止气泡不参与重绘，消除整列表滚动时的连带重绘卡顿。
@@ -416,29 +410,6 @@ class _OlderMessagesHeader extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NewerMessagesFooter extends StatelessWidget {
-  final Future<void> Function() onLoad;
-  const _NewerMessagesFooter({required this.onLoad});
-
-  @override
-  Widget build(BuildContext context) {
-    final nc = AgentColors.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Center(
-        child: TextButton.icon(
-          onPressed: () => onLoad(),
-          icon: Icon(Icons.history, size: 16, color: nc.textSecondary),
-          label: Text(
-            '加载较新消息',
-            style: TextStyle(fontSize: 13, color: nc.textSecondary),
           ),
         ),
       ),

@@ -14,11 +14,8 @@ class MessageWindow {
 
   int _nextSeq = 0;
   int _oldestSeq = 0;
-  int _newestSeq = 0;
   bool _allOlderLoaded = true;
-  bool _allNewerLoaded = true;
   bool _loadingOlder = false;
-  bool _loadingNewer = false;
 
   MessageWindow(this._storage, this._messages, this._onChanged);
 
@@ -33,7 +30,6 @@ class MessageWindow {
   // ── Getters ──
 
   bool get hasOlder => !_allOlderLoaded && _sessionId != null;
-  bool get hasNewer => !_allNewerLoaded && _sessionId != null;
   int get nextSeq => _nextSeq;
 
   // ── Session ──
@@ -47,11 +43,8 @@ class MessageWindow {
     _sessionId = null;
     _nextSeq = 0;
     _oldestSeq = 0;
-    _newestSeq = 0;
     _allOlderLoaded = true;
-    _allNewerLoaded = true;
     _loadingOlder = false;
-    _loadingNewer = false;
   }
 
   // ── Loading ──
@@ -66,6 +59,13 @@ class MessageWindow {
       _messages.addAll(session.messages);
     }
     _initState();
+    // load() 始终取尾部（最新 windowSize 条）窗口，因此「较新消息」必然已全部载入；
+    // 「较早消息」是否存在需结合 DB 总数判断——窗口恰好等于总数这一边界不能仅用
+    // 「长度 < windowSize」判定（否则总数为整数倍窗口时会误报还有更早消息）。
+    if (_messages.isNotEmpty && _sessionId != null) {
+      final total = await _storage.countMessages(_sessionId!);
+      _allOlderLoaded = total <= _messages.length;
+    }
     _onChanged();
   }
 
@@ -106,33 +106,6 @@ class MessageWindow {
     _onChanged();
   }
 
-  /// 下滑翻页：加载较新的 20 条，追加到列表尾
-  Future<void> loadNewer() async {
-    if (_allNewerLoaded || _loadingNewer || _sessionId == null || _messages.isEmpty) {
-      return;
-    }
-    _loadingNewer = true;
-    _onChanged();
-    try {
-      final newer = await _storage.loadSession(
-        _sessionId!,
-        limit: pageSize,
-        afterSeq: _newestSeq,
-      );
-      if (newer == null || newer.messages.isEmpty) {
-        _allNewerLoaded = true;
-      } else {
-        _messages.addAll(newer.messages);
-        _newestSeq = _messages.last.seq;
-        _nextSeq = _newestSeq + 1;
-        _allNewerLoaded = newer.messages.length < pageSize;
-      }
-    } finally {
-      _loadingNewer = false;
-    }
-    _onChanged();
-  }
-
   /// 追加新消息并分配全局序号
   void append(ChatMessage msg) {
     msg.seq = _nextSeq++;
@@ -145,15 +118,13 @@ class MessageWindow {
     if (_messages.isEmpty) {
       _nextSeq = 0;
       _oldestSeq = 0;
-      _newestSeq = 0;
       _allOlderLoaded = true;
-      _allNewerLoaded = true;
     } else {
       _nextSeq = _messages.last.seq + 1;
       _oldestSeq = _messages.first.seq;
-      _newestSeq = _messages.last.seq;
-      _allOlderLoaded = _messages.length < windowSize;
-      _allNewerLoaded = _messages.length < windowSize;
+      // 初始窗口即尾部（最新 windowSize 条），「较早消息」是否存在交由 load()
+      // 结合 DB 总数校正；此处先保守置 false（假设还有更早消息），由 countMessages 判定。
+      _allOlderLoaded = false;
     }
   }
 }
