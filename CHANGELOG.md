@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.4.35 — UI 窗口 20 + 回到底部按钮修复 + 群聊未读胶囊 (2026-07-12)
+
+### ⚡ UI 视口窗口 30→20
+- 纯 UI 加载性能再调优（首屏/翻页各再少加载 10 条），不影响模型上下文（依旧全量发给模型 + 80% 阈值压缩）。
+
+### 🐛 回到底部按钮被压小回归修复
+- ebee288「n 条新消息」浮条 feature 把固定 36×36 容器换成 AnimatedContainer 且 unread==0 时 padding=0 无尺寸，按钮被压成 ~18px。抽独立 `ChatScrollToBottomButton` 组件加 `BoxConstraints(minWidth:36, minHeight:36)` 保证最小点击热区。
+
+### 🔗 「n 条新消息」浮条从死功能改为微信式实时未读
+- 根因：未读用消息条数差，而 AI 流式回复是同一消息对象变长、条数不变；且按钮不随流式刷新 → 上翻 + AI 吐字时浮条恒不显示。
+- 改为已读锚点（`anchorSeq`/`anchorLen`）+ `unreadCount()`：seq 更大的新消息按条数计未读，锚点那条流式变长也计 1 条；按钮包双层 `ListenableBuilder` 实时刷新。
+
+### ✨ 群聊接入「n 条新消息」实时未读胶囊
+- 把单聊未读算法抽成纯函数 `computeUnreadCount`（单一来源），群聊 `group_chat_screen` 接入锚点记录 + `ChatScrollToBottomButton` 双层 `ListenableBuilder` 实时刷新，贴底/发送复位锚点。群聊与单聊未读提示行为完全统一。
+
 ## v1.4.34 — 侧边栏零卡顿 + UI/模型上下文解耦 (2026-07-12)
 
 ### 🔥 侧边栏切会话零卡顿（根治抽屉返回动画卡顿）
