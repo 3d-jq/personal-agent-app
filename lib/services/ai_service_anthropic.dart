@@ -157,7 +157,7 @@ class AnthropicProtocol {
               final read = usage['cache_read_input_tokens'];
               final creation = usage['cache_creation_input_tokens'];
               if (read != null || creation != null) {
-                log.i('AnthropicProtocol', 'Cache usage — read: $read, creation: $creation');
+                log.d('AnthropicProtocol', 'Cache usage — read: $read, creation: $creation');
               }
             }
           } else if (type == 'content_block_delta') {
@@ -240,7 +240,7 @@ class AnthropicProtocol {
             }
           ]
         : null;
-    log.i('AnthropicProtocol', 'Summarize request: ${messages.length} messages');
+    log.d('AnthropicProtocol', 'Summarize request: ${messages.length} messages');
     try {
       final response = await AiHttpClient.retryPost(
         url,
@@ -265,7 +265,7 @@ class AnthropicProtocol {
             .whereType<Map>()
             .map((c) => (c['text'] ?? '').toString())
             .join('');
-        log.i('AnthropicProtocol', 'Summarize success: ${text.length} chars');
+        log.d('AnthropicProtocol', 'Summarize success: ${text.length} chars');
         return text.trim();
       }
       return '';

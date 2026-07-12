@@ -25,6 +25,9 @@ class LogService {
   static const int _rotateCheckInterval = 100;
 
   bool _enabled = true;
+  /// verbose 关闭时：只记录 W/E/F 级到文件（异常/崩溃留痕）。
+  /// 打开时 I/D 级也写入文件（调试/压测用）。
+  bool _verbose = kDebugMode;
   IOSink? _sink;
   File? _logFile;
   int _writeCount = 0;
@@ -40,6 +43,10 @@ class LogService {
   }
 
   bool get enabled => _enabled;
+  bool get verbose => _verbose;
+
+  /// 切换 verbose 模式：打开时所有级别落盘，关闭时仅 W/E/F 级。
+  void setVerbose(bool value) => _verbose = value;
 
   /// 仅供测试：仅切换开关，不触发文件初始化（避免测试中真实文件 I/O）。
   void setEnabledFlagOnly(bool value) {
@@ -150,18 +157,21 @@ class LogService {
     return '$y-$mo-$d $h:$mi:$s.$ms';
   }
 
-  void _write(String level, String tag, String message) {
+  void _write(String level, String tag, String message, {bool forceFile = false}) {
     if (!_enabled) return;
     final line = '[${_timestamp()}] [$level] [$tag] $message\n';
-    // 测试注入：纯内存写入，绕开真实文件 I/O（flutter test isolate 下可能卡死）。
+    // 控制台：Debug 模式始终打印
+    if (kDebugMode) {
+      debugPrint(line.trimRight());
+    }
+    // 文件：仅 W/E/F 级 或 verbose 模式 或 强制落盘
+    final writeToFile = forceFile || level == 'W' || level == 'E' || level == 'F' || _verbose;
+    if (!writeToFile) return;
     if (_testFileWriter != null) {
       unawaited(_testFileWriter!(_logFile?.path ?? 'memory', line));
       return;
     }
     _sink?.write(line);
-    if (kDebugMode) {
-      debugPrint(line.trimRight());
-    }
     _writeCount++;
     if (_writeCount % _rotateCheckInterval == 0) {
       unawaited(_rotateIfNeeded());

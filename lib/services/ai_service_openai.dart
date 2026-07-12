@@ -97,7 +97,7 @@ class OpenAiProtocol {
         final details = usage['prompt_tokens_details'];
         final cached = details is Map ? details['cached_tokens'] : null;
         if (cached != null) {
-          log.i('OpenAiProtocol', 'Cache usage — cached_tokens: $cached');
+          log.d('OpenAiProtocol', 'Cache usage — cached_tokens: $cached');
         }
       }
       if (choice == null || choice['message'] == null) {
@@ -210,7 +210,7 @@ class OpenAiProtocol {
               final details = usage['prompt_tokens_details'];
               final cached = details is Map ? details['cached_tokens'] : null;
               if (cached != null) {
-                log.i('OpenAiProtocol', 'Cache usage — cached_tokens: $cached');
+                log.d('OpenAiProtocol', 'Cache usage — cached_tokens: $cached');
               }
             }
             final choice = firstChoice(decoded);

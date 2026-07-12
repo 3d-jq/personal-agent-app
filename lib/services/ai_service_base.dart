@@ -135,7 +135,7 @@ Future<List<ToolResult>> executeAllTools(
         done / count,
         message: '已完成 $done/$count',
       );
-      log.i('ToolExec', '${tc.name} 耗时 ${sw.elapsedMilliseconds}ms');
+      log.d('ToolExec', '${tc.name} 耗时 ${sw.elapsedMilliseconds}ms');
     }
 
     await Future.wait(otherCalls.map(runOne));
@@ -179,7 +179,7 @@ Future<List<ToolResult>> executeAllTools(
     }
 
     ToolProgressBus.instance.clear();
-    log.i('ToolExec', '批次完成 $count 个工具，总耗时 ${batchSw.elapsedMilliseconds}ms');
+    log.d('ToolExec', '批次完成 $count 个工具，总耗时 ${batchSw.elapsedMilliseconds}ms');
     return ordered;
   } finally {
     sink.close();
