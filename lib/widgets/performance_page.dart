@@ -133,11 +133,12 @@ class _Section extends StatelessWidget {
               ),
             ),
             Divider(height: 0.5, color: nc.divider),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: items.length.clamp(0, 20),
-              itemBuilder: (context, i) {
+            SizedBox(
+              height: items.length.clamp(0, 8) * 36.0 + 4,
+              child: ListView.builder(
+                physics: const ClampingScrollPhysics(),
+                itemCount: items.length,
+                itemBuilder: (context, i) {
                 final e = items[i];
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -165,6 +166,7 @@ class _Section extends StatelessWidget {
                 );
               },
             ),
+          ),
           ],
         ),
       ),
