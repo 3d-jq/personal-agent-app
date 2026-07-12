@@ -67,10 +67,11 @@ class ChatStorage {
     String id, {
     int? limit,
     int? beforeSeq,
+    int? afterSeq,
     bool full = false,
   }) async {
     final cached = _sessionCache[id];
-    if (cached != null && limit == null && beforeSeq == null && !full) {
+    if (cached != null && limit == null && beforeSeq == null && afterSeq == null && !full) {
       return cached;
     }
 
@@ -89,6 +90,7 @@ class ChatStorage {
       id,
       limit: full ? null : (limit ?? defaultWindow),
       beforeSeq: beforeSeq,
+      afterSeq: afterSeq,
     );
 
     final session = ChatSession(
@@ -99,7 +101,7 @@ class ChatStorage {
       updatedAt: meta.updatedAt,
       messages: msgs,
     );
-    if (limit == null && beforeSeq == null && !full) {
+    if (limit == null && beforeSeq == null && afterSeq == null && !full) {
       _sessionCache[id] = session;
     }
     return session;
@@ -110,13 +112,28 @@ class ChatStorage {
     String sessionId, {
     required int? limit,
     int? beforeSeq,
+    int? afterSeq,
   }) async {
+    String where;
+    List<dynamic> whereArgs;
+
+    if (beforeSeq != null) {
+      where = 'session_id = ? AND seq < ?';
+      whereArgs = [sessionId, beforeSeq];
+    } else if (afterSeq != null) {
+      where = 'session_id = ? AND seq > ?';
+      whereArgs = [sessionId, afterSeq];
+    } else {
+      where = 'session_id = ?';
+      whereArgs = [sessionId];
+    }
+
     final rows = await _db.db.query(
       'messages',
       columns: ['data'],
-      where: beforeSeq == null ? 'session_id = ?' : 'session_id = ? AND seq < ?',
-      whereArgs: beforeSeq == null ? [sessionId] : [sessionId, beforeSeq],
-      orderBy: 'seq DESC',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: afterSeq != null ? 'seq ASC' : 'seq DESC',
       limit: limit,
     );
     final list = rows

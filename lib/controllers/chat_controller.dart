@@ -75,17 +75,19 @@ class ChatController extends ChangeNotifier {
   /// await（settings/warmUp/loadSession），直接复用内存消息，二次进入秒开。
   bool _initialized = false;
 
-  // ── 消息分页（微信级内存滑动窗口）──
-  /// 下一条新消息的全局序号（取当前最大 seq + 1）。
+  // ── 消息分页（视口滑动窗口）──
   int _nextSeq = 0;
-  /// 当前内存窗口中最旧消息的 seq，用于上滑游标分页。
   int _oldestSeq = 0;
-  /// 更早的消息是否已全部加载完（无需再上滑分页）。
   bool _allOlderLoaded = true;
-  /// 正在加载更早消息（防止重复触发）。
   bool _loadingOlder = false;
-  /// 是否还有更早消息可加载（供 UI 显示「加载更多」入口）。
+
+  /// 窗口最新消息 seq，用于下滑加载较新消息
+  int _newestSeq = 0;
+  bool _allNewerLoaded = true;
+  bool _loadingNewer = false;
+
   bool get hasOlderMessages => !_allOlderLoaded && _sessionId != null;
+  bool get hasNewerMessages => !_allNewerLoaded && _sessionId != null;
 
   /// 页面缓存复用：退出聊天页时记录滚动位置，再次进入时恢复（微信级 L8 页面缓存）。
   double? lastScrollOffset;
@@ -202,52 +204,26 @@ class ChatController extends ChangeNotifier {
 
   Future<void> loadSession(String id) async {
     _sessionId = id;
-    // 渐进式恢复：先取首屏 30 条立即显示，再后台异步补齐剩余窗口。
-    const firstPage = 30;
-    final first = await _chatStorage.loadSession(id, limit: firstPage);
-    _messages = first?.messages.toList() ?? [];
-    _allOlderLoaded = (_messages.length < firstPage);
-    _initWindowStatePartial();
+    const windowSize = 40; // 视口窗口：只加载屏幕附近的消息
+    final session = await _chatStorage.loadSession(id, limit: windowSize);
+    _messages = session?.messages.toList() ?? [];
+    _initWindowState();
     _notify();
-
-    // 后台补齐剩余（如果首屏已满且还有更多）
-    if (!_allOlderLoaded && _sessionId == id) {
-      final rest = await _chatStorage.loadSession(
-        id,
-        limit: ChatStorage.defaultWindow - firstPage,
-        beforeSeq: _messages.first.seq, // 取首屏最旧消息之前的更早消息
-      );
-      if (rest != null && rest.messages.isNotEmpty && _sessionId == id) {
-        _messages.addAll(rest.messages);
-      }
-      // 补齐后重新校准窗口状态
-      _initWindowState();
-      _notify();
-    }
   }
 
-  /// 部分加载后的轻量初始化（仅设 seq，不定 _allOlderLoaded）。
-  void _initWindowStatePartial() {
-    if (_messages.isEmpty) {
-      _nextSeq = 0;
-      _oldestSeq = 0;
-    } else {
-      _nextSeq = _messages.last.seq + 1;
-      _oldestSeq = _messages.first.seq;
-    }
-  }
-
-  /// 根据当前窗口初始化分页状态与序号计数器。
   void _initWindowState() {
     if (_messages.isEmpty) {
       _nextSeq = 0;
       _oldestSeq = 0;
+      _newestSeq = 0;
       _allOlderLoaded = true;
+      _allNewerLoaded = true;
     } else {
       _nextSeq = _messages.last.seq + 1;
       _oldestSeq = _messages.first.seq;
-      // 取到的数量小于一窗，说明已无更早消息
-      _allOlderLoaded = _messages.length < ChatStorage.defaultWindow;
+      _newestSeq = _messages.last.seq;
+      _allOlderLoaded = _messages.length < 40;
+      _allNewerLoaded = _messages.length < 40;
     }
   }
 
@@ -257,10 +233,12 @@ class ChatController extends ChangeNotifier {
       return;
     }
     _loadingOlder = true;
+    _notify();
     try {
+      const pageSize = 40;
       final older = await _chatStorage.loadSession(
         _sessionId!,
-        limit: ChatStorage.defaultWindow,
+        limit: pageSize,
         beforeSeq: _oldestSeq,
       );
       if (older == null || older.messages.isEmpty) {
@@ -268,12 +246,38 @@ class ChatController extends ChangeNotifier {
       } else {
         _messages.insertAll(0, older.messages);
         _oldestSeq = _messages.first.seq;
-        if (older.messages.length < ChatStorage.defaultWindow) {
-          _allOlderLoaded = true;
-        }
+        _allOlderLoaded = older.messages.length < pageSize;
       }
     } finally {
       _loadingOlder = false;
+    }
+    _notify();
+  }
+
+  /// 下滑加载较新的消息（用户看过更早历史后回到窗口边缘时触发）。
+  Future<void> loadNewerMessages() async {
+    if (_allNewerLoaded || _loadingNewer || _sessionId == null || _messages.isEmpty) {
+      return;
+    }
+    _loadingNewer = true;
+    _notify();
+    try {
+      const pageSize = 40;
+      final newer = await _chatStorage.loadSession(
+        _sessionId!,
+        limit: pageSize,
+        afterSeq: _newestSeq,
+      );
+      if (newer == null || newer.messages.isEmpty) {
+        _allNewerLoaded = true;
+      } else {
+        _messages.addAll(newer.messages);
+        _newestSeq = _messages.last.seq;
+        _nextSeq = _newestSeq + 1;
+        _allNewerLoaded = newer.messages.length < pageSize;
+      }
+    } finally {
+      _loadingNewer = false;
     }
     _notify();
   }
