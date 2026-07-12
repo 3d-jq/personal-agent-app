@@ -345,12 +345,11 @@ class _MessageList extends StatelessWidget {
       listenable: controller,
       builder: (context, child) {
         final nc = AgentColors.of(context);
-        final canPage = controller.canPageMessages;
         final hasOlder = controller.hasOlderMessages;
         final hasNewer = controller.hasNewerMessages;
         final visible = controller.visibleMessages;
-        // 列表长度恒为 windowSize（窗口页）+ 2 个翻页控件（顶/底永远在，到头/到底变灰）。
-        final itemCount = visible.length + (canPage ? 2 : 0);
+        // 列表长度 = 窗口页条数 + 各方向独立占位（只在确实能翻页时才渲染按钮，不出现灰色不可点状态）。
+        final itemCount = visible.length + (hasOlder ? 1 : 0) + (hasNewer ? 1 : 0);
         return ListView.builder(
             controller: scrollController,
           physics: const BouncingScrollPhysics(),
@@ -360,40 +359,36 @@ class _MessageList extends StatelessWidget {
           // ChatMessage 是 ChangeNotifier，流式更新时仅对应气泡局部重建；
           // 必须逐条用 ListenableBuilder(msg) 包住，否则流式期间 controller 不通知、气泡不刷新
           itemBuilder: (c, i) {
-            // 顶部「加载更早消息」（永远渲染；翻到最老时禁用灰）
-            if (canPage && i == 0) {
+            // 顶部「加载更早消息」（仅在有更早内容时渲染，不做灰色不可点占位）
+            if (hasOlder && i == 0) {
               return _OlderMessagesHeader(
-                onLoad: hasOlder
-                    ? () async {
-                        await controller.loadOlderMessages();
-                        if (scrollController.hasClients) {
-                          scrollController.jumpTo(0);
-                        }
-                      }
-                    : null,
+                onLoad: () async {
+                  await controller.loadOlderMessages();
+                  if (scrollController.hasClients) {
+                    scrollController.jumpTo(0);
+                  }
+                },
               );
             }
-            // 底部「加载最新消息」（永远渲染；翻到最新时禁用灰）
-            if (canPage && i == itemCount - 1) {
+            // 底部「加载最新消息」（仅在有更新内容时渲染，不做灰色不可点占位）
+            if (hasNewer && i == itemCount - 1) {
               return _NewerMessagesFooter(
-                onLoad: hasNewer
-                    ? () async {
-                        await controller.loadNewerMessages();
-                        if (scrollController.hasClients) {
-                          // 等列表重建完再跳到底部，否则 maxScrollExtent 还是旧值
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (scrollController.hasClients) {
-                              scrollController
-                                  .jumpTo(scrollController.position.maxScrollExtent);
-                            }
-                          });
-                        }
+                onLoad: () async {
+                  await controller.loadNewerMessages();
+                  if (scrollController.hasClients) {
+                    // 等列表重建完再跳到底部，否则 maxScrollExtent 还是旧值
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (scrollController.hasClients) {
+                        scrollController
+                            .jumpTo(scrollController.position.maxScrollExtent);
                       }
-                    : null,
+                    });
+                  }
+                },
               );
             }
-            // 列表项（当前窗口页 20 条）
-            final msgIdx = i - (canPage ? 1 : 0);
+            // 列表项（当前窗口页）
+            final msgIdx = i - (hasOlder ? 1 : 0);
             final msg = visible[msgIdx];
             // 每个气泡独立 RepaintBoundary：长列表滚动时只重绘进入/离开视口的
             // 气泡，已离屏/静止气泡不参与重绘，消除整列表滚动时的连带重绘卡顿。
