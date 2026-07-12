@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import '../services/performance_monitor.dart';
 import 'package:dio/dio.dart';
 import '../tools/tools.dart';
 import 'ai_service_base.dart';
@@ -83,6 +84,7 @@ class AIService {
     }
     final url = '${normalizeUrl(baseUrl)}/chat/completions';
     log.d('AIService', 'Summarize request: ${messages.length} messages');
+      perf.summarize('请求', '${messages.length} 条消息');
     try {
       final response = await AiHttpClient.retryPost(
         url,
@@ -107,6 +109,7 @@ class AIService {
           : null;
       final result = (choice?['message']?['content'] as String? ?? '').trim();
       log.d('AIService', 'Summarize success: ${result.length} chars');
+      perf.summarize('完成', '${result.length} 字符');
       return result;
     } catch (e) {
       log.e('AIService', 'Summarize failed', e);
