@@ -28,9 +28,8 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen>
     with WidgetsBindingObserver, ChatScrollMixin, TickerProviderStateMixin {
-  // 侧边栏平推动画控制器与宽度
+  // 侧边栏平推动画控制器
   late final AnimationController _sidebarCtrl;
-  static const double _sidebarWidth = 304;
   bool get _sidebarOpen => _sidebarCtrl.isCompleted || _sidebarCtrl.value > 0.5;
   // 拖拽手势内部状态
   double _dragStartX = 0;
@@ -213,7 +212,8 @@ class _ChatScreenState extends State<ChatScreen>
     final nc = AgentColors.of(context);
     final bottomSafe = MediaQuery.of(context).padding.bottom;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final slideX = _sidebarWidth * _sidebarCtrl.value;
+    final sidebarWidth = MediaQuery.of(context).size.width;
+    final slideX = sidebarWidth * _sidebarCtrl.value;
 
     final scaffold = Scaffold(
       backgroundColor: nc.background,
@@ -312,7 +312,7 @@ class _ChatScreenState extends State<ChatScreen>
             left: 0,
             top: 0,
             bottom: 0,
-            width: _sidebarWidth,
+            width: sidebarWidth,
             child: ChatDrawerContent(
               controller: _controller,
               onSessionTap: _onSessionTap,
@@ -378,12 +378,13 @@ class _ChatScreenState extends State<ChatScreen>
 
   void _onDragUpdate(DragUpdateDetails d) {
     if (!_draggingSidebar) return;
+    final w = MediaQuery.of(context).size.width;
     final rawOffset = d.globalPosition.dx - _dragStartX;
     double newValue;
     if (_sidebarCtrl.value > 0) {
-      newValue = (_sidebarCtrl.value * _sidebarWidth + rawOffset) / _sidebarWidth;
+      newValue = (_sidebarCtrl.value * w + rawOffset) / w;
     } else {
-      newValue = rawOffset / _sidebarWidth;
+      newValue = rawOffset / w;
     }
     _sidebarCtrl.value = newValue.clamp(0.0, 1.0);
   }
