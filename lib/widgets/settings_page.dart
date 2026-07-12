@@ -9,7 +9,6 @@ import '../services/log_service.dart';
 import '../services/theme_service.dart';
 import '../services/update_service.dart';
 import 'common_widgets.dart';
-import 'performance_page.dart';
 import '../services/tts_service_config.dart';
 import '../services/tts_provider.dart';
 
@@ -398,7 +397,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     AppRouter.toLog(context);
                   },
                 ),
-                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
                 _SettingItem(
                   icon: Icons.analytics,
                   label: 'Token 消耗',
@@ -406,16 +404,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   onTap: () {
                     HapticFeedback.lightImpact();
                     AppRouter.toTokenUsage(context);
-                  },
-                ),
-                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
-                _SettingItem(
-                  icon: Icons.insights,
-                  label: '性能',
-                  trailing: '工具耗时 / 缓存命中 / 压缩',
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    Navigator.push(context, IosSlideRoute(page: const PerformancePage()));
                   },
                 ),
                 Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
