@@ -47,6 +47,8 @@ class AppCurves {
   /// 标准缓动（= easeOutCubic）：滚动/转场插值、通用出场，比 easeOut 收尾更利落
   static const standard = Curves.easeOutCubic;
 
+  static const pop = Curves.elasticOut;
+
   /// 骨架屏呼吸/扫光（= easeInOutSine）：循环 shimmer 相位过渡
   static const shimmer = Curves.easeInOutSine;
 }

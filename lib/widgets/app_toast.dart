@@ -81,7 +81,7 @@ class _ToastWidgetState extends State<_ToastWidget>
     super.initState();
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 220),
+      duration: AppDurations.expressive,
     );
     _opacity = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _ctrl, curve: AppCurves.standard),
