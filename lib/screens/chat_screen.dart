@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/chat_controller.dart';
@@ -14,6 +15,38 @@ import '../widgets/chat_model_chip.dart';
 import '../widgets/chat_new_chat_button.dart';
 import '../widgets/session_info_button.dart';
 import '../core/app_animations.dart';
+
+// ── 快速滚动降级：模块级变量，跨 _ChatScreenState → _MessageList 共享 ──
+double _scrollLastOffset = 0;
+double _scrollVelocity = 0;
+DateTime _scrollLastTime = DateTime.now();
+Timer? _fastScrollTimer;
+const double _fastScrollThresholdPxPerMs = 1.5;
+
+bool _onFastScroll(ScrollNotification n) {
+  if (n is ScrollStartNotification) {
+    _scrollLastOffset = n.metrics.pixels;
+    _scrollLastTime = DateTime.now();
+  } else if (n is ScrollUpdateNotification) {
+    final now = DateTime.now();
+    final dt = now.difference(_scrollLastTime).inMilliseconds;
+    if (dt > 0) {
+      _scrollVelocity = (n.metrics.pixels - _scrollLastOffset).abs() / dt;
+    }
+    _scrollLastOffset = n.metrics.pixels;
+    _scrollLastTime = now;
+    final fast = _scrollVelocity > _fastScrollThresholdPxPerMs;
+    if (fast != isFastScrolling.value) {
+      isFastScrolling.value = fast;
+    }
+  } else if (n is ScrollEndNotification) {
+    _fastScrollTimer?.cancel();
+    _fastScrollTimer = Timer(const Duration(milliseconds: 250), () {
+      isFastScrolling.value = false;
+    });
+  }
+  return false;
+}
 
 class ChatScreen extends StatefulWidget {
   final String? sessionId;
@@ -444,8 +477,10 @@ class _MessageList extends StatelessWidget {
         final nc = AgentColors.of(context);
         final hasOlder = controller.hasOlderMessages;
         final itemCount = controller.messages.length + (hasOlder ? 1 : 0);
-        return ListView.builder(
-          controller: scrollController,
+        return NotificationListener<ScrollNotification>(
+          onNotification: _onFastScroll,
+          child: ListView.builder(
+            controller: scrollController,
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           itemCount: itemCount,
@@ -474,11 +509,12 @@ class _MessageList extends StatelessWidget {
                   onRegenerate: (onRegenerate == null || msg.isUser)
                       ? null
                       : () => onRegenerate!(msg),
-                ),
-              ),
+                )
+              )
             );
           },
-        );
+        )
+      ); // close NotificationListener, end return
       },
     );
   }

@@ -11,6 +11,9 @@ import 'timeline_view.dart';
 import 'shimmer_text.dart';
 import 'task_plan_panel.dart';
 
+/// 快速滚动中：ChatBubble 只渲染纯文本占位，跳过 Markdown 解析。
+final ValueNotifier<bool> isFastScrolling = ValueNotifier(false);
+
 enum _BubbleAction { copy, regenerate, delete }
 
 /// 与 inline_content.dart 中图片正则保持一致，用于判定块是否含图片（不可缓存）。
@@ -372,6 +375,17 @@ class _AIBubbleState extends State<_AIBubble> {
   // 增量富文本缓存的持久化存储已移至 _BlockRenderCache（按 msg.id 跨重建存活），
   // 此处不再持有实例字段，避免气泡滚出 cacheExtent 后缓存丢失、回看时整段重解析。
 
+  /// 快速滚动中：跳过 Markdown 解析，仅显示纯文本占位。
+
+  /// 非流式消息 Markdown 懒解析：首帧出纯文本，下一帧再切 Markdown。
+  bool _fullRender = false;
+
+  @override
+  void initState() {
+    super.initState();
+    isFastScrolling.addListener(_onFastScrollChanged);
+  }
+
   @override
   void didUpdateWidget(_AIBubble oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -379,7 +393,18 @@ class _AIBubbleState extends State<_AIBubble> {
       _lastText = '';
       _cachedContent = [];
       _planExpanded = true;
+      _fullRender = false;
     }
+  }
+
+  @override
+  void dispose() {
+    isFastScrolling.removeListener(_onFastScrollChanged);
+    super.dispose();
+  }
+
+  void _onFastScrollChanged() {
+    if (mounted) setState(() {});
   }
 
   /// 将流式文本按 markdown 块边界切分：空行分隔段落，``` 围栏跨空行保留为整块。
@@ -488,14 +513,30 @@ class _AIBubbleState extends State<_AIBubble> {
         children: _rebuildStreaming(textContent, blockCache),
       );
     } else {
-      if (textContent != _lastText) {
-        _lastText = textContent;
-        _cachedContent = buildInlineContent(textContent, nc, context);
+      // 非流式消息延迟 Markdown 解析：
+      // 首帧渲染纯文本（零开销），下一帧再切换完整 Markdown。
+      // 快速滚动中永远不渲染 Markdown，仅纯文本占位。
+      if (isFastScrolling.value) {
+        textBody = _buildPlainText(textContent, nc);
+      } else if (!_fullRender && _cachedContent.isEmpty) {
+        // 首帧：纯文本，然后下一帧切 Markdown
+        textBody = _buildPlainText(textContent, nc);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !isFastScrolling.value) {
+            setState(() => _fullRender = true);
+          }
+        });
+      } else {
+        // 后续帧：完整 Markdown（缓存）
+        if (textContent != _lastText) {
+          _lastText = textContent;
+          _cachedContent = buildInlineContent(textContent, nc, context);
+        }
+        textBody = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: _cachedContent,
+        );
       }
-      textBody = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: _cachedContent,
-      );
     }
 
     return Padding(
@@ -734,6 +775,21 @@ class _AIBubbleState extends State<_AIBubble> {
     }
 
     return const SizedBox.shrink();
+  }
+
+  /// 纯文本占位渲染：零 Markdown / 代码高亮 / 图片开销，用于快速滚动 & 首帧降级。
+  Widget _buildPlainText(String text, AgentColors nc) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 14,
+          color: nc.textPrimary,
+          height: 1.5,
+        ),
+      ),
+    );
   }
 
   void _showTimelineDetail(List<TimelineStep> steps, AgentColors nc) {
