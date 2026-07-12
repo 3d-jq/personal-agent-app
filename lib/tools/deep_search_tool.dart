@@ -283,6 +283,7 @@ class DeepSearchTool extends AgentTool {
         model: s.effectiveModel,
         thinkingEffort: s.thinkingEffort,
         isAnthropic: s.selectedVendor?.isAnthropic ?? false,
+        provider: s.selectedVendor?.name ?? '',
       );
     } catch (_) {
       return null;

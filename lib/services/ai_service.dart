@@ -19,6 +19,7 @@ class AIService {
   final int maxTokens;
   final String thinkingEffort;
   final bool isAnthropic;
+  final String provider;
 
   AIService({
     required this.baseUrl,
@@ -27,6 +28,7 @@ class AIService {
     this.maxTokens = 65536,
     this.thinkingEffort = 'medium',
     this.isAnthropic = false,
+    this.provider = '',
     ToolRegistry? toolRegistry,
   }) : toolRegistry = toolRegistry ?? ToolRegistry();
 
@@ -36,6 +38,7 @@ class AIService {
     baseUrl: baseUrl,
     apiKey: apiKey,
     model: model,
+    provider: provider,
     toolRegistry: toolRegistry,
     maxTokens: maxTokens,
     thinkingEffort: thinkingEffort,
@@ -45,6 +48,7 @@ class AIService {
     baseUrl: baseUrl,
     apiKey: apiKey,
     model: model,
+    provider: provider,
     toolRegistry: toolRegistry,
     maxTokens: maxTokens,
   );

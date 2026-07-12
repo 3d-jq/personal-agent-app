@@ -6,12 +6,14 @@ import '../tools/tools.dart';
 import 'ai_service_base.dart';
 import 'chat_stream_event.dart';
 import 'log_service.dart';
+import 'token_usage_tracker.dart';
 
 /// Anthropic 协议实现
 class AnthropicProtocol {
   final String baseUrl;
   final String apiKey;
   final String model;
+  final String provider;
   final ToolRegistry toolRegistry;
   final int maxTokens;
 
@@ -19,6 +21,7 @@ class AnthropicProtocol {
     required this.baseUrl,
     required this.apiKey,
     required this.model,
+    this.provider = '',
     required this.toolRegistry,
     this.maxTokens = 65536,
   });
@@ -139,6 +142,10 @@ class AnthropicProtocol {
       String? currentToolId;
       String? currentToolName;
       final currentToolInputBuf = StringBuffer();
+      int? inputTokens;
+      int? cachedRead;
+      int? cachedCreation;
+      int? outputTokens;
 
       await for (final strChunk in stream) {
         buffer += strChunk;
@@ -157,10 +164,19 @@ class AnthropicProtocol {
             if (usage is Map) {
               final read = usage['cache_read_input_tokens'];
               final creation = usage['cache_creation_input_tokens'];
+              inputTokens = usage['input_tokens'] as int?;
+              cachedRead = read as int?;
+              cachedCreation = creation as int?;
               if (read != null || creation != null) {
                 log.d('AnthropicProtocol', 'Cache usage — read: $read, creation: $creation');
           perf.cacheHit('Anthropic', 'read: $read write: $creation');
               }
+            }
+          } else if (type == 'message_delta') {
+            final usage = json['usage'];
+            if (usage is Map) {
+              final out = usage['output_tokens'];
+              if (out is int) outputTokens = out;
             }
           } else if (type == 'content_block_delta') {
               final delta = json['delta'];
@@ -216,6 +232,15 @@ class AnthropicProtocol {
             log.w('AnthropicProtocol', 'Parse SSE line error: $e');
           }
         }
+      }
+      if (inputTokens != null && outputTokens != null) {
+        tokenTracker.record(
+          vendor: provider.isEmpty ? 'Anthropic' : provider,
+          model: model,
+          inputTokens: inputTokens,
+          outputTokens: outputTokens,
+          cachedInputTokens: (cachedRead ?? 0) + (cachedCreation ?? 0),
+        );
       }
       } on DioException catch (e) {
       yield ErrorEvent(friendlyError(e));

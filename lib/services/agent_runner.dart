@@ -163,6 +163,7 @@ class AgentRunner {
         model: agent.model.isNotEmpty ? agent.model : vendor.model,
         thinkingEffort: thinkingEffort,
         isAnthropic: vendor.isAnthropic,
+        provider: vendor.name,
         toolRegistry: scopedRegistry,
       );
       yield* ai.sendMessageStream(messages);

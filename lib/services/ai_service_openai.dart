@@ -6,12 +6,14 @@ import '../tools/tools.dart';
 import 'ai_service_base.dart';
 import 'chat_stream_event.dart';
 import 'log_service.dart';
+import 'token_usage_tracker.dart';
 
 /// OpenAI 协议实现
 class OpenAiProtocol {
   final String baseUrl;
   final String apiKey;
   final String model;
+  final String provider;
   final ToolRegistry toolRegistry;
   final int maxTokens;
   final String thinkingEffort;
@@ -20,6 +22,7 @@ class OpenAiProtocol {
     required this.baseUrl,
     required this.apiKey,
     required this.model,
+    this.provider = '',
     required this.toolRegistry,
     this.maxTokens = 65536,
     this.thinkingEffort = 'medium',
@@ -101,6 +104,7 @@ class OpenAiProtocol {
           log.d('OpenAiProtocol', 'Cache usage — cached_tokens: $cached');
           perf.cacheHit('OpenAI', 'cached_tokens: $cached');
         }
+        _recordUsage(usage);
       }
       if (choice == null || choice['message'] == null) {
         return const AiResponse(text: '');
@@ -196,6 +200,7 @@ class OpenAiProtocol {
       final toolCallArgs = <int, StringBuffer>{};
       final toolCallIds = <int, String>{};
       final toolCallNames = <int, String>{};
+      Map<dynamic, dynamic>? lastUsage;
 
       await for (final strChunk in stream) {
         buffer += strChunk;
@@ -215,6 +220,7 @@ class OpenAiProtocol {
                 log.d('OpenAiProtocol', 'Cache usage — cached_tokens: $cached');
           perf.cacheHit('OpenAI', 'cached_tokens: $cached');
               }
+              lastUsage = usage;
             }
             final choice = firstChoice(decoded);
             final finishReason = choice?['finish_reason'] as String?;
@@ -257,6 +263,8 @@ class OpenAiProtocol {
           }
         }
       }
+
+      if (lastUsage != null) _recordUsage(lastUsage);
 
       final remaining = buffer.trim();
       if (remaining.isNotEmpty && !remaining.startsWith('[DONE]')) {
@@ -306,6 +314,27 @@ class OpenAiProtocol {
       yield ErrorEvent(friendlyError(e));
     } catch (e) {
       yield ErrorEvent('未知错误: $e');
+    }
+  }
+
+  /// 上报一次请求的 token 用量到 [TokenUsageTracker]（vendor+model 归因）。
+  void _recordUsage(Map<dynamic, dynamic> usage) {
+    try {
+      final input = usage['prompt_tokens'];
+      final output = usage['completion_tokens'];
+      final details = usage['prompt_tokens_details'];
+      final cached = details is Map ? details['cached_tokens'] : null;
+      if (input is int && output is int) {
+        tokenTracker.record(
+          vendor: provider.isEmpty ? 'OpenAI' : provider,
+          model: model,
+          inputTokens: input,
+          outputTokens: output,
+          cachedInputTokens: cached is int ? cached : 0,
+        );
+      }
+    } catch (e) {
+      log.w('OpenAiProtocol', '记录 token 用量失败: $e');
     }
   }
 }

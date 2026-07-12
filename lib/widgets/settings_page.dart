@@ -10,8 +10,8 @@ import '../services/theme_service.dart';
 import '../services/update_service.dart';
 import 'common_widgets.dart';
 import 'performance_page.dart';
-import 'tts_settings_page.dart';
-import '../services/tts_settings.dart';
+import '../services/tts_service_config.dart';
+import '../services/tts_provider.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -33,6 +33,15 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _rebuild() => setState(() {});
+
+  /// 当前语音服务厂商的中文/品牌名（设置入口 trailing 展示）。
+  String _speechLabel(TtsProviderType t) => switch (t) {
+        TtsProviderType.system => '系统',
+        TtsProviderType.openai => 'OpenAI',
+        TtsProviderType.minimax => 'MiniMax',
+        TtsProviderType.siliconflow => 'SiliconFlow',
+        TtsProviderType.doubao => '豆包',
+      };
 
   Future<void> _checkUpdate(BuildContext context, AgentColors nc) async {
     _showLoadingDialog(context, nc, '正在检查更新...');
@@ -332,17 +341,17 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           const SizedBox(height: SpaceToken.xl),
-          SectionHeader(title: '文字转语音', nc: nc),
+          SectionHeader(title: '语音服务', nc: nc),
           ElevatedCard(
             nc: nc,
             shadow: nc.shadowSm,
             child: _SettingItem(
               icon: Icons.record_voice_over,
-              label: '朗读语音',
-              trailing: TtsSettings().selectedVoiceName ?? '默认',
+              label: '语音服务',
+              trailing: _speechLabel(TtsServiceConfig.instance.type),
               onTap: () {
                 HapticFeedback.lightImpact();
-                Navigator.push(context, IosSlideRoute(page: const TtsSettingsPage()));
+                AppRouter.toSpeechServices(context);
               },
             ),
           ),
@@ -385,6 +394,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   onTap: () {
                     HapticFeedback.lightImpact();
                     AppRouter.toLog(context);
+                  },
+                ),
+                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                _SettingItem(
+                  icon: Icons.analytics,
+                  label: 'Token 消耗',
+                  trailing: '按厂商/模型核算成本',
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    AppRouter.toTokenUsage(context);
                   },
                 ),
                 Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
