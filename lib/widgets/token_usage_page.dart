@@ -7,8 +7,7 @@ import 'model_pricing_defaults.dart';
 
 /// Token 消耗统计（借鉴 Operit TokenUsageStatisticsScreen，全量成本核算）。
 ///
-/// - 顶部 USD→¥ 汇率卡（默认 7.2，可编辑）
-/// - 汇总卡：总 token / 输入·输出·缓存 / 请求次数 / 总成本（¥ 与 $）
+/// - 汇总卡：总 token / 输入·输出·缓存 / 请求次数 / 总成本（¥）
 /// - 模型用量分布：按 (厂商,模型) 的 token 占比
 /// - 每模型卡：token 明细 + 成本 + 单价（点击编辑，按次/按 token 两种计费）
 /// - 清空全部 / 单模型清空（带确认）
@@ -21,21 +20,16 @@ class TokenUsagePage extends StatefulWidget {
 
 class _TokenUsagePageState extends State<TokenUsagePage> {
   final _tracker = tokenTracker;
-  late final TextEditingController _rateC;
 
   @override
   void initState() {
     super.initState();
-    _rateC = TextEditingController(
-      text: _tracker.usdToCnyRate.toStringAsFixed(2),
-    );
     _tracker.addListener(_onUpdate);
   }
 
   @override
   void dispose() {
     _tracker.removeListener(_onUpdate);
-    _rateC.dispose();
     super.dispose();
   }
 
@@ -46,21 +40,19 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
-    final rate = _tracker.usdToCnyRate;
     final entries = _tracker.entries;
     final totalTokens = _tracker.totalTokens;
 
-    // 按模型成本汇总（USD→¥）。
+    // 按模型成本汇总（CNY）。
     final modelCosts = <String, double>{};
-    var totalCostUsd = 0.0;
+    var totalCost = 0.0;
     for (final e in entries) {
       final price =
           _tracker.priceOf(e.key) ?? defaultPriceConfig(_modelOf(e.key));
-      final c = computeCostUsd(e.value, price);
+      final c = computeCost(e.value, price);
       modelCosts[e.key] = c;
-      totalCostUsd += c;
+      totalCost += c;
     }
-    final totalCostCny = totalCostUsd * rate;
 
     // 分布：每模型 (input+output) token 占比。
     final dist = entries
@@ -94,8 +86,6 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
                 vertical: SpaceToken.lg,
               ),
               children: [
-                _RateCard(nc: nc, rateC: _rateC, onSave: _saveRate),
-                const SizedBox(height: SpaceToken.xl),
                 _SummaryCard(
                   nc: nc,
                   totalTokens: totalTokens,
@@ -103,8 +93,7 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
                   outputTokens: _tracker.totalOutputTokens,
                   cachedTokens: _tracker.totalCachedInputTokens,
                   requests: _tracker.totalRequests,
-                  costCny: totalCostCny,
-                  costUsd: totalCostUsd,
+                  costCny: totalCost,
                 ),
                 if (dist.isNotEmpty) ...[
                   const SizedBox(height: SpaceToken.xl),
@@ -129,7 +118,7 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
                 ...entries.map((e) {
                   final price = _tracker.priceOf(e.key) ??
                       defaultPriceConfig(_modelOf(e.key));
-                  final costUsd = modelCosts[e.key] ?? 0.0;
+                  final cost = modelCosts[e.key] ?? 0.0;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: SpaceToken.md),
                     child: _ModelCard(
@@ -139,9 +128,7 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
                       model: _modelOf(e.key),
                       record: e.value,
                       price: price,
-                      rate: rate,
-                      costCny: costUsd * rate,
-                      costUsd: costUsd,
+                      costCny: cost,
                       onEdit: () => _editPrice(e.key, _modelOf(e.key)),
                       onReset: () => _confirmResetModel(e.key, _modelOf(e.key)),
                     ),
@@ -157,14 +144,6 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
   String _modelOf(String key) =>
       _tracker.splitKey(key).length > 1 ? _tracker.splitKey(key)[1] : '';
 
-  void _saveRate() {
-    final v = double.tryParse(_rateC.text.trim());
-    if (v != null && v > 0) {
-      _tracker.setUsdToCnyRate(v);
-      if (mounted) setState(() {});
-    }
-  }
-
   void _confirmResetAll() {
     final nc = AgentColors.of(context);
     showDialog<void>(
@@ -172,7 +151,7 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
       builder: (c) => AlertDialog(
         backgroundColor: nc.surface,
         title: Text('清空全部统计', style: TextStyle(color: nc.textPrimary)),
-        content: Text('将清空所有厂商/模型的 token 与成本统计（单价与汇率保留）。',
+        content: Text('将清空所有厂商/模型的 token 与成本统计（单价保留）。',
             style: TextStyle(color: nc.textSecondary)),
         actions: [
           TextButton(
@@ -226,7 +205,6 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
     final vendor = parts.isNotEmpty ? parts[0] : '';
     final stored = _tracker.priceOf(key);
     final base = stored ?? defaultPriceConfig(model);
-    final rate = _tracker.usdToCnyRate;
     // 计费模式放在 builder 闭包之外，避免 StatefulBuilder 每次重建时被重置。
     var mode = base.mode;
 
@@ -234,31 +212,30 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
       context: context,
       builder: (c) => StatefulBuilder(
         builder: (ctx, setD) {
-          // 初始以 ¥ 展示（USD×rate），保存时折算回 USD。
           final inputC = TextEditingController(
-            text: _fmtEditable(_toCny(base.inputPricePerMillion, rate)),
+            text: _fmtEditable(base.inputPricePerMillion),
           );
           final cachedC = TextEditingController(
-            text: _fmtEditable(_toCny(base.cachedInputPricePerMillion, rate)),
+            text: _fmtEditable(base.cachedInputPricePerMillion),
           );
           final outputC = TextEditingController(
-            text: _fmtEditable(_toCny(base.outputPricePerMillion, rate)),
+            text: _fmtEditable(base.outputPricePerMillion),
           );
           final perRequestC = TextEditingController(
-            text: _fmtEditable(_toCny(base.pricePerRequest, rate)),
+            text: _fmtEditable(base.pricePerRequest),
           );
 
           void save() {
             final price = PriceConfig(
               mode: mode,
               inputPricePerMillion:
-                  _fromCny(double.tryParse(inputC.text) ?? 0, rate),
+                  double.tryParse(inputC.text) ?? 0,
               cachedInputPricePerMillion:
-                  _fromCny(double.tryParse(cachedC.text) ?? 0, rate),
+                  double.tryParse(cachedC.text) ?? 0,
               outputPricePerMillion:
-                  _fromCny(double.tryParse(outputC.text) ?? 0, rate),
+                  double.tryParse(outputC.text) ?? 0,
               pricePerRequest:
-                  _fromCny(double.tryParse(perRequestC.text) ?? 0, rate),
+                  double.tryParse(perRequestC.text) ?? 0,
             );
             if (vendor.isNotEmpty && model.isNotEmpty) {
               _tracker.setPrice(vendor, model, price);
@@ -297,7 +274,7 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
                     ],
                   ),
                   const SizedBox(height: SpaceToken.md),
-                  Text('单价以 ¥ 填写（自动按汇率折算 USD 存储）',
+                  Text('单价以 ¥ 填写',
                       style: TextStyle(
                           fontSize: FontToken.small,
                           color: nc.textSecondary)),
@@ -344,72 +321,6 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
   }
 }
 
-// ── 汇率卡 ──
-
-class _RateCard extends StatelessWidget {
-  const _RateCard({
-    required this.nc,
-    required this.rateC,
-    required this.onSave,
-  });
-  final AgentColors nc;
-  final TextEditingController rateC;
-  final VoidCallback onSave;
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedCard(
-      nc: nc,
-      shadow: nc.shadowSm,
-      child: Padding(
-        padding: const EdgeInsets.all(SpaceToken.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('汇率（USD → ¥）',
-                style: TextStyle(
-                    fontSize: FontToken.body,
-                    fontWeight: WeightToken.medium,
-                    color: nc.textPrimary)),
-            const SizedBox(height: SpaceToken.sm),
-            Text('用于将 USD 单价/成本折算成人民币展示。',
-                style: TextStyle(
-                    fontSize: FontToken.small, color: nc.textSecondary)),
-            const SizedBox(height: SpaceToken.md),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: rateC,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    style: TextStyle(color: nc.textPrimary),
-                    decoration: InputDecoration(
-                      labelText: '1 USD = ¥',
-                      labelStyle:
-                          TextStyle(color: nc.textSecondary, fontSize: FontToken.small),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide(color: nc.divider),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: SpaceToken.md,
-                        vertical: SpaceToken.sm,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: SpaceToken.md),
-                FilledButton(onPressed: onSave, child: const Text('保存')),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ── 汇总卡 ──
 
 class _SummaryCard extends StatelessWidget {
@@ -421,7 +332,6 @@ class _SummaryCard extends StatelessWidget {
     required this.cachedTokens,
     required this.requests,
     required this.costCny,
-    required this.costUsd,
   });
   final AgentColors nc;
   final int totalTokens;
@@ -430,7 +340,6 @@ class _SummaryCard extends StatelessWidget {
   final int cachedTokens;
   final int requests;
   final double costCny;
-  final double costUsd;
 
   @override
   Widget build(BuildContext context) {
@@ -466,7 +375,6 @@ class _SummaryCard extends StatelessWidget {
                 nc: nc,
                 label: '总成本',
                 value: _fmtCny(costCny),
-                sub: _fmtUsd(costUsd),
               ),
             ],
           ),
@@ -488,12 +396,10 @@ class _Metric extends StatelessWidget {
     required this.nc,
     required this.label,
     required this.value,
-    this.sub,
   });
   final AgentColors nc;
   final String label;
   final String value;
-  final String? sub;
 
   @override
   Widget build(BuildContext context) {
@@ -510,9 +416,6 @@ class _Metric extends StatelessWidget {
                   fontSize: 20,
                   fontWeight: WeightToken.bold,
                   color: nc.onPrimary)),
-          if (sub != null)
-            Text(sub!,
-                style: TextStyle(fontSize: 11, color: secondary)),
         ],
       ),
     );
@@ -648,9 +551,7 @@ class _ModelCard extends StatelessWidget {
     required this.model,
     required this.record,
     required this.price,
-    required this.rate,
     required this.costCny,
-    required this.costUsd,
     required this.onEdit,
     required this.onReset,
   });
@@ -660,9 +561,7 @@ class _ModelCard extends StatelessWidget {
   final String model;
   final TokenUsageRecord record;
   final PriceConfig price;
-  final double rate;
   final double costCny;
-  final double costUsd;
   final VoidCallback onEdit;
   final VoidCallback onReset;
 
@@ -749,9 +648,6 @@ class _ModelCard extends StatelessWidget {
                               fontSize: FontToken.body,
                               fontWeight: WeightToken.bold,
                               color: nc.primary)),
-                      Text(_fmtUsd(costUsd),
-                          style: TextStyle(
-                              fontSize: 11, color: nc.textSecondary)),
                     ],
                   ),
                   Container(
@@ -868,10 +764,6 @@ String _fmtInt(int v) => v.toString().replaceAllMapped(
     RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
 
 String _fmtCny(double v) => '¥${v.toStringAsFixed(2)}';
-String _fmtUsd(double v) => '\$${v.toStringAsFixed(4)}';
-
-double _toCny(double usd, double rate) => usd * rate;
-double _fromCny(double cny, double rate) => rate > 0 ? cny / rate : 0.0;
 
 String _fmtEditable(double v) => v.toStringAsFixed(4).replaceAllMapped(
     RegExp(r'0+$'), (m) => '').replaceAll(RegExp(r'\.$'), '');

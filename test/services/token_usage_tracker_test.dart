@@ -31,7 +31,7 @@ void main() {
     } catch (_) {}
   });
 
-  group('computeCostUsd', () {
+  group('computeCost', () {
     test('token 模式：非缓存 input + cached + output 分别计价', () {
       final r = TokenUsageRecord(
         inputTokens: 2_000_000,
@@ -45,7 +45,7 @@ void main() {
         outputPricePerMillion: 8.0,
       );
       // 非缓存 input = 1_000_000 → 2.0；cached = 1_000_000 → 1.0；output = 1_000_000 → 8.0
-      expect(computeCostUsd(r, p), closeTo(11.0, 1e-9));
+      expect(computeCost(r, p), closeTo(11.0, 1e-9));
     });
 
     test('token 模式：缓存超过 input 时非缓存部分钳到 0', () {
@@ -60,7 +60,7 @@ void main() {
         cachedInputPricePerMillion: 1.0,
       );
       // 非缓存 input 钳到 0 → 0；cached 仍按 1_000_000 → 1.0
-      expect(computeCostUsd(r, p), closeTo(1.0, 1e-9));
+      expect(computeCost(r, p), closeTo(1.0, 1e-9));
     });
 
     test('count 模式：按请求次数 × 单价', () {
@@ -69,7 +69,7 @@ void main() {
         mode: BillingMode.count,
         pricePerRequest: 0.01,
       );
-      expect(computeCostUsd(r, p), closeTo(0.05, 1e-9));
+      expect(computeCost(r, p), closeTo(0.05, 1e-9));
     });
   });
 
@@ -158,17 +158,6 @@ void main() {
       tokenTracker.clearAll();
       expect(tokenTracker.totalRequests, 0);
       expect(tokenTracker.totalTokens, 0);
-    });
-  });
-
-  group('汇率', () {
-    test('setUsdToCnyRate 忽略非正数', () {
-      tokenTracker.setUsdToCnyRate(7.5);
-      expect(tokenTracker.usdToCnyRate, 7.5);
-      tokenTracker.setUsdToCnyRate(0);
-      expect(tokenTracker.usdToCnyRate, 7.5);
-      tokenTracker.setUsdToCnyRate(-1);
-      expect(tokenTracker.usdToCnyRate, 7.5);
     });
   });
 

@@ -411,7 +411,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
                 _SettingItem(
                   icon: Icons.insights,
-                  label: '性能指标',
+                  label: '性能',
                   trailing: '工具耗时 / 缓存命中 / 压缩',
                   onTap: () {
                     HapticFeedback.lightImpact();
