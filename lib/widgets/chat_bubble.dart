@@ -159,17 +159,19 @@ class ChatBubble extends StatelessWidget {
         final res = await TtsService().speak(msg.text);
         if (!res.success) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('朗读失败：${res.error ?? '未知错误'}')),
+            AppToast.show(
+              context,
+              '朗读失败：${res.error ?? '未知错误'}',
+              type: ToastType.error,
             );
           }
         } else if (res.warning != null) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(res.warning!),
-                duration: const Duration(seconds: 4),
-              ),
+            AppToast.show(
+              context,
+              res.warning!,
+              type: ToastType.error,
+              duration: const Duration(seconds: 4),
             );
           }
         }
