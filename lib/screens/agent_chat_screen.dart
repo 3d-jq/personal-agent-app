@@ -128,7 +128,7 @@ class _AgentChatScreenState extends State<AgentChatScreen>
       if (!mounted || !_scrollCtrl.hasClients) return;
       _scrollCtrl.animateTo(
         _scrollCtrl.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 150),
+        duration: AppDurations.micro,
         curve: AppCurves.appear,
       );
     });
