@@ -9,6 +9,8 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String? dropdownText;
   final Widget? trailing;
   final Widget? afterMenu;
+  /// 菜单按钮回调。非 null 时点击菜单按钮调用此回调，否则 fallback 到 Scaffold.of(context).openDrawer()。
+  final VoidCallback? onMenuTap;
 
   const AgentTopBar({
     super.key,
@@ -16,6 +18,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
     this.dropdownText,
     this.trailing,
     this.afterMenu,
+    this.onMenuTap,
   });
 
   @override
@@ -45,7 +48,11 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                       GestureDetector(
                         onTap: () {
                           HapticFeedback.lightImpact();
-                          Scaffold.of(context).openDrawer();
+                          if (onMenuTap != null) {
+                            onMenuTap!();
+                          } else {
+                            Scaffold.of(context).openDrawer();
+                          }
                         },
                         child: Container(
                           width: 40,

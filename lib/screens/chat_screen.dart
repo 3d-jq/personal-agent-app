@@ -27,8 +27,14 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen>
-    with WidgetsBindingObserver, ChatScrollMixin {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+    with WidgetsBindingObserver, ChatScrollMixin, TickerProviderStateMixin {
+  // 侧边栏平推动画控制器与宽度
+  late final AnimationController _sidebarCtrl;
+  static const double _sidebarWidth = 304;
+  bool get _sidebarOpen => _sidebarCtrl.isCompleted || _sidebarCtrl.value > 0.5;
+  // 拖拽手势内部状态
+  double _dragStartX = 0;
+  bool _draggingSidebar = false;
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   late final ChatController _controller;
@@ -59,6 +65,12 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   void initState() {
     super.initState();
+    _sidebarCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _sidebarCtrl.addListener(() => setState(() {}));
+    _sidebarCtrl.addStatusListener(_onSidebarStatus);
     // 复用会话控制器缓存：再次进入已打开过的会话时直接复用，消息已在内存、
     // 无需重新从 DB 加载，进入瞬间无白屏/重载闪烁（微信级 L8 页面缓存）。
     _controller = getIt<ChatControllerCache>().obtain(
@@ -81,6 +93,7 @@ class _ChatScreenState extends State<ChatScreen>
 
   @override
   void dispose() {
+    _sidebarCtrl.dispose();
     // 记录滚动位置供缓存复用恢复
     if (scrollController.hasClients) {
       _controller.lastScrollOffset = scrollController.offset;
@@ -147,33 +160,23 @@ class _ChatScreenState extends State<ChatScreen>
     await _controller.refreshSessions();
   }
 
-  void _onDrawerChanged(bool opened) {
-    drawerOpen = opened;
-    // 抽屉关闭动画结束时（closeDrawer() 路径）触发切换；Navigator.pop 路径下该回调
-    // 可能不触发，由 _onSessionTap 里的兜底定时器保证执行。_pendingSwitchId 空值
-    // 防御「回调 + 定时器」双触发，且只在确有 pending 切会话时执行。
-    if (!opened && _switching && _pendingSwitchId != null) {
+  /// 侧边栏动画状态变化：打开/关闭中暂停自动贴底；关闭完成时若有待切换会话则执行。
+  void _onSidebarStatus(AnimationStatus status) {
+    drawerOpen = status != AnimationStatus.dismissed;
+    if (status == AnimationStatus.dismissed) {
       _triggerPendingSwitch();
     }
   }
 
   void _onSessionTap(String id) {
     if (id == _controller.currentSessionId) {
-      _scaffoldKey.currentState?.closeDrawer();
+      _sidebarCtrl.reverse();
       return;
     }
     _resetInput();
-    // 关键优化：点开对话时立刻切到「加载对话中」骨架屏，让抽屉关闭动画期间
-    // 不重建真实列表（40 条气泡）。真正耗时的 switchSession（DB 加载 + 气泡重建）
-    // 推迟到抽屉关闭动画结束后再执行，从根本上消除「抽屉返回动画」与「列表重建」
-    // 同帧竞争导致的卡顿（延迟加载 + 转场动画错峰）。
-    // 双触发保证稳健：抽屉关闭动画结束（onDrawerChanged 回调）触发切换；同时起一个
-    // 兜底定时器（抽屉关闭动画标准时长附近），即使该回调因关闭路径差异未触发也能切。
-    // _pendingSwitchId 空值检查防御「回调 + 定时器」双触发。
     setState(() => _switching = true);
     _pendingSwitchId = id;
-    _scaffoldKey.currentState?.closeDrawer();
-    // 兜底定时器：最迟在抽屉关闭动画结束附近执行切换，不依赖单一回调路径。
+    _sidebarCtrl.reverse();
     Future.delayed(AppDurations.expressive, _triggerPendingSwitch);
   }
 
@@ -210,116 +213,190 @@ class _ChatScreenState extends State<ChatScreen>
     final nc = AgentColors.of(context);
     final bottomSafe = MediaQuery.of(context).padding.bottom;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final slideX = _sidebarWidth * _sidebarCtrl.value;
+
+    final scaffold = Scaffold(
+      backgroundColor: nc.background,
+      appBar: AgentTopBar(
+        onMenuTap: _toggleSidebar,
+        afterMenu: ChatModelChipButton(controller: _controller),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ChatNewChatButton(controller: _controller, onBeforeNew: _resetInput),
+            const SizedBox(width: 8),
+            SessionInfoButton(
+              getTokens: () => _controller.estimatedContextTokens,
+              getWindowSize: () => _controller.contextWindowSize,
+              getThreshold: () => _controller.contextCompressionThreshold,
+              listenable: _controller,
+            ),
+          ],
+        ),
+      ),
+      resizeToAvoidBottomInset: true,
+      body: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                AnimatedSwitcher(
+                  duration: AppDurations.standard,
+                  switchInCurve: AppCurves.appear,
+                  switchOutCurve: AppCurves.disappear,
+                  child: (_loading || _switching)
+                      ? ChatListSkeleton(
+                          key: const ValueKey('skeleton'),
+                          label: _switching ? '加载对话中' : null,
+                        )
+                      : _MessageList(
+                          key: const ValueKey('list'),
+                          controller: _controller,
+                          scrollController: scrollController,
+                          onRetry: _onRetry,
+                          onDelete: (m) => _controller.deleteMessage(m),
+                          onRegenerate: (m) => _controller.regenerate(m),
+                        ),
+                ),
+                if (showScrollBottom)
+                  Positioned(
+                    right: 16,
+                    bottom: 12,
+                    child: ListenableBuilder(
+                      listenable: _controller,
+                      builder: (ctx, _) {
+                        final last = _controller.messages.isEmpty
+                            ? null
+                            : _controller.messages.last;
+                        return ListenableBuilder(
+                          listenable: last ?? const AlwaysStoppedAnimation(0),
+                          builder: (_, __) => ChatScrollToBottomButton(
+                            unread: userScrolledUp ? unreadCount() : 0,
+                            onTap: () async {
+                              HapticFeedback.lightImpact();
+                              await _controller.jumpToLatestPage();
+                              jumpToLatest();
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          _ChatInputBar(
+            controller: _controller,
+            inputController: _inputCtrl,
+            focusNode: _inputFocus,
+            bottomSafe: bottomSafe,
+            onSend: _handleSend,
+            onResetInput: _resetInput,
+          ),
+        ],
+      ),
+    );
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarColor: nc.background,
-        systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        systemNavigationBarIconBrightness:
+            isDark ? Brightness.light : Brightness.dark,
       ),
-      child: GestureDetector(
-        onTap: () {
-          if (!(_scaffoldKey.currentState?.isDrawerOpen ?? false)) {
-            _inputFocus.unfocus();
-          }
-        },
-        child: Scaffold(
-          key: _scaffoldKey,
-          backgroundColor: nc.background,
-          drawerEnableOpenDragGesture: true,
-          onDrawerChanged: _onDrawerChanged,
-          drawerScrimColor: nc.drawerScrim,
-          drawer: ChatDrawerContent(
-            controller: _controller,
-            onSessionTap: _onSessionTap,
-            onNewChat: _onNewChat,
-            onSessionDeleted: _onSessionDeleted,
-          ),
-          appBar: AgentTopBar(
-            afterMenu: ChatModelChipButton(controller: _controller),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ChatNewChatButton(controller: _controller, onBeforeNew: _resetInput),
-                const SizedBox(width: 8),
-                SessionInfoButton(
-                  getTokens: () => _controller.estimatedContextTokens,
-                  getWindowSize: () => _controller.contextWindowSize,
-                  getThreshold: () => _controller.contextCompressionThreshold,
-                  listenable: _controller,
-                ),
-              ],
+      child: Stack(
+        children: [
+          // ── 侧边栏：固定在左侧屏幕外，主界面滑开时露出来 ──
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: _sidebarWidth,
+            child: ChatDrawerContent(
+              controller: _controller,
+              onSessionTap: _onSessionTap,
+              onNewChat: _onNewChat,
+              onSessionDeleted: _onSessionDeleted,
+              onClose: _closeSidebar,
             ),
           ),
-          resizeToAvoidBottomInset: true,
-          body: Column(
-            children: [
-              Expanded(
-                child: Stack(
-                  children: [
-                    AnimatedSwitcher(
-                      duration: AppDurations.standard,
-                      switchInCurve: AppCurves.appear,
-                      switchOutCurve: AppCurves.disappear,
-                      child: (_loading || _switching)
-                          ? ChatListSkeleton(
-                              key: const ValueKey('skeleton'),
-                              label: _switching ? '加载对话中' : null,
-                            )
-                          : _MessageList(
-                              key: const ValueKey('list'),
-                              controller: _controller,
-                              scrollController: scrollController,
-                              onRetry: _onRetry,
-                              onDelete: (m) => _controller.deleteMessage(m),
-                              onRegenerate: (m) => _controller.regenerate(m),
-                            ),
-                    ),
-                    if (showScrollBottom)
-                      Positioned(
-                        right: 16,
-                        bottom: 12,
-                        // 双层 ListenableBuilder：
-                        // - 外层监听 _controller：消息条数变化（新一轮新气泡）时重建；
-                        // - 内层监听最后一条消息：AI 流式变长时（≤200ms 节流）实时重建。
-                        // 两层互补，保证「n 条新消息」在上滑期间实时刷新。
-                        child: ListenableBuilder(
-                          listenable: _controller,
-                          builder: (ctx, _) {
-                            final last = _controller.messages.isEmpty
-                                ? null
-                                : _controller.messages.last;
-                            return ListenableBuilder(
-                              listenable: last ?? const AlwaysStoppedAnimation(0),
-                              builder: (_, __) => ChatScrollToBottomButton(
-                                unread: userScrolledUp ? unreadCount() : 0,
-                                onTap: () async {
-                                  HapticFeedback.lightImpact();
-                                  await _controller.jumpToLatestPage();
-                                  jumpToLatest();
-                                },
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              _ChatInputBar(
-                controller: _controller,
-                inputController: _inputCtrl,
-                focusNode: _inputFocus,
-                bottomSafe: bottomSafe,
-                onSend: _handleSend,
-                onResetInput: _resetInput,
-              ),
-            ],
+          // ── 主界面：随侧边栏开合整体右移 ──
+          GestureDetector(
+            // 只收译在视口内的命中（deferToChild），避免 translucent 吞掉侧边栏区域的触摸
+            onTap: _sidebarOpen ? _closeSidebar : () => _inputFocus.unfocus(),
+            onHorizontalDragStart: _onDragStart,
+            onHorizontalDragUpdate: _onDragUpdate,
+            onHorizontalDragEnd: _onDragEnd,
+            child: Transform.translate(
+              offset: Offset(slideX, 0),
+              child: scaffold,
+            ),
           ),
-        ),
+          // ── 左边缘拖拽条：侧边栏关闭时用，透明条捕获从屏幕左边缘开始的水平拖拽 ──
+          if (!_sidebarOpen)
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 24,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onHorizontalDragStart: _onDragStart,
+                onHorizontalDragUpdate: _onDragUpdate,
+                onHorizontalDragEnd: _onDragEnd,
+              ),
+            ),
+        ],
       ),
     );
+  }
+
+  void _toggleSidebar() {
+    HapticFeedback.lightImpact();
+    if (_sidebarCtrl.isDismissed) {
+      _sidebarCtrl.forward();
+    } else {
+      _sidebarCtrl.reverse();
+    }
+  }
+
+  void _closeSidebar() {
+    if (!_sidebarCtrl.isDismissed) _sidebarCtrl.reverse();
+  }
+
+  // ── 左边缘手势拖出 / 推回侧边栏 ──
+
+  void _onDragStart(DragStartDetails d) {
+    _dragStartX = d.globalPosition.dx;
+    if (_dragStartX < 20 && _sidebarCtrl.isDismissed) {
+      _draggingSidebar = true;
+    } else if (_sidebarOpen) {
+      _draggingSidebar = true;
+    }
+  }
+
+  void _onDragUpdate(DragUpdateDetails d) {
+    if (!_draggingSidebar) return;
+    final rawOffset = d.globalPosition.dx - _dragStartX;
+    double newValue;
+    if (_sidebarCtrl.value > 0) {
+      newValue = (_sidebarCtrl.value * _sidebarWidth + rawOffset) / _sidebarWidth;
+    } else {
+      newValue = rawOffset / _sidebarWidth;
+    }
+    _sidebarCtrl.value = newValue.clamp(0.0, 1.0);
+  }
+
+  void _onDragEnd(DragEndDetails d) {
+    if (!_draggingSidebar) return;
+    _draggingSidebar = false;
+    if (_sidebarCtrl.value > 0.5 ||
+        (d.primaryVelocity != null && d.primaryVelocity! > 500)) {
+      _sidebarCtrl.forward();
+    } else {
+      _sidebarCtrl.reverse();
+    }
   }
 }
 
