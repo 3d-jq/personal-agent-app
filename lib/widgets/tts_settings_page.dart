@@ -5,6 +5,7 @@ import '../core/design_tokens.dart';
 import '../services/tts_service.dart';
 import '../services/tts_settings.dart';
 import 'common_widgets.dart';
+import 'app_toast.dart';
 
 /// TTS 朗读语音设置页：在本机已有语音中选择，并一键跳转系统设置安装更多语言包。
 class TtsSettingsPage extends StatefulWidget {
@@ -59,10 +60,10 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
     final ok = await openSystemTtsSettings();
     if (!mounted) return;
     if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('无法打开系统语音设置，请手动前往：系统设置 → 文字转语音(TTS)输出'),
-        ),
+      AppToast.show(
+        context,
+        '无法打开系统语音设置，请手动前往：系统设置 → 文字转语音(TTS)输出',
+        type: ToastType.error,
       );
     }
   }

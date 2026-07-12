@@ -383,12 +383,14 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Column(
               children: [
                 _SettingItem(
+                  icon: Icons.system_update,
                   label: '检查更新',
                   trailing: AppConfig.displayVersion,
                   onTap: () => _checkUpdate(context, nc),
                 ),
                 Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
                 _SettingItem(
+                  icon: Icons.article,
                   label: '运行日志',
                   trailing: log.enabled ? '已开启' : '已关闭',
                   onTap: () {
@@ -408,6 +410,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
                 _SettingItem(
+                  icon: Icons.insights,
                   label: '性能指标',
                   trailing: '工具耗时 / 缓存命中 / 压缩',
                   onTap: () {
@@ -417,6 +420,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
                 _SettingItem(
+                  icon: Icons.info_outline,
                   label: '关于',
                   onTap: () {
                     HapticFeedback.lightImpact();
@@ -425,6 +429,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
                 _SettingItem(
+                  icon: Icons.favorite,
                   label: '致谢',
                   onTap: () {
                     HapticFeedback.lightImpact();

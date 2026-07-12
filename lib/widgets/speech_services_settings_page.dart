@@ -9,6 +9,7 @@ import '../services/tts_service_config.dart';
 import '../services/tts_provider.dart';
 import '../services/tts_settings.dart';
 import 'common_widgets.dart';
+import 'app_toast.dart';
 import 'tts_settings_page.dart';
 
 /// 语音服务设置（借鉴 Operit SpeechServicesSettingsScreen）。
@@ -75,9 +76,7 @@ class _SpeechServicesSettingsPageState
     _cfg.voiceId = _voiceIdC.text.trim();
     await _cfg.apply();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已保存语音服务配置', style: TextStyle(color: AgentColors.of(context).onPrimary))),
-      );
+      AppToast.show(context, '已保存语音服务配置', type: ToastType.success);
     }
   }
 
@@ -86,9 +85,7 @@ class _SpeechServicesSettingsPageState
     await _save();
     final res = await _tts.speak(_sample);
     if (mounted && res.warning != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(res.warning!, style: TextStyle(color: AgentColors.of(context).onPrimary))),
-      );
+      AppToast.show(context, res.warning!, type: ToastType.error);
     }
   }
 
@@ -111,18 +108,10 @@ class _SpeechServicesSettingsPageState
         children: [
           const SizedBox(height: SpaceToken.sm),
           SectionHeader(title: '厂商', nc: nc),
-          SegmentedButton<TtsProviderType>(
-            selected: {_cfg.type},
-            onSelectionChanged: (s) {
-              if (s.isNotEmpty) _onPickType(s.first);
-            },
-            segments: const [
-              ButtonSegment(value: TtsProviderType.system, label: Text('系统')),
-              ButtonSegment(value: TtsProviderType.openai, label: Text('OpenAI')),
-              ButtonSegment(value: TtsProviderType.minimax, label: Text('MiniMax')),
-              ButtonSegment(value: TtsProviderType.siliconflow, label: Text('SiliconFlow')),
-              ButtonSegment(value: TtsProviderType.doubao, label: Text('豆包')),
-            ],
+          _VendorSegmented(
+            selected: _cfg.type,
+            onPick: _onPickType,
+            nc: nc,
           ),
           const SizedBox(height: SpaceToken.xl),
           if (isHttp) _httpConfigCard(nc: nc),
@@ -149,9 +138,10 @@ class _SpeechServicesSettingsPageState
                 child: Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton(
+                      child: FilledButton.icon(
                         onPressed: _save,
-                        child: const Text('保存配置'),
+                        icon: const Icon(Icons.save_outlined),
+                        label: const Text('保存配置'),
                       ),
                     ),
                     const SizedBox(width: SpaceToken.md),
@@ -378,6 +368,93 @@ class _SliderRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 等宽厂商分段选择：每个厂商占 1/5 宽度（Expanded），名字过长自动缩放，
+/// 避免 SegmentedButton 按文字长度分配宽度导致的「长短不一 / 被撑大」。
+class _VendorSegmented extends StatelessWidget {
+  final TtsProviderType selected;
+  final ValueChanged<TtsProviderType> onPick;
+  final AgentColors nc;
+
+  const _VendorSegmented({
+    required this.selected,
+    required this.onPick,
+    required this.nc,
+  });
+
+  static const _items = [
+    (TtsProviderType.system, '系统'),
+    (TtsProviderType.openai, 'OpenAI'),
+    (TtsProviderType.minimax, 'MiniMax'),
+    (TtsProviderType.siliconflow, 'SiliconFlow'),
+    (TtsProviderType.doubao, '豆包'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: nc.surface,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          for (final (type, label) in _items)
+            Expanded(
+              child: _VendorSegment(
+                label: label,
+                selected: selected == type,
+                onTap: () => onPick(type),
+                nc: nc,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VendorSegment extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final AgentColors nc;
+
+  const _VendorSegment({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.nc,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? nc.primary : Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Container(
+          height: 38,
+          alignment: Alignment.center,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: FontToken.small,
+                fontWeight: WeightToken.medium,
+                color: selected ? nc.onPrimary : nc.textSecondary,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
