@@ -128,23 +128,32 @@ mixin ChatScrollMixin<T extends StatefulWidget> on State<T> {
   }
 
   /// 进入/切换会话后定位到最新消息（聊天软件惯例：进会话即见最新）。
-  /// 必须等列表布局完成（maxScrollExtent 已知）再跳，故用 post-frame 回调；
-  /// 列表尚未挂载（hasClients 为 false）时递归延一帧重试，确保最终跳到底部。
   void jumpToLatest() {
-    WidgetsBinding.instance.addPostFrameCallback((_) => jumpToLatestNow());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _jumpToBottom());
   }
 
-  void jumpToLatestNow() {
-    if (!mounted) return;
+  /// 跳到底部 + 自动重试：ListView.builder 的 lazy 构建可能导致
+  /// maxScrollExtent 在多帧之后才稳定；单次 jumpTo 容易跳到旧的半路位置。
+  /// 每帧检查一次，若底部又扩展了则再跳，直到稳定或耗尽重试次数。
+  void _jumpToBottom({int retries = 8}) {
+    if (!mounted || retries <= 0) return;
     if (!scrollController.hasClients) {
-      // 列表尚未挂载（如仍在骨架屏 / 切换中），下一帧再试一次
-      WidgetsBinding.instance.addPostFrameCallback((_) => jumpToLatestNow());
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _jumpToBottom(retries: retries - 1));
       return;
     }
     userScrolledUp = false;
     anchorSeq = -1;
     anchorLen = 0;
-    scrollController.jumpTo(scrollController.position.maxScrollExtent);
+    final max = scrollController.position.maxScrollExtent;
+    scrollController.jumpTo(max);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!scrollController.hasClients || !mounted) return;
+      final newMax = scrollController.position.maxScrollExtent;
+      if (newMax > max) {
+        _jumpToBottom(retries: retries - 1);
+      }
+    });
   }
 
   /// 平滑回到底部：用于点击「回到底部」按钮。
