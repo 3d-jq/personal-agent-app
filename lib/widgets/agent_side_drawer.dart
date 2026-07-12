@@ -15,6 +15,8 @@ class AgentSideDrawer extends StatefulWidget {
   final ValueChanged<String> onSessionTap;
   final VoidCallback onNewChat;
   final ValueChanged<String> onSessionDeleted;
+  /// 平推模式下关闭侧边栏的回调。非 null 时组件去掉 [Drawer] 壳、用此回调代替 Navigator.pop()。
+  final VoidCallback? onClose;
 
   const AgentSideDrawer({
     super.key,
@@ -24,6 +26,7 @@ class AgentSideDrawer extends StatefulWidget {
     required this.onSessionTap,
     required this.onNewChat,
     required this.onSessionDeleted,
+    this.onClose,
   });
 
   @override
@@ -31,24 +34,28 @@ class AgentSideDrawer extends StatefulWidget {
 }
 
 class _AgentSideDrawerState extends State<AgentSideDrawer> {
+  bool get _isPush => widget.onClose != null;
+
   void _closeAnd(void Function(BuildContext rootContext) action) {
     HapticFeedback.lightImpact();
-    final navigator = Navigator.of(context);
-    final rootContext = navigator.context;
-    navigator.pop();
-    WidgetsBinding.instance.addPostFrameCallback((_) => action(rootContext));
+    if (_isPush) {
+      widget.onClose!();
+      // 平推模式：侧边栏自身不占路由，直接在原页面执行导航。
+      action(context);
+    } else {
+      final navigator = Navigator.of(context);
+      final rootContext = navigator.context;
+      navigator.pop();
+      WidgetsBinding.instance.addPostFrameCallback((_) => action(rootContext));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
 
-    // 不再用 SizedBox(width: 整屏宽) 包裹，让 Drawer 用默认 304dp 宽度，
-    // 这样侧边栏是标准的部分覆盖（露出右侧一截聊天内容），而非全屏遮罩。
-    return Drawer(
-      backgroundColor: nc.background,
-      child: SafeArea(
-          child: Column(
+    Widget content = SafeArea(
+      child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Header ──
@@ -160,7 +167,11 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                                 isLast: i == widget.sessions.length - 1,
                                 onTap: () {
                                   HapticFeedback.lightImpact();
-                                  Navigator.of(context).pop();
+                                  if (_isPush) {
+                                    widget.onClose!();
+                                  } else {
+                                    Navigator.of(context).pop();
+                                  }
                                   widget.onSessionTap(s.id);
                                 },
                                 onLongPress: () => _confirmDelete(s),
@@ -205,7 +216,11 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                     GestureDetector(
                       onTap: () {
                         HapticFeedback.lightImpact();
-                        Navigator.of(context).pop();
+                        if (_isPush) {
+                          widget.onClose!();
+                        } else {
+                          Navigator.of(context).pop();
+                        }
                         widget.onNewChat();
                       },
                       child: Container(
@@ -242,10 +257,13 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                 ),
               ),
             ],
-          ),
-        ),
-      );
-    }
+          ),  // close Column
+        );    // close SafeArea + end assignment
+
+    // 平推模式：侧边栏作为独立区域渲染，不由 Drawer 管理，不加壳。
+    if (_isPush) return Container(color: nc.background, child: content);
+    return Drawer(backgroundColor: nc.background, child: content);
+  }
 
   void _confirmDelete(ChatSession s) {
     showDialog(

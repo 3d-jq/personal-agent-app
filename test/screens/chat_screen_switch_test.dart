@@ -41,7 +41,7 @@ void main() {
   tearDown(() async => await resetDependencies());
 
   testWidgets(
-      '侧边栏点击对话：先看「加载对话中」骨架，抽屉动画结束后才切到目标会话',
+      '侧边栏点击对话：先看「加载对话中」骨架，侧边栏关闭后才切到目标会话',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -53,17 +53,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('加载对话中'), findsNothing);
 
-    // 打开抽屉。
-    final scaffold = tester.firstState<ScaffoldState>(find.byType(Scaffold));
-    scaffold.openDrawer();
+    // 打开平推侧边栏：点击顶栏菜单按钮（Icons.list）。
+    await tester.tap(find.byIcon(Icons.list));
     await tester.pumpAndSettle();
 
     // 点击会话 B：_onSessionTap 立即切到「加载对话中」骨架屏。
     await tester.tap(find.text('会话B'));
-    // 抽屉关闭动画 + 模拟 DB 加载耗时（fake 故意延迟）期间：延迟加载生效，
+    await tester.pump(); // setState 后立即同步一帧，使 _switching=true 的骨架生效
+    // 侧边栏关闭动画 + 模拟 DB 加载耗时（fake 故意延迟）期间：延迟加载生效，
     // 骨架屏持续显示「加载对话中」，switchSession 尚未完成。
-    await tester.pump(const Duration(milliseconds: 250));
     expect(find.text('加载对话中'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 250));
 
     // 切换完成后骨架屏退出动画结束，「加载对话中」消失。骨架屏 shimmer 是无限动画，
     // 故不能用 pumpAndSettle（会挂起）；改用小步长循环 pump 直到旧骨架被 AnimatedSwitcher

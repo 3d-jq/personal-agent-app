@@ -10,6 +10,8 @@ class ChatDrawerContent extends StatelessWidget {
   final ValueChanged<String> onSessionTap;
   final VoidCallback onNewChat;
   final ValueChanged<String> onSessionDeleted;
+  /// 平推模式下关闭侧边栏的回调（透传给 AgentSideDrawer）。
+  final VoidCallback? onClose;
 
   const ChatDrawerContent({
     super.key,
@@ -17,6 +19,7 @@ class ChatDrawerContent extends StatelessWidget {
     required this.onSessionTap,
     required this.onNewChat,
     required this.onSessionDeleted,
+    this.onClose,
   });
 
   @override
@@ -30,6 +33,7 @@ class ChatDrawerContent extends StatelessWidget {
         onSessionTap: onSessionTap,
         onNewChat: onNewChat,
         onSessionDeleted: onSessionDeleted,
+        onClose: onClose,
       ),
     );
   }
