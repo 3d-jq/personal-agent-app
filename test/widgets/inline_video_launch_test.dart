@@ -27,7 +27,7 @@ void main() {
           .setMockMethodCallHandler(channel, null);
     });
 
-    Future<void> _buildAndTapVideo(
+    Future<void> buildAndTapVideo(
       WidgetTester tester,
       String markdown,
     ) async {
@@ -57,7 +57,7 @@ void main() {
     testWidgets('点击 mp4 视频直接调起系统播放器（video/mp4）',
         (tester) async {
       const url = 'file:///data/user/0/com.example/files/clip.mp4';
-      await _buildAndTapVideo(tester, '![clip]($url)');
+      await buildAndTapVideo(tester, '![clip]($url)');
 
       expect(captured, isNotNull);
       expect(captured!.method, 'openFile');
@@ -69,7 +69,7 @@ void main() {
     testWidgets('点击 mov 视频应携带正确 MIME（video/quicktime）',
         (tester) async {
       const url = 'file:///data/user/0/com.example/files/clip.mov';
-      await _buildAndTapVideo(tester, '![clip]($url)');
+      await buildAndTapVideo(tester, '![clip]($url)');
 
       expect(captured, isNotNull);
       expect(captured!.arguments['mimeType'], 'video/quicktime');
@@ -78,7 +78,7 @@ void main() {
     testWidgets('点击 webm 视频应携带正确 MIME（video/webm）',
         (tester) async {
       const url = 'file:///data/user/0/com.example/files/clip.webm';
-      await _buildAndTapVideo(tester, '![clip]($url)');
+      await buildAndTapVideo(tester, '![clip]($url)');
 
       expect(captured, isNotNull);
       expect(captured!.arguments['mimeType'], 'video/webm');
