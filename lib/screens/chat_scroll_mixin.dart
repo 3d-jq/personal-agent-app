@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:personal_agent_app/core/app_animations.dart';
+import 'package:personal_agent_app/models/chat_message.dart';
 
 /// 聊天列表滚动行为：贴底 / 回到底部 / 上滑浮条 / 抽屉期间暂停等。
 ///
@@ -20,8 +21,14 @@ mixin ChatScrollMixin<T extends StatefulWidget> on State<T> {
   /// 用户是否上滑看过历史（用于「n 条新消息」浮条与暂停自动贴底）。
   bool userScrolledUp = false;
 
-  /// 用户上滑时的消息数，用于计算「n 条新消息」浮条。
-  int msgCountWhenScrolledUp = 0;
+  /// 用户上滑离开底部那一刻的「已读锚点」：
+  /// - [anchorSeq]：当时最后一条消息的 seq；
+  /// - [anchorLen]：当时锚点消息的内容长度。
+  /// 「n 条新消息」浮条据此判断自用户离开后底部是否出现了更新的内容
+  /// （含正在流式变长的那条，计为 1 条），而非旧实现里单纯的「消息条数差」——
+  /// 旧算法因 AI 流式回复是同一消息对象变长、条数不变而恒为 0，是死功能。
+  int anchorSeq = -1;
+  int anchorLen = 0;
 
   /// 程序主动触发的滚动（点击回到底部 / 流式自动贴底）期间为 true，
   /// 避免 onScroll 把"自己的位移"误判成用户上滑而污染状态。
@@ -32,6 +39,12 @@ mixin ChatScrollMixin<T extends StatefulWidget> on State<T> {
 
   /// 当前消息条数（由使用方提供，供上滑检测用）。
   int get messageCount;
+
+  /// 当前最后一条消息（由使用方提供），用于记录上滑「已读锚点」。
+  ChatMessage? get lastMessage;
+
+  /// 全部消息（由使用方提供），用于计算「n 条新消息」未读数。
+  List<ChatMessage> get allMessages;
 
   bool _pendingScroll = false;
 
@@ -49,9 +62,38 @@ mixin ChatScrollMixin<T extends StatefulWidget> on State<T> {
     if (distFromBottom > 60) {
       if (!userScrolledUp) {
         userScrolledUp = true;
-        msgCountWhenScrolledUp = messageCount;
+        final last = lastMessage;
+        if (last != null) {
+          anchorSeq = last.seq;
+          anchorLen = last.text.length;
+        } else {
+          anchorSeq = -1;
+          anchorLen = 0;
+        }
       }
     }
+  }
+
+  /// 「n 条新消息」未读数：自用户上滑锚点以来底部新增的更新内容条数。
+  ///
+  /// 计算规则（贴近微信）：
+  /// - 任何 [ChatMessage.seq] 大于锚点的消息都算 1 条未读（新一轮新气泡）；
+  /// - 若没有更新消息对象，但锚点那条本身仍在流式变长（同一消息内容增长），
+  ///   也计为 1 条未读——用户上滑离开它后它继续吐字，应提示「1 条新消息」；
+  /// - 用户未上滑（[userScrolledUp] 为 false）时恒为 0。
+  int unreadCount() {
+    if (!userScrolledUp) return 0;
+    final msgs = allMessages;
+    if (msgs.isEmpty) return 0;
+    int count = 0;
+    for (final m in msgs) {
+      if (m.seq > anchorSeq) count++;
+    }
+    if (count == 0) {
+      final last = msgs.last;
+      if (last.seq == anchorSeq && last.text.length > anchorLen) count = 1;
+    }
+    return count.clamp(0, 999);
   }
 
   /// 流式期间实时贴底：下一帧布局完成后 jump 到末尾，消除 50ms 节流造成的「定期猛跳」。
@@ -85,6 +127,8 @@ mixin ChatScrollMixin<T extends StatefulWidget> on State<T> {
       return;
     }
     userScrolledUp = false;
+    anchorSeq = -1;
+    anchorLen = 0;
     scrollController.jumpTo(scrollController.position.maxScrollExtent);
   }
 
@@ -99,6 +143,8 @@ mixin ChatScrollMixin<T extends StatefulWidget> on State<T> {
   void scrollToBottom() {
     if (!scrollController.hasClients) return;
     userScrolledUp = false;
+    anchorSeq = -1;
+    anchorLen = 0;
     final pos = scrollController.position;
     final viewport = pos.viewportDimension;
     final max = pos.maxScrollExtent;
