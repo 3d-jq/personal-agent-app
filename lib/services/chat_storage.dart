@@ -141,7 +141,10 @@ class ChatStorage {
             ChatMessage.fromJson(jsonDecode(r['data'] as String)
                 as Map<String, dynamic>))
         .toList();
-    return list.reversed.toList(); // 转回时间正序
+    // beforeSeq 分支用 DESC 取「最接近 beforeSeq 的 take 条」，需反转为正序；
+    // afterSeq 分支用 ASC 取「紧邻其后的 take 条」，已是正序，不可再反转——
+    // 否则 loadNewer 翻页后会倒序（窗口页顺序错乱）。
+    return afterSeq != null ? list : list.reversed.toList();
   }
 
   /// 会话消息总数（来自 messages 表）。

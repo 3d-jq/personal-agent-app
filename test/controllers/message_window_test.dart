@@ -14,7 +14,7 @@ List<ChatMessage> _makeStore(int n) => [
 const int _storeTotal = 100;
 
 void main() {
-  group('MessageWindow 视口滑动窗口', () {
+  group('MessageWindow 游标窗口页（列表恒为 windowSize）', () {
     late _FakeChatStorage storage;
     late List<ChatMessage> messages;
     late MessageWindow window;
@@ -25,69 +25,144 @@ void main() {
       window = MessageWindow(storage, messages, () {});
     });
 
-    test('load 加载窗口内最近 windowSize 条并据此设置游标', () async {
+    test('load 加载尾部最新 windowSize 条；visible 恒为 windowSize，hasNewer=false',
+        () async {
       window.bindSession('s1');
       await window.load();
-      // 最近 windowSize 条：seq (_storeTotal-windowSize)..(_storeTotal-1)
+      // 尾部最新 windowSize 条：seq (_storeTotal-windowSize)..(_storeTotal-1)
       expect(messages.length, MessageWindow.windowSize);
+      expect(window.visible.length, MessageWindow.windowSize);
       expect(messages.first.seq, _storeTotal - MessageWindow.windowSize);
       expect(messages.last.seq, _storeTotal - 1);
-      expect(window.hasOlder, isTrue);
+      expect(window.hasOlder, isTrue); // 前面还有更早消息
+      expect(window.hasNewer, isFalse); // 已是尾部最新页
+      expect(window.canPage, isTrue);
     });
 
     test('hasOlder 边界：总数恰为窗口大小 → 没有更早消息', () async {
-      // 窗口大小整数倍时，旧逻辑用「长度 < windowSize」会误报 hasOlder=true；
-      // 正确实现应结合 DB 总数判断。
       storage.store['s1'] = _makeStore(MessageWindow.windowSize);
       window.bindSession('s1');
       await window.load();
-      expect(messages.length, MessageWindow.windowSize);
+      expect(window.visible.length, MessageWindow.windowSize);
       expect(window.hasOlder, isFalse);
+      expect(window.hasNewer, isFalse);
     });
 
     test('hasOlder 边界：总数比窗口多 1 → 仍有更早消息', () async {
       storage.store['s1'] = _makeStore(MessageWindow.windowSize + 1);
       window.bindSession('s1');
       await window.load();
-      expect(messages.length, MessageWindow.windowSize);
+      expect(window.visible.length, MessageWindow.windowSize);
       expect(window.hasOlder, isTrue);
     });
 
-    test('loadOlder 上滑加载更早一页并 prepend 到列表头', () async {
+    test('loadOlder 首次：去 DB 取更早一页并整体替换窗口页（列表长度仍恒为 windowSize）',
+        () async {
       window.bindSession('s1');
       await window.load();
       await window.loadOlder();
-      // 更早一页：prepend pageSize 条，总数 = windowSize + pageSize
+      // 窗口页被替换为更老的一页：visible 仍是 windowSize 条（seq 60..79）
       expect(messages.length, MessageWindow.windowSize + MessageWindow.pageSize);
-      expect(messages.first.seq,
-          _storeTotal - MessageWindow.windowSize - MessageWindow.pageSize);
-      expect(messages.last.seq, _storeTotal - 1);
+      expect(window.visible.length, MessageWindow.windowSize);
+      expect(
+        window.visible.first.seq,
+        _storeTotal - MessageWindow.windowSize - MessageWindow.pageSize,
+      );
+      expect(
+        window.visible.last.seq,
+        _storeTotal - MessageWindow.windowSize - 1,
+      );
+      expect(window.hasOlder, isTrue);
     });
 
-    test('连续 loadOlder 直到头部耗尽，hasOlder 翻 false', () async {
+    test('连续 loadOlder 翻到最老页：visible 为 seq 0..windowSize-1，hasOlder 翻 false',
+        () async {
       window.bindSession('s1');
       await window.load();
-      // 反复翻页直到没有更早消息（不依赖具体窗口/页大小，避免硬编码页数）
       while (window.hasOlder) {
         await window.loadOlder();
       }
       expect(messages.first.seq, 0);
       expect(messages.last.seq, _storeTotal - 1);
-      expect(window.hasOlder, isFalse);
-      // 再翻页应为空操作，不报错、不重复
-      await window.loadOlder();
-      expect(messages.first.seq, 0);
       expect(messages.length, _storeTotal);
+      expect(window.visible.first.seq, 0);
+      expect(window.visible.last.seq, MessageWindow.windowSize - 1);
+      expect(window.hasOlder, isFalse);
     });
 
-    test('append 分配递增的全局序号并写入同一引用列表', () {
-      final a = ChatMessage(text: 'a', isUser: true);
-      final b = ChatMessage(text: 'b', isUser: false);
-      window.append(a);
-      window.append(b);
-      expect(a.seq, 0);
-      expect(b.seq, 1);
-      expect(messages, [a, b]);
+    test('从最老页 loadNewer 翻回最新页：visible 最终为尾部最新 windowSize 条',
+        () async {
+      window.bindSession('s1');
+      await window.load();
+      while (window.hasOlder) {
+        await window.loadOlder();
+      }
+      // 现在停在最老页
+      expect(window.visible.first.seq, 0);
+      while (window.hasNewer) {
+        await window.loadNewer();
+      }
+      expect(
+        window.visible.first.seq,
+        _storeTotal - MessageWindow.windowSize,
+      );
+      expect(window.visible.last.seq, _storeTotal - 1);
+      expect(window.hasNewer, isFalse);
+    });
+
+    test('loadNewer 在已加载范围内纯移动游标（不查 DB，_messages 长度不变）',
+        () async {
+      window.bindSession('s1');
+      await window.load();
+      while (window.hasOlder) {
+        await window.loadOlder();
+      }
+      await window.loadNewer(); // _windowStart 变 >0
+      final lenBefore = messages.length;
+      // 再 loadOlder：此时 _windowStart>0，应纯游标移动不查 DB
+      await window.loadOlder();
+      expect(messages.length, lenBefore); // 未新增（没查 DB）
+      expect(window.visible.first.seq, 0); // 回到最老页
+    });
+
+    test('append 在最新页：窗口跟随最新（滑动，visible 长度恒为 windowSize，含新消息）',
+        () async {
+      window.bindSession('s1');
+      await window.load(); // 最新页 seq 80..99，_windowStart=0（最新页）
+      window.append(ChatMessage(text: 'new', isUser: false));
+      expect(window.visible.length, MessageWindow.windowSize);
+      expect(window.visible.last.text, 'new');
+      expect(
+        window.visible.first.seq,
+        _storeTotal - MessageWindow.windowSize + 1,
+      );
+    });
+
+    test('append 在历史页：新消息不进当前窗口页（不打断阅读），hasNewer 提示',
+        () async {
+      window.bindSession('s1');
+      await window.load();
+      await window.loadOlder(); // 翻到更老页（seq 60..79），仍在历史页
+      final before = window.visible.first.seq;
+      window.append(ChatMessage(text: 'new', isUser: false));
+      // 当前窗口页不变（仍是历史页内容）
+      expect(window.visible.first.seq, before);
+      expect(window.hasNewer, isTrue); // 有新内容可翻
+    });
+
+    test('jumpToLatestPage：从最老页一键翻到最新页', () async {
+      window.bindSession('s1');
+      await window.load();
+      while (window.hasOlder) {
+        await window.loadOlder();
+      }
+      await window.jumpToLatestPage();
+      expect(
+        window.visible.first.seq,
+        _storeTotal - MessageWindow.windowSize,
+      );
+      expect(window.visible.last.seq, _storeTotal - 1);
+      expect(window.hasNewer, isFalse);
     });
 
     test('reset 复位游标与翻页标志（消息列表由调用方负责清空）', () async {
@@ -95,21 +170,29 @@ void main() {
       await window.load();
       expect(window.hasOlder, isTrue);
       await window.loadOlder();
-      expect(messages.length, MessageWindow.windowSize + MessageWindow.pageSize);
+      expect(
+        messages.length,
+        MessageWindow.windowSize + MessageWindow.pageSize,
+      );
       window.reset();
-      // 窗口状态复位
       expect(window.hasOlder, isFalse);
+      expect(window.hasNewer, isFalse);
       expect(window.nextSeq, 0);
       // 重置后重新加载会从存储取回窗口（覆盖旧内容）
       window.bindSession('s1');
       await window.load();
       expect(messages.length, MessageWindow.windowSize);
-      expect(messages.first.seq, _storeTotal - MessageWindow.windowSize);
+      expect(
+        messages.first.seq,
+        _storeTotal - MessageWindow.windowSize,
+      );
     });
   });
 }
 
-/// 脚本化存储：按 (beforeSeq / afterSeq / limit) 分页返回升序消息。
+/// 脚本化存储：按 (beforeSeq / afterSeq / limit) 分页返回升序消息（与真实
+/// [ChatStorage] 的「正序契约」一致：beforeSeq 取最接近的前 take 条、afterSeq
+/// 取紧邻其后的前 take 条，均为升序）。
 class _FakeChatStorage implements ChatStorage {
   final Map<String, List<ChatMessage>> store = {};
 
