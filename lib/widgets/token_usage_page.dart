@@ -610,7 +610,7 @@ class _ModelCard extends StatelessWidget {
                     children: [
                       IconButton(
                         onPressed: onReset,
-                        icon: Icon(Icons.restart_alt,
+                        icon: Icon(Icons.delete_outline,
                             size: 18, color: nc.error),
                         tooltip: '清空该模型',
                         visualDensity: VisualDensity.compact,
