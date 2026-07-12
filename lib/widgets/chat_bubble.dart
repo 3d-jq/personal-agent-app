@@ -10,8 +10,9 @@ import 'inline_content.dart';
 import 'timeline_view.dart';
 import 'shimmer_text.dart';
 import 'task_plan_panel.dart';
+import '../services/tts_service.dart';
 
-enum _BubbleAction { copy, regenerate, delete }
+enum _BubbleAction { copy, speak, regenerate, delete }
 
 /// 与 inline_content.dart 中图片正则保持一致，用于判定块是否含图片（不可缓存）。
 final RegExp _kImagePattern =
@@ -113,6 +114,10 @@ class ChatBubble extends StatelessWidget {
         value: _BubbleAction.copy,
         child: _menuRow(nc, Icons.content_copy, '复制', false),
       ),
+      PopupMenuItem<_BubbleAction>(
+        value: _BubbleAction.speak,
+        child: _menuRow(nc, Icons.volume_up, '朗读', false),
+      ),
     ];
     if (onRegenerate != null) {
       menuItems.add(
@@ -150,6 +155,8 @@ class ChatBubble extends StatelessWidget {
     switch (result) {
       case _BubbleAction.copy:
         _copy(context);
+      case _BubbleAction.speak:
+        TtsService().speak(msg.text);
       case _BubbleAction.regenerate:
         onRegenerate?.call();
       case _BubbleAction.delete:
