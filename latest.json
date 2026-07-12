@@ -1,0 +1,6 @@
+{
+  "version": "1.4.32",
+  "buildNumber": 28,
+  "release_notes": "## v1.4.32\n\n- 提示词全量逻辑引导\n- 快速滚动降级 + Markdown 懒解析\n- 渐进式消息恢复\n- 「n 条新消息」浮条",
+  "apk_url": "https://gitee.com/3d-jq/personal_agent_app/releases/download/v1.4.32/app-release.apk"
+}
