@@ -38,14 +38,10 @@ Future<void> main() async {
     debugPrint('数据库迁移失败: $e');
   }
 
-  await runZonedGuarded(() async {
+    await runZonedGuarded(() async {
     await dotenv.load();
     await AppConfig.init();
     await getIt<ConnectivityService>().init();
-
-    // 统一初始化能力插件：加载自定义/内置 Skill、自动连接已启用的 MCP 服务器。
-    // （内置插件清单在 configureDependencies 中注册，此处执行一次性副作用。）
-    await PluginRegistry.instance.init();
 
     // 启动前台服务，保持应用在后台运行（均不阻塞首屏冷启动）
     unawaited(ForegroundService.start());
@@ -54,5 +50,9 @@ Future<void> main() async {
       const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
     );
     runApp(const App());
+
+    // MCP 插件初始化（连接服务器 + 拉工具列表）移到 runApp 之后，
+    // 不阻塞首屏展示。用户看到界面期间后台静默连接。
+    unawaited(PluginRegistry.instance.init());
   }, ErrorHandler.logError);
 }
