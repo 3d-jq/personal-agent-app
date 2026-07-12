@@ -12,6 +12,8 @@ import 'group_status_bar.dart';
 import 'group_message_bubble.dart';
 import 'group_chat_input_bar.dart';
 import 'group_mention_sheet.dart';
+import '../chat_scroll_to_bottom_button.dart';
+import '../../screens/chat_scroll_mixin.dart';
 
 /// 群聊主页
 ///
@@ -40,6 +42,10 @@ class _GroupChatScreenState extends State<GroupChatScreen>
   bool _showScrollBottom = false;
   bool _userScrolledUp = false;
   bool _autoScrolling = false;
+  // 用户上滑离开底部那一刻的「已读锚点」（与单聊 ChatScrollMixin 同算法）：
+  // 用于计算「n 条新消息」未读——自离开后底部出现更新的内容（含正在流式变长的那条）。
+  int _anchorSeq = -1;
+  int _anchorLen = 0;
   late final AnimationController _scrollAnim;
   // 点击「回到底部」动画起点 offset：_followBottom 据此在起点→当前底部间插值，
   // 消除旧实现「每帧直接 jumpTo(max)＝第一帧硬跳到底」的突兀感。
@@ -151,9 +157,25 @@ class _GroupChatScreenState extends State<GroupChatScreen>
       setState(() => _showScrollBottom = shouldShow);
     }
     if (distFromBottom > 60) {
-      _userScrolledUp = true;
+      if (!_userScrolledUp) {
+        _userScrolledUp = true;
+        // 记录上滑锚点：当时最后一条消息的 seq + 内容长度。
+        final last = _controller.messages.lastOrNull;
+        if (last != null) {
+          _anchorSeq = last.seq;
+          _anchorLen = last.text.length;
+        } else {
+          _anchorSeq = -1;
+          _anchorLen = 0;
+        }
+      }
     }
   }
+
+  /// 「n 条新消息」未读数：自用户上滑锚点以来底部新增的更新内容条数。
+  /// 算法与单聊 [computeUnreadCount] 完全一致，保证双端行为统一。
+  int _unreadCount() =>
+      computeUnreadCount(_controller.messages, _anchorSeq, _anchorLen, _userScrolledUp);
 
   /// 点击「回到底部」的每帧驱动：在动画起点 offset 与「当前」maxScrollExtent 之间
   /// 用 easeOutCubic 插值（等价 Operit `animateScrollTo` 的 spring 平滑滚动）。
@@ -173,6 +195,8 @@ class _GroupChatScreenState extends State<GroupChatScreen>
   void _scrollToBottom() {
     if (!_scrollCtrl.hasClients) return;
     _userScrolledUp = false;
+    _anchorSeq = -1;
+    _anchorLen = 0;
     _autoScrolling = true;
     _animStartOffset = _scrollCtrl.offset;
     _scrollAnim.stop();
@@ -189,6 +213,8 @@ class _GroupChatScreenState extends State<GroupChatScreen>
       return;
     }
     _userScrolledUp = false;
+    _anchorSeq = -1;
+    _anchorLen = 0;
     _autoScrolling = true;
     _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
     _autoScrolling = false;
@@ -211,6 +237,8 @@ class _GroupChatScreenState extends State<GroupChatScreen>
     _inputCtrl.clear();
     _inputFocus.unfocus();
     _userScrolledUp = false;
+    _anchorSeq = -1;
+    _anchorLen = 0;
     _controller.send(text);
   }
 
@@ -392,31 +420,28 @@ class _GroupChatScreenState extends State<GroupChatScreen>
                           curve: AppCurves.appear,
                           child: IgnorePointer(
                             ignoring: !_showScrollBottom,
-                              child: GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  _scrollToBottom();
-                                },
-                                child: ClipOval(
-                                  child: Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: nc.surface,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: nc.divider, width: 0.5),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.18),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(Icons.keyboard_arrow_down, size: 18, color: nc.textPrimary),
+                            // 双层 ListenableBuilder（与单聊对称）：
+                            // - 外层监听 _controller：消息条数变化（新一轮新气泡）时重建；
+                            // - 内层监听最后一条消息：Agent 流式变长时实时重建。
+                            // 两层互补，保证上滑期间「n 条新消息」实时刷新。
+                            child: ListenableBuilder(
+                              listenable: _controller,
+                              builder: (ctx, _) {
+                                final last = _controller.messages.isEmpty
+                                    ? null
+                                    : _controller.messages.last;
+                                return ListenableBuilder(
+                                  listenable: last ?? const AlwaysStoppedAnimation(0),
+                                  builder: (_, __) => ChatScrollToBottomButton(
+                                    unread: _userScrolledUp ? _unreadCount() : 0,
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
+                                      _scrollToBottom();
+                                    },
                                   ),
-                                ),
-                              ),
+                                );
+                              },
+                            ),
                           ),
                         ),
                       ),
