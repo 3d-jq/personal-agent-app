@@ -30,6 +30,7 @@ class _ChatScreenState extends State<ChatScreen>
     with WidgetsBindingObserver, ChatScrollMixin, TickerProviderStateMixin {
   // 侧边栏平推动画控制器
   late final AnimationController _sidebarCtrl;
+  late final Animation<double> _sidebarAnim;
   bool get _sidebarOpen => _sidebarCtrl.isCompleted || _sidebarCtrl.value > 0.5;
   // 拖拽手势内部状态
   double _dragStartX = 0;
@@ -66,7 +67,11 @@ class _ChatScreenState extends State<ChatScreen>
     super.initState();
     _sidebarCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: AppDurations.standard,
+    );
+    _sidebarAnim = CurvedAnimation(
+      parent: _sidebarCtrl,
+      curve: AppCurves.standard,
     );
     _sidebarCtrl.addListener(() => setState(() {}));
     _sidebarCtrl.addStatusListener(_onSidebarStatus);
@@ -213,7 +218,7 @@ class _ChatScreenState extends State<ChatScreen>
     final bottomSafe = MediaQuery.of(context).padding.bottom;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final sidebarWidth = MediaQuery.of(context).size.width;
-    final slideX = sidebarWidth * _sidebarCtrl.value;
+    final slideX = sidebarWidth * _sidebarAnim.value;
 
     final scaffold = Scaffold(
       backgroundColor: nc.background,
