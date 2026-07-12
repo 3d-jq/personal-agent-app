@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
 import '../core/design_tokens.dart';
 import '../services/token_usage_tracker.dart';
+import '../services/performance_monitor.dart';
 import 'common_widgets.dart';
 import 'model_pricing_defaults.dart';
 
@@ -25,11 +26,13 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
   void initState() {
     super.initState();
     _tracker.addListener(_onUpdate);
+    perf.addListener(_onUpdate);
   }
 
   @override
   void dispose() {
     _tracker.removeListener(_onUpdate);
+    perf.removeListener(_onUpdate);
     super.dispose();
   }
 
@@ -134,6 +137,7 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
                     ),
                   );
                 }),
+                _CompressionSection(nc: nc),
                 const SizedBox(height: SpaceToken.x3),
               ],
             ),
@@ -757,6 +761,72 @@ class _Empty extends StatelessWidget {
           ],
         ),
       );
+}
+
+// ── 压缩统计 ──
+
+class _CompressionSection extends StatelessWidget {
+  const _CompressionSection({required this.nc});
+  final AgentColors nc;
+
+  @override
+  Widget build(BuildContext context) {
+    final compress = perf.grouped()['compress'];
+    if (compress == null || compress.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('压缩记录',
+            style: TextStyle(
+                fontSize: FontToken.title,
+                fontWeight: WeightToken.semibold,
+                color: nc.textPrimary)),
+        const SizedBox(height: SpaceToken.md),
+        ElevatedCard(
+          nc: nc,
+          shadow: nc.shadowSm,
+          child: Column(
+            children: [
+              for (var i = 0; i < compress.length.clamp(0, 5); i++) ...[
+                if (i > 0)
+                  Divider(height: 0.5, thickness: 0.5, color: nc.divider,
+                      indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: SpaceToken.lg, vertical: SpaceToken.md),
+                  child: Row(
+                    children: [
+                      Icon(Icons.compress, size: 16, color: nc.success),
+                      const SizedBox(width: SpaceToken.sm),
+                      Text(compress[i].label,
+                          style: TextStyle(
+                              fontSize: FontToken.body,
+                              color: nc.textPrimary)),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: nc.success.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(compress[i].value,
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: WeightToken.semibold,
+                                color: nc.success)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 // ── 格式化助手 ──
