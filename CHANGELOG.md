@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.4.37 — 多厂商 TTS 语音服务 + Token 用量统计 (2026-07-13)
+
+### ✨ 多厂商 TTS 语音服务（借鉴 Operit 语音服务配置）
+- 新增 `HttpTtsProvider`（OpenAI `/audio/speech` 兼容，just_audio 播放）+ `TtsProviderFactory` 运行时切换。
+- `TtsServiceConfig`（ChangeNotifier 持久化 JSON）：`selectType` 同步切工厂即时反馈、`setType` 后台落盘。
+- 语音服务设置页：系统 / OpenAI / MiniMax / SiliconFlow / 豆包，支持 Base URL / API Key 等 HTTP 配置。
+- 设置页「语音服务」入口（trailing 显示当前厂商），统一走 `AppRouter.toSpeechServices`。
+
+### ✨ Token 用量统计（借鉴 Operit TokenUsageStatisticsScreen）
+- `TokenUsageTracker`：按「厂商~模型」累计 input/cached/output token 与请求数，自动核算成本（USD→¥ 汇率可编，默认 7.2），防抖落盘 JSON。
+- `TokenUsagePage`：汇率卡 / 消耗汇总卡 / 模型用量分布 / 逐模型卡片（单价编辑·按 token / 按次、单模型与全部清空）。
+- 模型参考单价表（UI 层参考值，可覆盖；服务层对模型名无知）。
+- OpenAI / Anthropic 协议层自动记录 usage（input / cached / output），按厂商归类。
+- 设置页新增「Token 消耗」入口，统一走 `AppRouter.toTokenUsage`。
+
 ## v1.4.36 — TTS 语音选择 + 窗口 20 游标翻页 (2026-07-12)
 
 ### ✨ 应用内 TTS 语音选择 + 一键打开系统 TTS 设置
