@@ -61,15 +61,38 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
               // ── Header ──
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
-                child: Text(
-                  AppConfig.appName,
-                  style: TextStyle(
-                    fontSize: FontToken.display,
-                    fontWeight: WeightToken.bold,
-                    color: nc.textPrimary,
-                    letterSpacing: -0.5,
-                    height: 1.2,
-                  ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        AppConfig.appName,
+                        style: TextStyle(
+                          fontSize: FontToken.display,
+                          fontWeight: WeightToken.bold,
+                          color: nc.textPrimary,
+                          letterSpacing: -0.5,
+                          height: 1.2,
+                        ),
+                      ),
+                    ),
+                    if (_isPush)
+                      GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          widget.onClose!();
+                        },
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: nc.surface,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.close, size: 18, color: nc.textSecondary),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               Padding(
@@ -261,7 +284,19 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
         );    // close SafeArea + end assignment
 
     // 平推模式：侧边栏作为独立区域渲染，不由 Drawer 管理，不加壳。
-    if (_isPush) return Container(color: nc.background, child: content);
+    // Material 包装确保主题继承正常（避免缺少祖先导致黄色下划线等异常），
+    // 同时加水平拖拽手势让用户能从左往右滑关闭侧边栏。
+    if (_isPush) {
+      return GestureDetector(
+        onHorizontalDragEnd: (d) {
+          // 右滑 → 关闭（拖速 > 300 或拖过半屏）
+          if (d.primaryVelocity != null && d.primaryVelocity! > 300) {
+            widget.onClose!();
+          }
+        },
+        child: Material(color: nc.background, child: content),
+      );
+    }
     return Drawer(backgroundColor: nc.background, child: content);
   }
 
