@@ -180,11 +180,16 @@ class IosSlideRoute<T> extends CupertinoPageRoute<T> {
       CurvedAnimation(parent: animation, curve: AppCurves.standard));
     final exitScale = Tween<double>(begin: 1.0, end: 0.98).animate(
       CurvedAnimation(parent: secondaryAnimation, curve: AppCurves.page));
-    // 转场圆角：Cupertino 在 Android 上不带原生圆角遮罩，手动加 ClipRRect
-    final borderRadius = BorderRadius.circular(
-      12 * (1 - animation.value).clamp(0.0, 1.0));
-    return ClipRRect(
-      borderRadius: borderRadius,
+    // 转场圆角：Cupertino 在 Android 上不带原生圆角遮罩，手动加 ClipRRect。
+    // 用 AnimatedBuilder 跟帧更新 borderRadius，过渡期间圆角 12px，动画完成后归零。
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final borderRadius = BorderRadius.circular(
+          12 * (1 - animation.value).clamp(0.0, 1.0));
+        if (borderRadius == BorderRadius.zero) return child!;
+        return ClipRRect(borderRadius: borderRadius, child: child);
+      },
       child: ScaleTransition(
         scale: exitScale,
         child: ScaleTransition(scale: enterScale, child: base),
