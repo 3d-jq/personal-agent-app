@@ -35,6 +35,7 @@ dependencies:
   geocoding: ^5.0.0
   flutter_tts: ^4.2.5
   just_audio: ^0.9.40
+  flutter_secure_storage: ^10.3.1
 
 dev_dependencies:
   flutter_test:
