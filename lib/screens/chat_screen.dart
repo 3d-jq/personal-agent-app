@@ -182,7 +182,10 @@ class _ChatScreenState extends State<ChatScreen>
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
     );
-    _needsUserAnchor.value = false;
+    // 等动画完成后再移除空白占位，避免 spacer 闪缩导致位置跳动
+    Future.delayed(const Duration(milliseconds: 300), () {
+      _needsUserAnchor.value = false;
+    });
   }
 
   void _resetInput() {
@@ -484,8 +487,13 @@ class _MessageList extends StatelessWidget {
         final hasOlder = controller.hasOlderMessages;
         final hasNewer = controller.hasNewerMessages;
         final visible = controller.visibleMessages;
-        // 列表长度 = 窗口页条数 + 各方向独立占位（只在确实能翻页时才渲染按钮，不出现灰色不可点状态）。
-        final itemCount = visible.length + (hasOlder ? 1 : 0) + (hasNewer ? 1 : 0);
+        // 发送后锚定：需在列表末尾插入空白占位，撑大 maxScrollExtent，
+        // 否则内容太短时 Scrollable.ensureVisible 滚不到视口顶部。
+        final anchorActive = needsUserAnchor?.value == true;
+        final botSpacer = anchorActive ? 1 : 0;
+        final itemCount = visible.length + (hasOlder ? 1 : 0) + (hasNewer ? 1 : 0) + botSpacer;
+        final hasBottomSpacer = anchorActive;
+        final spacerHeight = MediaQuery.of(context).size.height;
         return ListView.builder(
             controller: scrollController,
           physics: const BouncingScrollPhysics(),
@@ -522,6 +530,10 @@ class _MessageList extends StatelessWidget {
                   }
                 },
               );
+            }
+            // 底部空白占位：撑大 maxScrollExtent，确保用户消息能滚到视口顶部
+            if (hasBottomSpacer && i == itemCount - 1) {
+              return SizedBox(height: spacerHeight);
             }
             // 列表项（当前窗口页）
             final msgIdx = i - (hasOlder ? 1 : 0);
