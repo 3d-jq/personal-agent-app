@@ -44,8 +44,11 @@ class UpdateService {
       final dio = Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 8),
         receiveTimeout: const Duration(seconds: 10),
+        // 404 不抛异常，由 checkUpdate 内部处理为"无更新"
+        validateStatus: (status) => status != null && (status < 500 || status == 404),
       ));
       final resp = await dio.get(_remoteUrl);
+      if (resp.statusCode == 404) return null; // 无更新服务，静默跳过
       if (resp.statusCode != 200) {
         throw UpdateException('服务器返回 ${resp.statusCode}');
       }
