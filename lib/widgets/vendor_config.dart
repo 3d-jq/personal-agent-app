@@ -29,17 +29,17 @@ class VendorConfig {
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
-    'apiKey': apiKey,
     'baseUrl': baseUrl,
     'model': model,
     'isBuiltIn': isBuiltIn,
     'protocol': protocol,
+    // apiKey 不在 JSON 中，走 flutter_secure_storage 加密存储
   };
 
   factory VendorConfig.fromJson(Map<String, dynamic> j) => VendorConfig(
     id: j['id'] as String,
     name: j['name'] as String,
-    apiKey: j['apiKey'] as String? ?? '',
+    apiKey: j['apiKey'] as String? ?? '', // 迁移用：旧数据含明文 key
     baseUrl: j['baseUrl'] as String? ?? '',
     model: j['model'] as String? ?? '',
     isBuiltIn: j['isBuiltIn'] as bool? ?? false,
