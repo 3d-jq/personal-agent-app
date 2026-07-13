@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/physics.dart';
 
 /// 统一动画时长 token（Material 3）
@@ -159,49 +159,32 @@ class _PressableScaleState extends State<PressableScale>
 /// 是「逻辑不卡但视觉一顿一顿」的元凶。纯横向平移几乎零合成开销，转场顺滑，
 /// 且自带原生边缘返回手势与视差。
 ///
-/// 全项目统一页面转场：横滑 + 轻微 scale 纵深，无视差。
+/// 全项目统一页面转场：基于 [CupertinoPageRoute]，**刻意不做整页 fade**。
+/// Cupertino 自带边缘返回手势、系统圆角遮罩、返回动画时序。
 ///
-/// 进入页从右滑入（0.98→1.0 缩放），旧页轻微后沉（1.0→0.98）。
-/// scale 是纯 GPU transform、无离屏合成开销。
-/// 在左侧保留小区域接收边缘返回手势。
-///
-/// 历史：曾继承 CupertinoPageRoute（自带视差），后改为 PageRouteBuilder
-/// 去掉视差效果——视差让新旧页有「前后错位感」，不够扁平统一。
-class IosSlideRoute<T> extends PageRouteBuilder<T> {
-  IosSlideRoute({required Widget page})
-      : super(
-          pageBuilder: (_, __, ___) => page,
-          transitionDuration: AppDurations.standard,
-          reverseTransitionDuration: AppDurations.standard,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            // 横滑：屏幕宽的 30% 作为滑动距离
-            final slide = Tween<Offset>(
-              begin: const Offset(0.3, 0.0),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(
-              parent: animation,
-              curve: AppCurves.standard,
-            ));
-            // 进入页缩放
-            final enterScale = Tween<double>(begin: 0.98, end: 1.0).animate(
-              CurvedAnimation(parent: animation, curve: AppCurves.standard),
-            );
-            // 旧页缩放
-            final exitScale =
-                Tween<double>(begin: 1.0, end: 0.98).animate(CurvedAnimation(
-              parent: secondaryAnimation,
-              curve: AppCurves.page,
-            ));
+/// 在原生横滑基础上叠加轻微 scale 纵深：进入页 0.98→1.0，旧页 1.0→0.98 后沉。
+/// scale 是纯 GPU transform，无离屏合成开销。
+class IosSlideRoute<T> extends CupertinoPageRoute<T> {
+  IosSlideRoute({required Widget page}) : super(builder: (_) => page);
 
-            return SlideTransition(
-              position: slide,
-              child: ScaleTransition(
-                scale: exitScale,
-                child: ScaleTransition(scale: enterScale, child: child),
-              ),
-            );
-          },
-        );
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final base = super.buildTransitions(
+      context, animation, secondaryAnimation, child);
+    final enterScale = Tween<double>(begin: 0.98, end: 1.0).animate(
+      CurvedAnimation(parent: animation, curve: AppCurves.standard));
+    final exitScale = Tween<double>(begin: 1.0, end: 0.98).animate(
+      CurvedAnimation(parent: secondaryAnimation, curve: AppCurves.page));
+    return ScaleTransition(
+      scale: exitScale,
+      child: ScaleTransition(scale: enterScale, child: base),
+    );
+  }
 }
 
 /// BottomSheet 转场：全项目统一走 Flutter 原生 `showModalBottomSheet`，
