@@ -130,11 +130,8 @@ class _ChatScreenState extends State<ChatScreen>
       final inset = MediaQuery.of(context).viewInsets.bottom;
       final opening = inset > _lastViewInsetBottom;
       _lastViewInsetBottom = inset;
-      if (!opening || drawerOpen) return;
-      // 键盘弹起时（Scaffold 已 resize 抬起输入框），只要用户本来就在会话底部
-      // 附近（正在输入新消息的典型场景），就把列表补贴到底——确保最后一条消息不被
-      // 抬起的输入框遮挡。用「距底 < 1 屏」判断，比脆弱的 userScrolledUp 标志更稳，
-      // 且用户明显上翻看历史时（距底很远）不打扰其阅读位置。
+      if (!opening || drawerOpen || anchorScrolling) return;
+      // 键盘弹起时若用户在本就在底部附近，把列表补贴到底
       final pos = scrollController.position;
       final distFromBottom = pos.maxScrollExtent - pos.pixels;
       if (distFromBottom < pos.viewportDimension) {
