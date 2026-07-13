@@ -38,11 +38,6 @@ class _ChatScreenState extends State<ChatScreen>
   double _dragStartValue = 0;
   bool _draggingSidebar = false;
   bool _sidebarDragEngaged = false;
-  // 发送后滚动定位：将用户消息顶到视口顶部
-  final GlobalKey _userAnchorKey = GlobalKey();
-  // 用 ValueNotifier 传递标志位（非 widget 参数），
-  // 避免 AnimatedSwitcher 因 key 相同而复用旧 widget 实例导致 needsUserAnchor 永为 false。
-  final ValueNotifier<bool> _needsUserAnchor = ValueNotifier(false);
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   late final ChatController _controller;
@@ -130,8 +125,11 @@ class _ChatScreenState extends State<ChatScreen>
       final inset = MediaQuery.of(context).viewInsets.bottom;
       final opening = inset > _lastViewInsetBottom;
       _lastViewInsetBottom = inset;
-      if (!opening || drawerOpen || anchorScrolling) return;
-      // 键盘弹起时若用户在本就在底部附近，把列表补贴到底
+      if (!opening || drawerOpen) return;
+      // 键盘弹起时（Scaffold 已 resize 抬起输入框），只要用户本来就在会话底部
+      // 附近（正在输入新消息的典型场景），就把列表补贴到底——确保最后一条消息不被
+      // 抬起的输入框遮挡。用「距底 < 1 屏」判断，比脆弱的 userScrolledUp 标志更稳，
+      // 且用户明显上翻看历史时（距底很远）不打扰其阅读位置。
       final pos = scrollController.position;
       final distFromBottom = pos.maxScrollExtent - pos.pixels;
       if (distFromBottom < pos.viewportDimension) {
@@ -148,51 +146,8 @@ class _ChatScreenState extends State<ChatScreen>
       _controller.submitUserPromptResponse(text);
     } else {
       _resetInput();
-      _needsUserAnchor.value = true;
       _controller.sendMessage(text);
     }
-    // 发送后将用户消息顶到视口顶部（后续流式回复在下方展开）。
-    // sendMessage 内部 _notify() 在微任务中触发，_MessageList 在下帧重建并绑定 GlobalKey。
-    // 单层 postFrame：此刻新消息列表已布局完毕，Scrollable.ensureVisible 可直接定位。
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollUserToTop());
-  }
-
-  /// 将最后一条用户消息滚动到视口顶部
-  void _scrollUserToTop({int retries = 30}) {
-    final ctx = _userAnchorKey.currentContext;
-    if (ctx == null || !ctx.mounted) {
-      if (retries > 0 && _needsUserAnchor.value) {
-        WidgetsBinding.instance.addPostFrameCallback(
-            (_) => _scrollUserToTop(retries: retries - 1));
-      } else {
-        _needsUserAnchor.value = false;
-      }
-      return;
-    }
-    anchorScrolling = true;
-
-    // 用 GlobalKey 定位用户消息，滚到距顶部 ~120dp 的锚点位置。
-    if (scrollController.hasClients) {
-      final renderBox = ctx.findRenderObject() as RenderBox;
-      final pos = scrollController.position;
-      final scrollableState = Scrollable.of(ctx);
-      final scrollableBox =
-          (scrollableState.context as Element).findRenderObject() as RenderBox;
-      final dy =
-          renderBox.localToGlobal(Offset.zero, ancestor: scrollableBox).dy;
-      // 锚点：用户消息距视口顶部 120dp（非贴顶），留呼吸空间
-      const anchorMargin = 120.0;
-      final target = (pos.pixels + dy - anchorMargin).clamp(0.0, pos.maxScrollExtent);
-      scrollController.animateTo(
-        target,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
-    }
-
-    Future.delayed(const Duration(milliseconds: 300), () {
-      _needsUserAnchor.value = false;
-    });
   }
 
   void _resetInput() {
@@ -302,8 +257,6 @@ class _ChatScreenState extends State<ChatScreen>
                           onRetry: _onRetry,
                           onDelete: (m) => _controller.deleteMessage(m),
                           onRegenerate: (m) => _controller.regenerate(m),
-                          userAnchorKey: _userAnchorKey,
-                          needsUserAnchor: _needsUserAnchor,
                         ),
                 ),
                 if (showScrollBottom)
@@ -319,8 +272,7 @@ class _ChatScreenState extends State<ChatScreen>
                         return ListenableBuilder(
                           listenable: last ?? const AlwaysStoppedAnimation(0),
                           builder: (_, __) => ChatScrollToBottomButton(
-                            // 不显示「N 条新消息」未读计数，与顶部对齐的 Grok 风格一致
-                            unread: 0,
+                            unread: userScrolledUp ? unreadCount() : 0,
                             onTap: () async {
                               HapticFeedback.lightImpact();
                               await _controller.jumpToLatestPage();
@@ -435,8 +387,6 @@ class _ChatScreenState extends State<ChatScreen>
     }
     final w = MediaQuery.of(context).size.width;
     final delta = (d.globalPosition.dx - _dragStartX) / w;
-    // 统一逻辑：手指往右 → 值增加，手指往左 → 值减少
-    // 关闭态右拉打开，打开态左推关闭
     _sidebarCtrl.value = (_dragStartValue + delta).clamp(0.0, 1.0);
   }
 
@@ -469,11 +419,6 @@ class _MessageList extends StatelessWidget {
   final VoidCallback? onRetry;
   final ValueChanged<ChatMessage>? onDelete;
   final ValueChanged<ChatMessage>? onRegenerate;
-  /// 最后一条用户消息的 GlobalKey，用于发送后滚动定位。
-  final GlobalKey userAnchorKey;
-  /// 是否需要在本次构建时将最后一条用户消息绑定 GlobalKey（通过引用传递，
-  /// 避免 AnimatedSwitcher key 复用旧 widget 导致值不更新）。
-  final ValueNotifier<bool>? needsUserAnchor;
 
   const _MessageList({
     super.key,
@@ -482,8 +427,6 @@ class _MessageList extends StatelessWidget {
     this.onRetry,
     this.onDelete,
     this.onRegenerate,
-    required this.userAnchorKey,
-    this.needsUserAnchor,
   });
 
   @override
@@ -495,13 +438,8 @@ class _MessageList extends StatelessWidget {
         final hasOlder = controller.hasOlderMessages;
         final hasNewer = controller.hasNewerMessages;
         final visible = controller.visibleMessages;
-        // 发送后锚定：需在列表末尾插入空白占位，撑大 maxScrollExtent，
-        // 否则内容太短时 Scrollable.ensureVisible 滚不到视口顶部。
-        final anchorActive = needsUserAnchor?.value == true;
-        final botSpacer = anchorActive ? 1 : 0;
-        final itemCount = visible.length + (hasOlder ? 1 : 0) + (hasNewer ? 1 : 0) + botSpacer;
-        final hasBottomSpacer = anchorActive;
-        final spacerHeight = MediaQuery.of(context).size.height;
+        // 列表长度 = 窗口页条数 + 各方向独立占位（只在确实能翻页时才渲染按钮，不出现灰色不可点状态）。
+        final itemCount = visible.length + (hasOlder ? 1 : 0) + (hasNewer ? 1 : 0);
         return ListView.builder(
             controller: scrollController,
           physics: const BouncingScrollPhysics(),
@@ -539,23 +477,12 @@ class _MessageList extends StatelessWidget {
                 },
               );
             }
-            // 底部空白占位：撑大 maxScrollExtent，确保用户消息能滚到视口顶部
-            if (hasBottomSpacer && i == itemCount - 1) {
-              return SizedBox(height: spacerHeight);
-            }
             // 列表项（当前窗口页）
             final msgIdx = i - (hasOlder ? 1 : 0);
             final msg = visible[msgIdx];
-            // 发送后滚动定位：仅当 needsUserAnchor 为 true 且本条是可见列表中的
-            // 最后一条用户消息时，将 GlobalKey 绑定到 RepaintBoundary，
-            // 供 _scrollUserToTop 通过 Scrollable.ensureVisible 顶到视口顶部。
-            final isAnchor = (needsUserAnchor?.value == true) &&
-                msg.isUser &&
-                !visible.skip(msgIdx + 1).any((m) => m.isUser);
             // 每个气泡独立 RepaintBoundary：长列表滚动时只重绘进入/离开视口的
             // 气泡，已离屏/静止气泡不参与重绘，消除整列表滚动时的连带重绘卡顿。
             return RepaintBoundary(
-              key: isAnchor ? userAnchorKey : null,
               child: ListenableBuilder(
                 key: ValueKey(msg.id),
                 listenable: msg,
