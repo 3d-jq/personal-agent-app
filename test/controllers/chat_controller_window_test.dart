@@ -20,15 +20,15 @@ void main() {
     await AppDatabase.instance.initializeForTest(databaseFactoryFfi);
     await configureDependencies();
     if (getIt.isRegistered<AISettings>()) getIt.unregister<AISettings>();
-    getIt.registerSingleton<AISettings>(_FakeAISettings());
+    getIt.registerSingleton<AISettings>(FakeAISettings());
     if (getIt.isRegistered<ConnectivityService>()) {
       getIt.unregister<ConnectivityService>();
     }
-    getIt.registerSingleton<ConnectivityService>(_FakeConnectivity());
+    getIt.registerSingleton<ConnectivityService>(FakeConnectivity());
     if (getIt.isRegistered<ContextDocService>()) {
       getIt.unregister<ContextDocService>();
     }
-    getIt.registerSingleton<ContextDocService>(_FakeContextDocService());
+    getIt.registerSingleton<ContextDocService>(FakeContextDocService());
   });
 
   tearDown(() async {
@@ -37,9 +37,9 @@ void main() {
 
   test('窗口 getters/翻页转发：load 尾部最新 20、hasOlder=true/hasNewer=false、翻页正确',
       () async {
-    final fake = _FakeChatStorage();
+    final fake = FakeChatStorage();
     final c = ChatController(
-      aiSettings: _FakeAISettings(),
+      aiSettings: FakeAISettings(),
       chatStorage: fake,
     );
     await c.loadSession('s1');
@@ -64,8 +64,8 @@ void main() {
   });
 }
 
-class _FakeAISettings extends AISettings {
-  _FakeAISettings() {
+class FakeAISettings extends AISettings {
+  FakeAISettings() {
     vendors = [
       VendorConfig(
         id: 'v1',
@@ -84,12 +84,12 @@ class _FakeAISettings extends AISettings {
   Future<void> load() async {}
 }
 
-class _FakeConnectivity extends ConnectivityService {
+class FakeConnectivity extends ConnectivityService {
   @override
   Future<bool> check() async => true;
 }
 
-class _FakeContextDocService extends ContextDocService {
+class FakeContextDocService extends ContextDocService {
   @override
   Future<void> loadAll() async {}
 
@@ -101,7 +101,7 @@ class _FakeContextDocService extends ContextDocService {
 }
 
 /// 支持游标分页的脚本化存储（与真实 ChatStorage 的「正序契约」一致）。
-class _FakeChatStorage implements ChatStorage {
+class FakeChatStorage implements ChatStorage {
   final Map<String, List<ChatMessage>> store = {
     's1': [
       for (int i = 0; i < 100; i++)

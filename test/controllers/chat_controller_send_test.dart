@@ -26,15 +26,15 @@ void main() {
     await configureDependencies();
 
     if (getIt.isRegistered<AISettings>()) getIt.unregister<AISettings>();
-    getIt.registerSingleton<AISettings>(_FakeAISettings());
+    getIt.registerSingleton<AISettings>(FakeAISettings());
     if (getIt.isRegistered<ConnectivityService>()) {
       getIt.unregister<ConnectivityService>();
     }
-    getIt.registerSingleton<ConnectivityService>(_FakeConnectivity());
+    getIt.registerSingleton<ConnectivityService>(FakeConnectivity());
     if (getIt.isRegistered<ContextDocService>()) {
       getIt.unregister<ContextDocService>();
     }
-    getIt.registerSingleton<ContextDocService>(_FakeContextDocService());
+    getIt.registerSingleton<ContextDocService>(FakeContextDocService());
 
     // 拦截真实 AI 网络请求，用脚本化 SSE 驱动一次正常回复
     originalAdapter = AiHttpClient.sharedDio.httpClientAdapter;
@@ -48,7 +48,7 @@ void main() {
 
   test('发送消息：用户消息与 AI 回复都落进 controller.messages（回归守卫）',
       () async {
-    final fake = _FakeChatStorage();
+    final fake = FakeChatStorage();
     final controller = ChatController(chatStorage: fake);
 
     await controller.sendMessage('你好');
@@ -76,7 +76,7 @@ void main() {
     // aiMsg.text，把只写进 state.buf、没写进 state.typewriter 的问题覆盖掉。
     AiHttpClient.sharedDio.httpClientAdapter = _FakeAskUserAdapter();
 
-    final controller = ChatController(chatStorage: _FakeChatStorage());
+    final controller = ChatController(chatStorage: FakeChatStorage());
 
     // 不 await：sendMessage 内部订阅流后即返回，ask_user 会在流里阻塞等待用户回复。
     controller.sendMessage('帮我选个水果');
@@ -214,8 +214,8 @@ class _FakeAskUserAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-class _FakeAISettings extends AISettings {
-  _FakeAISettings() {
+class FakeAISettings extends AISettings {
+  FakeAISettings() {
     vendors = [
       VendorConfig(
         id: 'v1',
@@ -234,13 +234,13 @@ class _FakeAISettings extends AISettings {
   Future<void> load() async {}
 }
 
-class _FakeConnectivity extends ConnectivityService {
+class FakeConnectivity extends ConnectivityService {
   @override
   Future<bool> check() async => true;
 }
 
 /// 跳过真实文件 I/O（assets/文档目录），返回空上下文。
-class _FakeContextDocService extends ContextDocService {
+class FakeContextDocService extends ContextDocService {
   @override
   Future<void> loadAll() async {}
 
@@ -251,7 +251,7 @@ class _FakeContextDocService extends ContextDocService {
   bool hasUserProfile() => false;
 }
 
-class _FakeChatStorage implements ChatStorage {
+class FakeChatStorage implements ChatStorage {
   @override
   void clearCache() {}
 

@@ -29,7 +29,7 @@ void main() {
         messages: [m1, m2],
         updatedAt: DateTime(2025),
       );
-      final fake = _FakeChatStorage()..sessions = [session];
+      final fake = FakeChatStorage()..sessions = [session];
 
       final controller = ChatController(chatStorage: fake);
       await controller.loadSession('s1');
@@ -51,7 +51,7 @@ void main() {
         messages: [m1],
         updatedAt: DateTime(2025),
       );
-      final fake = _FakeChatStorage()..sessions = [session];
+      final fake = FakeChatStorage()..sessions = [session];
 
       final controller = ChatController(chatStorage: fake);
       await controller.loadSession('s1');
@@ -62,7 +62,7 @@ void main() {
   });
 }
 
-class _FakeChatStorage implements ChatStorage {
+class FakeChatStorage implements ChatStorage {
   List<ChatSession> sessions = [];
 
   @override

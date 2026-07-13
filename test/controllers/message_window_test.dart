@@ -15,12 +15,12 @@ const int _storeTotal = 100;
 
 void main() {
   group('MessageWindow 游标窗口页（列表恒为 windowSize）', () {
-    late _FakeChatStorage storage;
+    late FakeChatStorage storage;
     late List<ChatMessage> messages;
     late MessageWindow window;
 
     setUp(() {
-      storage = _FakeChatStorage()..store['s1'] = _makeStore(_storeTotal);
+      storage = FakeChatStorage()..store['s1'] = _makeStore(_storeTotal);
       messages = <ChatMessage>[];
       window = MessageWindow(storage, messages, () {});
     });
@@ -193,7 +193,7 @@ void main() {
 /// 脚本化存储：按 (beforeSeq / afterSeq / limit) 分页返回升序消息（与真实
 /// [ChatStorage] 的「正序契约」一致：beforeSeq 取最接近的前 take 条、afterSeq
 /// 取紧邻其后的前 take 条，均为升序）。
-class _FakeChatStorage implements ChatStorage {
+class FakeChatStorage implements ChatStorage {
   final Map<String, List<ChatMessage>> store = {};
 
   @override

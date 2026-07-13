@@ -11,8 +11,11 @@ import 'package:personal_agent_app/services/connectivity_service.dart';
 import 'package:personal_agent_app/services/context_doc_service.dart';
 import 'package:personal_agent_app/services/storage/app_database.dart';
 import 'package:personal_agent_app/widgets/ai_settings.dart';
-import 'package:personal_agent_app/widgets/vendor_config.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import '../fakes/fake_chat_storage.dart';
+import '../fakes/fake_ai_settings.dart';
+import '../fakes/fake_connectivity.dart';
+import '../fakes/fake_context_doc_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -23,19 +26,19 @@ void main() {
     await AppDatabase.instance.initializeForTest(databaseFactoryFfi);
     await configureDependencies();
 
-    final storage = _FakeChatStorage();
+    final storage = FakeChatStorage(sessions: [_sA, _sB], loadDelay: const Duration(milliseconds: 300));
     if (getIt.isRegistered<ChatStorage>()) getIt.unregister<ChatStorage>();
     getIt.registerSingleton<ChatStorage>(storage);
     if (getIt.isRegistered<AISettings>()) getIt.unregister<AISettings>();
-    getIt.registerSingleton<AISettings>(_FakeAISettings());
+    getIt.registerSingleton<AISettings>(FakeAISettings());
     if (getIt.isRegistered<ConnectivityService>()) {
       getIt.unregister<ConnectivityService>();
     }
-    getIt.registerSingleton<ConnectivityService>(_FakeConnectivity());
+    getIt.registerSingleton<ConnectivityService>(FakeConnectivity());
     if (getIt.isRegistered<ContextDocService>()) {
       getIt.unregister<ContextDocService>();
     }
-    getIt.registerSingleton<ContextDocService>(_FakeContextDocService());
+    getIt.registerSingleton<ContextDocService>(FakeContextDocService());
   });
 
   tearDown(() async => await resetDependencies());
@@ -83,93 +86,20 @@ void main() {
   });
 }
 
-/// 会话 sA / sB 各带消息，用于验证延迟切会话的端到端行为。
-class _FakeChatStorage implements ChatStorage {
-  final sA = ChatSession(
-    id: 'sA',
-    title: '会话A',
-    messages: [
-      ChatMessage(text: 'A 的消息1', isUser: true),
-      ChatMessage(text: 'A 的消息2', isUser: false),
-    ],
-    updatedAt: DateTime(2025),
-  );
-  final sB = ChatSession(
-    id: 'sB',
-    title: '会话B',
-    messages: [ChatMessage(text: 'B 的消息', isUser: true)],
-    updatedAt: DateTime(2025),
-  );
+// ── 测试数据 ──────────────────────────────────────────────────────────
 
-  @override
-  void clearCache() {}
-
-  @override
-  Future<void> delete(String id) async {}
-
-  @override
-  Future<List<ChatSession>> loadAll({int? limit, int? offset}) async => [sA, sB];
-
-  @override
-  Future<List<ChatSession>> loadChatSessions({int? limit, int? offset}) async =>
-      [sA, sB];
-
-  @override
-  Future<ChatSession?> loadSession(String id,
-      {int? afterSeq, int? limit, int? beforeSeq, bool full = false}) async {
-    // 人为放慢，模拟真实 DB 加载耗时，使「延迟加载」骨架屏在测试中可被稳定观察到
-    // （否则 switchSession 在单次 pump 内瞬时完成，骨架屏一闪而过无法断言）。
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (id == 'sA') return sA;
-    if (id == 'sB') return sB;
-    return null;
-  }
-
-  @override
-  Future<void> save(ChatSession session) async {}
-
-  @override
-  Future<int> countMessages(String sessionId) async => 0;
-
-  @override
-  Future<void> deleteMessage(String sessionId, String msgId) async {}
-}
-
-class _FakeAISettings extends AISettings {
-  _FakeAISettings() {
-    vendors = [
-      VendorConfig(
-        id: 'v1',
-        name: 'Test',
-        apiKey: 'sk-test',
-        baseUrl: 'https://fake.test/v1',
-        model: 'test-model',
-      )
-    ];
-    selectedVendorId = 'v1';
-    thinkingEffort = 'medium';
-    contextWindowSize = 256000;
-  }
-
-  @override
-  Future<void> load() async {}
-}
-
-class _FakeConnectivity extends ConnectivityService {
-  @override
-  Future<bool> check() async => true;
-}
-
-class _FakeContextDocService extends ContextDocService {
-  @override
-  Future<void> ensureDefaults() async {}
-
-  @override
-  Future<void> loadAll() async {}
-
-  @override
-  String cached(ContextDoc doc) => '';
-
-  @override
-  bool hasUserProfile() => false;
-}
+final _sA = ChatSession(
+  id: 'sA',
+  title: '会话A',
+  messages: [
+    ChatMessage(text: 'A 的消息1', isUser: true),
+    ChatMessage(text: 'A 的消息2', isUser: false),
+  ],
+  updatedAt: DateTime(2025),
+);
+final _sB = ChatSession(
+  id: 'sB',
+  title: '会话B',
+  messages: [ChatMessage(text: 'B 的消息', isUser: true)],
+  updatedAt: DateTime(2025),
+);
