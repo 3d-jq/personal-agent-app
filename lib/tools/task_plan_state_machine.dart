@@ -487,31 +487,33 @@ class TaskPlanStateMachine {
 
   // ── parent sync ──────────────────────────────────────────────────────
 
-  /// Recursively sync parent status based on children statuses.
+  /// Sync parent status based on children statuses, iterating upward through
+  /// the tree. Uses a while loop to avoid stack overflow on deeply nested plans.
   void _syncParents(TaskNode task) {
-    final parentId = task.parentId;
-    if (parentId == null) return;
-    final parent = plan.findTask(parentId);
-    if (parent == null) return;
+    var current = task;
+    while (current.parentId != null) {
+      final parentId = current.parentId!;
+      final parent = plan.findTask(parentId);
+      if (parent == null) return;
 
-    final children = plan.tasks.where((t) => t.parentId == parentId).toList();
-    if (children.isEmpty) return;
+      final children = plan.tasks.where((t) => t.parentId == parentId).toList();
+      if (children.isEmpty) return;
 
-    if (children.every((c) => c.status == TaskStatus.done)) {
-      parent.status = TaskStatus.done;
-    } else if (children.any((c) => c.status == TaskStatus.failed)) {
-      parent.status = TaskStatus.failed;
-    } else if (children.any((c) => c.status == TaskStatus.blocked) &&
-        !children.any((c) => c.status == TaskStatus.inProgress)) {
-      parent.status = TaskStatus.blocked;
-    } else if (children.any((c) => c.status == TaskStatus.inProgress)) {
-      parent.status = TaskStatus.inProgress;
-    } else {
-      parent.status = TaskStatus.pending;
+      if (children.every((c) => c.status == TaskStatus.done)) {
+        parent.status = TaskStatus.done;
+      } else if (children.any((c) => c.status == TaskStatus.failed)) {
+        parent.status = TaskStatus.failed;
+      } else if (children.any((c) => c.status == TaskStatus.blocked) &&
+          !children.any((c) => c.status == TaskStatus.inProgress)) {
+        parent.status = TaskStatus.blocked;
+      } else if (children.any((c) => c.status == TaskStatus.inProgress)) {
+        parent.status = TaskStatus.inProgress;
+      } else {
+        parent.status = TaskStatus.pending;
+      }
+
+      current = parent;
     }
-
-    // Recurse up
-    _syncParents(parent);
   }
 
   // ── helpers ───────────────────────────────────────────────────────────

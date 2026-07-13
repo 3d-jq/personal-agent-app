@@ -86,7 +86,11 @@ class ChatMessage extends ChangeNotifier {
     _textThrottleTimer = null;
     if (_textThrottleTrailing) {
       _textThrottleTrailing = false;
-      notifyListeners();
+      try {
+        notifyListeners();
+      } catch (_) {
+        // 对象可能已被 GC 回收且未调 dispose，安全兜底
+      }
     }
   }
 

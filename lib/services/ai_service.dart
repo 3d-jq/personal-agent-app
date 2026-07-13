@@ -42,6 +42,7 @@ class AIService {
     toolRegistry: toolRegistry,
     maxTokens: maxTokens,
     thinkingEffort: thinkingEffort,
+    enablePromptCache: isAnthropic,
   );
 
   AnthropicProtocol get _anthropic => AnthropicProtocol(
