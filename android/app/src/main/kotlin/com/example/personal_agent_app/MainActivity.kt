@@ -188,7 +188,7 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, TTS_CHANNEL).setMethodCallHandler { call, result ->
             if (call.method == "open") {
                 try {
-                    val intent = Intent(Settings.ACTION_TTS_SETTINGS)
+                    val intent = Intent("android.settings.TTS_SETTINGS")
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     startActivity(intent)
                     result.success(true)

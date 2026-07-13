@@ -12,6 +12,7 @@ import '../services/media_storage.dart';
 import '../services/notification_service.dart';
 import '../services/note_storage.dart';
 import '../services/reminder_storage.dart';
+import '../services/secure_storage.dart';
 import '../services/storage/app_database.dart';
 import '../services/theme_service.dart';
 import '../services/virtual_fs.dart';
@@ -47,6 +48,7 @@ Future<void> configureDependencies() async {
     ..registerSingleton<NotificationService>(NotificationService())
     ..registerSingleton<NoteStorage>(NoteStorage())
     ..registerSingleton<ReminderStorage>(ReminderStorage())
+    ..registerSingleton<SecureStorage>(SecureStorage())
     ..registerSingleton<ThemeService>(ThemeService())
     ..registerSingleton<VirtualFileSystem>(VirtualFileSystem())
     ..registerSingleton<SkillRegistry>(SkillRegistry());
