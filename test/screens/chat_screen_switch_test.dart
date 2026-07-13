@@ -57,19 +57,20 @@ void main() {
     await tester.tap(find.byIcon(Icons.list));
     await tester.pumpAndSettle();
 
-    // 点击会话 B：_onSessionTap 立即切到「加载对话中」骨架屏。
+    // 点击会话 B：侧边栏先关，关完才出骨架屏。
     await tester.tap(find.text('会话B'));
-    await tester.pump(); // setState 后立即同步一帧，使 _switching=true 的骨架生效
-    // 侧边栏关闭动画 + 模拟 DB 加载耗时（fake 故意延迟）期间：延迟加载生效，
-    // 骨架屏持续显示「加载对话中」，switchSession 尚未完成。
+    await tester.pump(); // 让 tap 处理完成，sideBarCtrl 开始 reverse
+    // 侧边栏关闭动画 300ms，小步 pump 驱动 AnimationController tick
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 150)); // 总共 350ms，动画完成
+    // 侧边栏关完→骨架屏出现
     expect(find.text('加载对话中'), findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 250));
 
-    // 切换完成后骨架屏退出动画结束，「加载对话中」消失。骨架屏 shimmer 是无限动画，
-    // 故不能用 pumpAndSettle（会挂起）；改用小步长循环 pump 直到旧骨架被 AnimatedSwitcher
-    // 移除（单次大跨度 pump 不会驱动动画 ticker，会导致退出动画观测不到）。
+    // 模拟 DB 加载耗时（fake 故意延迟 300ms），骨架屏持续显示。
+    // 骨架屏 shimmer 是无限动画，不能用 pumpAndSettle（会挂起），小步循环 pump。
     for (var i = 0;
-        i < 50 && find.text('加载对话中').evaluate().isNotEmpty;
+        i < 30 && find.text('加载对话中').evaluate().isNotEmpty;
         i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }

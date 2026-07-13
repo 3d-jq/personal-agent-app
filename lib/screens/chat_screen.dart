@@ -49,11 +49,10 @@ class _ChatScreenState extends State<ChatScreen>
   // 全部消息（供「n 条新消息」未读数计算）
   @override
   List<ChatMessage> get allMessages => _controller.messages;
-  // 侧边栏切会话的「延迟加载」标志：true 时显示「加载对话中」骨架屏，
-  // 把真正耗时的 switchSession（DB 加载 + 气泡重建）推迟到抽屉关闭动画结束后再跑。
+  // 侧边栏切会话的「延迟加载」标志：侧边栏关闭后才显示骨架屏，再执行 DB 加载。
   bool _switching = false;
-  // 待切换的会话 id：点选抽屉里的对话时先记下，待抽屉关闭动画结束（onDrawerChanged
-  // 回调）再执行真正耗时的 switchSession。空值同时防御「pop + closeDrawer」双触发。
+  // 待切换的会话 id：选中的会话先记下，侧边栏关闭动画结束
+  // 的 _onSidebarStatus(dismissed) 里才出骨架屏 + 执行切换。
   String? _pendingSwitchId;
   // 会话加载态：initialize 完成前显示骨架屏（仅冷启动/未就绪时），
   // 完成后淡入真实列表，使转场帧与首屏气泡 build 帧错峰。
@@ -165,11 +164,13 @@ class _ChatScreenState extends State<ChatScreen>
     await _controller.refreshSessions();
   }
 
-  /// 侧边栏动画状态变化：打开/关闭中暂停自动贴底；关闭完成时若有待切换会话则执行。
+  /// 侧边栏动画状态变化：关闭完成时先出骨架屏，再执行会话切换。
   void _onSidebarStatus(AnimationStatus status) {
     drawerOpen = status != AnimationStatus.dismissed;
-    if (status == AnimationStatus.dismissed) {
-      _triggerPendingSwitch();
+    if (status == AnimationStatus.dismissed && _pendingSwitchId != null) {
+      setState(() => _switching = true);
+      _performSwitch(_pendingSwitchId!);
+      _pendingSwitchId = null;
     }
   }
 
@@ -179,23 +180,14 @@ class _ChatScreenState extends State<ChatScreen>
       return;
     }
     _resetInput();
-    setState(() => _switching = true);
+    // 不立刻出骨架屏：先关侧边栏动画，等 dismiss 后 _onSidebarStatus 再触发切换
     _pendingSwitchId = id;
     _sidebarCtrl.reverse();
-    Future.delayed(AppDurations.expressive, _triggerPendingSwitch);
   }
 
-  /// 触发待切换会话：仅在确有 pending id 时执行，并立即清空，防御双触发。
-  void _triggerPendingSwitch() {
-    final id = _pendingSwitchId;
-    if (id == null) return;
-    _pendingSwitchId = null;
-    _performSwitch(id);
-  }
-
-  /// 延迟切会话的实际执行：抽屉关闭动画结束后才跑真正耗时的
-  /// [ChatController.switchSession]（DB 读取 + 40 条气泡重建），配合 [_switching]
-  /// 驱动的骨架屏，抽屉滑动丝滑无卡顿。
+  /// 延迟切会话的实际执行：侧边栏关闭后才跑真正耗时的
+  /// [ChatController.switchSession]（DB 读取 + 气泡重建），配合 [_switching]
+  /// 驱动的骨架屏，侧边栏关闭后无卡顿。
   Future<void> _performSwitch(String id) async {
     try {
       await _controller.switchSession(id);
