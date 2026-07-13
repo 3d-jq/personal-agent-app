@@ -75,6 +75,10 @@ mixin ChatScrollMixin<T extends StatefulWidget> on State<T> {
 
   bool _pendingScroll = false;
 
+  /// 发送后 scroll-to-top 动画期间为 true，临时阻止 scrollDown 覆盖滚动位置。
+  /// 动画结束后自动复位，不影响 userScrolledUp 等长期状态。
+  bool scrollLocked = false;
+
   /// 滚动回调：区分用户上滑与程序滚动，更新浮条与已读计数。
   void onScroll() {
     // 程序主动滚动期间忽略，避免误判用户上滑
@@ -116,11 +120,11 @@ mixin ChatScrollMixin<T extends StatefulWidget> on State<T> {
   void scrollDown() {
     // Drawer 打开时暂停自动贴底：避免每帧 jumpTo 与 Drawer 打开动画抢主 isolate
     if (drawerOpen) return;
-    if (userScrolledUp || autoScrolling || _pendingScroll) return;
+    if (scrollLocked || userScrolledUp || autoScrolling || _pendingScroll) return;
     _pendingScroll = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _pendingScroll = false;
-      if (!scrollController.hasClients || userScrolledUp || autoScrolling) return;
+      if (!scrollController.hasClients || scrollLocked || userScrolledUp || autoScrolling) return;
       autoScrolling = true;
       scrollController.jumpTo(scrollController.position.maxScrollExtent);
       autoScrolling = false;
