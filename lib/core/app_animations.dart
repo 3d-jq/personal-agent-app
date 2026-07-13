@@ -180,9 +180,15 @@ class IosSlideRoute<T> extends CupertinoPageRoute<T> {
       CurvedAnimation(parent: animation, curve: AppCurves.standard));
     final exitScale = Tween<double>(begin: 1.0, end: 0.98).animate(
       CurvedAnimation(parent: secondaryAnimation, curve: AppCurves.page));
-    return ScaleTransition(
-      scale: exitScale,
-      child: ScaleTransition(scale: enterScale, child: base),
+    // 转场圆角：Cupertino 在 Android 上不带原生圆角遮罩，手动加 ClipRRect
+    final borderRadius = BorderRadius.circular(
+      12 * (1 - animation.value).clamp(0.0, 1.0));
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: ScaleTransition(
+        scale: exitScale,
+        child: ScaleTransition(scale: enterScale, child: base),
+      ),
     );
   }
 }
