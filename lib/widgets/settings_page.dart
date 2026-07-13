@@ -397,6 +397,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     AppRouter.toLog(context);
                   },
                 ),
+                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
                 _SettingItem(
                   icon: Icons.analytics,
                   label: 'Token 消耗',
