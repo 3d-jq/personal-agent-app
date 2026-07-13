@@ -261,21 +261,37 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
                           fontSize: FontToken.small,
                           color: nc.textSecondary)),
                   const SizedBox(height: SpaceToken.sm),
-                  SegmentedButton<BillingMode>(
-                    selected: {mode},
-                    onSelectionChanged: (s) {
-                      if (s.isNotEmpty) setD(() => mode = s.first);
-                    },
-                    segments: const [
-                      ButtonSegment(
-                        value: BillingMode.token,
-                        label: Text('按 token'),
-                      ),
-                      ButtonSegment(
-                        value: BillingMode.count,
-                        label: Text('按次'),
-                      ),
-                    ],
+                  // 等宽分段：Row+Expanded 替代 SegmentedButton，
+                  // 避免按文字长度分配宽度导致的「长短不一 / 弹窗大小跳动」。
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: nc.surface,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: nc.divider, width: 0.5),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _BillingSegment(
+                            label: '按 token',
+                            selected: mode == BillingMode.token,
+                            onTap: () =>
+                                setD(() => mode = BillingMode.token),
+                            nc: nc,
+                          ),
+                        ),
+                        Expanded(
+                          child: _BillingSegment(
+                            label: '按次',
+                            selected: mode == BillingMode.count,
+                            onTap: () =>
+                                setD(() => mode = BillingMode.count),
+                            nc: nc,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: SpaceToken.md),
                   Text('单价以 ¥ 填写',
@@ -740,6 +756,46 @@ class _PriceField extends StatelessWidget {
           ),
         ),
       );
+}
+
+class _BillingSegment extends StatelessWidget {
+  const _BillingSegment({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.nc,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final AgentColors nc;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? nc.primary : Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Container(
+          height: 38,
+          alignment: Alignment.center,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: FontToken.small,
+                fontWeight: WeightToken.medium,
+                color: selected ? nc.onPrimary : nc.textSecondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _Empty extends StatelessWidget {
