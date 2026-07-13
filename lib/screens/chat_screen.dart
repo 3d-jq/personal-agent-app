@@ -34,8 +34,15 @@ class _ChatScreenState extends State<ChatScreen>
   bool get _sidebarOpen => _sidebarCtrl.isCompleted || _sidebarCtrl.value > 0.5;
   // 拖拽手势内部状态
   double _dragStartX = 0;
+  double _dragStartY = 0;
   double _dragStartValue = 0;
   bool _draggingSidebar = false;
+  bool _sidebarDragEngaged = false;
+  // 发送后滚动定位：将用户消息顶到视口顶部
+  final GlobalKey _userAnchorKey = GlobalKey();
+  // 用 ValueNotifier 传递标志位（非 widget 参数），
+  // 避免 AnimatedSwitcher 因 key 相同而复用旧 widget 实例导致 needsUserAnchor 永为 false。
+  final ValueNotifier<bool> _needsUserAnchor = ValueNotifier(false);
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   late final ChatController _controller;
@@ -144,8 +151,38 @@ class _ChatScreenState extends State<ChatScreen>
       _controller.submitUserPromptResponse(text);
     } else {
       _resetInput();
+      _needsUserAnchor.value = true;
       _controller.sendMessage(text);
     }
+    // 发送后将用户消息顶到视口顶部（后续流式回复在下方展开）。
+    // sendMessage 内部 _notify() 在微任务中触发，_MessageList 在下帧重建并绑定 GlobalKey。
+    // 单层 postFrame：此刻新消息列表已布局完毕，Scrollable.ensureVisible 可直接定位。
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollUserToTop());
+  }
+
+  /// 将最后一条用户消息滚动到视口顶部
+  void _scrollUserToTop({int retries = 30}) {
+    final ctx = _userAnchorKey.currentContext;
+    if (ctx == null || !ctx.mounted) {
+      // _MessageList 可能尚未重建（contextDocs.loadAll 仍在加载中），
+      // 等下一帧重试，最多 30 帧（~500ms）避免死循环。
+      if (retries > 0 && _needsUserAnchor.value) {
+        WidgetsBinding.instance.addPostFrameCallback(
+            (_) => _scrollUserToTop(retries: retries - 1));
+      } else {
+        _needsUserAnchor.value = false;
+      }
+      return;
+    }
+    // 设上滑标志，阻止 scrollDown（流式/错误回调中）在此后覆盖我们的滚动位置。
+    userScrolledUp = true;
+    Scrollable.ensureVisible(
+      ctx,
+      alignment: 0.0, // 0.0 = 顶部对齐
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+    );
+    _needsUserAnchor.value = false;
   }
 
   void _resetInput() {
@@ -255,6 +292,8 @@ class _ChatScreenState extends State<ChatScreen>
                           onRetry: _onRetry,
                           onDelete: (m) => _controller.deleteMessage(m),
                           onRegenerate: (m) => _controller.regenerate(m),
+                          userAnchorKey: _userAnchorKey,
+                          needsUserAnchor: _needsUserAnchor,
                         ),
                 ),
                 if (showScrollBottom)
@@ -366,12 +405,23 @@ class _ChatScreenState extends State<ChatScreen>
 
   void _onDragStart(DragStartDetails d) {
     _dragStartX = d.globalPosition.dx;
+    _dragStartY = d.globalPosition.dy;
     _dragStartValue = _sidebarCtrl.value;
+    _sidebarDragEngaged = false;
     _draggingSidebar = _sidebarCtrl.isDismissed || _sidebarOpen;
   }
 
   void _onDragUpdate(DragUpdateDetails d) {
     if (!_draggingSidebar) return;
+    final dx = (d.globalPosition.dx - _dragStartX).abs();
+    final dy = (d.globalPosition.dy - _dragStartY).abs();
+    // 仅当水平移动明显超过垂直移动时才激活侧边栏拖拽，
+    // 防止垂直滚动时手指的自然水平漂移误触侧边栏。
+    if (!_sidebarDragEngaged) {
+      if (dx < 12) return; // 至少 12px 水平移动才算
+      if (dx < dy * 0.8) return; // 水平不足垂直 80% → 纯滚动，忽略
+      _sidebarDragEngaged = true;
+    }
     final w = MediaQuery.of(context).size.width;
     final delta = (d.globalPosition.dx - _dragStartX) / w;
     // 统一逻辑：手指往右 → 值增加，手指往左 → 值减少
@@ -380,11 +430,21 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _onDragEnd(DragEndDetails d) {
-    if (!_draggingSidebar) return;
+    if (!_draggingSidebar || !_sidebarDragEngaged) {
+      _draggingSidebar = false;
+      _sidebarDragEngaged = false;
+      return;
+    }
     _draggingSidebar = false;
+    _sidebarDragEngaged = false;
     final velocity = d.primaryVelocity ?? 0;
-    // 过半 → 打开；快速右拉(>500) → 打开；快速左拉(<-500) → 关闭
-    if (_sidebarCtrl.value > 0.5 || velocity > 500) {
+    // 快速甩动优先于位置判断（双向对称）：
+    // 右甩(>500) → 打开；左甩(<-500) → 关闭；否则过半决定。
+    if (velocity > 500) {
+      _sidebarCtrl.forward();
+    } else if (velocity < -500) {
+      _sidebarCtrl.reverse();
+    } else if (_sidebarCtrl.value > 0.5) {
       _sidebarCtrl.forward();
     } else {
       _sidebarCtrl.reverse();
@@ -398,6 +458,11 @@ class _MessageList extends StatelessWidget {
   final VoidCallback? onRetry;
   final ValueChanged<ChatMessage>? onDelete;
   final ValueChanged<ChatMessage>? onRegenerate;
+  /// 最后一条用户消息的 GlobalKey，用于发送后滚动定位。
+  final GlobalKey userAnchorKey;
+  /// 是否需要在本次构建时将最后一条用户消息绑定 GlobalKey（通过引用传递，
+  /// 避免 AnimatedSwitcher key 复用旧 widget 导致值不更新）。
+  final ValueNotifier<bool>? needsUserAnchor;
 
   const _MessageList({
     super.key,
@@ -406,6 +471,8 @@ class _MessageList extends StatelessWidget {
     this.onRetry,
     this.onDelete,
     this.onRegenerate,
+    required this.userAnchorKey,
+    this.needsUserAnchor,
   });
 
   @override
@@ -459,9 +526,16 @@ class _MessageList extends StatelessWidget {
             // 列表项（当前窗口页）
             final msgIdx = i - (hasOlder ? 1 : 0);
             final msg = visible[msgIdx];
+            // 发送后滚动定位：仅当 needsUserAnchor 为 true 且本条是可见列表中的
+            // 最后一条用户消息时，将 GlobalKey 绑定到 RepaintBoundary，
+            // 供 _scrollUserToTop 通过 Scrollable.ensureVisible 顶到视口顶部。
+            final isAnchor = (needsUserAnchor?.value == true) &&
+                msg.isUser &&
+                !visible.skip(msgIdx + 1).any((m) => m.isUser);
             // 每个气泡独立 RepaintBoundary：长列表滚动时只重绘进入/离开视口的
             // 气泡，已离屏/静止气泡不参与重绘，消除整列表滚动时的连带重绘卡顿。
             return RepaintBoundary(
+              key: isAnchor ? userAnchorKey : null,
               child: ListenableBuilder(
                 key: ValueKey(msg.id),
                 listenable: msg,

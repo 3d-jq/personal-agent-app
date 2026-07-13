@@ -427,7 +427,8 @@ class ChatController extends ChangeNotifier {
     _pendingAttachmentType = '';
 
     _notify();
-    onNeedScroll?.call();
+    // 不在这里调 onNeedScroll：发送后的初始滚动由 UI 层决定（将用户消息顶到视口顶部），
+    // 而非由控制器强制跳到底部。流式期间的自动贴底仍在 _appendTypewriterText 中触发。
 
     final systemPrompt = PromptBuilder.buildMainPrompt(
       soulContext: contextDocs.cached(ContextDoc.soul),

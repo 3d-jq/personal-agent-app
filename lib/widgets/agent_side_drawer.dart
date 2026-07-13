@@ -89,7 +89,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                             color: nc.surface,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(Icons.close, size: 18, color: nc.textSecondary),
+                          child: Icon(Icons.arrow_back, size: 18, color: nc.textSecondary),
                         ),
                       ),
                   ],
