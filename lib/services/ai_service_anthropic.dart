@@ -7,6 +7,7 @@ import 'ai_service_base.dart';
 import 'chat_stream_event.dart';
 import 'log_service.dart';
 import 'token_usage_tracker.dart';
+import 'sse_parser.dart';
 
 /// Anthropic 协议实现
 class AnthropicProtocol {
@@ -132,13 +133,7 @@ class AnthropicProtocol {
         },
       );
 
-      // 关键：用「流式」Utf8Decoder（跨块保持状态）替代逐块 utf8.decode。
-      // 逐块独立解码会让被网络分包切断的多字节字符（emoji / 中文等）变成乱码；
-      // 流式解码器能正确拼接跨块字符，allowMalformed 仅替换真正非法的字节序列。
-      final stream = (response.data.stream as Stream<List<int>>)
-          .cast<List<int>>()
-          .transform(const Utf8Decoder(allowMalformed: true));
-      String buffer = '';
+      // SSE 行级解析由 SseParser 统一处理（buffer 管理、\r\n、大小上限）
       String? currentToolId;
       String? currentToolName;
       final currentToolInputBuf = StringBuffer();
@@ -147,17 +142,10 @@ class AnthropicProtocol {
       int? cachedCreation;
       int? outputTokens;
 
-      await for (final strChunk in stream) {
-        buffer += strChunk;
-        final lines = buffer.split('\n');
-        buffer = lines.removeLast();
-        for (final line in lines) {
-          if (!line.startsWith('data: ')) continue;
-          final data = line.substring(6).trim();
-          if (data.isEmpty) continue;
-          try {
-            final json = jsonDecode(data);
-            final type = json['type'] as String?;
+      await for (final data in SseParser.parse(response.data.stream)) {
+        try {
+          final json = jsonDecode(data);
+          final type = json['type'] as String?;
 
             if (type == 'message_start') {
             final usage = json['message']?['usage'];
@@ -231,7 +219,6 @@ class AnthropicProtocol {
           } catch (e) {
             log.w('AnthropicProtocol', 'Parse SSE line error: $e');
           }
-        }
       }
       if (inputTokens != null && outputTokens != null) {
         tokenTracker.record(

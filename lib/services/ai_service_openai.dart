@@ -7,6 +7,7 @@ import 'ai_service_base.dart';
 import 'chat_stream_event.dart';
 import 'log_service.dart';
 import 'token_usage_tracker.dart';
+import 'sse_parser.dart';
 
 /// OpenAI 协议实现
 class OpenAiProtocol {
@@ -195,28 +196,14 @@ class OpenAiProtocol {
         return;
       }
 
-      // 关键：用「流式」Utf8Decoder（跨块保持状态）替代逐块 utf8.decode。
-      // 逐块独立解码会让被网络分包切断的多字节字符（emoji / 中文等）变成乱码；
-      // 流式解码器能正确拼接跨块字符，allowMalformed 仅替换真正非法的字节序列。
-      final stream = (response.data.stream as Stream<List<int>>)
-          .cast<List<int>>()
-          .transform(const Utf8Decoder(allowMalformed: true));
-      String buffer = '';
-
+      // SSE 行级解析由 SseParser 统一处理（buffer 管理、\r\n、大小上限）
       final toolCallArgs = <int, StringBuffer>{};
       final toolCallIds = <int, String>{};
       final toolCallNames = <int, String>{};
       Map<dynamic, dynamic>? lastUsage;
 
-      await for (final strChunk in stream) {
-        buffer += strChunk;
-        final lines = buffer.split('\n');
-        buffer = lines.removeLast();
-        for (final line in lines) {
-          if (!line.startsWith('data: ')) continue;
-          final data = line.substring(6).trim();
-          if (data.isEmpty || data == '[DONE]') continue;
-          try {
+      await for (final data in SseParser.parse(response.data.stream)) {
+        try {
             final decoded = jsonDecode(data);
             final usage = decoded is Map ? decoded['usage'] : null;
             if (usage is Map) {
@@ -267,36 +254,9 @@ class OpenAiProtocol {
           } catch (e) {
             log.w('OpenAiProtocol', 'Parse SSE line error: $e');
           }
-        }
       }
 
       if (lastUsage != null) _recordUsage(lastUsage);
-
-      final remaining = buffer.trim();
-      if (remaining.isNotEmpty && !remaining.startsWith('[DONE]')) {
-        if (remaining.startsWith('data: ')) {
-          try {
-            final choice = firstChoice(jsonDecode(remaining.substring(6)));
-            final finishReason = choice?['finish_reason'] as String?;
-            if (finishReason == 'length') {
-              yield ErrorEvent('回复被长度限制截断，请简化问题或分多次询问');
-            }
-            final delta = choice?['delta'];
-            if (delta != null) {
-              final reasoning = delta['reasoning_content'] as String?;
-              if (reasoning != null && reasoning.isNotEmpty) {
-                yield ThinkingChunkEvent(reasoning);
-              }
-              final content = delta['content'] as String?;
-              if (content != null && content.isNotEmpty) {
-                yield TextChunkEvent(content);
-              }
-            }
-          } catch (e) {
-            log.w('OpenAiProtocol', 'Parse remaining SSE error: $e');
-          }
-        }
-      }
 
       if (outToolCalls != null && toolCallIds.isNotEmpty) {
         final indices = toolCallIds.keys.toList()..sort();
