@@ -21,7 +21,7 @@ void main() {
 
   group('ChatController DI', () {
     test('uses injected ChatStorage when provided', () async {
-      final fake = _FakeChatStorage()
+      final fake = FakeChatStorage()
         ..sessions = [
           ChatSession(
             id: 's1',
@@ -60,7 +60,7 @@ void main() {
         messages: [userMsg, aiMsg],
         updatedAt: DateTime(2025, 1, 1),
       );
-      final fake = _FakeChatStorage()..sessions = [session];
+      final fake = FakeChatStorage()..sessions = [session];
 
       final controller = ChatController(chatStorage: fake);
       await controller.loadSession('s1');
@@ -86,7 +86,7 @@ void main() {
         messages: [userMsg, aiMsg],
         updatedAt: DateTime(2025, 1, 1),
       );
-      final fake = _FakeChatStorage()..sessions = [session];
+      final fake = FakeChatStorage()..sessions = [session];
       final controller = ChatController(chatStorage: fake);
       await controller.loadSession('s1');
 
@@ -97,7 +97,7 @@ void main() {
   });
 }
 
-class _FakeChatStorage implements ChatStorage {
+class FakeChatStorage implements ChatStorage {
   List<ChatSession> sessions = [];
 
   @override

@@ -54,7 +54,7 @@ void main() {
     });
 
     test('allows replacing a service with a fake', () async {
-      final fake = _FakeChatStorage();
+      final fake = FakeChatStorage();
       await resetDependencies();
       getIt.registerSingleton<ChatStorage>(fake);
 
@@ -63,7 +63,7 @@ void main() {
   });
 }
 
-class _FakeChatStorage implements ChatStorage {
+class FakeChatStorage implements ChatStorage {
   @override
   void clearCache() {}
 

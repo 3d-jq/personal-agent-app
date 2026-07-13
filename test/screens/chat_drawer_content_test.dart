@@ -23,7 +23,7 @@ void main() {
     await AppDatabase.instance.initializeForTest(databaseFactoryFfi);
     await configureDependencies();
 
-    final fakeStorage = _FakeChatStorage()
+    final fakeStorage = FakeChatStorage()
       ..sessions = [
         ChatSession(
           id: 's1',
@@ -32,7 +32,7 @@ void main() {
           updatedAt: DateTime(2025),
         ),
       ];
-    final fakeSettings = _FakeAISettings();
+    final fakeSettings = FakeAISettings();
     controller = ChatController(chatStorage: fakeStorage, aiSettings: fakeSettings);
     await controller.refreshSessions();
   });
@@ -87,7 +87,7 @@ void main() {
   });
 }
 
-class _FakeChatStorage implements ChatStorage {
+class FakeChatStorage implements ChatStorage {
   List<ChatSession> sessions = [];
 
   @override
@@ -128,8 +128,8 @@ class _FakeChatStorage implements ChatStorage {
   Future<void> deleteMessage(String sessionId, String msgId) async {}
 }
 
-class _FakeAISettings extends AISettings {
-  _FakeAISettings() {
+class FakeAISettings extends AISettings {
+  FakeAISettings() {
     vendors = [
       VendorConfig(
         id: 'v1',

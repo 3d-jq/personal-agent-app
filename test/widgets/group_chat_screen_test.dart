@@ -60,7 +60,7 @@ void main() {
     // 保留其余真实 service，仅替换屏幕加载所需的三个依赖
     await configureDependencies();
     getIt.unregister<AISettings>();
-    getIt.registerSingleton<AISettings>(_FakeAISettings());
+    getIt.registerSingleton<AISettings>(FakeAISettings());
     getIt.unregister<AgentGroupStorage>();
     getIt.registerSingleton<AgentGroupStorage>(_FakeAgentGroupStorage());
     getIt.unregister<AgentStorage>();
@@ -368,7 +368,7 @@ void main() {
 
 /// ── Fakes ────────────────────────────────────────────────────────────
 
-class _FakeAISettings extends AISettings {
+class FakeAISettings extends AISettings {
   @override
   Future<void> load() async {
     // 跳过文件 IO，保持测试隔离

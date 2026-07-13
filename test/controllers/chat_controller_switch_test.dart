@@ -20,21 +20,21 @@ void main() {
     await configureDependencies();
 
     if (getIt.isRegistered<AISettings>()) getIt.unregister<AISettings>();
-    getIt.registerSingleton<AISettings>(_FakeAISettings());
+    getIt.registerSingleton<AISettings>(FakeAISettings());
     if (getIt.isRegistered<ConnectivityService>()) {
       getIt.unregister<ConnectivityService>();
     }
-    getIt.registerSingleton<ConnectivityService>(_FakeConnectivity());
+    getIt.registerSingleton<ConnectivityService>(FakeConnectivity());
     if (getIt.isRegistered<ContextDocService>()) {
       getIt.unregister<ContextDocService>();
     }
-    getIt.registerSingleton<ContextDocService>(_FakeContextDocService());
+    getIt.registerSingleton<ContextDocService>(FakeContextDocService());
   });
 
   tearDown(() async => await resetDependencies());
 
   test('switchSession：加载目标会话并清空旧会话消息', () async {
-    final storage = _FakeChatStorage();
+    final storage = FakeChatStorage();
     final controller = ChatController(chatStorage: storage);
 
     await controller.loadSession('sA');
@@ -53,7 +53,7 @@ void main() {
 }
 
 /// 两个会话各带消息，用于验证 switchSession 的清空/加载。
-class _FakeChatStorage implements ChatStorage {
+class FakeChatStorage implements ChatStorage {
   final sA = ChatSession(
     id: 'sA',
     title: 'A',
@@ -101,8 +101,8 @@ class _FakeChatStorage implements ChatStorage {
   Future<void> deleteMessage(String sessionId, String msgId) async {}
 }
 
-class _FakeAISettings extends AISettings {
-  _FakeAISettings() {
+class FakeAISettings extends AISettings {
+  FakeAISettings() {
     vendors = [
       VendorConfig(
         id: 'v1',
@@ -121,12 +121,12 @@ class _FakeAISettings extends AISettings {
   Future<void> load() async {}
 }
 
-class _FakeConnectivity extends ConnectivityService {
+class FakeConnectivity extends ConnectivityService {
   @override
   Future<bool> check() async => true;
 }
 
-class _FakeContextDocService extends ContextDocService {
+class FakeContextDocService extends ContextDocService {
   @override
   Future<void> ensureDefaults() async {}
 

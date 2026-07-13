@@ -45,13 +45,13 @@ void main() {
     await resetDependencies();
     await configureDependencies();
     getIt.unregister<AISettings>();
-    getIt.registerSingleton<AISettings>(_FakeAISettings());
+    getIt.registerSingleton<AISettings>(FakeAISettings());
     getIt.unregister<AgentGroupStorage>();
     getIt.registerSingleton<AgentGroupStorage>(_FakeGroupStorage());
     getIt.unregister<AgentStorage>();
     getIt.registerSingleton<AgentStorage>(_FakeAgentStorage());
     getIt.unregister<ConnectivityService>();
-    getIt.registerSingleton<ConnectivityService>(_FakeConnectivity());
+    getIt.registerSingleton<ConnectivityService>(FakeConnectivity());
     // 拦截真实的 AI 网络请求，用脚本化响应驱动派活流程。
     originalAdapter = AiHttpClient.sharedDio.httpClientAdapter;
     AiHttpClient.sharedDio.httpClientAdapter = _FakeChatAdapter();
@@ -203,8 +203,8 @@ class _FakeChatAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
-class _FakeAISettings extends AISettings {
-  _FakeAISettings() {
+class FakeAISettings extends AISettings {
+  FakeAISettings() {
     vendors = [
       VendorConfig(
         id: 'v1',
@@ -265,7 +265,7 @@ class _FakeAgentStorage implements AgentStorage {
   void clearCache() {}
 }
 
-class _FakeConnectivity extends ConnectivityService {
+class FakeConnectivity extends ConnectivityService {
   @override
   Future<bool> check() async => true;
 }

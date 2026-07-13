@@ -19,15 +19,15 @@ void main() {
     await configureDependencies();
 
     if (getIt.isRegistered<AISettings>()) getIt.unregister<AISettings>();
-    getIt.registerSingleton<AISettings>(_FakeAISettings());
+    getIt.registerSingleton<AISettings>(FakeAISettings());
     if (getIt.isRegistered<ConnectivityService>()) {
       getIt.unregister<ConnectivityService>();
     }
-    getIt.registerSingleton<ConnectivityService>(_FakeConnectivity());
+    getIt.registerSingleton<ConnectivityService>(FakeConnectivity());
     if (getIt.isRegistered<ContextDocService>()) {
       getIt.unregister<ContextDocService>();
     }
-    getIt.registerSingleton<ContextDocService>(_FakeContextDocService());
+    getIt.registerSingleton<ContextDocService>(FakeContextDocService());
   });
 
   tearDown(() async => await resetDependencies());
@@ -126,8 +126,8 @@ class _FakeBigStorage implements ChatStorage {
   Future<void> deleteMessage(String sessionId, String msgId) async {}
 }
 
-class _FakeAISettings extends AISettings {
-  _FakeAISettings() {
+class FakeAISettings extends AISettings {
+  FakeAISettings() {
     vendors = [
       VendorConfig(
         id: 'v1',
@@ -146,12 +146,12 @@ class _FakeAISettings extends AISettings {
   Future<void> load() async {}
 }
 
-class _FakeConnectivity extends ConnectivityService {
+class FakeConnectivity extends ConnectivityService {
   @override
   Future<bool> check() async => true;
 }
 
-class _FakeContextDocService extends ContextDocService {
+class FakeContextDocService extends ContextDocService {
   @override
   Future<void> ensureDefaults() async {}
 
