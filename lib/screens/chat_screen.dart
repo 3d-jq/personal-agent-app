@@ -174,11 +174,21 @@ class _ChatScreenState extends State<ChatScreen>
     }
     userScrolledUp = true;
 
-    // 用 scrollController 直接滚到列表顶部（pos=0）。
-    // 底部 spacer 已撑大 maxScrollExtent，滚到 0 后用户消息即在视口顶部。
+    // 用 GlobalKey 定位用户消息在视口中的实际位置，算出把它滚到顶部所需偏移。
     if (scrollController.hasClients) {
+      final renderBox = ctx.findRenderObject() as RenderBox;
+      final pos = scrollController.position;
+      // 获取 Scrollable 的 RenderObject，用作坐标参考
+      final scrollableState = Scrollable.of(ctx);
+      final scrollableBox =
+          (scrollableState.context as Element).findRenderObject() as RenderBox;
+      // widget 在视口（Scrollable viewport）坐标系中的 Y 偏移
+      final dy =
+          renderBox.localToGlobal(Offset.zero, ancestor: scrollableBox).dy;
+      // 目标：把 widget 顶到视口顶部
+      final target = (pos.pixels + dy).clamp(0.0, pos.maxScrollExtent);
       scrollController.animateTo(
-        0,
+        target,
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
       );
