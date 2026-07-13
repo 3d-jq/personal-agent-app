@@ -22,8 +22,8 @@ String stripArtifactTokens(String text) {
 }
 
 /// 单个 Agent 执行的挂死保护超时：超过即自动以「[连接超时]」收尾，
-/// 避免子 Agent 无响应时协调者死等（原 5 分钟过长，体感像永久卡死）。
-const _agentRunTimeout = Duration(seconds: 90);
+/// delegate_task 场景中子 Agent 可能需多轮工具调用 + LLM 思考，90s 过短。
+const _agentRunTimeout = Duration(seconds: 180);
 
 /// 子 Agent 一次执行的结局，供调用方更新 [AgentStatus]（错误/超时/被终止可见）。
 enum ChildOutcome {
