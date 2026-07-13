@@ -75,14 +75,6 @@ mixin ChatScrollMixin<T extends StatefulWidget> on State<T> {
 
   bool _pendingScroll = false;
 
-  /// 发送后 scroll-to-top 动画期间为 true，临时阻止 scrollDown 覆盖滚动位置。
-  /// 动画结束后自动复位，不影响 userScrolledUp 等长期状态。
-  bool scrollLocked = false;
-
-  /// 锚点滚动模式：用户消息置顶后，流式期间只在 AI 内容溢出视口底部时才平滑微调，
-  /// 而非每帧 jumpTo(bottom)。用户手动上滑或点回底按钮时退出此模式。
-  bool anchorScrolling = false;
-
   /// 滚动回调：区分用户上滑与程序滚动，更新浮条与已读计数。
   void onScroll() {
     // 程序主动滚动期间忽略，避免误判用户上滑
@@ -95,8 +87,6 @@ mixin ChatScrollMixin<T extends StatefulWidget> on State<T> {
       setState(() => showScrollBottom = shouldShow);
     }
     if (distFromBottom > 60) {
-      // 锚点模式下用户手动上滑 → 退出锚点，恢复普通行为
-      if (anchorScrolling) anchorScrolling = false;
       if (!userScrolledUp) {
         userScrolledUp = true;
         final last = lastMessage;
@@ -124,40 +114,13 @@ mixin ChatScrollMixin<T extends StatefulWidget> on State<T> {
   /// 流式期间实时贴底：下一帧布局完成后 jump 到末尾，消除 50ms 节流造成的「定期猛跳」。
   /// 用 [_pendingScroll] 去重，避免每个流式 token 都注册一次 postFrame 回调而堆积。
   void scrollDown() {
-    if (drawerOpen || autoScrolling || _pendingScroll) return;
-    if (userScrolledUp || scrollLocked) return;
-
-    // 锚点模式：AI 内容从用户消息下方长出，仅在溢出视口底部时才平滑微调。
-    if (anchorScrolling) {
-      if (!scrollController.hasClients) return;
-      final pos = scrollController.position;
-      final overflow = pos.maxScrollExtent - (pos.pixels + pos.viewportDimension);
-      if (overflow <= 12) return; // 内容仍在视口内，不滚
-      _pendingScroll = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _pendingScroll = false;
-        if (!scrollController.hasClients || !anchorScrolling) return;
-        final p = scrollController.position;
-        final newOverflow =
-            p.maxScrollExtent - (p.pixels + p.viewportDimension);
-        if (newOverflow <= 12) return;
-        autoScrolling = true;
-        scrollController
-            .animateTo(
-              (p.pixels + newOverflow).clamp(0.0, p.maxScrollExtent),
-              duration: const Duration(milliseconds: 150),
-              curve: Curves.easeOut,
-            )
-            .then((_) => autoScrolling = false);
-      });
-      return;
-    }
-
-    // 普通模式：流式贴底
+    // Drawer 打开时暂停自动贴底：避免每帧 jumpTo 与 Drawer 打开动画抢主 isolate
+    if (drawerOpen) return;
+    if (userScrolledUp || autoScrolling || _pendingScroll) return;
     _pendingScroll = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _pendingScroll = false;
-      if (!scrollController.hasClients || scrollLocked || userScrolledUp || autoScrolling) return;
+      if (!scrollController.hasClients || userScrolledUp || autoScrolling) return;
       autoScrolling = true;
       scrollController.jumpTo(scrollController.position.maxScrollExtent);
       autoScrolling = false;
@@ -204,7 +167,6 @@ mixin ChatScrollMixin<T extends StatefulWidget> on State<T> {
   void scrollToBottom() {
     if (!scrollController.hasClients) return;
     userScrolledUp = false;
-    anchorScrolling = false; // 用户主动回底，退出锚点模式
     anchorSeq = -1;
     anchorLen = 0;
     final pos = scrollController.position;
