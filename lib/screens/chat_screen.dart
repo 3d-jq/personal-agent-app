@@ -219,8 +219,8 @@ class _ChatScreenState extends State<ChatScreen>
     final bottomSafe = MediaQuery.of(context).padding.bottom;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final sidebarWidth = MediaQuery.of(context).size.width;
-    // 推到 85% 屏宽，始终留右侧主界面可见，形成"连成一片"效果
-    final pushRange = sidebarWidth * 0.85;
+    // 铺满全屏
+    final pushRange = sidebarWidth;
 
     final scaffold = Scaffold(
       backgroundColor: nc.background,
@@ -375,8 +375,7 @@ class _ChatScreenState extends State<ChatScreen>
   void _onDragStart(DragStartDetails d) {
     _dragStartX = d.globalPosition.dx;
     _dragStartValue = _sidebarCtrl.value;
-    final onEdge = _dragStartX < 24 && _sidebarCtrl.isDismissed;
-    _draggingSidebar = onEdge || _sidebarOpen;
+    _draggingSidebar = _sidebarCtrl.isDismissed || _sidebarOpen;
   }
 
   void _onDragUpdate(DragUpdateDetails d) {
