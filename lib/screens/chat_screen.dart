@@ -172,21 +172,20 @@ class _ChatScreenState extends State<ChatScreen>
       }
       return;
     }
-    userScrolledUp = true;
+    anchorScrolling = true;
 
-    // 用 GlobalKey 定位用户消息在视口中的实际位置，算出把它滚到顶部所需偏移。
+    // 用 GlobalKey 定位用户消息，滚到距顶部 ~120dp 的锚点位置。
     if (scrollController.hasClients) {
       final renderBox = ctx.findRenderObject() as RenderBox;
       final pos = scrollController.position;
-      // 获取 Scrollable 的 RenderObject，用作坐标参考
       final scrollableState = Scrollable.of(ctx);
       final scrollableBox =
           (scrollableState.context as Element).findRenderObject() as RenderBox;
-      // widget 在视口（Scrollable viewport）坐标系中的 Y 偏移
       final dy =
           renderBox.localToGlobal(Offset.zero, ancestor: scrollableBox).dy;
-      // 目标：把 widget 顶到视口顶部
-      final target = (pos.pixels + dy).clamp(0.0, pos.maxScrollExtent);
+      // 锚点：用户消息距视口顶部 120dp（非贴顶），留呼吸空间
+      const anchorMargin = 120.0;
+      final target = (pos.pixels + dy - anchorMargin).clamp(0.0, pos.maxScrollExtent);
       scrollController.animateTo(
         target,
         duration: const Duration(milliseconds: 200),
