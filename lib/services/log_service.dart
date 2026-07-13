@@ -142,7 +142,14 @@ class LogService {
       if (await backup.exists()) await backup.delete();
       await _logFile!.rename(backup.path);
       _sink = _logFile!.openWrite(mode: FileMode.append);
-    } catch (_) {}
+    } catch (_) {
+      // 轮转失败：至少尝试重新打开 sink 继续写，避免后续日志全部丢失
+      try {
+        if (_sink == null && _logFile != null) {
+          _sink = _logFile!.openWrite(mode: FileMode.append);
+        }
+      } catch (_) {}
+    }
   }
 
   String _timestamp() {

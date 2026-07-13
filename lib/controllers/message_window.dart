@@ -158,7 +158,8 @@ class MessageWindow {
     }
     if (_allNewerLoaded) return;
     try {
-      final newestSeq = _messages[_windowStart + windowSize - 1].seq;
+      final lastIdx = (_windowStart + windowSize - 1).clamp(0, _messages.length - 1);
+      final newestSeq = _messages[lastIdx].seq;
       final newer = await _storage.loadSession(
         _sessionId!,
         limit: pageSize,
@@ -178,9 +179,13 @@ class MessageWindow {
   }
 
   /// 一直翻到最新页（供「n 条新消息」浮条一键到达底部）。
+  /// 加循环上限防止 loadNewer 因 bug 不设 _allNewerLoaded 时死循环。
   Future<void> jumpToLatestPage() async {
-    while (hasNewer) {
+    const maxPages = 100;
+    var pages = 0;
+    while (hasNewer && pages < maxPages) {
       await loadNewer();
+      pages++;
     }
   }
 

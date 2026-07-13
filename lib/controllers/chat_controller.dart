@@ -52,16 +52,15 @@ class ChatController extends ChangeNotifier {
   /// 非 final：控制器被页面缓存复用时，需重新绑定到新页面的滚屏回调。
   VoidCallback? onNeedScroll;
 
-  /// 对话历史压缩管理器
   HistoryManager? _historyManager;
-  HistoryManager get _historyManagerInstance {
+  /// 确保 HistoryManager 已创建并与当前窗口大小同步。
+  /// 作为显式方法而非 getter，表明每次调用都可能修改 HistoryManager 状态。
+  HistoryManager _ensureHistoryManager() {
     final hm = _historyManager ??= HistoryManager(
       contextWindowSize: _aiSettings.contextWindowSize,
       maxOutputTokens: 4096,
       keepTokens: 8000,
     );
-    // 窗口大小可能在 AI 设置中变更，需同步到 HistoryManager——其压缩阈值与
-    // 压缩判断都依赖 contextWindowSize。否则改窗口后阈值/节点位置会固化在旧值。
     if (hm.contextWindowSize != _aiSettings.contextWindowSize) {
       hm.contextWindowSize = _aiSettings.contextWindowSize;
     }
@@ -124,9 +123,9 @@ class ChatController extends ChangeNotifier {
   bool? _usageLastStreaming;
   /// 当前对话估算占用的 token 数（消息估算 + 系统提示估算，均为字符启发式，非真实分词）。
   /// 带轻量缓存：当消息**列表引用**变更（切会话/压缩）、**条数**变化（新增一轮问答）、
-  /// **最后一条内容长度**变化（流式增长）或**最后一条流式状态翻转**（流式收尾）时重算，
-  /// 其余无关刷新复用缓存。注意：消息是 `_messages.add(...)` 追加的，列表引用不变，
-  /// 故不能只判断引用，否则正常对话中数字永远不刷新。
+  /// 估算当前上下文 token 用量（**含 memoization 缓存**，避免每帧重复估算）。
+  /// 仅在消息列表引用、长度、最后一条内容长度或流式状态变化时重算。
+  /// 这是有意的 getter 层缓存模式，不是隐藏副作用。调用方无需感知缓存逻辑。
   int get estimatedContextTokens {
     final last = _messages.isEmpty ? null : _messages.last;
     final lastLen = last?.text.length ?? 0;
@@ -139,14 +138,14 @@ class ChatController extends ChangeNotifier {
       _usageMsgLen = _messages.length;
       _usageLastLen = lastLen;
       _usageLastStreaming = lastStreaming;
-      _usageTokenCache = _historyManagerInstance.estimateMessagesTokens(_messages);
+      _usageTokenCache = _ensureHistoryManager().estimateMessagesTokens(_messages);
     }
     return (_usageTokenCache ?? 0) + (_systemPromptTokens ?? 0);
   }
   /// 上下文窗口大小（token 数）。
   int get contextWindowSize => _aiSettings.contextWindowSize;
   /// 触发压缩的 token 阈值。
-  int get contextCompressionThreshold => _historyManagerInstance.compressionThreshold;
+  int get contextCompressionThreshold => _ensureHistoryManager().compressionThreshold;
   /// 占用率（0~1+），估算值。
   double get contextUsageRatio =>
       contextWindowSize > 0 ? estimatedContextTokens / contextWindowSize : 0.0;
@@ -437,7 +436,7 @@ class ChatController extends ChangeNotifier {
       hasExistingProfile: contextDocs.hasUserProfile(),
     );
     // 系统提示占用计入面板上下文统计（问题：之前只算消息、漏算 SOUL/USER/rules/skill catalog）。
-    _systemPromptTokens = _historyManagerInstance.estimateTokens(systemPrompt);
+    _systemPromptTokens = _ensureHistoryManager().estimateTokens(systemPrompt);
 
     final ai = AIService(
       baseUrl: _aiSettings.baseUrl,
@@ -458,10 +457,10 @@ class ChatController extends ChangeNotifier {
     try {
       _isCompressing = true;
       _notify();
-      final compressed = await _historyManagerInstance.compressIfNeeded(
+      final compressed = await _ensureHistoryManager().compressIfNeeded(
         sendView,
         ai.summarize,
-        systemPromptTokens: _historyManagerInstance.estimateTokens(systemPrompt),
+        systemPromptTokens: _ensureHistoryManager().estimateTokens(systemPrompt),
       );
       if (!identical(compressed, sendView)) {
         sendView = compressed;
@@ -482,7 +481,7 @@ class ChatController extends ChangeNotifier {
       attachmentPath: pendingFile?.path,
       pendingType: pendingType,
       text: trimmed,
-      pendingFileSize: pendingFile?.lengthSync(),
+      pendingFileSize: await pendingFile?.length(),
     );
 
     final aiMsg = _messages.last;
@@ -526,7 +525,7 @@ class ChatController extends ChangeNotifier {
     _isLoading = false;
     _notify();
     // 停止后立即存盘，保留已生成的内容
-    saveSession();
+    saveSession().catchError((e) {});
   }
 
   // ═══ Stream handling ═══
@@ -811,7 +810,7 @@ class ChatController extends ChangeNotifier {
     }
     _isLoading = false;
     _notify();
-    saveSession();
+    saveSession().catchError((e) {});
   }
 
   void _onStreamError(Object e, _StreamState state, ChatMessage aiMsg) {
@@ -829,7 +828,7 @@ class ChatController extends ChangeNotifier {
     _isLoading = false;
     _notify();
     // 出错后也存盘，保留出错前已生成的内容
-    saveSession();
+    saveSession().catchError((e) {});
   }
 
   String _toolLabel(String name) => toolLabel(name);

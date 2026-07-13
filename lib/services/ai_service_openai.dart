@@ -17,6 +17,9 @@ class OpenAiProtocol {
   final ToolRegistry toolRegistry;
   final int maxTokens;
   final String thinkingEffort;
+  /// Anthropic 协议：system 消息注入 cache_control 启用 prompt caching。
+  /// OpenAI/兼容代理可能拒绝未知字段，故只对 Anthropic 启用。
+  final bool enablePromptCache;
 
   OpenAiProtocol({
     required this.baseUrl,
@@ -26,6 +29,7 @@ class OpenAiProtocol {
     required this.toolRegistry,
     this.maxTokens = 65536,
     this.thinkingEffort = 'medium',
+    this.enablePromptCache = false,
   });
 
   /// 从 SSE data (已 jsonDecode) 中取出 choices 的第一个元素。
@@ -59,7 +63,8 @@ class OpenAiProtocol {
               {
                 'type': 'text',
                 'text': m['content'],
-                'cache_control': {'type': 'ephemeral'},
+                if (enablePromptCache)
+                  'cache_control': {'type': 'ephemeral'},
               }
             ],
           };
@@ -144,7 +149,8 @@ class OpenAiProtocol {
               {
                 'type': 'text',
                 'text': m['content'],
-                'cache_control': {'type': 'ephemeral'},
+                if (enablePromptCache)
+                  'cache_control': {'type': 'ephemeral'},
               }
             ],
           };
