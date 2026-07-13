@@ -174,16 +174,20 @@ class _ChatScreenState extends State<ChatScreen>
       }
       return;
     }
-    // 设上滑标志，阻止 scrollDown（流式/错误回调中）在此后覆盖我们的滚动位置。
-    userScrolledUp = true;
+    // 临时锁住 scrollDown，防止流式/错误回调在动画期间覆盖滚动位置。
+    // 用 _scrollLocked 而非 userScrolledUp：动画结束后自动复位，
+    // 流式自动贴底随后正常恢复。
+    scrollLocked = true;
     Scrollable.ensureVisible(
       ctx,
       alignment: 0.0, // 0.0 = 顶部对齐
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
     );
-    // 等动画完成后再移除空白占位，避免 spacer 闪缩导致位置跳动
+    // 等动画完成后再移除空白占位并解锁 scrollDown，
+    // 使后续流式回复可正常自动贴底。
     Future.delayed(const Duration(milliseconds: 300), () {
+      scrollLocked = false;
       _needsUserAnchor.value = false;
     });
   }
