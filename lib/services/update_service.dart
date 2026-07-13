@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
+import 'secure_token.dart';
 
 class UpdateException implements Exception {
   final String reason;
@@ -41,14 +42,17 @@ class UpdateService {
   /// 抛出 [UpdateException] 时表示网络/解析错误。
   static Future<UpdateInfo?> checkUpdate(String currentVersion) async {
     try {
+      final token = await SecureToken.getGiteeToken();
+      if (token == null) return null; // 无令牌，跳过检查
+
       final dio = Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 8),
         receiveTimeout: const Duration(seconds: 10),
-        // 404 不抛异常，由 checkUpdate 内部处理为"无更新"
-        validateStatus: (status) => status != null && (status < 500 || status == 404),
       ));
-      final resp = await dio.get(_remoteUrl);
-      if (resp.statusCode == 404) return null; // 无更新服务，静默跳过
+      final resp = await dio.get(
+        _remoteUrl,
+        queryParameters: {'access_token': token},
+      );
       if (resp.statusCode != 200) {
         throw UpdateException('服务器返回 ${resp.statusCode}');
       }
