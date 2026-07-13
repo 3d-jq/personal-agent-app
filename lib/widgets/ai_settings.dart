@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
 import '../services/crypto_util.dart';
 import '../services/log_service.dart';
+import '../services/secure_storage.dart';
 import 'vendor_config.dart';
 
 /// AI 设置管理器
@@ -89,6 +90,7 @@ class AISettings extends ChangeNotifier {
 
   void removeVendor(String id) {
     vendors.removeWhere((x) => x.id == id);
+    SecureStorage().delete('vendor_key_$id');
     if (selectedVendorId == id) {
       selectedVendorId = vendors.isNotEmpty ? vendors.first.id : null;
     }
@@ -114,11 +116,30 @@ class AISettings extends ChangeNotifier {
             [];
         thinkingEffort = d['thinkingEffort'] as String? ?? 'medium';
         contextWindowSize = d['contextWindowSize'] as int? ?? 256000;
+
+        // 迁移：从 JSON 读入的 API key 写入 SecureStorage，之后 JSON 不再含 key
+        bool migrated = false;
+        final storage = SecureStorage();
+        for (final v in vendors) {
+          if (v.apiKey.isNotEmpty) {
+            try {
+              final existing =
+                  await storage.read('vendor_key_${v.id}');
+              if (existing == null || existing.isEmpty) {
+                await storage.write('vendor_key_${v.id}', v.apiKey);
+                migrated = true;
+              }
+            } catch (_) { /* SecureStorage 不可用 */ }
+          }
+        }
+        if (migrated) await save(); // 重写 JSON（不含 apiKey）
       }
     } catch (e) {
       log.w('AISettings', '加载AI设置失败: $e');
     }
     _ensureBuiltIn();
+    // 恢复 SecureStorage 中的 API key 到内存对象
+    await _restoreKeys();
     if (selectedVendorId == null && vendors.isNotEmpty) {
       selectVendor(vendors.first.id);
     }
@@ -126,7 +147,30 @@ class AISettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 将 SecureStorage 中的 API key 恢复到内存 [vendors] 对象中。
+  Future<void> _restoreKeys() async {
+    final storage = SecureStorage();
+    for (int i = 0; i < vendors.length; i++) {
+      final v = vendors[i];
+      try {
+        final key = await storage.read('vendor_key_${v.id}');
+        if (key != null && key.isNotEmpty) {
+          vendors[i] = v.copyWith(apiKey: key);
+        }
+      } catch (_) { /* SecureStorage 不可用 */ }
+    }
+  }
+
   Future<void> save() async {
+    final storage = SecureStorage();
+    // API key 存 SecureStorage，JSON 不含 key
+    for (final v in vendors) {
+      if (v.apiKey.isNotEmpty) {
+        try {
+          await storage.write('vendor_key_${v.id}', v.apiKey);
+        } catch (_) { /* SecureStorage 不可用 */ }
+      }
+    }
     await _file().then(
       (f) => f.writeAsString(
         jsonEncode({

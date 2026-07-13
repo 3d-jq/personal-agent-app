@@ -6,6 +6,7 @@ import 'tts_provider.dart';
 import 'tts_http_provider.dart';
 import 'tts_service.dart';
 import 'log_service.dart';
+import 'secure_storage.dart';
 
 /// 语音服务配置：多厂商（系统 / OpenAI / MiniMax / SiliconFlow / 豆包等）。
 ///
@@ -57,7 +58,30 @@ class TtsServiceConfig extends ChangeNotifier {
           );
         }
         baseUrl = d['baseUrl'] ?? '';
-        apiKey = d['apiKey'] ?? '';
+        // API key 优先从 SecureStorage 读取，旧 JSON 中的明文 key 作为迁移源
+        // 测试环境 SecureStorage 不可用时，回退到 JSON 明文（仅开发/测试场景）
+        String keyFromSecure = '';
+        try {
+          keyFromSecure =
+              await SecureStorage().read('tts_key_${_type.name}') ?? '';
+        } catch (_) {
+          /* SecureStorage 不可用，跳过 */
+        }
+        final legacy = d['apiKey'] as String? ?? '';
+        if (keyFromSecure.isNotEmpty) {
+          apiKey = keyFromSecure;
+        } else if (legacy.isNotEmpty) {
+          // 迁移：旧 JSON 明文 → SecureStorage
+          apiKey = legacy;
+          try {
+            await SecureStorage().write('tts_key_${_type.name}', legacy);
+            await _save(); // 重写 JSON（不含 apiKey）
+          } catch (_) {
+            /* SecureStorage 不可用，保留 JSON 明文 */
+          }
+        } else {
+          apiKey = '';
+        }
         model = d['model'] ?? '';
         voiceId = d['voiceId'] ?? '';
         rate = (d['rate'] as num?)?.toDouble() ?? 0.5;
@@ -135,11 +159,16 @@ class TtsServiceConfig extends ChangeNotifier {
 
   Future<void> _save() async {
     try {
+      // API key 存 SecureStorage，JSON 不含 key
+      try {
+        if (apiKey.isNotEmpty) {
+          await SecureStorage().write('tts_key_${_type.name}', apiKey);
+        }
+      } catch (_) { /* SecureStorage 不可用 */ }
       final f = await _file();
       await f.writeAsString(jsonEncode({
         'type': _type.name,
         'baseUrl': baseUrl,
-        'apiKey': apiKey,
         'model': model,
         'voiceId': voiceId,
         'rate': rate,

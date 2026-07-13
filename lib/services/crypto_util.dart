@@ -12,8 +12,14 @@ import 'dart:convert';
 class CryptoUtil {
   CryptoUtil._();
 
-  /// 应用级固定混淆密钥。修改此处需重新加密所有 .env 中的值。
-  static const String _secret = 'DWeisApp2026';
+  /// 应用级混淆密钥。优先从构建参数读取，无法获取时用硬编码兜底。
+  /// 构建: flutter build apk --dart-define=XOR_SECRET=your_key
+  static String get _secret {
+    // ignore: invalid_use_of_visible_for_testing_member
+    const fromBuild = String.fromEnvironment('XOR_SECRET');
+    if (fromBuild.isNotEmpty) return fromBuild;
+    return 'DWeisApp2026';
+  }
 
   /// 解密 Base64 密文。
   ///
