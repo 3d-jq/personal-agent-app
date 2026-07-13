@@ -174,20 +174,17 @@ class _ChatScreenState extends State<ChatScreen>
       }
       return;
     }
-    // 临时锁住 scrollDown，防止流式/错误回调在动画期间覆盖滚动位置。
-    // 用 _scrollLocked 而非 userScrolledUp：动画结束后自动复位，
-    // 流式自动贴底随后正常恢复。
-    scrollLocked = true;
+    // 设上滑标志，阻止 scrollDown（流式/错误回调中）在此后覆盖我们的滚动位置。
+    // 用户消息稳定在视口顶部，AI 回复在其下方流式展开。
+    userScrolledUp = true;
     Scrollable.ensureVisible(
       ctx,
       alignment: 0.0, // 0.0 = 顶部对齐
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
     );
-    // 等动画完成后再移除空白占位并解锁 scrollDown，
-    // 使后续流式回复可正常自动贴底。
+    // 等动画完成后再移除空白占位
     Future.delayed(const Duration(milliseconds: 300), () {
-      scrollLocked = false;
       _needsUserAnchor.value = false;
     });
   }
@@ -316,7 +313,8 @@ class _ChatScreenState extends State<ChatScreen>
                         return ListenableBuilder(
                           listenable: last ?? const AlwaysStoppedAnimation(0),
                           builder: (_, __) => ChatScrollToBottomButton(
-                            unread: userScrolledUp ? unreadCount() : 0,
+                            // 不显示「N 条新消息」未读计数，与顶部对齐的 Grok 风格一致
+                            unread: 0,
                             onTap: () async {
                               HapticFeedback.lightImpact();
                               await _controller.jumpToLatestPage();
