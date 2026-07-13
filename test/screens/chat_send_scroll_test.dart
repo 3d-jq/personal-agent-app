@@ -8,6 +8,7 @@ import 'package:personal_agent_app/services/connectivity_service.dart';
 import 'package:personal_agent_app/services/context_doc_service.dart';
 import 'package:personal_agent_app/services/storage/app_database.dart';
 import 'package:personal_agent_app/widgets/ai_settings.dart';
+import 'package:personal_agent_app/widgets/chat_bubble.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../fakes/fake_chat_storage.dart';
 import '../fakes/fake_ai_settings.dart';
@@ -56,7 +57,6 @@ void main() {
           itemCount: 15,
           itemBuilder: (context, i) {
             if (i == 8) {
-              // 目标 item：锚定它，后续验证它是否在视口顶部
               return RepaintBoundary(
                 key: anchorKey,
                 child: Container(
@@ -78,39 +78,32 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    // 先滚到底部（模拟 sendMessage 内部的 scrollDown）
+    // 先滚到底部
     final scrollable = tester.widget<Scrollable>(find.byType(Scrollable));
     scrollable.controller!.jumpTo(
       scrollable.controller!.position.maxScrollExtent,
     );
     await tester.pump();
 
-    // 确认 anchor widget 已渲染
     final ctx = anchorKey.currentContext;
     expect(ctx, isNotNull);
     expect(ctx!.mounted, isTrue);
 
-    // 执行 Scrollable.ensureVisible，把目标顶到视口顶部
-    Scrollable.ensureVisible(
-      ctx,
-      alignment: 0.0, // 顶部对齐
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-    );
-    // 等待动画完成
+    Scrollable.ensureVisible(ctx, alignment: 0.0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    // 验证：目标 widget 的全局 Y 坐标应接近 AppBar 底部（~56 + 8 = 64）
     final renderBox = ctx.findRenderObject()! as RenderBox;
     final pos = renderBox.localToGlobal(Offset.zero);
-    expect(pos.dy, lessThan(80)); // 在 AppBar 下方附近
-    expect(pos.dy, greaterThan(40)); // 不低于 AppBar
+    expect(pos.dy, lessThan(80));
+    expect(pos.dy, greaterThan(40));
   });
 
   // ── 集成测试：ChatScreen 发送后用户消息在视口顶部 ──
 
-  testWidgets('ChatScreen 发送消息后用户消息可见且偏上', (tester) async {
+  testWidgets('发送消息后用户消息在视口顶部区域', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData(extensions: [AgentColors.light()]),
@@ -119,28 +112,57 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 验证输入框存在
     expect(find.byType(TextField), findsOneWidget);
 
-    // 输入文字
-    await tester.enterText(find.byType(TextField), '你好测试消息');
+    // 发送一条消息
+    await tester.enterText(find.byType(TextField), '测试顶部');
     await tester.pump();
+    await tester.tap(find.byIcon(Icons.arrow_upward));
 
-    // 点击发送
-    final sendIcon = find.byIcon(Icons.arrow_upward);
-    expect(sendIcon, findsOneWidget);
-    await tester.tap(sendIcon);
-
-    // 消息在微任务中添加，等几帧让渲染完成
+    // 等滚动动画完成
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 500));
 
-    // 验证用户消息有气泡显示
-    final userTextFinder = find.text('你好测试消息');
-    expect(userTextFinder, findsWidgets);
-    // 取第一个匹配的 RenderObject 验证位置在屏幕内
-    final renderBox = tester.renderObject<RenderBox>(userTextFinder.first);
+    // 验证：用户消息在 widget 树中可见
+    final msgFinder = find.text('测试顶部');
+    expect(msgFinder, findsWidgets);
+
+    // 用 ChatBubble 中的文字做位置验证（排除输入框中的同文匹配）
+    final bubbleText = find.descendant(
+      of: find.byType(ChatBubble),
+      matching: find.text('测试顶部'),
+    );
+    expect(bubbleText, findsOneWidget,
+        reason: '消息应出现在 ChatBubble 中');
+
+    final renderBox = tester.renderObject<RenderBox>(bubbleText);
     final pos = renderBox.localToGlobal(Offset.zero);
-    expect(pos.dy, greaterThanOrEqualTo(0));
+    final screenH =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    // 在屏幕上半部分（30% 以内）
+    expect(pos.dy, lessThan(screenH * 0.30),
+        reason: '用户消息应在视口顶部，实际 Y=${pos.dy}');
+  });
+
+  // ── 未读计数不显示 ──
+
+  testWidgets('发送后不显示未读计数', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(extensions: [AgentColors.light()]),
+        home: const ChatScreen(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '你好');
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.arrow_upward));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // 不应该出现「条新消息」文字
+    expect(find.textContaining('条新消息'), findsNothing);
+    expect(find.textContaining('新消息'), findsNothing);
   });
 }

@@ -164,8 +164,6 @@ class _ChatScreenState extends State<ChatScreen>
   void _scrollUserToTop({int retries = 30}) {
     final ctx = _userAnchorKey.currentContext;
     if (ctx == null || !ctx.mounted) {
-      // _MessageList 可能尚未重建（contextDocs.loadAll 仍在加载中），
-      // 等下一帧重试，最多 30 帧（~500ms）避免死循环。
       if (retries > 0 && _needsUserAnchor.value) {
         WidgetsBinding.instance.addPostFrameCallback(
             (_) => _scrollUserToTop(retries: retries - 1));
@@ -174,16 +172,18 @@ class _ChatScreenState extends State<ChatScreen>
       }
       return;
     }
-    // 设上滑标志，阻止 scrollDown（流式/错误回调中）在此后覆盖我们的滚动位置。
-    // 用户消息稳定在视口顶部，AI 回复在其下方流式展开。
     userScrolledUp = true;
-    Scrollable.ensureVisible(
-      ctx,
-      alignment: 0.0, // 0.0 = 顶部对齐
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOut,
-    );
-    // 等动画完成后再移除空白占位
+
+    // 用 scrollController 直接滚到列表顶部（pos=0）。
+    // 底部 spacer 已撑大 maxScrollExtent，滚到 0 后用户消息即在视口顶部。
+    if (scrollController.hasClients) {
+      scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    }
+
     Future.delayed(const Duration(milliseconds: 300), () {
       _needsUserAnchor.value = false;
     });
