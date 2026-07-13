@@ -424,7 +424,8 @@ class _MessageList extends StatelessWidget {
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           itemCount: itemCount,
-          cacheExtent: 4000, // 【流畅度·治 B】放大缓存窗口：视口外保留 4000px 气泡，滚回长消息不销毁/不重测 markdown（对齐 Operit 大缓存窗口原则）。原 500px 太小，长消息滚回频繁重建→卡顿。
+          cacheExtent: 4000,
+          prototypeItem: const SizedBox(height: 60),
           // ChatMessage 是 ChangeNotifier，流式更新时仅对应气泡局部重建；
           // 必须逐条用 ListenableBuilder(msg) 包住，否则流式期间 controller 不通知、气泡不刷新
           itemBuilder: (c, i) {
