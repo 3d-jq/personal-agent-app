@@ -16,6 +16,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.ConcurrentHashMap
 
@@ -74,11 +75,20 @@ class TerminalHost(
             try {
                 TerminalManager.getInstance(context).initializeEnvironment()
                 if (provider == null) provider = LocalTerminalProvider(context)
-                result.success(true)
+                // 返回真实状态：bash 软链/复制是否成功 + common.sh 是否存在，
+                // 避免 Operit 静默吞掉软链失败后误报"就绪"。
+                result.success(envReallyReady())
             } catch (e: Exception) {
                 result.error("INIT_FAILED", e.message, null)
             }
         }
+    }
+
+    /** 真实验证沙箱可用：binDir/bash 存在且可执行、common.sh 存在。 */
+    private fun envReallyReady(): Boolean {
+        val bash = File(context.filesDir, "usr/bin/bash")
+        val common = File(context.filesDir, "common.sh")
+        return bash.exists() && bash.canExecute() && common.exists()
     }
 
     private fun startSession(result: MethodChannel.Result, args: Map<String, Any?>?) {

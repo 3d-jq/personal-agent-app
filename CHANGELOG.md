@@ -1,6 +1,13 @@
 # Changelog
 
-## v1.6.0 — 终端沙箱（Kotlin 原生 PRoot + Ubuntu + xterm）(2026-07-13)
+## v1.6.1 — 终端沙箱修复：bash 软链 + 状态真实验证 (2026-07-14)
+
+### 🐛 修复
+- **bash 缺失根因**：`TerminalManager.linkNativeLibs()` 原 `Files.createSymbolicLink` 跨卷（EXDEV）失败被静默吞、导致 `files/usr/bin/bash` 实际缺失、命令执行报 "No such file or directory"。改为 **优先软链、失败则 fallback `copyTo` + `setExecutable(true)`**，保证 bash 真实存在。
+- **状态假阳性「就绪」**：`TerminalHost.ensureReady` 原调完 `initializeEnvironment()` 即无条件返 `true`。改为**真实验证** `files/usr/bin/bash` 存在且可执行 + `common.sh` 存在再返回布尔，`terminal_status` 工具随之获得可信状态。
+- `operit_terminal/NOTICE.md` 增补「本仓库源码已修改 linkNativeLibs fallback」声明（LGPL 合规）。
+
+## v1.6.0 — 终端沙箱（Kotlin 原生 PRoot + Ubuntu + xterm）(2026-07-14)
 
 ### 🖥️ 终端沙箱（借 OperitTerminalCore，LGPL-3.0）
 - 新增 `:operit_terminal` Gradle 子模块：Android 用户态 PRoot + 内置 Ubuntu 24 rootfs（assets 内置，开箱即用，不首启下载）。源码留在仓库即满足 LGPL「提供对应源码」，附 `NOTICE.md`。
