@@ -1,1 +1,1 @@
-按 browser_snapshot 返回的 ref 点击页面元素（点击前会自动滚动到该元素，无需手动 scroll）。点击后页面通常会变化，建议随后调用 browser_wait 等待响应，再用 browser_snapshot 或 browser_get_text 查看结果。
+按 browser_snapshot 返回的 ref 点击页面元素（点击前会自动 focus + 滚动到该元素，React 按钮/表单同样生效）。点击后页面通常会变化，建议随后调用 browser_wait 等待响应，再用 browser_snapshot 或 browser_get_text 查看结果。

@@ -666,10 +666,14 @@ class BrowserWaitTool extends BrowserBaseTool {
   Map<String, dynamic> get parameters => {
         'type': 'object',
         'properties': {
-          'ms': {'type': 'integer', 'description': '等待时长（毫秒），默认 1000'},
+          'ms': {'type': 'integer', 'description': '等待时长（毫秒），默认 1000；dom_stable 模式下建议 3000-5000'},
           'selector': {
             'type': 'string',
             'description': '可选，CSS 选择器；传入则轮询等待该元素出现',
+          },
+          'dom_stable': {
+            'type': 'boolean',
+            'description': '可选，设为 true 则轮询等待 DOM 稳定（body 内 HTML 长度连续相同）。适用于 React/Vue SPA 页面等待客户端渲染完成。',
           },
         },
         'required': <String>[],
@@ -678,7 +682,22 @@ class BrowserWaitTool extends BrowserBaseTool {
   Future<String> execute(Map<String, dynamic> args) async {
     final ms = (args['ms'] as num?)?.toInt() ?? 1000;
     final selector = (args['selector'] as String? ?? '').trim();
+    final domStable = args['dom_stable'] as bool? ?? false;
     try {
+      if (domStable) {
+        final deadline = DateTime.now().add(Duration(milliseconds: ms));
+        int last = -1;
+        while (DateTime.now().isBefore(deadline)) {
+          final lenStr = await evalText('document.body.innerHTML.length');
+          final len = int.tryParse(lenStr.trim()) ?? 0;
+          if (len > 0 && len == last) {
+            return 'DOM 已稳定（HTML 长度 $len，页面加载完成）';
+          }
+          last = len;
+          await Future.delayed(const Duration(milliseconds: 200));
+        }
+        return '等待超时（${ms}ms）：DOM 未稳定，可能是动态页面持续渲染';
+      }
       if (selector.isNotEmpty) {
         final deadline = DateTime.now().add(Duration(milliseconds: ms));
         while (DateTime.now().isBefore(deadline)) {

@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.7.3 — 浏览器工具 React/SPA 兼容性修复 (2026-07-14)
+
+- **问题**：用户测试发现浏览器工具对 React 框架网页「很难用」——type 直接设 `e.value` 对 React 受控组件无效；click 可能不触发合成事件；SPA 导航后 snapshot/get_text 因客户端渲染未完成返回空。
+- **Kotlin 修复（3 处）**：
+  - `type` / `fillForm`：改用 `Object.getOwnPropertyDescriptor(Object.getPrototypeOf(e), 'value').set` 绕过 React 接管 value setter → 通过原生 setter 写值 → `e.focus()` → 派发原生 `input`/`change` 事件（React 17+ 能捕获）
+  - `click`：在 `scrollIntoView` + `click()` 前增加 `e.focus()`，确保触发 React onFocus 钩子
+- **Dart `browser_wait` 新增 `dom_stable` 模式**：传 `dom_stable: true` + `ms`（建议 3000-5000）时，轮询 `document.body.innerHTML.length`，连续两次相同且 >0 则认为 SPA 客户端渲染完成。React/Vue SPA 导航后优先用此模式。
+- **描述更新**：`browser_goto_tool.txt` 建议导航后 `browser_wait(dom_stable:true)`；`browser_type_tool.txt` 注明 React 兼容；`browser_click_tool.txt` 注明 auto-focus。
+- `flutter analyze` 0 issue；`flutter test` 562 全绿。
+
 ## v1.7.2 — 浏览器工具名中文化（toolLabel 映射 23 个中文标签）(2026-07-14)
 
 - 在 `lib/screens/chat_helpers.dart` 的 `toolLabel()` 函数中添加 23 个浏览器工具的 `case`，如 `browser_goto`→「浏览器导航」、`browser_get_text`→「读取页面文本」、`browser_scroll_and_collect`→「滚动收集」等，UI 时间线与进度提示统一显示中文名。
