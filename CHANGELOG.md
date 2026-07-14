@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.7.2 — 浏览器工具名中文化（toolLabel 映射 23 个中文标签）(2026-07-14)
+
+- 在 `lib/screens/chat_helpers.dart` 的 `toolLabel()` 函数中添加 23 个浏览器工具的 `case`，如 `browser_goto`→「浏览器导航」、`browser_get_text`→「读取页面文本」、`browser_scroll_and_collect`→「滚动收集」等，UI 时间线与进度提示统一显示中文名。
+- `flutter analyze` 0 issue；`flutter test` 562 全绿。
+
 ## v1.7.1 — 浏览器工具描述中文化（走 .txt → .g.dart 生成链）(2026-07-14)
 
 - **中文化统一**：23 个浏览器工具（`browser_*`）的 description 从代码硬编码改为通过 `lib/tools/browser_*_tool.txt` 统一管理，由 `tool/generate_tool_descriptions.dart` 自动生成 `lib/tools/browser_*_tool.g.dart` 常量文件，与项目其他工具对齐。
