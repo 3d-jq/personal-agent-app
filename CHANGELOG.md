@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.7.0 — 浏览器工具大增强（23 个工具 + 分页读取 + 工作流引导）(2026-07-14)
+
+- **根因修复**：查出大模型用浏览器"表现笨"的核心原因——工具结果被全局 `ToolResultTruncator` 硬截断到 20000 字符（`lib/utils/tool_result_truncator.dart`），长网页内容无法完整传到大模型。
+- **分页绕过截断**：`browser_get_text` / `browser_get_readable` / `browser_scroll_and_collect` 支持 `offset`/`max_length` 参数（默认 6000），返回末尾自动提示剩余字符数与续读参数，大模型可像翻页一样循环取得全长文本。
+- **内容与感知工具（新增 7 个）**：`browser_get_text`（页面纯文本）、`browser_get_readable`（去噪正文，优先 article/main/[role=main]）、`browser_get_page_info`（标题/URL/尺寸/滚动位置）、`browser_find_elements`（CSS 选择器查找）、`browser_scroll`（滚动并返回到底判定）、`browser_wait`（固定等待 + selector 轮询）、`browser_search`（Bing/Google/DuckDuckGo/Baidu 统一入口）。
+- **控制与高级工具（新增 7 个）**：`browser_set_user_agent`、`browser_set_viewport`（注入 meta viewport）、`browser_get_cookies` / `browser_set_cookies`、`browser_hover`（派发 mouseenter/mouseover）、`browser_get_backbone`（DOM 骨架树）、`browser_scroll_and_collect`（无限滚动页收集）。
+- **snapshot 增强**：Kotlin SNAPSHOT_JS 新增 `inViewport`/`visible`/`disabled` 字段；Dart snapshot 输出标注 `(hidden,offscreen,disabled)`。
+- **click 增强**：Kotlin 原生 click 前自动 `scrollIntoView({block:'center'})` 再点击。
+- **Kotlin 原生扩展**：`CookieManager` import、`setUserAgent`（空串恢复桌面 UA）、`setViewport`、`getCookies` / `setCookies`。
+- **Dart 通道**：`BrowserChannel` 新增 `setUserAgent`/`setViewport`/`getCookies`/`setCookies`；`BrowserElement` 新增 `inViewport`/`visible`/`disabled` 字段与 `fromJson` 解析。
+- **工具描述重写**：9 个旧工具 + 14 个新工具 description 全部加入"推荐工作流"提示（goto→wait→snapshot→read→click 循环），大模型知道正确先后顺序。
+- **测试**：`test/tools/browser_tools_test.dart`（19 例，覆盖分页/解析/参数转发/插件注册）；`test/tools/browser_tool_test.dart` snapshot 断言适配新格式。全量 `flutter test` 562 全绿，`flutter analyze` 0 issue。
+
 ## v1.6.9 — 修复 AppToast 文字黄色下划线 (2026-07-14)
 
 - **问题**：`AppToast` 文字下方长期出现一条黄色横线（用户反馈，非 v1.6.8 引入）。根因是 `Text` 样式未显式关闭 `decoration`，在某些 Android 设备/主题下会被绘制或继承为下划线。

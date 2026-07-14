@@ -30,8 +30,11 @@ class _FakeBrowserChannel extends BrowserChannel {
   @override
   Future<List<BrowserElement>> snapshot() async {
     if (failSnapshot) throw BrowserException('snapshot failed');
-    return const [
-      BrowserElement(ref: '1', tag: 'A', text: '链接', href: 'https://x.com'),
+    return [
+      BrowserElement(
+        ref: '1', tag: 'A', text: '链接', href: 'https://x.com',
+        visible: true, inViewport: true,
+      ),
     ];
   }
 
@@ -97,7 +100,7 @@ void main() {
     test('正常快照格式化元素', () async {
       final tool = BrowserSnapshotTool(_FakeBrowserChannel());
       final r = await tool.execute({});
-      expect(r, contains('页面元素（1）'));
+      expect(r, contains('页面元素（1，优先操作 visible 且非 disabled 的）'));
       expect(r, contains('[1] A'));
     });
 

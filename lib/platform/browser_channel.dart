@@ -27,6 +27,12 @@ class BrowserElement {
   final int y;
   final int w;
   final int h;
+  /// 元素是否位于当前视口内（几何判断）。
+  final bool inViewport;
+  /// 元素是否实际可见（尺寸、display/visibility/opacity 均正常且在视口内）。
+  final bool visible;
+  /// 元素是否被禁用（disabled 属性或 disabled 状态）。
+  final bool disabled;
 
   const BrowserElement({
     required this.ref,
@@ -42,6 +48,9 @@ class BrowserElement {
     this.y = 0,
     this.w = 0,
     this.h = 0,
+    this.inViewport = false,
+    this.visible = false,
+    this.disabled = false,
   });
 
   factory BrowserElement.fromJson(Map<String, dynamic> j) => BrowserElement(
@@ -58,6 +67,9 @@ class BrowserElement {
         y: (j['y'] as num?)?.toInt() ?? 0,
         w: (j['w'] as num?)?.toInt() ?? 0,
         h: (j['h'] as num?)?.toInt() ?? 0,
+        inViewport: j['inViewport'] as bool? ?? false,
+        visible: j['visible'] as bool? ?? false,
+        disabled: j['disabled'] as bool? ?? false,
       );
 }
 
@@ -134,6 +146,24 @@ class BrowserChannel {
   /// 截取当前 WebView 可视区域为 PNG，返回 base64 字符串（NO_WRAP）。
   /// 空串表示原生未就绪或截图失败；WebView 尚未布局时 throws [BrowserException]。
   Future<String> screenshot() => _invoke<String>('screenshot');
+
+  /// 设置浏览器 User-Agent。传空串恢复默认桌面 UA。
+  Future<void> setUserAgent(String ua) => _invoke('setUserAgent', {'ua': ua});
+
+  /// 设置视口（通过注入 meta viewport 让响应式站点按指定宽度重排）。
+  /// 返回 "ok" 或错误提示。
+  Future<String> setViewport(int width, int height) =>
+      _invoke('setViewport', {'width': width, 'height': height});
+
+  /// 获取 Cookie（默认当前页 URL，可指定 [url]）。
+  Future<String> getCookies([String? url]) =>
+      _invoke('getCookies', url != null ? {'url': url} : null);
+
+  /// 设置 Cookie（多个以分号分隔；默认作用于当前页 URL）。
+  Future<void> setCookies(String cookies, [String? url]) => _invoke(
+        'setCookies',
+        url != null ? {'cookies': cookies, 'url': url} : {'cookies': cookies},
+      );
 
   Future<T> _invoke<T>(String method, [Map<String, dynamic>? args]) async {
     try {
