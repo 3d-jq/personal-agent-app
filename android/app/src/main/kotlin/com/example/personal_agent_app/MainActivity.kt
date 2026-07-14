@@ -231,7 +231,7 @@ class MainActivity : FlutterActivity() {
         val browserHost = BrowserWebViewHost(this)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BROWSER_CHANNEL)
             .setMethodCallHandler { call, result -> browserHost.handle(call, result) }
-        flutterEngine.platformViewsRegistry
+        flutterEngine.platformViewsController.registry
             .registerViewFactory(BrowserWebViewFactory.VIEW_TYPE, BrowserWebViewFactory(browserHost))
 
     }
