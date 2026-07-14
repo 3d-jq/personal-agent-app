@@ -234,6 +234,11 @@ class MainActivity : FlutterActivity() {
         flutterEngine.platformViewsController.registry
             .registerViewFactory(BrowserWebViewFactory.VIEW_TYPE, BrowserWebViewFactory(browserHost))
 
+        // ── Terminal（终端沙箱：Kotlin 原生 PRoot + Ubuntu，借 OperitTerminalCore）──
+        val terminalHost = TerminalHost(this, flutterEngine.dartExecutor.binaryMessenger)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, TerminalHost.CHANNEL)
+            .setMethodCallHandler { call, result -> terminalHost.handle(call, result) }
+
     }
 
     companion object {

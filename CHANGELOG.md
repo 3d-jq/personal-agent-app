@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.6.0 — 终端沙箱（Kotlin 原生 PRoot + Ubuntu + xterm）(2026-07-13)
+
+### 🖥️ 终端沙箱（借 OperitTerminalCore，LGPL-3.0）
+- 新增 `:operit_terminal` Gradle 子模块：Android 用户态 PRoot + 内置 Ubuntu 24 rootfs（assets 内置，开箱即用，不首启下载）。源码留在仓库即满足 LGPL「提供对应源码」，附 `NOTICE.md`。
+- `TerminalHost`：封装 `TerminalManager.initializeEnvironment()` + `LocalTerminalProvider`。通道 `com.example/terminal` + `com.example/terminal/events`；方法 ensureReady/start/write/exec/close。exec=无头命令 `executeHiddenCommand`；start=可见 bash 进入 PRoot，PTY 字节流经 EventChannel 推 Dart。
+
+### 📺 终端全屏浮层（xterm）
+- 顶栏新增 🖥️ 图标入口（激活态高亮），点击打开终端全屏浮层（标题/清空/关闭），xterm 渲染 ANSI、键入经通道回写 PTY。
+- 对齐浏览器浮层的交互模式（同一套原生环境，手动 + AI 自动化共用）。
+
+### 🧰 终端工具 + 插件
+- 新增 `terminal_run`（沙箱内无头执行命令，返回输出/退出码/状态）与 `terminal_status`（检查沙箱就绪）注入 `PluginRegistry`。
+
+### 🧪 测试
+- 新增 11 条测试（通道/工具 9 + 浮层 widget 2），全量 `flutter test` 529 通过，`flutter analyze` 0 issue。
+
 ## v1.5.2 — 浏览器操作（Kotlin 原生 WebView + 顶栏入口 + 全屏浮层）(2026-07-14)
 
 ### ✨ 浏览器操作（Kotlin 原生 WebView 宿主）

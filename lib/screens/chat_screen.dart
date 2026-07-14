@@ -14,6 +14,7 @@ import '../widgets/chat_input_bar.dart';
 import '../widgets/chat_new_chat_button.dart';
 import '../widgets/session_info_button.dart';
 import '../widgets/browser_overlay.dart';
+import '../widgets/terminal_overlay.dart';
 import '../core/app_animations.dart';
 import 'chat_drawer_content.dart';
 import 'chat_scroll_mixin.dart';
@@ -41,6 +42,8 @@ class _ChatScreenState extends State<ChatScreen>
   bool _sidebarDragEngaged = false;
   // 浏览器浮层显隐（顶栏 🌐 入口）
   bool _showBrowser = false;
+  // 终端沙箱浮层显隐（顶栏 🖥️ 入口）
+  bool _showTerminal = false;
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   late final ChatController _controller;
@@ -236,6 +239,15 @@ class _ChatScreenState extends State<ChatScreen>
               },
               tooltip: '浏览器',
             ),
+            IconButton(
+              icon: const Icon(Icons.terminal),
+              color: _showTerminal ? nc.primary : nc.textPrimary,
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                setState(() => _showTerminal = !_showTerminal);
+              },
+              tooltip: '终端沙箱',
+            ),
             ChatNewChatButton(controller: _controller, onBeforeNew: _resetInput),
             const SizedBox(width: 8),
             SessionInfoButton(
@@ -358,6 +370,12 @@ class _ChatScreenState extends State<ChatScreen>
                             Positioned.fill(
                               child: BrowserOverlay(
                                 onClose: () => setState(() => _showBrowser = false),
+                              ),
+                            ),
+                          if (_showTerminal)
+                            Positioned.fill(
+                              child: TerminalOverlay(
+                                onClose: () => setState(() => _showTerminal = false),
                               ),
                             ),
                         ],
