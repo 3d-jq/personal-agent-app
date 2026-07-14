@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.6.3 — 终端浮层健壮性：未就绪明确提示 (2026-07-14)
+
+### 🐛 修复
+- **终端浮层不再「卡空白」**：`TerminalOverlay._initTerminal` 原在 `ensureReady()` 返回 `false` 后仍继续 `start()`，导致 Operit 去启动并不存在的 bash、界面停在加载圈/空白。改为「未就绪即明确提示，并指引去 App「运行日志」页看 `TerminalNative` 诊断」，不再继续 `start`。
+
 ## v1.6.2 — 终端沙箱根因修复：copy 优先 + 原生日志统一 (2026-07-14)
 
 ### 🐛 修复（bash 找不到的根因）

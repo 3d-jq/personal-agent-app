@@ -67,7 +67,20 @@ class _TerminalOverlayState extends State<TerminalOverlay> {
           if (mounted) setState(() => _error = '终端输出流异常: $e');
         },
       );
-      await _channel.ensureReady();
+      final ready = await _channel.ensureReady();
+      if (!ready) {
+        // 环境未就绪（bash 未生成等）：明确提示，不再继续 start 以免卡在加载圈。
+        // 详细诊断已通过原生日志桥写入 App「运行日志」页（TerminalNative 条目）。
+        log.e('Terminal', '环境未就绪：ensureReady 返回 false（bash 可能未生成）');
+        if (mounted) {
+          setState(() {
+            _error =
+                '终端环境未就绪（bash 未生成）。\n详细原因见 App「运行日志」页 TerminalNative 条目。';
+            _busy = false;
+          });
+        }
+        return;
+      }
       await _channel.start(_sessionId);
       if (mounted) setState(() => _ready = true);
     } on TerminalException catch (e) {
