@@ -14,6 +14,9 @@ import '../widgets/app_toast.dart';
 /// 调用原生「用系统播放器打开」能力（com.example/open_file → openFile）。
 const _kOpenFileChannel = MethodChannel('com.example/open_file');
 
+/// 对话框内联图片（截图 / 生成图）的最大显示高度；点开仍走全屏大图。
+const double _kMaxInlineImageHeight = 260;
+
 /// 按扩展名推断视频 MIME，保证 .mov/.webm/.mkv 也能被系统播放器识别。
 String _videoMimeType(String path) {
   final lower = path.toLowerCase();
@@ -158,6 +161,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context, int maxCac
                   File(filePath),
                   fit: BoxFit.contain,
                   width: double.infinity,
+                  height: _kMaxInlineImageHeight,
                   cacheWidth: maxCacheWidth,
                   errorBuilder: (ctx, err, stack) => Container(
                     height: 160,
@@ -191,6 +195,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context, int maxCac
                   imageUrl: url,
                   fit: BoxFit.contain,
                   width: double.infinity,
+                  height: _kMaxInlineImageHeight,
                   memCacheWidth: maxCacheWidth,
                   placeholder: (ctx, url) => Container(
                     height: 200,

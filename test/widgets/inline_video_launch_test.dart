@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -82,6 +83,46 @@ void main() {
 
       expect(captured, isNotNull);
       expect(captured!.arguments['mimeType'], 'video/webm');
+    });
+  });
+
+  group('inline image preview size', () {
+    Future<void> buildImage(WidgetTester tester, String markdown) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(extensions: [AgentColors.light()]),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => SingleChildScrollView(
+                child: Column(
+                  children: buildInlineContent(
+                    markdown,
+                    AgentColors.light(),
+                    context,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('本地截图图片高度被限制为 260（不撑满气泡）', (tester) async {
+      const url = 'file:///data/user/0/com.example/files/shot.png';
+      await buildImage(tester, '![浏览器截图]($url)');
+
+      final image = tester.widget<Image>(find.byType(Image).first);
+      expect(image.height, 260);
+    });
+
+    testWidgets('网络图片高度同样被限制为 260', (tester) async {
+      const url = 'https://example.com/gen.png';
+      await buildImage(tester, '![生成的图片]($url)');
+
+      final image = tester
+          .widget<CachedNetworkImage>(find.byType(CachedNetworkImage).first);
+      expect(image.height, 260);
     });
   });
 }
