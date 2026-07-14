@@ -1,0 +1,1 @@
+设置 Cookie（多个以分号分隔，如 name=value; token=abc）。默认作用于当前页 URL；也可指定 url。常用于注入登录态以跳过登录。设置后建议重新 browser_goto 目标页。

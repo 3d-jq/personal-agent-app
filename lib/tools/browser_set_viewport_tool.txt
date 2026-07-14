@@ -1,0 +1,1 @@
+设置浏览器视口（通过注入 meta viewport 让响应式站点按指定宽度重排），用于模拟不同屏幕。width/height 单位为 CSS 像素，必须大于 0。修改后建议重新 browser_goto 目标页。
