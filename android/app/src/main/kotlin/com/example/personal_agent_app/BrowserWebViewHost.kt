@@ -2,8 +2,11 @@ package com.example.personal_agent_app
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.os.Handler
 import android.os.Looper
+import android.util.Base64
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -126,6 +129,34 @@ class BrowserWebViewHost(context: Context) {
             "close" -> runOnWebView {
                 webView.loadUrl("about:blank")
                 result.success(true)
+            }
+            "screenshot" -> runOnWebView {
+                val w = webView.width
+                val h = webView.height
+                if (w <= 0 || h <= 0) {
+                    // WebView 尚未完成布局（如刚创建或从未显示过），无法截图。
+                    result.error(
+                        "screenshot_failed",
+                        "WebView 尚未布局（宽高无效），请先打开浏览器并加载页面",
+                        null,
+                    )
+                    return@runOnWebView
+                }
+                val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bitmap)
+                // 虚拟显示合成（AndroidView）下，WebView 默认走硬件层，draw 可能抓不到内容。
+                // 临时切到软件层可保证 draw 把页面像素绘制到我们提供的 Canvas 上。
+                val prevLayer = webView.layerType
+                webView.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null)
+                try {
+                    webView.draw(canvas)
+                } finally {
+                    webView.setLayerType(prevLayer, null)
+                }
+                val stream = java.io.ByteArrayOutputStream()
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                val base64 = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
+                result.success(base64)
             }
             "tabs" -> result.success("[]")
             "resize", "waitFor", "consoleMessages", "networkRequests", "drag", "upload", "handleDialog" ->

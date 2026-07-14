@@ -54,6 +54,9 @@ class _FakeBrowserChannel extends BrowserChannel {
 
   @override
   Future<String> currentUrl() async => currentUrlValue;
+
+  @override
+  Future<String> screenshot() async => '';
 }
 
 void main() {
