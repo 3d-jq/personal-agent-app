@@ -1,4 +1,5 @@
 import '../platform/terminal_channel.dart';
+import '../services/log_service.dart';
 import 'base_tool.dart';
 import 'plugin_registry.dart';
 import 'tool_registry.dart';
@@ -54,6 +55,7 @@ class TerminalRunTool extends TerminalBaseTool {
       buf.write(out.isEmpty ? '(无输出)' : out);
       return buf.toString();
     } on TerminalException catch (e) {
+      log.e('Terminal', e.message, e.cause);
       return '终端执行失败：${e.message}';
     }
   }
@@ -80,6 +82,7 @@ class TerminalStatusTool extends TerminalBaseTool {
       final ok = await channel.ensureReady();
       return ok ? '终端沙箱已就绪' : '终端沙箱未就绪';
     } on TerminalException catch (e) {
+      log.e('Terminal', e.message, e.cause);
       return '终端沙箱不可用：${e.message}';
     }
   }

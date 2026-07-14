@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.6.2 — 终端沙箱根因修复：copy 优先 + 原生日志统一 (2026-07-14)
+
+### 🐛 修复（bash 找不到的根因）
+- **去除 `linkNativeLibs` 提前 return**：busybox 段原在验证失败 `return`，导致后续 bash/proot 循环不执行、`files/usr/bin/bash` 实际缺失。改为「busybox 失败也继续」，不让单一环节阻断整条链路。
+- **跨卷 symlink → copy 优先**：`nativeLibDir`（系统只读分区）→ `files/usr/bin`（app 私有区）是跨文件系统软链（EXDEV）在部分设备会静默失败。新抽 `linkOrCopy()`：**优先 `Files.copy`（无跨卷限制），失败才回退软链**。`libbash.so`/`libbusybox.so`/`liboperit_proot.so`/`liboperit_loader.so`/`libsudo.so` 全部走此路径，保证 bash 真实落盘。
+- **`initializeEnvironment` 末位验证**：4 步走完后强制校验 `files/usr/bin/bash` 存在且可执行，否则返 `false` 并桥接明确错误（含 busybox 是否存在的诊断），杜绝「假就绪」。
+- **`createBusyboxSymlinks` 的 `file` 命令**：`/system/bin/file` 跨卷软链会失败，改为「存在则复制、不存在则仅告警跳过」，不再致命。
+
+### 📜 原生日志统一进 App 运行日志
+- `TerminalManager` 加 `nativeLogBridge` 回调 + `bridgeLog()`：环境初始化的错误/警告（含 `linkNativeLibs` 每步成败、bash 末位校验失败）经桥推到 Dart。
+- `TerminalHost` 加 `forwardNativeLog()` + `diagnoseEnv()`：启动时注入桥；`ensureReady/start/exec` 各错误路径把磁盘状态诊断（bash/busybox 是否存在可执行、nativeLib 含哪些 `.so`）一并推到 App 日志，tag `TerminalNative`。
+- Dart 侧 `terminal_channel.dart` 注册 `onNativeLog` handler，把原生日志路由进 `LogService`；`terminal_overlay.dart`/`terminal_tool.dart` 的 `catch` 补 `log.e`，「未就绪 / 找不到 bash」等失败直接在 App「运行日志」页可见，无需 adb。
+
 ## v1.6.1 — 终端沙箱修复：bash 软链 + 状态真实验证 (2026-07-14)
 
 ### 🐛 修复

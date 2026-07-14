@@ -122,6 +122,16 @@ class TerminalManager private constructor(
         private const val MAX_HISTORY_ITEMS = 500
         private const val MAX_OUTPUT_LINES_PER_ITEM = 1000
         private const val TERMINAL_ENTER = "\r"
+
+        /**
+         * 原生层 → Dart 的日志桥。由 :app 模块的 TerminalHost 在启动时注入，
+         * 把终端环境初始化的报错/警告经 MethodChannel 推到 App 统一日志（运行日志页），
+         * 避免失败细节只留在 Android logcat 而 App 内看不到。
+         *
+         * 签名：(level: "E"/"W"/"D"…, tag, message)。为 null 时 bridgeLog 仍走 logcat、不崩溃。
+         */
+        @Volatile
+        var nativeLogBridge: ((level: String, tag: String, message: String) -> Unit)? = null
     }
 
     init {
@@ -231,21 +241,40 @@ class TerminalManager private constructor(
         )
         val busybox = File(binDir, "busybox")
         for (linkName in links) {
+            val linkFile = File(binDir, linkName)
+            // 子命令优先软链到同目录 busybox（省空间，同卷安全）；失败则复制兜底
+            var ok = false
             try {
-                createSymbolicLink(busybox, linkName, binDir, true)
-                Log.d(TAG, "Created busybox link for '$linkName'")
+                Files.deleteIfExists(linkFile.toPath())
+                Files.createSymbolicLink(linkFile.toPath(), busybox.toPath())
+                ok = true
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to create link for '$linkName'", e)
+                bridgeLog(Log.WARN, "busybox symlink for '$linkName' failed, copy fallback", e)
+                ok = linkOrCopy(busybox, linkFile)
+            }
+            if (!ok) {
+                bridgeLog(Log.WARN, "Failed to create busybox link for '$linkName'")
             }
         }
+        // 'file' 命令：尝试从系统分区复制（跨卷，可能不存在），失败仅告警，不致命
         try {
             val fileLink = File(binDir, "file")
             if (!fileLink.exists()) {
-                Files.createSymbolicLink(fileLink.toPath(), File("/system/bin/file").toPath())
-                Log.d(TAG, "Created symlink for 'file'")
+                val sysFile = File("/system/bin/file")
+                if (sysFile.exists()) {
+                    Files.copy(
+                        sysFile.toPath(),
+                        fileLink.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                    )
+                    fileLink.setExecutable(true, false)
+                    Log.d(TAG, "Copied 'file' from system")
+                } else {
+                    bridgeLog(Log.WARN, "'file' not found in /system/bin, skip")
+                }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to create symlink for 'file'", e)
+            bridgeLog(Log.WARN, "Failed to create 'file' command", e)
         }
     }
 
@@ -540,7 +569,7 @@ class TerminalManager private constructor(
                     File(filesDir, "common.sh").writeText(startScript.replace("\r\n", "\n").replace("\r", "\n"))
                     true
                 } catch (e: Exception) {
-                    Log.e(TAG, "Environment script refresh failed", e)
+                    bridgeLog(Log.ERROR, "Environment script refresh failed", e)
                     false
                 }
             }
@@ -571,10 +600,24 @@ class TerminalManager private constructor(
                     File(filesDir, "common.sh").writeText(startScript.replace("\r\n", "\n").replace("\r", "\n"))
 
 
-                    Log.d(TAG, "Environment initialization completed successfully.")
-                    true
+                    // 5. 末位验证：bash 必须真实存在且可执行，否则视为初始化失败
+                    //    （杜绝「假就绪」：即便前面 4 步走完，bash 缺失也应返 false）
+                    val bash = File(binDir, "bash")
+                    val bashOk = bash.exists() && bash.canExecute()
+                    val busyboxOk = File(binDir, "busybox").exists()
+                    if (bashOk) {
+                        Log.d(TAG, "Environment initialization completed successfully.")
+                        true
+                    } else {
+                        bridgeLog(
+                            Log.ERROR,
+                            "Final check FAILED: bash missing/not-executable at ${bash.absolutePath} " +
+                                "(busyboxExists=$busyboxOk)"
+                        )
+                        false
+                    }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Environment initialization failed", e)
+                    bridgeLog(Log.ERROR, "Environment initialization failed", e)
                     false
                 }
             }
@@ -585,6 +628,33 @@ class TerminalManager private constructor(
         } finally {
             envInitMutex.unlock()
         }
+    }
+
+    /**
+     * 统一日志出口：同时写 logcat 与（可选）Dart 日志桥 [nativeLogBridge]。
+     * 仅环境初始化相关的错误/警告走桥，避免 PTY 字节流等噪声明细灌进 App 日志。
+     */
+    private fun bridgeLog(level: Int, msg: String, throwable: Throwable? = null) {
+        val fullMsg = if (throwable != null) {
+            "$msg | ${throwable.javaClass.simpleName}: ${throwable.message ?: "未知异常"}"
+        } else {
+            msg
+        }
+        when (level) {
+            Log.VERBOSE -> Log.v(TAG, msg, throwable)
+            Log.DEBUG -> Log.d(TAG, msg, throwable)
+            Log.INFO -> Log.i(TAG, msg, throwable)
+            Log.WARN -> Log.w(TAG, msg, throwable)
+            else -> Log.e(TAG, msg, throwable)
+        }
+        val lvl = when (level) {
+            Log.WARN -> "W"
+            Log.ERROR -> "E"
+            Log.INFO -> "I"
+            Log.VERBOSE -> "V"
+            else -> "D"
+        }
+        nativeLogBridge?.invoke(lvl, TAG, fullMsg)
     }
 
     private fun createDirectories() {
@@ -598,72 +668,72 @@ class TerminalManager private constructor(
         File(filesDir, "tmp").mkdirs()
     }
 
-    private fun linkNativeLibs() {
-        Log.d(TAG, "Linking native libraries from: $nativeLibDir")
+    /**
+     * 跨卷安全的链接：优先 [Files.copy]（无跨卷 EXDEV 限制，最稳），
+     * 失败再回退 [Files.createSymbolicLink]（同卷时可用）。
+     * 返回是否成功建立「存在且可执行」的文件。任一环节失败都不阻断调用方。
+     */
+    private fun linkOrCopy(target: File, linkFile: File): Boolean {
+        // 清理旧的坏链接/文件，避免 FileAlreadyExistsException
+        try {
+            Files.deleteIfExists(linkFile.toPath())
+        } catch (_: Exception) {
+        }
+        // 1) copy 优先（跨卷安全，行为等价）
+        try {
+            Files.copy(
+                target.toPath(),
+                linkFile.toPath(),
+                java.nio.file.StandardCopyOption.REPLACE_EXISTING
+            )
+            linkFile.setExecutable(true, false)
+            if (linkFile.exists() && linkFile.canExecute()) return true
+        } catch (e: Exception) {
+            bridgeLog(Log.WARN, "copy failed ${target.name} -> ${linkFile.name}, try symlink", e)
+        }
+        // 2) 软链兜底（同卷时可用）
+        try {
+            Files.createSymbolicLink(linkFile.toPath(), target.toPath())
+            linkFile.setExecutable(true, false)
+            if (linkFile.exists() && linkFile.canExecute()) return true
+        } catch (e: Exception) {
+            bridgeLog(Log.WARN, "symlink failed ${target.name} -> ${linkFile.name}", e)
+        }
+        return false
+    }
 
+    private fun linkNativeLibs() {
         val nativeLibDirFile = File(nativeLibDir)
         if (!nativeLibDirFile.exists() || !nativeLibDirFile.isDirectory) {
-            Log.e(TAG, "Native library directory not found or is not a directory.")
+            bridgeLog(Log.ERROR, "Native library directory not found or is not a directory: $nativeLibDir")
             return
         }
 
-        Log.d(TAG, "Native lib directory contents:")
         nativeLibDirFile.listFiles()?.forEach { file ->
-            Log.d(TAG, "  - ${file.name} (file ${file.length()} bytes)")
+            Log.d(TAG, "  native lib: ${file.name} (${file.length()} bytes)")
         }
 
-        val busybox = File(binDir, "busybox")
-
-        // First, we need to link busybox itself so we can use it.
+        // busybox 本体（跨卷，copy 优先）
         val busyboxSo = File(nativeLibDir, "libbusybox.so")
-        Log.d(TAG, "Checking busybox: libbusybox.so exists = ${busyboxSo.exists()}, busybox exists = ${busybox.exists()}")
-
+        val busybox = File(binDir, "busybox")
         if (!busyboxSo.exists()) {
-            Log.e(TAG, "libbusybox.so not found, cannot create busybox link")
-            return
-        }
-
-        // Always ensure proper busybox link - remove any existing file/broken link first
-        try {
-            val link = busybox.toPath()
-            val target = busyboxSo.toPath()
-
-            // Delete existing file/broken link if it exists to prevent FileAlreadyExistsException
-            Files.deleteIfExists(link)
-
-            // CRITICAL: Set execute permission on the target .so file before creating symlink
-            busyboxSo.setExecutable(true, false)
-
-            // Create the symbolic link; 跨卷 symlink 在部分 Android 设备会失败(EXDEV)，
-            // 此时 fallback 复制 .so 到 binDir（复制无跨卷限制，行为等价）。
-            try {
-                Files.createSymbolicLink(link, target)
-                Log.d(TAG, "Created busybox symbolic link using Java NIO")
-            } catch (e: Exception) {
-                Log.w(TAG, "busybox symlink failed, fallback to copy", e)
-                Files.copy(busyboxSo.toPath(), busybox.toPath())
-                busybox.setExecutable(true, false)
-            }
-
-            // Verify the link/copy was created successfully and is functional
-            if (busybox.exists() && busybox.canExecute()) {
-                Log.d(TAG, "Verification: busybox exists and is executable at ${busybox.absolutePath}")
-            } else {
-                Log.e(TAG, "Verification failed: busybox not functional after link/copy")
-                return
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to create busybox link", e)
-            return
+            bridgeLog(Log.ERROR, "libbusybox.so not found in $nativeLibDir")
+        } else {
+            // 即使 busybox 失败也「不 return」，继续尝试其它库，避免 bash 因提前 return 而缺失
+            val ok = linkOrCopy(busyboxSo, busybox)
+            bridgeLog(
+                if (ok) Log.INFO else Log.ERROR,
+                "busybox link/copy ${if (ok) "OK" else "FAILED"} at ${busybox.absolutePath}"
+            )
         }
 
         try {
             Files.deleteIfExists(File(binDir, "libtalloc.so.2").toPath())
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to remove stale libtalloc link", e)
+            bridgeLog(Log.WARN, "Failed to remove stale libtalloc link", e)
         }
 
-        // Symlink other binaries
+        // 其它原生二进制（跨卷，copy 优先）
         val libraries = mapOf(
             "liboperit_proot.so" to "proot",
             "liboperit_loader.so" to "loader",
@@ -675,62 +745,17 @@ class TerminalManager private constructor(
             val libFile = File(nativeLibDir, libName)
             val linkFile = File(binDir, linkName)
 
-            Log.d(TAG, "Checking $libName at ${libFile.absolutePath}, exists: ${libFile.exists()}")
-
             if (!libFile.exists()) {
-                Log.w(TAG, "Native library not found: $libName")
+                bridgeLog(Log.WARN, "Native library not found: $libName (skip)")
                 return@forEach
             }
 
-            // Always ensure proper link - remove any existing file/broken link first
-            try {
-                val link = linkFile.toPath()
-                val target = libFile.toPath()
-
-                // Delete existing file/broken link if it exists to prevent FileAlreadyExistsException
-                Files.deleteIfExists(link)
-
-                // CRITICAL: Set execute permission on the target .so file before creating symlink
-                libFile.setExecutable(true, false)
-
-                // Create the symbolic link; 跨卷 symlink 在部分 Android 设备会失败(EXDEV)，
-                // 此时 fallback 复制 .so 到 binDir（复制无跨卷限制，行为等价）。
-                try {
-                    Files.createSymbolicLink(link, target)
-                    Log.d(TAG, "Created $linkName symbolic link using Java NIO")
-                } catch (e: Exception) {
-                    Log.w(TAG, "$linkName symlink failed, fallback to copy", e)
-                    Files.copy(libFile.toPath(), linkFile.toPath())
-                    linkFile.setExecutable(true, false)
-                }
-
-                // Verify the link/copy was created successfully and is executable
-                if (linkFile.exists() && linkFile.canExecute()) {
-                    Log.d(TAG, "Verification: $linkName exists and is executable at ${linkFile.absolutePath}")
-                } else {
-                    Log.w(TAG, "Verification failed: $linkName not executable after link/copy")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to create $linkName link", e)
-            }
+            val ok = linkOrCopy(libFile, linkFile)
+            bridgeLog(
+                if (ok) Log.INFO else Log.ERROR,
+                "$linkName link/copy ${if (ok) "OK" else "FAILED"} at ${linkFile.absolutePath}"
+            )
         }
-    }
-
-    @Throws(IOException::class)
-    private fun createSymbolicLink(target: File, linkName: String, linkDir: File, force: Boolean) {
-        val linkFile = File(linkDir, linkName)
-
-        // Use relative path for target if it's in the same directory
-        val targetPath = if (target.parentFile == linkDir) {
-            Paths.get(target.name)
-        } else {
-            target.toPath()
-        }
-
-        if (force) {
-            Files.deleteIfExists(linkFile.toPath())
-        }
-        Files.createSymbolicLink(linkFile.toPath(), targetPath)
     }
 
     private fun extractAssets() {
@@ -769,7 +794,7 @@ class TerminalManager private constructor(
                 }
             }
         } catch (e: IOException) {
-            Log.e(TAG, "Failed to extract assets", e)
+            bridgeLog(Log.ERROR, "Failed to extract assets", e)
             throw e
         }
     }

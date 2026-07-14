@@ -80,8 +80,8 @@ app.*.map.json
 _refactor_ui.py
 nul
 
-# 已退役的旧发布 APK：被外部进程锁死无法删除，仅本地残留、不入库（重启或关闭占用进程后手动清理）
-dweis-v1.5.1.apk
+# 已退役的旧发布 APK（含被外部进程锁死无法删除的本地残留）：不入库
+dweis-*.apk
 
 # 工具链缓存目录
 .gradle/

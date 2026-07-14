@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_agent_app/platform/terminal_channel.dart';
+import 'package:personal_agent_app/services/log_service.dart';
 import 'package:personal_agent_app/tools/terminal_tool.dart';
 import 'package:personal_agent_app/tools/tool_registry.dart';
 
@@ -51,6 +52,18 @@ class FakeTerminalChannel extends TerminalChannel {
 
   @override
   Stream<Uint8List> get output => const Stream<Uint8List>.empty();
+}
+
+/// 仅供错误入日志测试：ensureReady / exec 直接抛 TerminalException。
+class _ThrowingChannel extends TerminalChannel {
+  _ThrowingChannel() : super(const MethodChannel('test.terminal.throw'));
+
+  @override
+  Future<bool> ensureReady() async => throw TerminalException('env not ready');
+
+  @override
+  Future<TerminalExecResult> exec(String command, {int timeoutMs = 30000}) async =>
+      throw TerminalException('exec crashed');
 }
 
 void main() {
@@ -149,6 +162,41 @@ void main() {
 
     test('id 为 terminal', () {
       expect(TerminalToolsPlugin().id, 'terminal');
+    });
+  });
+
+  group('终端错误统一入 App 日志 (Fix A)', () {
+    late List<String> lines;
+
+    setUp(() {
+      lines = [];
+      log.setTestFileWriter((_, content) async => lines.add(content));
+      log.setEnabledFlagOnly(true);
+      log.setVerbose(true);
+    });
+
+    tearDown(() {
+      log.setTestFileWriter(null);
+    });
+
+    test('TerminalStatusTool 失败时记录 E 级日志', () async {
+      final tool = TerminalStatusTool(_ThrowingChannel());
+      final r = await tool.execute({});
+      expect(r, contains('终端沙箱不可用'));
+      expect(
+        lines.any((l) => l.contains('[E]') && l.contains('[Terminal]')),
+        isTrue,
+      );
+    });
+
+    test('TerminalRunTool 失败时记录 E 级日志', () async {
+      final tool = TerminalRunTool(_ThrowingChannel());
+      final r = await tool.execute({'command': 'ls -la'});
+      expect(r, contains('终端执行失败'));
+      expect(
+        lines.any((l) => l.contains('[E]') && l.contains('[Terminal]')),
+        isTrue,
+      );
     });
   });
 }
