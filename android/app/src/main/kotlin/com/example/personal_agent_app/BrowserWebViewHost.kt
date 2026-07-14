@@ -74,18 +74,32 @@ class BrowserWebViewHost(context: Context) {
             }
             "click" -> {
                 val ref = call.argument<String>("ref") ?: ""
+                val cssPath = call.argument<String>("cssPath") ?: ""
                 runOnWebView {
+                    val sel = if (cssPath.isNotEmpty()) {
+                        val safe = cssPath.replace("'", "\\'")
+                        "document.querySelector('[data-bref=\"$ref\"]')||document.querySelector('$safe')"
+                    } else {
+                        "document.querySelector('[data-bref=\"$ref\"]')"
+                    }
                     webView.evaluateJavascript(
-                        "var e=document.querySelector('[data-bref=\"$ref\"]'); if(e){e.focus();e.scrollIntoView({block:'center',inline:'center'}); e.click(); 'clicked'}else{'ref_not_found:$ref'}"
+                        "var e=$sel; if(e){e.focus();e.scrollIntoView({block:'center',inline:'center'}); e.click(); 'clicked'}else{'ref_not_found:$ref'}"
                     ) { result.success(it ?: "ok") }
                 }
             }
             "type" -> {
                 val ref = call.argument<String>("ref") ?: ""
                 val text = call.argument<String>("text") ?: ""
+                val cssPath = call.argument<String>("cssPath") ?: ""
                 runOnWebView {
+                    val sel = if (cssPath.isNotEmpty()) {
+                        val safe = cssPath.replace("'", "\\'")
+                        "var e=document.querySelector('[data-bref=\"$ref\"]')||document.querySelector('$safe');"
+                    } else {
+                        "var e=document.querySelector('[data-bref=\"$ref\"]');"
+                    }
                     val js =
-                        "var e=document.querySelector('[data-bref=\"$ref\"]');" +
+                        sel +
                             "if(!e) return 'ref_not_found:$ref';" +
                             "var d=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(e),'value');" +
                             "if(d&&d.set) d.set.call(e,'${escapeJs(text)}');" +
@@ -104,8 +118,15 @@ class BrowserWebViewHost(context: Context) {
                     for ((idx, f) in fields.withIndex()) {
                         val ref = f["ref"]?.toString() ?: continue
                         val text = (f["text"] ?: "").toString()
+                        val cssPath = (f["cssPath"] ?: "").toString()
+                        val eSel = if (cssPath.isNotEmpty()) {
+                            val safe = cssPath.replace("'", "\\'")
+                            "document.querySelector('[data-bref=\"$ref\"]')||document.querySelector('$safe')"
+                        } else {
+                            "document.querySelector('[data-bref=\"$ref\"]')"
+                        }
                         sb.append(
-                            "var e$idx=document.querySelector('[data-bref=\"$ref\"]');" +
+                            "var e$idx=$eSel;" +
                                 "if(e$idx){" +
                                 "var d=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(e$idx),'value');" +
                                 "if(d&&d.set) d.set.call(e$idx,'${escapeJs(text)}');" +
@@ -127,9 +148,16 @@ class BrowserWebViewHost(context: Context) {
             "pressKey" -> {
                 val ref = call.argument<String>("ref") ?: ""
                 val key = call.argument<String>("key") ?: "Enter"
+                val cssPath = call.argument<String>("cssPath") ?: ""
                 runOnWebView {
+                    val sel = if (cssPath.isNotEmpty()) {
+                        val safe = cssPath.replace("'", "\\'")
+                        "var e=document.querySelector('[data-bref=\"$ref\"]')||document.querySelector('$safe');"
+                    } else {
+                        "var e=document.querySelector('[data-bref=\"$ref\"]');"
+                    }
                     val js =
-                        "var e=document.querySelector('[data-bref=\"$ref\"]');" +
+                        sel +
                             "if(e){e.dispatchEvent(new KeyboardEvent('keydown',{key:'$key',bubbles:true}));" +
                             "e.dispatchEvent(new KeyboardEvent('keyup',{key:'$key',bubbles:true}));'pressed'}else{'ref_not_found:$ref'}"
                     webView.evaluateJavascript(js) { result.success(it ?: "ok") }
@@ -238,6 +266,20 @@ class BrowserWebViewHost(context: Context) {
         const val SNAPSHOT_JS = """
 (function(){
   try {
+    function cssPath(el){
+      if(!el||el===document.body) return 'body';
+      if(el.id) return '#'+(CSS&&CSS.escape?CSS.escape(el.id):el.id);
+      var p=[],c=el;
+      while(c&&c!==document.body&&c!==document.documentElement){
+        var t=c.tagName.toLowerCase();
+        var pa=c.parentElement;
+        if(!pa) break;
+        var s=Array.from(pa.children).filter(function(x){return x.tagName===c.tagName;});
+        p.unshift(t+':nth-of-type('+(s.indexOf(c)+1)+')');
+        c=pa;
+      }
+      return p.join(' > ');
+    }
     var SEL = 'a,button,input,textarea,select,[role=button],[contenteditable=true]';
     var vh = window.innerHeight || document.documentElement.clientHeight;
     var vw = window.innerWidth || document.documentElement.clientWidth;
@@ -264,7 +306,8 @@ class BrowserWebViewHost(context: Context) {
         href: e.href || '',
         value: e.value || '',
         x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
-        inViewport: inView, visible: visible, disabled: disabled
+        inViewport: inView, visible: visible, disabled: disabled,
+        cssPath: cssPath(e)
       });
     }
     return JSON.stringify(out);

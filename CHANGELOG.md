@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.7.4 — snapshot/cssPath 双定位：修复 React 重渲染后 ref 失效 (2026-07-14)
+
+- **问题**：React 虚拟 DOM diff 重渲染后，`data-bref` 属性失效 → click/type/hover 报 `ref_not_found`。
+- **借鉴 browser-use**：browser-use 用 CDP backendNodeId 零侵入定位，我们做不到 CDP，但可以用 **CSS 路径作为 fallback**。
+- **snapshot 增加 cssPath 字段**：Kotlin SNAPSHOT_JS 新增 `cssPath()` 函数（生成 `div:nth-of-type(2)>form>input:nth-of-type(1)` 唯一路径），每个元素的 `out.push` 含 `cssPath` 字段。
+- **click/type/hover/fillForm/pressKey 双定位**：Kotlin 与 Dart 侧全部增加可选 `cssPath` 参数——先查 `data-bref`，找不到自动用 `cssPath` 重定位。
+- **Dart 通道与模型**：`BrowserElement` 新字段 `cssPath`；`BrowserChannel.click/type/pressKey` 签名加可选 `cssPath`。
+- **snapshot 输出**：元素行尾标注 `path=cssPath`。
+- **描述更新**：snapshot/click/type/hover/fill_form 的 `.txt` 文件说明 cssPath 用法。
+- `flutter analyze` 0 issue；`flutter test` 562 全绿。
+
 ## v1.7.3 — 浏览器工具 React/SPA 兼容性修复 (2026-07-14)
 
 - **问题**：用户测试发现浏览器工具对 React 框架网页「很难用」——type 直接设 `e.value` 对 React 受控组件无效；click 可能不触发合成事件；SPA 导航后 snapshot/get_text 因客户端渲染未完成返回空。

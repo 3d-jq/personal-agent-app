@@ -1,1 +1,1 @@
-批量填充表单字段，fields 为 [{ref, text}, ...]。提交请用 browser_click 点击提交按钮。
+批量填充表单字段，fields 为 [{ref, text, cssPath}, ...]。每个 field 可选传 cssPath（来自 snapshot 对应的 cssPath 字段），用于 React 重渲染后 ref 失效时的 fallback 定位。提交请用 browser_click 点击提交按钮。

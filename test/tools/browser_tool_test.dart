@@ -39,16 +39,16 @@ class _FakeBrowserChannel extends BrowserChannel {
   }
 
   @override
-  Future<String> click(String ref) async => 'clicked $ref';
+  Future<String> click(String ref, [String? cssPath]) async => 'clicked $ref';
   @override
-  Future<String> type(String ref, String text) async => 'typed $text';
+  Future<String> type(String ref, String text, [String? cssPath]) async => 'typed $text';
   @override
   Future<String> fillForm(List<Map<String, String>> fields) async =>
       'filled ${fields.length}';
   @override
   Future<String> evaluateJs(String code) async => 'ok';
   @override
-  Future<String> pressKey(String ref, String key) async => 'pressed $key';
+  Future<String> pressKey(String ref, String key, [String? cssPath]) async => 'pressed $key';
   @override
   Future<void> back() async {}
   @override

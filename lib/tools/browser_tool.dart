@@ -142,6 +142,7 @@ class BrowserSnapshotTool extends BrowserBaseTool {
         if (e.placeholder.isNotEmpty) parts.add('placeholder="${e.placeholder}"');
         if (e.href.isNotEmpty) parts.add('href="${e.href}"');
         if (e.value.isNotEmpty) parts.add('value="${e.value}"');
+        if (e.cssPath.isNotEmpty) parts.add('path=${e.cssPath}');
         final flags = <String>[];
         if (e.disabled) flags.add('disabled');
         if (!e.visible) flags.add('hidden');
@@ -169,6 +170,7 @@ class BrowserClickTool extends BrowserBaseTool {
         'type': 'object',
         'properties': {
           'ref': {'type': 'string', 'description': '目标元素 ref（来自 browser_snapshot）'},
+          'cssPath': {'type': 'string', 'description': '可选，CSS 路径（来自 snapshot 的 cssPath 字段）。当 React 重渲染导致 ref 失效时，可传此值作为备用定位'},
         },
         'required': ['ref'],
       };
@@ -176,8 +178,9 @@ class BrowserClickTool extends BrowserBaseTool {
   Future<String> execute(Map<String, dynamic> args) async {
     final ref = args['ref']?.toString() ?? '';
     if (ref.isEmpty) return '错误：ref 为空';
+    final cssPath = (args['cssPath'] as String? ?? '').trim();
     try {
-      return await channel.click(ref);
+      return await channel.click(ref, cssPath.isEmpty ? null : cssPath);
     } on BrowserException catch (e) {
       log.e('Browser', e.message, e.cause);
       return '浏览器点击失败：${e.message}';
@@ -198,6 +201,7 @@ class BrowserTypeTool extends BrowserBaseTool {
         'properties': {
           'ref': {'type': 'string', 'description': '目标输入框 ref'},
           'text': {'type': 'string', 'description': '要输入的文本'},
+          'cssPath': {'type': 'string', 'description': '可选，CSS 路径（来自 snapshot 的 cssPath 字段），React 重渲染后 ref 失效时用作备用定位'},
         },
         'required': ['ref', 'text'],
       };
@@ -207,8 +211,9 @@ class BrowserTypeTool extends BrowserBaseTool {
     final text = args['text']?.toString() ?? '';
     if (ref.isEmpty) return '错误：ref 为空';
     if (text.isEmpty) return '错误：text 为空';
+    final cssPath = (args['cssPath'] as String? ?? '').trim();
     try {
-      return await channel.type(ref, text);
+      return await channel.type(ref, text, cssPath.isEmpty ? null : cssPath);
     } on BrowserException catch (e) {
       log.e('Browser', e.message, e.cause);
       return '浏览器输入失败：${e.message}';
@@ -249,10 +254,13 @@ class BrowserFillFormTool extends BrowserBaseTool {
     final fields = <Map<String, String>>[];
     for (final f in fieldsRaw) {
       if (f is Map) {
-        fields.add({
+        final field = <String, String>{
           'ref': (f['ref']?.toString() ?? ''),
           'text': (f['text']?.toString() ?? ''),
-        });
+        };
+        final cp = (f['cssPath']?.toString() ?? '').trim();
+        if (cp.isNotEmpty) field['cssPath'] = cp;
+        fields.add(field);
       }
     }
     if (fields.isEmpty) return '错误：fields 为空';
@@ -908,6 +916,7 @@ class BrowserHoverTool extends BrowserBaseTool {
         'type': 'object',
         'properties': {
           'ref': {'type': 'string', 'description': '目标元素 ref（来自 browser_snapshot）'},
+          'cssPath': {'type': 'string', 'description': '可选，CSS 路径（来自 snapshot 的 cssPath 字段）'},
         },
         'required': ['ref'],
       };
@@ -915,9 +924,13 @@ class BrowserHoverTool extends BrowserBaseTool {
   Future<String> execute(Map<String, dynamic> args) async {
     final ref = (args['ref'] as String? ?? '').trim();
     if (ref.isEmpty) return '错误：ref 为空';
+    final cssPath = (args['cssPath'] as String? ?? '').trim();
+    final sel = cssPath.isNotEmpty
+        ? "document.querySelector('[data-bref=' + ${jsonEncode(ref)} + ']') || document.querySelector(${jsonEncode(cssPath)})"
+        : "document.querySelector('[data-bref=' + ${jsonEncode(ref)} + ']')";
     final code = '''
 (function(){
-  var e = document.querySelector('[data-bref=' + ${jsonEncode(ref)} + ']');
+  var e = $sel;
   if (!e) return 'ref_not_found:$ref';
   e.dispatchEvent(new MouseEvent('mouseenter', {bubbles: false}));
   e.dispatchEvent(new MouseEvent('mouseover', {bubbles: true}));
