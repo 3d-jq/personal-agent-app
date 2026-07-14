@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.6.8 — 统一圆角设计范式（popupMenu 等对齐 RadiusToken）(2026-07-14)
+
+- **统一圆角范式（修复缺圆角）**：项目已有 `RadiusToken`（`core/design_tokens.dart`，Apple HIG 风格：sm=8 / md=12 / lg=16 / xl=20 / pill=24）。此前顶部栏「更多」菜单（PopupMenuButton）因 `ThemeData` 未设 `popupMenuTheme`，弹出是 Material 默认直角，与全 App 卡片/按钮圆角不一致。
+- 在 `app.dart` 的 `buildAppTheme` 补 `popupMenuTheme: PopupMenuThemeData(shape: RoundedRectangleBorder(borderRadius: RadiusToken.md))`，所有 PopupMenuButton（含顶部栏「更多」菜单）自动圆角 12，对齐卡片范式。
+- 把 `buildAppTheme` / `_buildTextTheme` 从 `_AppState` 提取为 app.dart **顶层函数**（主题构建与 State 解耦，便于复用与测试）。
+- 收敛散落 magic number：按钮 / 卡片 / 图片预览的硬编码 `12` 全部改用 `RadiusToken.md`（输入框 `10` 为既有例外，保持不动避免外观漂移）。`inline_content` 图片预览（截图 / 生成图）圆角已统一为 `RadiusToken.md`。
+- **测试**：新增 `test/widgets/app_theme_test.dart` 断言 popupMenuTheme / cardTheme / elevatedButton / outlinedButton 圆角均为 `RadiusToken.md`；`inline_video_launch_test` 补图片预览圆角断言。`flutter analyze` 0 issue；`flutter test` 全绿。
+
 ## v1.6.7 — 浏览器默认桌面版 + 顶部栏操作收进菜单 (2026-07-14)
 
 - **浏览器默认桌面版 UA**：`BrowserWebViewHost.createWebView` 覆盖为桌面版 Chrome UA（去掉 Mobile/Android 字样），并启用 `useWideViewPort` + `loadWithOverviewMode`，使网站默认返回 PC 布局、在手机屏自适应缩放。

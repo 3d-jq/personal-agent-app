@@ -7,8 +7,8 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:url_launcher/url_launcher.dart';
 import '../core/agent_colors.dart';
-import '../core/app_animations.dart';
 import '../core/app_router.dart';
+import '../core/design_tokens.dart';
 import '../widgets/app_toast.dart';
 
 /// 调用原生「用系统播放器打开」能力（com.example/open_file → openFile）。
@@ -155,7 +155,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context, int maxCac
       child: Hero(
         tag: heroTag,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(RadiusToken.md),
           child: isLocal
               ? Image.file(
                   File(filePath),
@@ -167,7 +167,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context, int maxCac
                     height: 160,
                     decoration: BoxDecoration(
                       color: nc.primarySurface,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(RadiusToken.md),
                     ),
                     child: Center(
                       child: Column(
@@ -201,7 +201,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context, int maxCac
                     height: 200,
                     decoration: BoxDecoration(
                       color: nc.primarySurface,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(RadiusToken.md),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
@@ -232,7 +232,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context, int maxCac
                     height: 160,
                     decoration: BoxDecoration(
                       color: nc.primarySurface,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(RadiusToken.md),
                     ),
                     child: Center(
                       child: Column(

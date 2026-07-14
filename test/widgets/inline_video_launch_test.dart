@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_agent_app/core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import 'package:personal_agent_app/widgets/inline_content.dart';
 
 void main() {
@@ -123,6 +124,18 @@ void main() {
       final image = tester
           .widget<CachedNetworkImage>(find.byType(CachedNetworkImage).first);
       expect(image.height, 260);
+    });
+
+    testWidgets('内联图片预览使用统一圆角 RadiusToken.md', (tester) async {
+      const url = 'file:///data/user/0/com.example/files/shot.png';
+      await buildImage(tester, '![浏览器截图]($url)');
+
+      final clip = tester.widget<ClipRRect>(find.byType(ClipRRect).first);
+      final borderRadius = clip.borderRadius;
+      expect(borderRadius, isA<BorderRadius>());
+      if (borderRadius is BorderRadius) {
+        expect(borderRadius.topLeft.x, RadiusToken.md);
+      }
     });
   });
 }
