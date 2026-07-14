@@ -7,6 +7,29 @@ import '../services/log_service.dart';
 import 'base_tool.dart';
 import 'plugin_registry.dart';
 import 'tool_registry.dart';
+import 'browser_goto_tool.g.dart';
+import 'browser_snapshot_tool.g.dart';
+import 'browser_click_tool.g.dart';
+import 'browser_type_tool.g.dart';
+import 'browser_fill_form_tool.g.dart';
+import 'browser_evaluate_tool.g.dart';
+import 'browser_back_tool.g.dart';
+import 'browser_close_tool.g.dart';
+import 'browser_screenshot_tool.g.dart';
+import 'browser_get_text_tool.g.dart';
+import 'browser_get_readable_tool.g.dart';
+import 'browser_get_page_info_tool.g.dart';
+import 'browser_find_elements_tool.g.dart';
+import 'browser_scroll_tool.g.dart';
+import 'browser_wait_tool.g.dart';
+import 'browser_search_tool.g.dart';
+import 'browser_set_user_agent_tool.g.dart';
+import 'browser_set_viewport_tool.g.dart';
+import 'browser_get_cookies_tool.g.dart';
+import 'browser_set_cookies_tool.g.dart';
+import 'browser_hover_tool.g.dart';
+import 'browser_get_backbone_tool.g.dart';
+import 'browser_scroll_and_collect_tool.g.dart';
 
 /// 浏览器工具基础类：统一持有 [BrowserChannel]，execute 委托给原生宿主。
 abstract class BrowserBaseTool extends AgentTool {
@@ -70,9 +93,7 @@ class BrowserGotoTool extends BrowserBaseTool {
   @override
   String get name => 'browser_goto';
   @override
-  String get description =>
-      '让内置浏览器打开指定网址。参数 url 为目标链接（含 http/https）。'
-      '打开后建议先调用 browser_wait 等待页面加载（约 800-1500ms），再用 browser_snapshot 获取可交互元素、或用 browser_get_text/browser_get_readable 读取页面正文。';
+  String get description => browserGotoToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -103,10 +124,7 @@ class BrowserSnapshotTool extends BrowserBaseTool {
   @override
   String get name => 'browser_snapshot';
   @override
-  String get description =>
-      '获取当前浏览器页面的可交互元素清单（按钮/链接/输入框等），每个元素带 ref。'
-      '后续 click/type/hover 用 ref 定位元素。返回含 inViewport（是否在视口内）、visible（是否真正可见）、disabled（是否禁用）字段——'
-      '请优先操作 visible=true 且 disabled=false 的元素。元素很多时，先 browser_scroll 滚动到目标区域再 snapshot。';
+  String get description => browserSnapshotToolDescription;
   @override
   Map<String, dynamic> get parameters => const {
         'type': 'object',
@@ -145,9 +163,7 @@ class BrowserClickTool extends BrowserBaseTool {
   @override
   String get name => 'browser_click';
   @override
-  String get description =>
-      '按 browser_snapshot 返回的 ref 点击页面元素（点击前会自动滚动到该元素，无需手动 scroll）。'
-      '点击后页面通常会变化，建议随后调用 browser_wait 等待响应，再用 browser_snapshot 或 browser_get_text 查看结果。';
+  String get description => browserClickToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -175,8 +191,7 @@ class BrowserTypeTool extends BrowserBaseTool {
   @override
   String get name => 'browser_type';
   @override
-  String get description =>
-      '在 browser_snapshot 返回的 ref 输入框中输入文本（会触发 input 事件）。如需提交，输入后调用 browser_press_key(ref, "Enter") 或 browser_click 提交按钮。';
+  String get description => browserTypeToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -207,7 +222,7 @@ class BrowserFillFormTool extends BrowserBaseTool {
   @override
   String get name => 'browser_fill_form';
   @override
-  String get description => '批量填充表单字段，fields 为 [{ref, text}, ...]。提交请用 browser_click 点击提交按钮。';
+  String get description => browserFillFormToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -258,9 +273,7 @@ class BrowserEvaluateTool extends BrowserBaseTool {
   @override
   String get name => 'browser_evaluate';
   @override
-  String get description =>
-      '在浏览器页面执行 JavaScript 代码并返回结果。注意：返回值是「JSON 字符串化」的结果（字符串会带引号）。'
-      '多数场景更推荐用专用工具：读文本用 browser_get_text、读结构化信息用 browser_get_page_info、查找元素用 browser_find_elements。';
+  String get description => browserEvaluateToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -288,7 +301,7 @@ class BrowserBackTool extends BrowserBaseTool {
   @override
   String get name => 'browser_back';
   @override
-  String get description => '浏览器后退到上一页。';
+  String get description => browserBackToolDescription;
   @override
   Map<String, dynamic> get parameters => const {
         'type': 'object',
@@ -313,7 +326,7 @@ class BrowserCloseTool extends BrowserBaseTool {
   @override
   String get name => 'browser_close';
   @override
-  String get description => '关闭浏览器当前页面（清空 WebView）。';
+  String get description => browserCloseToolDescription;
   @override
   Map<String, dynamic> get parameters => const {
         'type': 'object',
@@ -346,10 +359,7 @@ class BrowserScreenshotTool extends BrowserBaseTool {
   @override
   String get name => 'browser_screenshot';
   @override
-  String get description =>
-      '对当前浏览器页面截图，并把图片直接发到对话里（大模型可见）。无参数。'
-      '截图后会自动在对话气泡中显示该图片，可用于「看看这个页面长什么样」「截图给我看」等场景。'
-      '若只想读取页面文字，用 browser_get_text 更省 token。';
+  String get description => browserScreenshotToolDescription;
   @override
   Map<String, dynamic> get parameters => const {
         'type': 'object',
@@ -389,10 +399,7 @@ class BrowserGetTextTool extends BrowserBaseTool {
   @override
   String get name => 'browser_get_text';
   @override
-  String get description =>
-      '读取当前页面可见纯文本（document.body.innerText），适合「读懂页面内容」「提取文章正文」。'
-      '单次默认最多返回 6000 字符；若页面更长，工具会自动提示剩余字符数，请用 offset 参数分多次读取以获取完整内容（例如 offset=6000）。'
-      '无需自己写 JS。';
+  String get description => browserGetTextToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -432,9 +439,7 @@ class BrowserGetReadableTool extends BrowserBaseTool {
   @override
   String get name => 'browser_get_readable';
   @override
-  String get description =>
-      '提取页面「正文」：自动去除导航/页脚/脚本/广告等噪声，优先取 article/main/[role=main]，返回干净的纯文本，适合读长文、博客、文档。'
-      '支持 offset/max_length 分页（默认 6000 字符）。若内容很长，请用 offset 续读。';
+  String get description => browserGetReadableToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -483,9 +488,7 @@ class BrowserGetPageInfoTool extends BrowserBaseTool {
   @override
   String get name => 'browser_get_page_info';
   @override
-  String get description =>
-      '获取当前页面的结构化信息：标题、URL、加载状态、滚动位置、页面总高度、视口尺寸、元素总数。'
-      '用于判断「页面是否加载完」「还能往下滚多少」「当前在哪个页面」。';
+  String get description => browserGetPageInfoToolDescription;
   @override
   Map<String, dynamic> get parameters => const {
         'type': 'object',
@@ -536,9 +539,7 @@ class BrowserFindElementsTool extends BrowserBaseTool {
   @override
   String get name => 'browser_find_elements';
   @override
-  String get description =>
-      '按 CSS 选择器（如 "a.article", "#list li", "h1"）查找页面元素，返回结构化清单（tag/id/class/文本片段/href）。'
-      'count 为匹配总数，shown 为本次展示数（受 limit 限制）。适合精确定位某类元素而不依赖 snapshot 的 ref。';
+  String get description => browserFindElementsToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -613,9 +614,7 @@ class BrowserScrollTool extends BrowserBaseTool {
   @override
   String get name => 'browser_scroll';
   @override
-  String get description =>
-      '滚动浏览器页面。delta_x/delta_y 为相对像素（默认向下滚 300）。'
-      '长页面操作前先用本工具滚到目标区域，再 browser_snapshot 获取该区域元素。返回滚动后的位置与是否到底。';
+  String get description => browserScrollToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -662,9 +661,7 @@ class BrowserWaitTool extends BrowserBaseTool {
   @override
   String get name => 'browser_wait';
   @override
-  String get description =>
-      '等待页面就绪。两种用法：1) 仅传 ms（毫秒）做固定等待（默认 1000），用于导航后等加载；'
-      '2) 传 selector（CSS 选择器）+ ms（最长等待），轮询直到该元素出现再返回，避免「页面没加载完就操作」。';
+  String get description => browserWaitToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -710,9 +707,7 @@ class BrowserSearchTool extends BrowserBaseTool {
   @override
   String get name => 'browser_search';
   @override
-  String get description =>
-      '在浏览器中直接搜索关键词（无需自己拼 URL）。engine 可选 bing（默认）/ google / duckduckgo / baidu。'
-      '打开搜索结果页后，用 browser_snapshot 或 browser_get_text 读取结果。';
+  String get description => browserSearchToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -759,9 +754,7 @@ class BrowserSetUserAgentTool extends BrowserBaseTool {
   @override
   String get name => 'browser_set_user_agent';
   @override
-  String get description =>
-      '设置浏览器 User-Agent（UA）。传入具体 UA 字符串可伪装成移动端/特定浏览器；传空字符串恢复默认桌面 UA。'
-      '修改后建议重新 browser_goto 目标页以使其生效。';
+  String get description => browserSetUserAgentToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -792,9 +785,7 @@ class BrowserSetViewportTool extends BrowserBaseTool {
   @override
   String get name => 'browser_set_viewport';
   @override
-  String get description =>
-      '设置浏览器视口（通过注入 meta viewport 让响应式站点按指定宽度重排），用于模拟不同屏幕。'
-      'width/height 单位为 CSS 像素，必须 > 0。修改后建议重新 browser_goto 目标页。';
+  String get description => browserSetViewportToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -827,8 +818,7 @@ class BrowserGetCookiesTool extends BrowserBaseTool {
   @override
   String get name => 'browser_get_cookies';
   @override
-  String get description =>
-      '读取当前页面（或指定 url）的 Cookie 字符串。可用于查看/保存登录态。';
+  String get description => browserGetCookiesToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -859,9 +849,7 @@ class BrowserSetCookiesTool extends BrowserBaseTool {
   @override
   String get name => 'browser_set_cookies';
   @override
-  String get description =>
-      '设置 Cookie（多个以分号分隔，如 "name=value; token=abc"）。默认作用于当前页 URL；'
-      '也可指定 url。常用于注入登录态以跳过登录。设置后建议重新 browser_goto 目标页。';
+  String get description => browserSetCookiesToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -895,9 +883,7 @@ class BrowserHoverTool extends BrowserBaseTool {
   @override
   String get name => 'browser_hover';
   @override
-  String get description =>
-      '按 browser_snapshot 的 ref 悬停元素（派发 mouseenter/mouseover/mousemove），用于触发下拉菜单、浮层、hover 提示等。'
-      '悬停后通常配合 browser_snapshot 获取新出现的元素。';
+  String get description => browserHoverToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -938,9 +924,7 @@ class BrowserGetBackboneTool extends BrowserBaseTool {
   @override
   String get name => 'browser_get_backbone';
   @override
-  String get description =>
-      '读取页面的 DOM 骨架树（标签/id/class/文本片段，按层级缩进），用于快速了解页面结构。'
-      'max_depth 控制遍历深度（默认 4），max_nodes 控制最多节点数（默认 200），避免过长。';
+  String get description => browserGetBackboneToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',
@@ -998,10 +982,7 @@ class BrowserScrollAndCollectTool extends BrowserBaseTool {
   @override
   String get name => 'browser_scroll_and_collect';
   @override
-  String get description =>
-      '多次滚动页面并收集可见文本/元素文本，适合「无限滚动」或长列表页面（如社交动态、商品列表）。'
-      'delta_y 每次滚动像素（默认 800），steps 滚动次数（默认 5），selector 可选只收集匹配元素的文本。'
-      '结果同样支持 offset/max_length 分页。';
+  String get description => browserScrollAndCollectToolDescription;
   @override
   Map<String, dynamic> get parameters => {
         'type': 'object',

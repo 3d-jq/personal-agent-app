@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.7.1 — 浏览器工具描述中文化（走 .txt → .g.dart 生成链）(2026-07-14)
+
+- **中文化统一**：23 个浏览器工具（`browser_*`）的 description 从代码硬编码改为通过 `lib/tools/browser_*_tool.txt` 统一管理，由 `tool/generate_tool_descriptions.dart` 自动生成 `lib/tools/browser_*_tool.g.dart` 常量文件，与项目其他工具对齐。
+- `browser_tool.dart`：每个工具 `description` getter 改为引用对应 `.g.dart` 常量（如 `browserGotoToolDescription`），23 个 import。
+- `flutter analyze` 0 issue；`flutter test` 562 全绿。
+
 ## v1.7.0 — 浏览器工具大增强（23 个工具 + 分页读取 + 工作流引导）(2026-07-14)
 
 - **根因修复**：查出大模型用浏览器"表现笨"的核心原因——工具结果被全局 `ToolResultTruncator` 硬截断到 20000 字符（`lib/utils/tool_result_truncator.dart`），长网页内容无法完整传到大模型。

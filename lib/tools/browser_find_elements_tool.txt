@@ -1,0 +1,1 @@
+按 CSS 选择器（如 a.article, #list li, h1）查找页面元素，返回结构化清单（tag/id/class/文本片段/href）。count 为匹配总数，shown 为本次展示数（受 limit 限制）。适合精确定位某类元素而不依赖 snapshot 的 ref。

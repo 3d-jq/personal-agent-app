@@ -1,0 +1,1 @@
+按 browser_snapshot 的 ref 悬停元素（派发 mouseenter/mouseover/mousemove），用于触发下拉菜单、浮层、hover 提示等。悬停后通常配合 browser_snapshot 获取新出现的元素。

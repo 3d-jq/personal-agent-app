@@ -1,0 +1,1 @@
+批量填充表单字段，fields 为 [{ref, text}, ...]。提交请用 browser_click 点击提交按钮。
