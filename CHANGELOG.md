@@ -1,5 +1,31 @@
 # Changelog
 
+## v1.5.2 — 浏览器操作（Kotlin 原生 WebView + 顶栏入口 + 全屏浮层）(2026-07-14)
+
+### ✨ 浏览器操作（Kotlin 原生 WebView 宿主）
+- 新增 `BrowserWebViewHost`：共享单例 WebView，通过 PlatformView 嵌入 Flutter UI，并用 MethodChannel 暴露 Playwright 式工具面（loadUrl/snapshot/click/type/fillForm/evaluateJs/pressKey/back/close/tabs）。
+- 快照机制：注入 JS 给可交互元素打 `data-bref`，返回带 ref 的元素清单，click/type 按 ref 定位元素。
+
+### 🧰 浏览器工具 + 插件
+- 新增 8 个 `browser_*` 工具（goto/snapshot/click/type/fill_form/evaluate/back/close）注入 `PluginRegistry`，Agent 可自动操作网页。
+
+### 🖥️ 对话主界面入口
+- 顶栏新增 🌐 图标入口（激活态高亮），点击打开浏览器全屏浮层：URL 栏（自动补 https）、原生 WebView、快照元素面板。
+- 对齐 Operit 的 TopAppBar 图标 + 全屏浮层交互。
+
+### 🧪 测试
+- 新增 24 条测试（通道 11 + 工具 14），全量 `flutter test` 518 通过，`flutter analyze` 0 issue。
+
+## v1.5.1 — API 密钥迁移到加密存储 + 若干修复 (2026-07-13)
+
+### 🔒 API 密钥加密存储
+- 厂商 / TTS API 密钥、Gitee 令牌迁移到 `flutter_secure_storage` 加密存储，安装包不可直接解包查看明文。
+
+### 🐛 修复
+- 更新检查遇到 404 静默跳过，不再报网络错误。
+- 群聊子 Agent 超时从 90s 提到 180s，`delegate_task` 场景不再频繁超时。
+- 转场圆角用 `AnimatedBuilder` 跟帧更新，修复静态值不生效。
+
 ## v1.5.0 — UI 交互全面修复 + 代码审查标准化 (2026-07-13)
 
 ### 🐛 侧边栏修复
