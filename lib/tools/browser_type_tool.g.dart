@@ -3,6 +3,6 @@
 
 /// Tool description for `browser_type_tool`.
 const String browserTypeToolDescription = r'''
-在 browser_snapshot 返回的 ref 输入框中输入文本（兼容 React/Vue 受控组件——使用原生 value setter + focus + input/change 事件）。如需提交，输入后调用 browser_press_key(ref, "Enter") 或 browser_click 提交按钮。
+在 browser_snapshot 返回的 ref 输入框中输入文本（兼容 React/Vue 受控组件——使用原生 value setter + focus + input/change 事件）。可选传 cssPath（来自 snapshot 的 cssPath 字段），当 React 重渲染导致 ref 失效时，会自动用 cssPath 重新查找。如需提交，输入后调用 browser_press_key(ref, "Enter") 或 browser_click 提交按钮。
 '''
 ;

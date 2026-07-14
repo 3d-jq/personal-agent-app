@@ -33,6 +33,9 @@ class BrowserElement {
   final bool visible;
   /// 元素是否被禁用（disabled 属性或 disabled 状态）。
   final bool disabled;
+  /// CSS 唯一路径（如 body>div:nth-of-type(2)>form>input:nth-of-type(1)），
+  /// 用于 React 重渲染后 data-bref 失效时的 fallback 定位。
+  final String cssPath;
 
   const BrowserElement({
     required this.ref,
@@ -51,6 +54,7 @@ class BrowserElement {
     this.inViewport = false,
     this.visible = false,
     this.disabled = false,
+    this.cssPath = '',
   });
 
   factory BrowserElement.fromJson(Map<String, dynamic> j) => BrowserElement(
@@ -70,6 +74,7 @@ class BrowserElement {
         inViewport: j['inViewport'] as bool? ?? false,
         visible: j['visible'] as bool? ?? false,
         disabled: j['disabled'] as bool? ?? false,
+        cssPath: j['cssPath']?.toString() ?? '',
       );
 }
 
@@ -113,13 +118,19 @@ class BrowserChannel {
     return const [];
   }
 
-  /// 按 ref 点击元素。
-  Future<String> click(String ref) =>
-      _invoke('click', {'ref': ref});
+  /// 按 ref 点击元素。可选 [cssPath] 用于 data-bref 失效时 fallback 定位。
+  Future<String> click(String ref, [String? cssPath]) =>
+      _invoke('click', {
+        'ref': ref,
+        if (cssPath != null && cssPath.isNotEmpty) 'cssPath': cssPath,
+      });
 
-  /// 在 ref 元素中输入文本。
-  Future<String> type(String ref, String text) =>
-      _invoke('type', {'ref': ref, 'text': text});
+  /// 在 ref 元素中输入文本。可选 [cssPath] 用于 data-bref 失效时 fallback。
+  Future<String> type(String ref, String text, [String? cssPath]) =>
+      _invoke('type', {
+        'ref': ref, 'text': text,
+        if (cssPath != null && cssPath.isNotEmpty) 'cssPath': cssPath,
+      });
 
   /// 批量填充表单字段：[{ref, text}, ...]。
   Future<String> fillForm(List<Map<String, String>> fields) =>
@@ -130,9 +141,12 @@ class BrowserChannel {
   /// 在页面执行 JS 并返回结果字符串。
   Future<String> evaluateJs(String code) => _invoke('evaluateJs', {'code': code});
 
-  /// 按 ref 派发键盘事件。
-  Future<String> pressKey(String ref, String key) =>
-      _invoke('pressKey', {'ref': ref, 'key': key});
+  /// 按 ref 派发键盘事件。可选 [cssPath] 用于 data-bref 失效时 fallback。
+  Future<String> pressKey(String ref, String key, [String? cssPath]) =>
+      _invoke('pressKey', {
+        'ref': ref, 'key': key,
+        if (cssPath != null && cssPath.isNotEmpty) 'cssPath': cssPath,
+      });
 
   /// 浏览器后退。
   Future<void> back() => _invoke('back');

@@ -3,6 +3,6 @@
 
 /// Tool description for `browser_hover_tool`.
 const String browserHoverToolDescription = r'''
-按 browser_snapshot 的 ref 悬停元素（派发 mouseenter/mouseover/mousemove），用于触发下拉菜单、浮层、hover 提示等。悬停后通常配合 browser_snapshot 获取新出现的元素。
+按 browser_snapshot 的 ref 悬停元素（派发 mouseenter/mouseover/mousemove），用于触发下拉菜单、浮层、hover 提示等。可选传 cssPath（来自 snapshot 的 cssPath 字段），React 重渲染导致 ref 失效时自动用 cssPath 重新查找。悬停后通常配合 browser_snapshot 获取新出现的元素。
 '''
 ;
