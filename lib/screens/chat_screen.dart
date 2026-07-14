@@ -13,6 +13,7 @@ import '../widgets/chat_scroll_to_bottom_button.dart';
 import '../widgets/chat_input_bar.dart';
 import '../widgets/chat_new_chat_button.dart';
 import '../widgets/session_info_button.dart';
+import '../widgets/browser_overlay.dart';
 import '../core/app_animations.dart';
 import 'chat_drawer_content.dart';
 import 'chat_scroll_mixin.dart';
@@ -38,6 +39,8 @@ class _ChatScreenState extends State<ChatScreen>
   double _dragStartValue = 0;
   bool _draggingSidebar = false;
   bool _sidebarDragEngaged = false;
+  // 浏览器浮层显隐（顶栏 🌐 入口）
+  bool _showBrowser = false;
   final TextEditingController _inputCtrl = TextEditingController();
   final FocusNode _inputFocus = FocusNode();
   late final ChatController _controller;
@@ -224,6 +227,15 @@ class _ChatScreenState extends State<ChatScreen>
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            IconButton(
+              icon: const Icon(Icons.language),
+              color: _showBrowser ? nc.primary : nc.textPrimary,
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                setState(() => _showBrowser = !_showBrowser);
+              },
+              tooltip: '浏览器',
+            ),
             ChatNewChatButton(controller: _controller, onBeforeNew: _resetInput),
             const SizedBox(width: 8),
             SessionInfoButton(
@@ -339,7 +351,17 @@ class _ChatScreenState extends State<ChatScreen>
                       onTap: _sidebarOpen
                           ? _closeSidebar
                           : () => _inputFocus.unfocus(),
-                      child: scaffold,
+                      child: Stack(
+                        children: [
+                          scaffold,
+                          if (_showBrowser)
+                            Positioned.fill(
+                              child: BrowserOverlay(
+                                onClose: () => setState(() => _showBrowser = false),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
