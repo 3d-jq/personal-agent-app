@@ -11,3 +11,9 @@
 - 本模块以 `implementation(project(":operit_terminal"))` 方式被 `:app` 依赖，
   其原生库（liboperit_proot / libbash / libbusybox / libsudo / liboperit_loader / libpty）
   与 rootfs（`ubuntu-noble-aarch64-pd-v4.18.0.tar.xz`）随 APK 打包发布。
+
+## 本仓库对 OperitTerminalCore 的修改
+- `TerminalManager.linkNativeLibs()`：原生库（busybox / proot / loader / bash / sudo）优先建立符号链接；
+  跨卷 symlink 在部分 Android 设备会失败（`EXDEV`），此时 fallback 复制 `.so` 到 `binDir`，
+  避免软链静默失败后 `files/usr/bin/bash` 缺失导致终端沙箱启动报 "No such file or directory"。
+- 上述修改仅为健壮性增强，未改变 PRoot / rootfs 行为，符合 LGPL-3.0 修改后需随源码分发的约定。

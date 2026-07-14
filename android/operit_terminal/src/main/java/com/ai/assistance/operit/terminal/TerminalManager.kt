@@ -634,19 +634,26 @@ class TerminalManager private constructor(
             // CRITICAL: Set execute permission on the target .so file before creating symlink
             busyboxSo.setExecutable(true, false)
 
-            // Create the symbolic link
-            Files.createSymbolicLink(link, target)
-            Log.d(TAG, "Created busybox symbolic link using Java NIO")
+            // Create the symbolic link; 跨卷 symlink 在部分 Android 设备会失败(EXDEV)，
+            // 此时 fallback 复制 .so 到 binDir（复制无跨卷限制，行为等价）。
+            try {
+                Files.createSymbolicLink(link, target)
+                Log.d(TAG, "Created busybox symbolic link using Java NIO")
+            } catch (e: Exception) {
+                Log.w(TAG, "busybox symlink failed, fallback to copy", e)
+                Files.copy(busyboxSo.toPath(), busybox.toPath())
+                busybox.setExecutable(true, false)
+            }
 
-            // Verify the link was created successfully and is functional
+            // Verify the link/copy was created successfully and is functional
             if (busybox.exists() && busybox.canExecute()) {
-                Log.d(TAG, "Verification: busybox link exists and is executable at ${busybox.absolutePath}")
+                Log.d(TAG, "Verification: busybox exists and is executable at ${busybox.absolutePath}")
             } else {
-                Log.e(TAG, "Verification failed: busybox link not functional after creation")
+                Log.e(TAG, "Verification failed: busybox not functional after link/copy")
                 return
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to create busybox link using Java NIO", e)
+            Log.e(TAG, "Failed to create busybox link", e)
             return
         }
 
@@ -686,18 +693,25 @@ class TerminalManager private constructor(
                 // CRITICAL: Set execute permission on the target .so file before creating symlink
                 libFile.setExecutable(true, false)
 
-                // Create the symbolic link
-                Files.createSymbolicLink(link, target)
-                Log.d(TAG, "Created $linkName symbolic link using Java NIO")
+                // Create the symbolic link; 跨卷 symlink 在部分 Android 设备会失败(EXDEV)，
+                // 此时 fallback 复制 .so 到 binDir（复制无跨卷限制，行为等价）。
+                try {
+                    Files.createSymbolicLink(link, target)
+                    Log.d(TAG, "Created $linkName symbolic link using Java NIO")
+                } catch (e: Exception) {
+                    Log.w(TAG, "$linkName symlink failed, fallback to copy", e)
+                    Files.copy(libFile.toPath(), linkFile.toPath())
+                    linkFile.setExecutable(true, false)
+                }
 
-                // Verify the link was created successfully and is executable
+                // Verify the link/copy was created successfully and is executable
                 if (linkFile.exists() && linkFile.canExecute()) {
-                    Log.d(TAG, "Verification: $linkName link exists and is executable at ${linkFile.absolutePath}")
+                    Log.d(TAG, "Verification: $linkName exists and is executable at ${linkFile.absolutePath}")
                 } else {
-                    Log.w(TAG, "Verification failed: $linkName link not executable after creation")
+                    Log.w(TAG, "Verification failed: $linkName not executable after link/copy")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to create $linkName link using Java NIO", e)
+                Log.e(TAG, "Failed to create $linkName link", e)
             }
         }
     }
