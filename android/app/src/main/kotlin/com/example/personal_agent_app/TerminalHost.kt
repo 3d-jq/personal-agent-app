@@ -81,19 +81,41 @@ class TerminalHost(
         }
     }
 
+    /** 实际会被宿主 exec 的 bash 文件（已改放 /data/local/tmp 以绕过 noexec）。 */
+    private fun execBashFile(): File {
+        val tm = TerminalManager.getInstance(context)
+        return File(tm.execBashPath())
+    }
+
+    /** 真正尝试 exec 一次 bash -c 'exit 0'，直接验证宿主能否执行（捕获 noexec/SELinux 拒绝）。 */
+    private fun probeBashExec(): String {
+        return try {
+            val p = ProcessBuilder(execBashFile().absolutePath, "-c", "exit 0")
+                .directory(context.filesDir)
+                .redirectErrorStream(true)
+                .start()
+            val rc = p.waitFor()
+            "execProbe=ok(exit=$rc)"
+        } catch (e: Exception) {
+            "execProbe=FAIL:${e.message ?: e.javaClass.simpleName}"
+        }
+    }
+
     /** 生成环境未就绪 / 初始化失败时的磁盘状态诊断，便于在 App 日志里直接看清根因。 */
     private fun diagnoseEnv(): String {
-        val bash = File(context.filesDir, "usr/bin/bash")
-        val busybox = File(context.filesDir, "usr/bin/busybox")
-        val proot = File(context.filesDir, "usr/bin/proot")
+        val bash = execBashFile()
+        val parent = bash.parentFile
+        val busybox = File(parent, "busybox")
+        val proot = File(parent, "proot")
+        val loader = File(parent, "loader")
         val common = File(context.filesDir, "common.sh")
         val nativeDir = File(context.applicationInfo.nativeLibraryDir)
         val sos = nativeDir.listFiles()
             ?.filter { it.name.endsWith(".so") }
             ?.joinToString(",") { it.name } ?: "(无法读取)"
-        return "bash(exists=${bash.exists()},exec=${bash.canExecute()}) " +
-            "busybox=${busybox.exists()} proot=${proot.exists()} common.sh=${common.exists()} | " +
-            "nativeLib(.so): $sos"
+        return "binDir=${parent.absolutePath} bash(exists=${bash.exists()},exec=${bash.canExecute()}) " +
+            "busybox=${busybox.exists()} proot=${proot.exists()} loader=${loader.exists()} " +
+            "common.sh=${common.exists()} | ${probeBashExec()} | nativeLib(.so): $sos"
     }
 
     fun handle(call: MethodCall, result: MethodChannel.Result) {
@@ -129,11 +151,23 @@ class TerminalHost(
         }
     }
 
-    /** 真实验证沙箱可用：binDir/bash 存在且可执行、common.sh 存在。 */
+    /** 真实验证沙箱可用：binDir/bash 存在且可执行、common.sh 存在，且宿主能真正 exec 它。 */
     private fun envReallyReady(): Boolean {
-        val bash = File(context.filesDir, "usr/bin/bash")
+        val bash = execBashFile()
         val common = File(context.filesDir, "common.sh")
-        return bash.exists() && bash.canExecute() && common.exists()
+        if (!(bash.exists() && bash.canExecute() && common.exists())) return false
+        // 关键：canExecute() 只检查权限位，不校验 noexec/SELinux。必须真 exec 一次，
+        // 否则会出现「显示就绪但执行报 Permission denied」的假阳性。
+        return try {
+            val p = ProcessBuilder(bash.absolutePath, "-c", "exit 0")
+                .directory(context.filesDir)
+                .redirectErrorStream(true)
+                .start()
+            val rc = if (p.waitFor() == 0) true else false
+            rc
+        } catch (_: Exception) {
+            false
+        }
     }
 
     private fun startSession(result: MethodChannel.Result, args: Map<String, Any?>?) {

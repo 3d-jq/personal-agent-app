@@ -46,7 +46,10 @@ class LocalTerminalProvider(
 
     private val filesDir: File = context.filesDir
     private val usrDir: File = File(filesDir, "usr")
-    private val binDir: File = File(usrDir, "bin")
+    // 与 TerminalManager 保持一致：外层启动二进制放到 /data/local/tmp 以绕过 app 数据目录 noexec
+    private val execBaseDir: File =
+        File("/data/local/tmp", "dweis_term_" + context.packageName.replace('.', '_'))
+    private val binDir: File = File(execBaseDir, "bin")
     private val nativeLibDir: String = context.applicationInfo.nativeLibraryDir
 
     private val activeSessions = ConcurrentHashMap<String, TerminalSession>()

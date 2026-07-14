@@ -1,6 +1,10 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show PlatformViewHitTestBehavior;
+import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../platform/browser_channel.dart';
 import '../services/log_service.dart';
@@ -28,24 +32,34 @@ class _BrowserOverlayState extends State<BrowserOverlay> {
   bool _busy = false;
   String _error = '';
 
-  /// 打开即加载的默认主页：避免空白 WebView 让用户以为「什么都没显示」。
-  static const String _homePage = 'https://www.baidu.com';
+  /// 打开即加载的默认主页：空白页，不再强行塞百度。
+  /// 大模型用 browser_* 工具导航到的页面会被保留（见 initState 的 currentUrl 判断）。
+  static const String _homePage = 'about:blank';
+
+  /// URL 栏输入裸词 / 带空格句子时走的默认搜索引擎（避免 `https://天气` 直接失败）。
+  /// 用无广告的 Bing 替代百度（百度首页广告过多）。
+  static const String _searchEngine = 'https://www.bing.com/search?q=';
 
   @override
   void initState() {
     super.initState();
     _channel = widget.channel ?? BrowserChannel();
-    // 首帧后加载默认主页（不阻塞 UI）。即使 WebView 尚未 attach，原生也会先导航，
-    // attach 后立即可见，解决「打开浏览器一片空白」的体感问题。
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _loadUrl(_homePage);
+    // 首帧后：若 WebView 当前已是某个真实页面（大模型刚导航过去），则【不重载】，
+    // 避免「一打开浏览器就把大模型的页面覆盖回主页」；仅当空白时才加载主页。
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final cur = await _channel.currentUrl();
+      if (!mounted) return;
+      if (cur.isEmpty || cur == _homePage) {
+        _loadUrl(_homePage);
+      }
     });
   }
 
   /// 把用户输入归一为可加载的 URL：
   /// - 已是 http(s) 链接 → 原样；
   /// - 含点且不含空格（如 example.com）→ 补 https:// 当主机名；
-  /// - 其余（搜索词 / 带空格的句子）→ 走 Baidu 搜索，避免 `https://天气` 直接失败且毫无反馈。
+  /// - 其余（搜索词 / 带空格的句子）→ 走默认搜索引擎（Bing）搜索，避免 `https://天气` 直接失败且毫无反馈。
   String _normalizeUrl(String raw) {
     final trimmed = raw.trim();
     final lower = trimmed.toLowerCase();
@@ -56,7 +70,7 @@ class _BrowserOverlayState extends State<BrowserOverlay> {
       return 'https://$trimmed';
     }
     final q = Uri.encodeQueryComponent(trimmed);
-    return 'https://www.baidu.com/s?wd=$q';
+    return '$_searchEngine$q';
   }
 
   Future<void> _go() async {
@@ -165,11 +179,38 @@ class _BrowserOverlayState extends State<BrowserOverlay> {
               ),
             ),
             // ── 原生 WebView ──
+            // 用 PlatformViewLink + AndroidViewSurface 走 Hybrid Composition（真实 Surface），
+            // 让 WebView 拿到原生触摸，滚动/点击才跟手；配 EagerGestureRecognizer 不让
+            // Flutter 手势竞技场抢走滑动手势（之前用 AndroidView 虚拟显示合成会吞手势）。
             Expanded(
               child: Stack(
                 children: [
                   if (Platform.isAndroid)
-                    const AndroidView(viewType: BrowserChannel.viewType)
+                    PlatformViewLink(
+                      viewType: BrowserChannel.viewType,
+                      onCreatePlatformView: (params) {
+                        final controller =
+                            PlatformViewsService.initSurfaceAndroidView(
+                          id: params.id,
+                          viewType: BrowserChannel.viewType,
+                          layoutDirection: TextDirection.ltr,
+                        );
+                        controller.addOnPlatformViewCreatedListener(
+                          params.onPlatformViewCreated,
+                        );
+                        controller.create();
+                        return controller;
+                      },
+                      surfaceFactory: (context, controller) => AndroidViewSurface(
+                        controller: controller as AndroidViewController,
+                        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                          Factory<OneSequenceGestureRecognizer>(
+                            () => EagerGestureRecognizer(),
+                          ),
+                        },
+                        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+                      ),
+                    )
                   else
                     Center(
                       child: Text(

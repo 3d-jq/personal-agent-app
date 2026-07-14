@@ -79,6 +79,10 @@ class BrowserChannel {
   /// 导航到指定 URL。
   Future<void> loadUrl(String url) => _invoke('loadUrl', {'url': url});
 
+  /// 当前页面 URL（未加载 / 已关闭时为 null 或空串）。
+  /// 用于浏览器浮层判断：当大模型已导航到某页面时，不再强制覆盖。
+  Future<String> currentUrl() => _invoke<String>('currentUrl');
+
   /// 获取当前页面可交互元素快照（带 ref）。
   Future<List<BrowserElement>> snapshot() async {
     final raw = await _invoke<String>('snapshot');

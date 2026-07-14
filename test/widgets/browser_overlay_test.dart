@@ -13,6 +13,8 @@ class _FakeBrowserChannel extends BrowserChannel {
   bool backCalled = false;
   bool closed = false;
   bool failLoad = false;
+  /// 模拟 WebView 当前已加载的 URL（大模型导航后会被设成真实页面）。
+  String currentUrlValue = '';
 
   @override
   Future<void> loadUrl(String url) async {
@@ -49,10 +51,13 @@ class _FakeBrowserChannel extends BrowserChannel {
 
   @override
   Future<String> tabs() async => '[]';
+
+  @override
+  Future<String> currentUrl() async => currentUrlValue;
 }
 
 void main() {
-  testWidgets('打开即加载默认主页（不再空白）', (tester) async {
+  testWidgets('空白时打开即加载默认主页（about:blank，不再强制百度）', (tester) async {
     final fake = _FakeBrowserChannel();
     await tester.pumpWidget(
       MaterialApp(
@@ -60,10 +65,23 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(fake.lastLoadedUrl, 'https://www.baidu.com');
+    expect(fake.lastLoadedUrl, 'about:blank');
   });
 
-  testWidgets('裸搜索词走 Baidu 搜索兜底', (tester) async {
+  testWidgets('已加载页面（大模型导航）时打开浮层不强制覆盖', (tester) async {
+    final fake = _FakeBrowserChannel()
+      ..currentUrlValue = 'https://example.com/ai-page';
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: BrowserOverlay(channel: fake, onClose: () {})),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // 不应发生任何新的 loadUrl（保留大模型已打开的页面）
+    expect(fake.lastLoadedUrl, isNull);
+  });
+
+  testWidgets('裸搜索词走 Bing 搜索兜底', (tester) async {
     final fake = _FakeBrowserChannel();
     await tester.pumpWidget(
       MaterialApp(
@@ -77,7 +95,7 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.go);
     await tester.pumpAndSettle();
 
-    expect(fake.lastLoadedUrl, startsWith('https://www.baidu.com/s?wd='));
+    expect(fake.lastLoadedUrl, startsWith('https://www.bing.com/search?q='));
     expect(fake.lastLoadedUrl, contains('%E5%A4%A9%E6%B0%94')); // 天气 的编码
   });
 
