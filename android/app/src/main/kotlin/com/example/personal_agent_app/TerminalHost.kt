@@ -45,6 +45,9 @@ class TerminalHost(
     private val readJobs = ConcurrentHashMap<String, Job>()
     private var eventSink: EventChannel.EventSink? = null
 
+    /** 用于把原生诊断日志推回 Dart（onNativeLog）。 */
+    private val outboundChannel = MethodChannel(messenger, CHANNEL)
+
     init {
         EventChannel(messenger, EVENTS).setStreamHandler(
             object : EventChannel.StreamHandler {
@@ -57,6 +60,40 @@ class TerminalHost(
                 }
             }
         )
+        // 把终端环境初始化的报错/警告经此桥推到 App 统一日志（运行日志页）。
+        TerminalManager.nativeLogBridge = { level, _, message ->
+            forwardNativeLog(level, message)
+        }
+    }
+
+    /**
+     * 把原生诊断日志经 [outboundChannel] 推给 Dart。Dart 侧 [TerminalChannel] 注册了
+     * onNativeLog handler 并路由到 [LogService]。若 Dart 尚未注册（极早调用）则静默丢弃。
+     */
+    private fun forwardNativeLog(level: String, message: String) {
+        try {
+            outboundChannel.invokeMethod(
+                "onNativeLog",
+                mapOf("level" to level, "tag" to "TerminalNative", "message" to message)
+            )
+        } catch (_: Exception) {
+            // Dart 端未注册 handler 或通道异常：不影响主流程，仅损失该条日志。
+        }
+    }
+
+    /** 生成环境未就绪 / 初始化失败时的磁盘状态诊断，便于在 App 日志里直接看清根因。 */
+    private fun diagnoseEnv(): String {
+        val bash = File(context.filesDir, "usr/bin/bash")
+        val busybox = File(context.filesDir, "usr/bin/busybox")
+        val proot = File(context.filesDir, "usr/bin/proot")
+        val common = File(context.filesDir, "common.sh")
+        val nativeDir = File(context.applicationInfo.nativeLibraryDir)
+        val sos = nativeDir.listFiles()
+            ?.filter { it.name.endsWith(".so") }
+            ?.joinToString(",") { it.name } ?: "(无法读取)"
+        return "bash(exists=${bash.exists()},exec=${bash.canExecute()}) " +
+            "busybox=${busybox.exists()} proot=${proot.exists()} common.sh=${common.exists()} | " +
+            "nativeLib(.so): $sos"
     }
 
     fun handle(call: MethodCall, result: MethodChannel.Result) {
@@ -77,8 +114,13 @@ class TerminalHost(
                 if (provider == null) provider = LocalTerminalProvider(context)
                 // 返回真实状态：bash 软链/复制是否成功 + common.sh 是否存在，
                 // 避免 Operit 静默吞掉软链失败后误报"就绪"。
-                result.success(envReallyReady())
+                val ready = envReallyReady()
+                if (!ready) {
+                    forwardNativeLog("W", "终端未就绪: ${diagnoseEnv()}")
+                }
+                result.success(ready)
             } catch (e: Exception) {
+                forwardNativeLog("E", "INIT_FAILED: ${e.message}\n${diagnoseEnv()}")
                 result.error("INIT_FAILED", e.message, null)
             }
         }
@@ -99,6 +141,7 @@ class TerminalHost(
                 if (provider == null) provider = LocalTerminalProvider(context)
                 val r = provider!!.startSession(sessionId)
                 if (r.isFailure) {
+                    forwardNativeLog("E", "START_FAILED: ${r.exceptionOrNull()?.message}\n${diagnoseEnv()}")
                     result.error("START_FAILED", r.exceptionOrNull()?.message, null)
                     return@launch
                 }
@@ -107,6 +150,7 @@ class TerminalHost(
                 startReader(sessionId, session)
                 result.success(true)
             } catch (e: Exception) {
+                forwardNativeLog("E", "START_FAILED: ${e.message}\n${diagnoseEnv()}")
                 result.error("START_FAILED", e.message, null)
             }
         }
@@ -165,6 +209,7 @@ class TerminalHost(
                 )
                 result.success(map)
             } catch (e: Exception) {
+                forwardNativeLog("E", "EXEC_FAILED: ${e.message}\n${diagnoseEnv()}")
                 result.error("EXEC_FAILED", e.message, null)
             }
         }

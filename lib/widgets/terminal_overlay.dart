@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:xterm/xterm.dart';
 import '../core/agent_colors.dart';
 import '../platform/terminal_channel.dart';
+import '../services/log_service.dart';
 
 /// 终端沙箱全屏浮层：在对话主界面之上覆盖一个 xterm 终端面板，
 /// 接入 Kotlin 原生 PRoot + Ubuntu 环境（[TerminalChannel] 驱动）。
@@ -70,6 +71,7 @@ class _TerminalOverlayState extends State<TerminalOverlay> {
       await _channel.start(_sessionId);
       if (mounted) setState(() => _ready = true);
     } on TerminalException catch (e) {
+      log.e('Terminal', e.message, e.cause);
       if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _busy = false);

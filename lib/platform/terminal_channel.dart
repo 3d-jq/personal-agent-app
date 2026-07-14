@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import '../services/log_service.dart';
 
 /// 终端沙箱原生通道异常（环境未初始化 / 原生模块缺失等）。
 class TerminalException implements Exception {
@@ -48,12 +50,40 @@ class TerminalChannel {
   static const String channelName = 'com.example/terminal';
   static const String eventsName = 'com.example/terminal/events';
 
+  /// 原生层经此通道名把日志推回 Dart（onNativeLog 方法调用）。
+  static const String _nativeLogMethod = 'onNativeLog';
+
   final MethodChannel _channel;
   final EventChannel _events;
 
   TerminalChannel([MethodChannel? channel])
       : _channel = channel ?? const MethodChannel(channelName),
-        _events = const EventChannel(eventsName);
+        _events = const EventChannel(eventsName) {
+    _registerNativeLogBridge();
+  }
+
+  /// 确保原生→Dart 日志桥只注册一次（[log] 是全局单例，多次注册无害但冗余）。
+  static bool _nativeLogBridged = false;
+  static void _registerNativeLogBridge() {
+    if (_nativeLogBridged) return;
+    // 纯 Dart 单元测试环境（绑定尚未初始化）下，setMethodCallHandler 会因
+    // binaryMessenger 未就绪而断言失败；用 debugBindingType 安全探测，未初始化则跳过。
+    // App 运行期绑定已就绪，会正常注册原生日志桥。
+    if (BindingBase.debugBindingType() == null) return;
+    _nativeLogBridged = true;
+    // 注意：用真实通道名注册 handler，而非注入的测试通道，
+    // 这样原生（使用 com.example/terminal）推来的日志才能被接收。
+    const MethodChannel(channelName).setMethodCallHandler((call) async {
+      if (call.method == _nativeLogMethod) {
+        final args = call.arguments as Map<dynamic, dynamic>?;
+        final level = (args?['level'] as String?) ?? 'I';
+        final tag = (args?['tag'] as String?) ?? 'TerminalNative';
+        final message = (args?['message'] as String?) ?? '';
+        routeNativeLog(level, tag, message);
+      }
+      return null;
+    });
+  }
 
   /// 确保底层 PRoot + Ubuntu 环境已初始化（解包 rootfs、生成 common.sh 等）。
   Future<bool> ensureReady() => _invoke<bool>('ensureReady');
@@ -98,5 +128,21 @@ class TerminalChannel {
     } on MissingPluginException catch (e) {
       throw TerminalException('终端原生模块未就绪（请使用 Android 构建）', e);
     }
+  }
+}
+
+/// 将原生层经 [TerminalChannel._nativeLogMethod] 推来的日志路由到 App 统一日志系统
+/// （[LogService]），使终端沙箱的原生报错/问题也能在 App「运行日志」页看到，
+/// 无需 adb 抓 logcat。
+///
+/// 单独抽为顶层函数便于单测：E→[log.e]、W→[log.w]、其余→[log.i]。
+void routeNativeLog(String level, String tag, String message) {
+  switch (level) {
+    case 'E':
+      log.e(tag, message);
+    case 'W':
+      log.w(tag, message);
+    default:
+      log.i(tag, message);
   }
 }
