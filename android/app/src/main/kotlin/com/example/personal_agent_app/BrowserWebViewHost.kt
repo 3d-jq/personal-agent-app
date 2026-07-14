@@ -76,7 +76,7 @@ class BrowserWebViewHost(context: Context) {
                 val ref = call.argument<String>("ref") ?: ""
                 runOnWebView {
                     webView.evaluateJavascript(
-                        "var e=document.querySelector('[data-bref=\"$ref\"]'); if(e){e.scrollIntoView({block:'center',inline:'center'}); e.click(); 'clicked'}else{'ref_not_found:$ref'}"
+                        "var e=document.querySelector('[data-bref=\"$ref\"]'); if(e){e.focus();e.scrollIntoView({block:'center',inline:'center'}); e.click(); 'clicked'}else{'ref_not_found:$ref'}"
                     ) { result.success(it ?: "ok") }
                 }
             }
@@ -86,9 +86,13 @@ class BrowserWebViewHost(context: Context) {
                 runOnWebView {
                     val js =
                         "var e=document.querySelector('[data-bref=\"$ref\"]');" +
-                            "if(e){e.value='${escapeJs(text)}';" +
+                            "if(!e) return 'ref_not_found:$ref';" +
+                            "var d=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(e),'value');" +
+                            "if(d&&d.set) d.set.call(e,'${escapeJs(text)}');" +
+                            "else e.value='${escapeJs(text)}';" +
+                            "e.focus();" +
                             "e.dispatchEvent(new Event('input',{bubbles:true}));" +
-                            "e.dispatchEvent(new Event('change',{bubbles:true}));'typed'}else{'ref_not_found:$ref'}"
+                            "e.dispatchEvent(new Event('change',{bubbles:true}));'typed'"
                     webView.evaluateJavascript(js) { result.success(it ?: "ok") }
                 }
             }
@@ -102,7 +106,11 @@ class BrowserWebViewHost(context: Context) {
                         val text = (f["text"] ?: "").toString()
                         sb.append(
                             "var e$idx=document.querySelector('[data-bref=\"$ref\"]');" +
-                                "if(e$idx){e$idx.value='${escapeJs(text)}';" +
+                                "if(e$idx){" +
+                                "var d=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(e$idx),'value');" +
+                                "if(d&&d.set) d.set.call(e$idx,'${escapeJs(text)}');" +
+                                "else e$idx.value='${escapeJs(text)}';" +
+                                "e$idx.focus();" +
                                 "e$idx.dispatchEvent(new Event('input',{bubbles:true}));}"
                         )
                     }

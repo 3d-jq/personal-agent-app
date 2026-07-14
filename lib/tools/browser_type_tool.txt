@@ -1,1 +1,1 @@
-在 browser_snapshot 返回的 ref 输入框中输入文本（会触发 input 事件）。如需提交，输入后调用 browser_press_key(ref, "Enter") 或 browser_click 提交按钮。
+在 browser_snapshot 返回的 ref 输入框中输入文本（兼容 React/Vue 受控组件——使用原生 value setter + focus + input/change 事件）。如需提交，输入后调用 browser_press_key(ref, "Enter") 或 browser_click 提交按钮。
