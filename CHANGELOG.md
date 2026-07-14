@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.6.9 — 修复 AppToast 文字黄色下划线 (2026-07-14)
+
+- **问题**：`AppToast` 文字下方长期出现一条黄色横线（用户反馈，非 v1.6.8 引入）。根因是 `Text` 样式未显式关闭 `decoration`，在某些 Android 设备/主题下会被绘制或继承为下划线。
+- **修复**：在 `lib/widgets/app_toast.dart` 的 `_ToastWidget` 文字样式中显式设置 `decoration: TextDecoration.none` 与 `decorationColor: Colors.transparent`，并同步添加 `softWrap: true` / `overflow: TextOverflow.visible` 避免窄宽时触发溢出提示。
+- **测试**：`test/widgets/app_toast_test.dart` 新增断言 `Text.style.decoration == TextDecoration.none` 且 `decorationColor == Colors.transparent`。
+- `flutter analyze` 0 issue；`flutter test` 全绿（543 例）。
+
 ## v1.6.8 — 统一圆角设计范式（popupMenu 等对齐 RadiusToken）(2026-07-14)
 
 - **统一圆角范式（修复缺圆角）**：项目已有 `RadiusToken`（`core/design_tokens.dart`，Apple HIG 风格：sm=8 / md=12 / lg=16 / xl=20 / pill=24）。此前顶部栏「更多」菜单（PopupMenuButton）因 `ThemeData` 未设 `popupMenuTheme`，弹出是 Material 默认直角，与全 App 卡片/按钮圆角不一致。
