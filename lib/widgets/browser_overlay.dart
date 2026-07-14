@@ -1,10 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show PlatformViewHitTestBehavior;
-import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
 import '../platform/browser_channel.dart';
 import '../services/log_service.dart';
@@ -179,37 +175,18 @@ class _BrowserOverlayState extends State<BrowserOverlay> {
               ),
             ),
             // ── 原生 WebView ──
-            // 用 PlatformViewLink + AndroidViewSurface 走 Hybrid Composition（真实 Surface），
-            // 让 WebView 拿到原生触摸，滚动/点击才跟手；配 EagerGestureRecognizer 不让
-            // Flutter 手势竞技场抢走滑动手势（之前用 AndroidView 虚拟显示合成会吞手势）。
+            // 用稳定的 AndroidView（虚拟显示合成）嵌入共享 WebView 实例。
+            // 注：v1.6.5 曾改 Hybrid Composition（PlatformViewLink + AndroidViewSurface），
+            // 但因原生侧 BrowserWebViewFactory 返回的是【共享单例 WebView】（非自管理 View），
+            // Hybrid Composition 对其支持有缺陷导致浏览器整体打不开，故回退到 AndroidView。
+            // 代价是触摸手势不如 Hybrid Composition 跟手，但保证可用与稳定。
             Expanded(
               child: Stack(
                 children: [
                   if (Platform.isAndroid)
-                    PlatformViewLink(
+                    AndroidView(
                       viewType: BrowserChannel.viewType,
-                      onCreatePlatformView: (params) {
-                        final controller =
-                            PlatformViewsService.initSurfaceAndroidView(
-                          id: params.id,
-                          viewType: BrowserChannel.viewType,
-                          layoutDirection: TextDirection.ltr,
-                        );
-                        controller.addOnPlatformViewCreatedListener(
-                          params.onPlatformViewCreated,
-                        );
-                        controller.create();
-                        return controller;
-                      },
-                      surfaceFactory: (context, controller) => AndroidViewSurface(
-                        controller: controller as AndroidViewController,
-                        gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                          Factory<OneSequenceGestureRecognizer>(
-                            () => EagerGestureRecognizer(),
-                          ),
-                        },
-                        hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-                      ),
+                      layoutDirection: TextDirection.ltr,
                     )
                   else
                     Center(

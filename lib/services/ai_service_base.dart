@@ -155,8 +155,11 @@ Future<List<ToolResult>> executeAllTools(
       } else {
         sink.add(ToolDoneEvent(tc.id, tc.name));
       }
-      if ((tc.name == 'generate_image' || tc.name == 'generate_video') &&
-          result.content.isNotEmpty && !result.failed) {
+      if ((tc.name == 'generate_image' ||
+              tc.name == 'generate_video' ||
+              tc.name == 'browser_screenshot') &&
+          result.content.isNotEmpty &&
+          !result.failed) {
         sink.add(ToolMediaEvent(result.content));
       }
       if (tc.name.startsWith('plan_') && result.content.isNotEmpty && !result.failed) {

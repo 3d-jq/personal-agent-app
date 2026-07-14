@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:path_provider/path_provider.dart';
 import '../platform/browser_channel.dart';
 import '../services/log_service.dart';
 import 'base_tool.dart';
@@ -265,6 +269,52 @@ class BrowserCloseTool extends BrowserBaseTool {
   }
 }
 
+/// 浏览器截图工具：截取当前 WebView 可视区域并生成图片发到对话里。
+///
+/// 链路：原生截图（PNG base64）→ Dart 解码存盘 →
+/// 返回 `![浏览器截图](file://...)` 的 markdown。该返回串会被
+/// [ai_service_base] 的 browser_screenshot 分支包成 [ToolMediaEvent] 推给
+/// [ChatController]，由 inline_content 以 `Image.file` 渲染到对话气泡中，
+/// 大模型也能在同一消息里「看到」这张截图（与其余工具结果一致）。
+class BrowserScreenshotTool extends BrowserBaseTool {
+  BrowserScreenshotTool(super.channel);
+  @override
+  String get name => 'browser_screenshot';
+  @override
+  String get description =>
+      '对当前浏览器页面截图，并把图片直接发到对话里（大模型可见）。无参数。'
+      '截图后会自动在对话气泡中显示该图片，可用于「看看这个页面长什么样」「截图给我看」等场景。';
+  @override
+  Map<String, dynamic> get parameters => const {
+        'type': 'object',
+        'properties': <String, dynamic>{},
+        'required': <String>[],
+      };
+  @override
+  Future<String> execute(Map<String, dynamic> args) async {
+    try {
+      final b64 = await channel.screenshot();
+      if (b64.isEmpty) return '浏览器截图失败：原生返回为空';
+      final bytes = base64Decode(b64);
+      if (bytes.isEmpty) return '浏览器截图失败：解码后内容为空';
+      final dir = await getApplicationDocumentsDirectory();
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final file = File('${dir.path}/browser_shot_$ts.png');
+      await file.writeAsBytes(bytes);
+      return '浏览器截图已生成\n\n![浏览器截图](file://${file.path})';
+    } on BrowserException catch (e) {
+      log.e('Browser', e.message, e.cause);
+      return '浏览器截图失败：${e.message}';
+    } on FormatException catch (e) {
+      log.e('Browser', '截图 base64 解码失败', e);
+      return '浏览器截图失败：返回数据无法解码';
+    } catch (e) {
+      log.e('Browser', '浏览器截图异常', e);
+      return '浏览器截图失败：$e';
+    }
+  }
+}
+
 /// 浏览器能力插件：把浏览器自动化工具注入会话 ToolRegistry。
 class BrowserToolsPlugin extends AppPlugin {
   final BrowserChannel channel;
@@ -303,6 +353,9 @@ class BrowserToolsPlugin extends AppPlugin {
     }
     if (!registry.has('browser_close')) {
       registry.register(BrowserCloseTool(channel));
+    }
+    if (!registry.has('browser_screenshot')) {
+      registry.register(BrowserScreenshotTool(channel));
     }
   }
 }

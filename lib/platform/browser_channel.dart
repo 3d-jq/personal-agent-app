@@ -131,6 +131,10 @@ class BrowserChannel {
   /// 当前标签页（暂返回空列表，预留扩展）。
   Future<String> tabs() => _invoke('tabs');
 
+  /// 截取当前 WebView 可视区域为 PNG，返回 base64 字符串（NO_WRAP）。
+  /// 空串表示原生未就绪或截图失败；WebView 尚未布局时 throws [BrowserException]。
+  Future<String> screenshot() => _invoke<String>('screenshot');
+
   Future<T> _invoke<T>(String method, [Map<String, dynamic>? args]) async {
     try {
       final result = await _channel.invokeMethod<T>(method, args);

@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.6.6 — 浏览器回归修复 + 新增浏览器截图工具 (2026-07-14)
+
+### 🌐 浏览器回归修复（「又用不了」）
+- **真因：v1.6.5 的 Hybrid Composition 对共享 WebView 不兼容**。`BrowserWebViewHost` 持有一个**共享单例 WebView**（UI 浮层与 `browser_*` 工具共用同一实例），而 `BrowserWebViewFactory.getView()` 直接返回这个共享实例（非自管理 View）。混成模式（PlatformViewLink + AndroidViewSurface）对这类共享/非自管理 View 支持有缺陷，导致浏览器整体打不开。
+- **修复：回退到稳定的 `AndroidView`**（虚拟显示合成，viewType=`browser_webview`）。保留 v1.6.5 的全部修复：不强制百度（默认 `about:blank`）、用无广告的 Bing 兜底搜索、打开浮层不覆盖大模型已导航的页面。代价是触摸手势比 Hybrid Composition 略逊（虚拟显示合成下滑动由 Flutter 中转），但保证稳定可用。
+
+### 📸 新增：浏览器截图工具（`browser_screenshot`）
+- **能力**：大模型可直接调用 `browser_screenshot` 对当前浏览器页面截图，并把图片发到对话气泡里（用户和大模型都能看到），适用于「看看这个页面长什么样」「截图给我看」等场景。
+- **链路**：原生 `screenshot` 通道把 WebView 当前可视区域画到 Bitmap → 压成 PNG → Base64(NO_WRAP) 回传 → Dart 解码存盘到 `getApplicationDocumentsDirectory()/browser_shot_<时间戳>.png` → 返回 `![浏览器截图](file://路径)` 的 markdown。该返回串被 `ai_service_base` 的 `browser_screenshot` 分支包成 `ToolMediaEvent` 推给 `ChatController`，由 `inline_content` 以 `Image.file` 渲染到对话中，与 `generate_image` 走的是同一成熟通道。
+- **原生兜底**：WebView 尚未布局（宽高无效）时返回 `screenshot_failed` 错误，提示先打开浏览器并加载页面；截图临时切软件层确保能抓到内容。
+
+### 🧪 测试
+- `browser_tool_test` 新增 `BrowserScreenshotTool` 用例（正常解码存盘返回 file:// markdown、空串友好报错、失败记 E 级日志）；`_FakeBrowserChannel` 补 `screenshot()` 覆盖；插件注入断言增加 `browser_screenshot`。
+- `browser_overlay_test` 的假通道补 `screenshot()` 覆盖。
+- `flutter analyze` 0 issue；全量 `flutter test` 全绿。
+
+### ⚠️ 终端问题（本轮搁置）
+- 终端「就绪但执行命令报 `No such file or directory` / 二进制目录为空」的根因是 `linkNativeLibs()` 未能把外层二进制写进 `/data/local/tmp`（设备 SELinux 大概率限制普通 App 写该目录），且失败被静默吞掉。按用户「先不弄终端」的指示，**本轮不做**，留待后续另议方案（换可写 exec 目录 + 测试 noexec、或 proot loader 自举）。
+
 ## v1.6.5 — 终端沙箱 bash 执行权限修复 + 浏览器体验修复（noexec / 不强制百度 / 触摸跟手）(2026-07-14)
 
 ### 🐛 终端根因修复（「就绪但执行报 Permission denied」）
