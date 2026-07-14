@@ -14,6 +14,22 @@ class TerminalException implements Exception {
   String toString() => 'TerminalException: $message';
 }
 
+/// 终端就绪检查结果：是否真正可用 + 磁盘诊断（bash 状态、nativeLib 内容等）。
+///
+/// 由原生 [TerminalHost.ensureReady] 返回，使浮层/工具能直接把「为什么没就绪」
+/// 展示给用户，无需再去翻运行日志。
+class EnsureReadyResult {
+  final bool ready;
+  final String diag;
+
+  const EnsureReadyResult({required this.ready, this.diag = ''});
+
+  factory EnsureReadyResult.fromMap(Map<dynamic, dynamic> m) => EnsureReadyResult(
+        ready: m['ready'] == true,
+        diag: (m['diag'] as String?) ?? '',
+      );
+}
+
 /// 终端无头执行结果（AI 工具用，不占用可见 PTY）。
 class TerminalExecResult {
   final String output;
@@ -86,7 +102,11 @@ class TerminalChannel {
   }
 
   /// 确保底层 PRoot + Ubuntu 环境已初始化（解包 rootfs、生成 common.sh 等）。
-  Future<bool> ensureReady() => _invoke<bool>('ensureReady');
+  /// 返回 [EnsureReadyResult]，含是否就绪与磁盘诊断。
+  Future<EnsureReadyResult> ensureReady() async {
+    final raw = await _invoke<Map<dynamic, dynamic>>('ensureReady');
+    return EnsureReadyResult.fromMap(raw);
+  }
 
   /// 启动一个可见交互终端会话（bash，进入 PRoot 环境）。
   Future<bool> start(String sessionId) =>

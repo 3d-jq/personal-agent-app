@@ -1,4 +1,5 @@
 import '../platform/browser_channel.dart';
+import '../services/log_service.dart';
 import 'base_tool.dart';
 import 'plugin_registry.dart';
 import 'tool_registry.dart';
@@ -33,8 +34,13 @@ class BrowserGotoTool extends BrowserBaseTool {
   Future<String> execute(Map<String, dynamic> args) async {
     final url = (args['url'] as String?)?.trim() ?? '';
     if (url.isEmpty) return '错误：url 为空';
-    await channel.loadUrl(url);
-    return '已导航到 $url';
+    try {
+      await channel.loadUrl(url);
+      return '已导航到 $url';
+    } on BrowserException catch (e) {
+      log.e('Browser', e.message, e.cause);
+      return '浏览器导航失败：${e.message}';
+    }
   }
 }
 
@@ -54,17 +60,22 @@ class BrowserSnapshotTool extends BrowserBaseTool {
       };
   @override
   Future<String> execute(Map<String, dynamic> args) async {
-    final els = await channel.snapshot();
-    if (els.isEmpty) return '页面暂无可见的可交互元素（可能仍在加载或无表单）。';
-    final lines = els.map((e) {
-      final parts = <String>['[${e.ref}] ${e.tag}'];
-      if (e.text.isNotEmpty) parts.add('text="${e.text}"');
-      if (e.placeholder.isNotEmpty) parts.add('placeholder="${e.placeholder}"');
-      if (e.href.isNotEmpty) parts.add('href="${e.href}"');
-      if (e.value.isNotEmpty) parts.add('value="${e.value}"');
-      return parts.join(' ');
-    }).toList();
-    return '页面元素（${els.length}）：\n${lines.join('\n')}';
+    try {
+      final els = await channel.snapshot();
+      if (els.isEmpty) return '页面暂无可见的可交互元素（可能仍在加载或无表单）。';
+      final lines = els.map((e) {
+        final parts = <String>['[${e.ref}] ${e.tag}'];
+        if (e.text.isNotEmpty) parts.add('text="${e.text}"');
+        if (e.placeholder.isNotEmpty) parts.add('placeholder="${e.placeholder}"');
+        if (e.href.isNotEmpty) parts.add('href="${e.href}"');
+        if (e.value.isNotEmpty) parts.add('value="${e.value}"');
+        return parts.join(' ');
+      }).toList();
+      return '页面元素（${els.length}）：\n${lines.join('\n')}';
+    } on BrowserException catch (e) {
+      log.e('Browser', e.message, e.cause);
+      return '浏览器快照失败：${e.message}';
+    }
   }
 }
 
@@ -87,7 +98,12 @@ class BrowserClickTool extends BrowserBaseTool {
   Future<String> execute(Map<String, dynamic> args) async {
     final ref = args['ref']?.toString() ?? '';
     if (ref.isEmpty) return '错误：ref 为空';
-    return await channel.click(ref);
+    try {
+      return await channel.click(ref);
+    } on BrowserException catch (e) {
+      log.e('Browser', e.message, e.cause);
+      return '浏览器点击失败：${e.message}';
+    }
   }
 }
 
@@ -113,7 +129,12 @@ class BrowserTypeTool extends BrowserBaseTool {
     final text = args['text']?.toString() ?? '';
     if (ref.isEmpty) return '错误：ref 为空';
     if (text.isEmpty) return '错误：text 为空';
-    return await channel.type(ref, text);
+    try {
+      return await channel.type(ref, text);
+    } on BrowserException catch (e) {
+      log.e('Browser', e.message, e.cause);
+      return '浏览器输入失败：${e.message}';
+    }
   }
 }
 
@@ -157,7 +178,12 @@ class BrowserFillFormTool extends BrowserBaseTool {
       }
     }
     if (fields.isEmpty) return '错误：fields 为空';
-    return await channel.fillForm(fields);
+    try {
+      return await channel.fillForm(fields);
+    } on BrowserException catch (e) {
+      log.e('Browser', e.message, e.cause);
+      return '浏览器填充表单失败：${e.message}';
+    }
   }
 }
 
@@ -180,7 +206,12 @@ class BrowserEvaluateTool extends BrowserBaseTool {
   Future<String> execute(Map<String, dynamic> args) async {
     final code = args['code']?.toString() ?? '';
     if (code.isEmpty) return '错误：code 为空';
-    return await channel.evaluateJs(code);
+    try {
+      return await channel.evaluateJs(code);
+    } on BrowserException catch (e) {
+      log.e('Browser', e.message, e.cause);
+      return '浏览器执行 JS 失败：${e.message}';
+    }
   }
 }
 
@@ -199,8 +230,13 @@ class BrowserBackTool extends BrowserBaseTool {
       };
   @override
   Future<String> execute(Map<String, dynamic> args) async {
-    await channel.back();
-    return '已后退';
+    try {
+      await channel.back();
+      return '已后退';
+    } on BrowserException catch (e) {
+      log.e('Browser', e.message, e.cause);
+      return '浏览器后退失败：${e.message}';
+    }
   }
 }
 
@@ -219,8 +255,13 @@ class BrowserCloseTool extends BrowserBaseTool {
       };
   @override
   Future<String> execute(Map<String, dynamic> args) async {
-    await channel.close();
-    return '已关闭浏览器页面';
+    try {
+      await channel.close();
+      return '已关闭浏览器页面';
+    } on BrowserException catch (e) {
+      log.e('Browser', e.message, e.cause);
+      return '浏览器关闭失败：${e.message}';
+    }
   }
 }
 

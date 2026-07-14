@@ -12,7 +12,7 @@ class FakeTerminalChannel extends TerminalChannel {
   String? lastExecCommand;
   int? lastExecTimeoutMs;
   String? lastWritten;
-  bool ensureReadyResult = true;
+  EnsureReadyResult ensureReadyResult = const EnsureReadyResult(ready: true);
   bool started = false;
   bool closed = false;
   TerminalExecResult execResult = const TerminalExecResult(
@@ -23,7 +23,7 @@ class FakeTerminalChannel extends TerminalChannel {
   );
 
   @override
-  Future<bool> ensureReady() async => ensureReadyResult;
+  Future<EnsureReadyResult> ensureReady() async => ensureReadyResult;
 
   @override
   Future<bool> start(String sessionId) async {
@@ -59,7 +59,7 @@ class _ThrowingChannel extends TerminalChannel {
   _ThrowingChannel() : super(const MethodChannel('test.terminal.throw'));
 
   @override
-  Future<bool> ensureReady() async => throw TerminalException('env not ready');
+  Future<EnsureReadyResult> ensureReady() async => throw TerminalException('env not ready');
 
   @override
   Future<TerminalExecResult> exec(String command, {int timeoutMs = 30000}) async =>
@@ -87,6 +87,23 @@ void main() {
       expect(r.exitCode, -1);
       expect(r.state, '');
       expect(r.error, '');
+    });
+  });
+
+  group('EnsureReadyResult.fromMap', () {
+    test('解析 ready + diag', () {
+      final r = EnsureReadyResult.fromMap({
+        'ready': true,
+        'diag': 'bash(exists=true,exec=true)',
+      });
+      expect(r.ready, isTrue);
+      expect(r.diag, 'bash(exists=true,exec=true)');
+    });
+
+    test('缺失字段用默认值', () {
+      final r = EnsureReadyResult.fromMap(<String, dynamic>{});
+      expect(r.ready, isFalse);
+      expect(r.diag, '');
     });
   });
 
@@ -124,18 +141,24 @@ void main() {
 
   group('TerminalStatusTool', () {
     test('就绪返回已就绪', () async {
-      final fake = FakeTerminalChannel()..ensureReadyResult = true;
+      final fake = FakeTerminalChannel()
+        ..ensureReadyResult = const EnsureReadyResult(ready: true);
       final tool = TerminalStatusTool(fake);
       final r = await tool.execute({});
       expect(r, contains('已就绪'));
       expect(tool.readOnly, isTrue);
     });
 
-    test('未就绪返回未就绪', () async {
-      final fake = FakeTerminalChannel()..ensureReadyResult = false;
+    test('未就绪返回未就绪并携带诊断', () async {
+      final fake = FakeTerminalChannel()
+        ..ensureReadyResult = const EnsureReadyResult(
+          ready: false,
+          diag: 'bash(exists=false,exec=false) nativeLib(.so): (无文件)',
+        );
       final tool = TerminalStatusTool(fake);
       final r = await tool.execute({});
       expect(r, contains('未就绪'));
+      expect(r, contains('nativeLib(.so)'));
     });
   });
 

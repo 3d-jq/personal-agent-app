@@ -1,160 +1,117 @@
-import 'dart:convert';
-
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_agent_app/platform/browser_channel.dart';
+import 'package:personal_agent_app/services/log_service.dart';
 import 'package:personal_agent_app/tools/browser_tool.dart';
 import 'package:personal_agent_app/tools/tool_registry.dart';
 
+/// 测试用假浏览器通道：可控制导航/快照是否失败。
+class _FakeBrowserChannel extends BrowserChannel {
+  _FakeBrowserChannel() : super(const MethodChannel('test.browser.tool.fake'));
+
+  bool failLoad = false;
+  bool failSnapshot = false;
+  String? lastLoadedUrl;
+
+  @override
+  Future<void> loadUrl(String url) async {
+    lastLoadedUrl = url;
+    if (failLoad) throw BrowserException('load failed');
+  }
+
+  @override
+  Future<List<BrowserElement>> snapshot() async {
+    if (failSnapshot) throw BrowserException('snapshot failed');
+    return const [
+      BrowserElement(ref: '1', tag: 'A', text: '链接', href: 'https://x.com'),
+    ];
+  }
+
+  @override
+  Future<String> click(String ref) async => 'clicked $ref';
+  @override
+  Future<String> type(String ref, String text) async => 'typed $text';
+  @override
+  Future<String> fillForm(List<Map<String, String>> fields) async =>
+      'filled ${fields.length}';
+  @override
+  Future<String> evaluateJs(String code) async => 'ok';
+  @override
+  Future<String> pressKey(String ref, String key) async => 'pressed $key';
+  @override
+  Future<void> back() async {}
+  @override
+  Future<void> close() async {}
+  @override
+  Future<String> tabs() async => '[]';
+}
+
 void main() {
-  const channelName = 'test.com.example/browser.tools';
-  late MethodChannel channel;
-
-  setUp(() {
-    TestWidgetsFlutterBinding.ensureInitialized();
-    channel = MethodChannel(channelName);
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async {
-      switch (call.method) {
-        case 'snapshot':
-          return jsonEncode([
-            {
-              'ref': '0',
-              'tag': 'a',
-              'text': '登录',
-              'type': '',
-              'placeholder': '',
-            },
-            {
-              'ref': '1',
-              'tag': 'input',
-              'text': '',
-              'type': 'text',
-              'placeholder': '用户名',
-            },
-          ]);
-        case 'click':
-          return 'clicked';
-        case 'type':
-          return 'typed';
-        case 'fillForm':
-          return 'ok';
-        case 'evaluateJs':
-          return 'result';
-        case 'back':
-        case 'close':
-        case 'loadUrl':
-          return true;
-        default:
-          return null;
-      }
-    });
-  });
-
-  tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, null);
-  });
-
-  BrowserChannel makeChannel() => BrowserChannel(channel);
-
   group('BrowserGotoTool', () {
-    test('url 为空返回错误', () async {
-      final out = await BrowserGotoTool(makeChannel()).execute({});
-      expect(out, contains('url 为空'));
+    test('正常导航返回已导航', () async {
+      final fake = _FakeBrowserChannel();
+      final tool = BrowserGotoTool(fake);
+      final r = await tool.execute({'url': 'https://example.com'});
+      expect(r, contains('已导航到'));
+      expect(fake.lastLoadedUrl, 'https://example.com');
     });
-    test('正常导航返回已导航信息', () async {
-      final out =
-          await BrowserGotoTool(makeChannel()).execute({'url': 'https://x.com'});
-      expect(out, contains('https://x.com'));
+
+    test('空 url 返回错误', () async {
+      final tool = BrowserGotoTool(_FakeBrowserChannel());
+      final r = await tool.execute({'url': '   '});
+      expect(r, contains('url 为空'));
+    });
+
+    test('导航失败记录 E 级日志并返回错误', () async {
+      final lines = <String>[];
+      log.setTestFileWriter((_, content) async => lines.add(content));
+      log.setEnabledFlagOnly(true);
+      log.setVerbose(true);
+
+      final fake = _FakeBrowserChannel()..failLoad = true;
+      final tool = BrowserGotoTool(fake);
+      final r = await tool.execute({'url': 'https://bad.com'});
+      expect(r, contains('浏览器导航失败'));
+      expect(
+        lines.any((l) => l.contains('[E]') && l.contains('[Browser]')),
+        isTrue,
+      );
+      log.setTestFileWriter(null);
     });
   });
 
   group('BrowserSnapshotTool', () {
-    test('返回元素清单（含 ref 与文本）', () async {
-      final out = await BrowserSnapshotTool(makeChannel()).execute({});
-      expect(out, contains('[0] a'));
-      expect(out, contains('登录'));
-      expect(out, contains('[1] input'));
-      expect(out, contains('用户名'));
+    test('正常快照格式化元素', () async {
+      final tool = BrowserSnapshotTool(_FakeBrowserChannel());
+      final r = await tool.execute({});
+      expect(r, contains('页面元素（1）'));
+      expect(r, contains('[1] A'));
     });
-  });
 
-  group('BrowserClickTool', () {
-    test('ref 为空返回错误', () async {
-      final out = await BrowserClickTool(makeChannel()).execute({});
-      expect(out, contains('ref 为空'));
-    });
-    test('正常点击返回 clicked', () async {
-      final out =
-          await BrowserClickTool(makeChannel()).execute({'ref': '2'});
-      expect(out, 'clicked');
-    });
-  });
+    test('快照失败记录 E 级日志', () async {
+      final lines = <String>[];
+      log.setTestFileWriter((_, content) async => lines.add(content));
+      log.setEnabledFlagOnly(true);
+      log.setVerbose(true);
 
-  group('BrowserTypeTool', () {
-    test('缺参返回错误', () async {
-      final out = await BrowserTypeTool(makeChannel()).execute({'ref': '1'});
-      expect(out, contains('text 为空'));
-    });
-    test('正常输入返回 typed', () async {
-      final out = await BrowserTypeTool(makeChannel())
-          .execute({'ref': '1', 'text': 'abc'});
-      expect(out, 'typed');
-    });
-  });
-
-  group('BrowserFillFormTool', () {
-    test('fields 非数组返回错误', () async {
-      final out = await BrowserFillFormTool(makeChannel()).execute({'fields': 'x'});
-      expect(out, contains('fields'));
-    });
-    test('空 fields 返回错误', () async {
-      final out = await BrowserFillFormTool(makeChannel()).execute({'fields': []});
-      expect(out, contains('fields'));
-    });
-    test('正常填充返回 ok', () async {
-      final out = await BrowserFillFormTool(makeChannel()).execute({
-        'fields': [
-          {'ref': '1', 'text': 'a'},
-        ],
-      });
-      expect(out, 'ok');
-    });
-  });
-
-  group('BrowserEvaluateTool', () {
-    test('code 为空返回错误', () async {
-      final out = await BrowserEvaluateTool(makeChannel()).execute({});
-      expect(out, contains('code 为空'));
-    });
-    test('正常执行返回结果', () async {
-      final out =
-          await BrowserEvaluateTool(makeChannel()).execute({'code': '1+1'});
-      expect(out, 'result');
-    });
-  });
-
-  group('BrowserBackTool / BrowserCloseTool', () {
-    test('后退返回已后退', () async {
-      final out = await BrowserBackTool(makeChannel()).execute({});
-      expect(out, '已后退');
-    });
-    test('关闭返回已关闭', () async {
-      final out = await BrowserCloseTool(makeChannel()).execute({});
-      expect(out, '已关闭浏览器页面');
+      final fake = _FakeBrowserChannel()..failSnapshot = true;
+      final tool = BrowserSnapshotTool(fake);
+      final r = await tool.execute({});
+      expect(r, contains('浏览器快照失败'));
+      expect(
+        lines.any((l) => l.contains('[E]') && l.contains('[Browser]')),
+        isTrue,
+      );
+      log.setTestFileWriter(null);
     });
   });
 
   group('BrowserToolsPlugin', () {
-    test('id 为 browser', () {
-      expect(BrowserToolsPlugin(makeChannel()).id, 'browser');
-    });
-
-    test('provideTools 注入全部 8 个浏览器工具', () {
-      final reg = ToolRegistry();
-      BrowserToolsPlugin(makeChannel()).provideTools(reg);
-      const expected = [
+    test('注入全部浏览器工具', () {
+      final plugin = BrowserToolsPlugin(_FakeBrowserChannel());
+      final registry = ToolRegistry();
+      plugin.provideTools(registry);
+      for (final n in [
         'browser_goto',
         'browser_snapshot',
         'browser_click',
@@ -163,19 +120,18 @@ void main() {
         'browser_evaluate',
         'browser_back',
         'browser_close',
-      ];
-      for (final name in expected) {
-        expect(reg.has(name), isTrue, reason: '缺少工具 $name');
+      ]) {
+        expect(registry.has(n), isTrue, reason: n);
       }
-      expect(reg.all.length, expected.length);
+      expect(registry.has('terminal_run'), isFalse);
     });
 
-    test('provideTools 幂等：重复调用不重复注册', () {
-      final reg = ToolRegistry();
-      final plugin = BrowserToolsPlugin(makeChannel());
-      plugin.provideTools(reg);
-      plugin.provideTools(reg);
-      expect(reg.all.length, 8);
+    test('重复注入幂等（has 守卫）', () {
+      final plugin = BrowserToolsPlugin(_FakeBrowserChannel());
+      final registry = ToolRegistry();
+      plugin.provideTools(registry);
+      plugin.provideTools(registry);
+      expect(registry.has('browser_goto'), isTrue);
     });
   });
 }

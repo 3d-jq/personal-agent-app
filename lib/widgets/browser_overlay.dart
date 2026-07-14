@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
 import '../platform/browser_channel.dart';
+import '../services/log_service.dart';
 
 /// 浏览器全屏浮层：在对话主界面之上覆盖一个原生 [WebView] 可视化面板，
 /// 并提供 URL 栏、快照面板、后退与关闭。对齐 Operit 的 ComputerScreen/WorkspaceScreen。
@@ -11,33 +12,69 @@ import '../platform/browser_channel.dart';
 /// 既能手动浏览，也能被 AI 的 browser_* 工具自动化操作（同一个 WebView 实例）。
 class BrowserOverlay extends StatefulWidget {
   final VoidCallback onClose;
+  final BrowserChannel? channel;
 
-  const BrowserOverlay({super.key, required this.onClose});
+  const BrowserOverlay({super.key, required this.onClose, this.channel});
 
   @override
   State<BrowserOverlay> createState() => _BrowserOverlayState();
 }
 
 class _BrowserOverlayState extends State<BrowserOverlay> {
-  final BrowserChannel _channel = BrowserChannel();
+  late final BrowserChannel _channel;
   final TextEditingController _urlCtrl = TextEditingController();
   List<BrowserElement> _elements = const [];
   bool _snapOpen = false;
   bool _busy = false;
   String _error = '';
 
+  /// 打开即加载的默认主页：避免空白 WebView 让用户以为「什么都没显示」。
+  static const String _homePage = 'https://www.baidu.com';
+
+  @override
+  void initState() {
+    super.initState();
+    _channel = widget.channel ?? BrowserChannel();
+    // 首帧后加载默认主页（不阻塞 UI）。即使 WebView 尚未 attach，原生也会先导航，
+    // attach 后立即可见，解决「打开浏览器一片空白」的体感问题。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadUrl(_homePage);
+    });
+  }
+
+  /// 把用户输入归一为可加载的 URL：
+  /// - 已是 http(s) 链接 → 原样；
+  /// - 含点且不含空格（如 example.com）→ 补 https:// 当主机名；
+  /// - 其余（搜索词 / 带空格的句子）→ 走 Baidu 搜索，避免 `https://天气` 直接失败且毫无反馈。
+  String _normalizeUrl(String raw) {
+    final trimmed = raw.trim();
+    final lower = trimmed.toLowerCase();
+    if (lower.startsWith('http://') || lower.startsWith('https://')) {
+      return trimmed;
+    }
+    if (trimmed.contains('.') && !trimmed.contains(' ')) {
+      return 'https://$trimmed';
+    }
+    final q = Uri.encodeQueryComponent(trimmed);
+    return 'https://www.baidu.com/s?wd=$q';
+  }
+
   Future<void> _go() async {
     final raw = _urlCtrl.text.trim();
     if (raw.isEmpty) return;
-    final url = raw.startsWith('http://') || raw.startsWith('https://')
-        ? raw
-        : 'https://$raw';
+    final url = _normalizeUrl(raw);
     _urlCtrl.text = url;
+    await _loadUrl(url);
+  }
+
+  /// 加载指定 URL：统一处理加载态与失败报错（失败写入 App 运行日志）。
+  Future<void> _loadUrl(String url) async {
     setState(() => _busy = true);
     try {
       await _channel.loadUrl(url);
       if (mounted) setState(() => _error = '');
     } on BrowserException catch (e) {
+      log.e('Browser', e.message, e.cause);
       if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -56,6 +93,7 @@ class _BrowserOverlayState extends State<BrowserOverlay> {
         });
       }
     } on BrowserException catch (e) {
+      log.e('Browser', e.message, e.cause);
       if (mounted) setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -66,6 +104,7 @@ class _BrowserOverlayState extends State<BrowserOverlay> {
     try {
       await _channel.back();
     } on BrowserException catch (e) {
+      log.e('Browser', e.message, e.cause);
       if (mounted) setState(() => _error = e.message);
     }
   }
@@ -109,7 +148,7 @@ class _BrowserOverlayState extends State<BrowserOverlay> {
                           onSubmitted: (_) => _go(),
                           textInputAction: TextInputAction.go,
                           decoration: InputDecoration.collapsed(
-                            hintText: '输入网址，如 example.com',
+                            hintText: '输入网址或搜索词',
                             hintStyle: TextStyle(color: nc.textTertiary, fontSize: 14),
                           ),
                           style: TextStyle(color: nc.textPrimary, fontSize: 14),
