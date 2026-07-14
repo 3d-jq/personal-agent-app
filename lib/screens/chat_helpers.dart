@@ -88,6 +88,30 @@ String toolLabel(String name, {Map<String, dynamic>? arguments, bool detailed = 
       final agent = arguments?['agent'] as String?;
       final who = (agent != null && agent.isNotEmpty) ? '给「$agent」' : '';
       return '派发任务$who';
+    // 浏览器工具 (23 个)
+    case 'browser_goto': return '浏览器导航';
+    case 'browser_snapshot': return '页面元素快照';
+    case 'browser_click': return '点击元素';
+    case 'browser_type': return '输入文本';
+    case 'browser_fill_form': return '批量填表';
+    case 'browser_evaluate': return '执行脚本';
+    case 'browser_back': return '浏览器后退';
+    case 'browser_close': return '关闭浏览器';
+    case 'browser_screenshot': return '浏览器截图';
+    case 'browser_get_text': return '读取页面文本';
+    case 'browser_get_readable': return '提取正文';
+    case 'browser_get_page_info': return '页面信息';
+    case 'browser_find_elements': return '查找元素';
+    case 'browser_scroll': return '滚动页面';
+    case 'browser_wait': return '等待加载';
+    case 'browser_search': return '搜索';
+    case 'browser_set_user_agent': return '设置UA';
+    case 'browser_set_viewport': return '设置视口';
+    case 'browser_get_cookies': return '读取Cookie';
+    case 'browser_set_cookies': return '设置Cookie';
+    case 'browser_hover': return '悬停元素';
+    case 'browser_get_backbone': return 'DOM骨架';
+    case 'browser_scroll_and_collect': return '滚动收集';
     default:
       return name;
   }
