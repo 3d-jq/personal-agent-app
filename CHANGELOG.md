@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.6.4 — 终端「找不到 bash」根因修复 + 浏览器可用 (2026-07-14)
+
+### 🐛 终端根因修复（bash 跨 4 个版本都建不出来的真因）
+- **`AndroidManifest.xml` 加 `android:extractNativeLibs="true"`**：原 `<application>` 未设置该属性，AGP 在 `minSdk=26` 下默认 `extractNativeLibs=false`，系统**不把 `.so` 解包为真实文件**，`context.applicationInfo.nativeLibraryDir` 因此指向非目录（或无 `.so`），导致 `TerminalManager.linkNativeLibs()` 首行 `if (!nativeLibDirFile.isDirectory) return` 直接返回、`files/usr/bin/bash` 永远建不出来。之前的 symlink→copy 改法均无效，根因就在这里。设 `true` 后 `.so` 会解包到真实目录，bash 正常落盘。
+- **`ensureReady` 直接返回磁盘诊断**：原生不再只回布尔，而是回 `{ready, diag}`，`diag` 含 `bash(exists,exec) busybox proot common.sh nativeLib(.so)`。浮层/工具**直接把诊断显示出来**，无需再翻运行日志。异常路径也回同一 map（`ready=false` + 诊断），不再走 `result.error` 导致 Dart 侧拿不到诊断。
+
+### 🌐 浏览器修复（「点击搜索什么都没显示」）
+- **打开即加载默认主页**（Baidu）：解决「打开浏览器一片空白、以为坏了」的体感问题。
+- **搜索兜底**：URL 栏输入裸词（如「天气」）或带空格的句子，不再当 `https://天气` 直接失败且毫无反馈，而是走 `https://www.baidu.com/s?wd=...` 搜索；含点无空格仍按主机名补 `https://`。
+- **浏览器失败统一入 App 运行日志**：浮层与 `browser_*` 工具的所有 `BrowserException` 都补 `log.e`（tag `Browser`），加载/快照/点击等失败在「运行日志」页可见。
+
+### 🧪 测试
+- 新增 `terminal_overlay_test`（未就绪内联诊断、初始化失败日志）、`browser_overlay_test`（默认主页加载、搜索兜底、主机名补 https、失败日志）、`browser_tool_test`（导航/快照失败日志、插件注入）。
+- `ensureReady` 返回类型由 `bool` 改为 `EnsureReadyResult`，相关假通道与 `TerminalStatusTool` 测试同步更新；新增 `EnsureReadyResult.fromMap` 解析测试。
+
 ## v1.6.3 — 终端浮层健壮性：未就绪明确提示 (2026-07-14)
 
 ### 🐛 修复

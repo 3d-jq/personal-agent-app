@@ -112,16 +112,19 @@ class TerminalHost(
             try {
                 TerminalManager.getInstance(context).initializeEnvironment()
                 if (provider == null) provider = LocalTerminalProvider(context)
-                // 返回真实状态：bash 软链/复制是否成功 + common.sh 是否存在，
-                // 避免 Operit 静默吞掉软链失败后误报"就绪"。
+                // 返回真实状态 + 磁盘诊断：bash 软链/复制是否成功 + common.sh 是否存在的
+                // 现场信息，避免 Operit 静默吞掉软链失败后误报"就绪"。浮层/工具直接展示诊断，
+                // 不必再翻运行日志。
                 val ready = envReallyReady()
+                val diag = diagnoseEnv()
                 if (!ready) {
-                    forwardNativeLog("W", "终端未就绪: ${diagnoseEnv()}")
+                    forwardNativeLog("W", "终端未就绪: $diag")
                 }
-                result.success(ready)
+                result.success(mapOf("ready" to ready, "diag" to diag))
             } catch (e: Exception) {
-                forwardNativeLog("E", "INIT_FAILED: ${e.message}\n${diagnoseEnv()}")
-                result.error("INIT_FAILED", e.message, null)
+                val diag = "INIT_FAILED: ${e.message}\n${diagnoseEnv()}"
+                forwardNativeLog("E", diag)
+                result.success(mapOf("ready" to false, "diag" to diag))
             }
         }
     }

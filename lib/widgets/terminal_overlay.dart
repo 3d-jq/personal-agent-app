@@ -68,14 +68,14 @@ class _TerminalOverlayState extends State<TerminalOverlay> {
         },
       );
       final ready = await _channel.ensureReady();
-      if (!ready) {
-        // 环境未就绪（bash 未生成等）：明确提示，不再继续 start 以免卡在加载圈。
-        // 详细诊断已通过原生日志桥写入 App「运行日志」页（TerminalNative 条目）。
-        log.e('Terminal', '环境未就绪：ensureReady 返回 false（bash 可能未生成）');
+      if (!ready.ready) {
+        // 环境未就绪（bash 未生成等）：明确提示并直接展示原生磁盘诊断，
+        // 不再继续 start 以免卡在加载圈，也不再需要去翻运行日志。
+        final diag = ready.diag.isNotEmpty ? '\n诊断: ${ready.diag}' : '';
+        log.e('Terminal', '环境未就绪：ensureReady 返回 false$diag');
         if (mounted) {
           setState(() {
-            _error =
-                '终端环境未就绪（bash 未生成）。\n详细原因见 App「运行日志」页 TerminalNative 条目。';
+            _error = '终端环境未就绪（bash 未生成）。$diag';
             _busy = false;
           });
         }

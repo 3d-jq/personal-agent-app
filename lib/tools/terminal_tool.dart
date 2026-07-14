@@ -79,8 +79,10 @@ class TerminalStatusTool extends TerminalBaseTool {
   @override
   Future<String> execute(Map<String, dynamic> args) async {
     try {
-      final ok = await channel.ensureReady();
-      return ok ? '终端沙箱已就绪' : '终端沙箱未就绪';
+      final res = await channel.ensureReady();
+      if (res.ready) return '终端沙箱已就绪';
+      final diag = res.diag.isNotEmpty ? '\n诊断: ${res.diag}' : '';
+      return '终端沙箱未就绪$diag';
     } on TerminalException catch (e) {
       log.e('Terminal', e.message, e.cause);
       return '终端沙箱不可用：${e.message}';

@@ -10,7 +10,7 @@ import 'package:xterm/xterm.dart';
 class _FakeChannel extends TerminalChannel {
   _FakeChannel() : super(const MethodChannel('test.terminal.overlay.fake'));
   @override
-  Future<bool> ensureReady() async => true;
+  Future<EnsureReadyResult> ensureReady() async => const EnsureReadyResult(ready: true);
   @override
   Future<bool> start(String sessionId) async => true;
   @override
@@ -28,7 +28,28 @@ class _FakeChannel extends TerminalChannel {
 class _FailingChannel extends TerminalChannel {
   _FailingChannel() : super(const MethodChannel('test.terminal.overlay.fail'));
   @override
-  Future<bool> ensureReady() async => throw TerminalException('boom: bash missing');
+  Future<EnsureReadyResult> ensureReady() async => throw TerminalException('boom: bash missing');
+  @override
+  Future<bool> start(String sessionId) async => true;
+  @override
+  Future<bool> write(String sessionId, String data) async => true;
+  @override
+  Future<TerminalExecResult> exec(String command, {int timeoutMs = 30000}) async =>
+      const TerminalExecResult(output: '', exitCode: 0, state: 'OK', error: '');
+  @override
+  Future<bool> close(String sessionId) async => true;
+  @override
+  Stream<Uint8List> get output => const Stream<Uint8List>.empty();
+}
+
+/// 返回「未就绪 + 磁盘诊断」但不抛异常的假通道（对齐原生 ensureReady 返回 map）。
+class _NotReadyChannel extends TerminalChannel {
+  _NotReadyChannel() : super(const MethodChannel('test.terminal.overlay.notready'));
+  @override
+  Future<EnsureReadyResult> ensureReady() async => const EnsureReadyResult(
+        ready: false,
+        diag: 'bash(exists=false,exec=false) nativeLib(.so): (无文件)',
+      );
   @override
   Future<bool> start(String sessionId) async => true;
   @override
@@ -96,6 +117,38 @@ void main() {
     // 同一失败已写入 App 统一日志（运行日志页可见）
     expect(
       lines.any((l) => l.contains('[E]') && l.contains('[Terminal]')),
+      isTrue,
+    );
+
+    log.setTestFileWriter(null);
+  });
+
+  testWidgets('未就绪（非异常）时显示内联诊断，不渲染终端', (tester) async {
+    final lines = <String>[];
+    log.setTestFileWriter((_, content) async => lines.add(content));
+    log.setEnabledFlagOnly(true);
+    log.setVerbose(true);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TerminalOverlay(
+            channel: _NotReadyChannel(),
+            onClose: () {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    // 内联诊断可见（不再需要去翻运行日志）
+    expect(find.textContaining('nativeLib(.so)'), findsWidgets);
+    // 终端未渲染
+    expect(find.byType(TerminalView), findsNothing);
+    // 诊断也写进了 App 统一日志
+    expect(
+      lines.any((l) => l.contains('[E]') && l.contains('[Terminal]') && l.contains('未就绪')),
       isTrue,
     );
 
