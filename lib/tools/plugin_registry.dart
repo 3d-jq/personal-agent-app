@@ -193,6 +193,7 @@ class PluginRegistry {
     register(CoreToolsPlugin());
     register(SkillPlugin());
     register(McpPlugin());
+    register(BrowserToolsPlugin());
   }
 
   /// 执行一次性初始化（加载技能、连接 MCP）。幂等。

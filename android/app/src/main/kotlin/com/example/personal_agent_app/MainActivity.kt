@@ -227,6 +227,17 @@ class MainActivity : FlutterActivity() {
             }
         }
 
+        // ── Browser（浏览器自动化：Kotlin 原生 WebView 宿主 + PlatformView）──
+        val browserHost = BrowserWebViewHost(this)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BROWSER_CHANNEL)
+            .setMethodCallHandler { call, result -> browserHost.handle(call, result) }
+        flutterEngine.platformViewsRegistry
+            .registerViewFactory(BrowserWebViewFactory.VIEW_TYPE, BrowserWebViewFactory(browserHost))
+
+    }
+
+    companion object {
+        private const val BROWSER_CHANNEL = "com.example/browser"
     }
 
     private fun saveImageToGallery(bytes: ByteArray, name: String) {
