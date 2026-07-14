@@ -145,10 +145,16 @@ class _ToastWidgetState extends State<_ToastWidget>
                     Flexible(
                       child: Text(
                         widget.message,
+                        softWrap: true,
+                        overflow: TextOverflow.visible,
                         style: TextStyle(
                           fontSize: FontToken.body,
                           color: nc.textPrimary,
                           height: 1.4,
+                          // 防御性关闭下划线：某些 Android 设备/主题默认会继承或绘制
+                          // 文字下划线，显式设为 none 并透明 decorationColor 可消除。
+                          decoration: TextDecoration.none,
+                          decorationColor: Colors.transparent,
                         ),
                       ),
                     ),

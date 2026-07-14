@@ -82,6 +82,7 @@ nul
 
 # 已退役的旧发布 APK（含被外部进程锁死无法删除的本地残留）：不入库
 dweis-*.apk
+toast_render.png
 
 # 工具链缓存目录
 .gradle/

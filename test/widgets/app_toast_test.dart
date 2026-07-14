@@ -25,6 +25,11 @@ void main() {
 
       expect(find.text('已复制'), findsOneWidget);
 
+      // 文字不应带下划线，避免某些 Android 设备/主题出现黄色下划线装饰
+      final textWidget = tester.widget<Text>(find.text('已复制'));
+      expect(textWidget.style?.decoration, TextDecoration.none);
+      expect(textWidget.style?.decorationColor, Colors.transparent);
+
       // 默认 2s 后自动消失
       await tester.pump(const Duration(seconds: 3));
       await tester.pumpAndSettle();
