@@ -241,7 +241,10 @@ class SSHTerminalProvider(
     private fun buildEnvironment(): Map<String, String> {
         val filesDir: File = context.filesDir
         val usrDir: File = File(filesDir, "usr")
-        val binDir: File = File(usrDir, "bin")
+        // 与 TerminalManager / LocalTerminalProvider 保持一致：外层启动二进制放到 /data/local/tmp
+        val execBaseDir: File =
+            File("/data/local/tmp", "dweis_term_" + context.packageName.replace('.', '_'))
+        val binDir: File = File(execBaseDir, "bin")
         val nativeLibDir: String = context.applicationInfo.nativeLibraryDir
         
         val env = mutableMapOf<String, String>()

@@ -53,8 +53,19 @@ class TerminalManager private constructor(
 
     private val filesDir: File = context.filesDir
     private val usrDir: File = File(filesDir, "usr")
-    private val binDir: File = File(usrDir, "bin")
+    // 外层启动二进制(bash/proot/loader/busybox)必须由宿主内核直接 exec，
+    // 但很多设备的 app 私有数据目录(/data/data/<pkg>)被挂载为 noexec，
+    // 导致 exec 报 EACCES(Permission denied)——即使文件带 +x 位、目录也可遍历
+    // （Java 的 canExecute() 基于 access(X_OK)，不校验 noexec，所以会「假就绪」）。
+    // 因此把这些二进制放到 /data/local/tmp（通常 exec 允许），绕过 noexec。
+    // ⚠️ 此路径公式必须与 LocalTerminalProvider / SSHTerminalProvider 完全一致。
+    private val execBaseDir: File =
+        File("/data/local/tmp", "dweis_term_" + context.packageName.replace('.', '_'))
+    private val binDir: File = File(execBaseDir, "bin")
     private val nativeLibDir: String = context.applicationInfo.nativeLibraryDir
+
+    /** 实际会被宿主 exec 的 bash 路径（供诊断/探测使用）。 */
+    fun execBashPath(): String = File(binDir, "bash").absolutePath
     private val activeSessions = ConcurrentHashMap<String, TerminalSession>()
     private val closingSessions = ConcurrentHashMap.newKeySet<String>()
     
@@ -661,10 +672,20 @@ class TerminalManager private constructor(
         if (!usrDir.exists()) {
             usrDir.mkdirs()
         }
+        // 确保 exec 目录存在，且对 owner 可读+可执行（遍历与执行都需要）。
+        if (!execBaseDir.exists()) {
+            execBaseDir.mkdirs()
+        }
+        execBaseDir.setReadable(true, false)
+        execBaseDir.setExecutable(true, false)
+        execBaseDir.setWritable(true, false)
         if (!binDir.exists()) {
             binDir.mkdirs()
             Log.d(TAG, "Created bin directory at: ${binDir.absolutePath}")
         }
+        binDir.setReadable(true, false)
+        binDir.setExecutable(true, false)
+        binDir.setWritable(true, false)
         File(filesDir, "tmp").mkdirs()
     }
 

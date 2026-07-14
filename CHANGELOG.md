@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.6.5 — 终端沙箱 bash 执行权限修复 + 浏览器体验修复（noexec / 不强制百度 / 触摸跟手）(2026-07-14)
+
+### 🐛 终端根因修复（「就绪但执行报 Permission denied」）
+- **真因：app 数据目录被挂载为 `noexec`**。v1.6.4 让 `.so` 解包、bash 文件已落盘且带 `+x` 位、`canExecute()` 也为 `true`，但宿主内核在真正 `execve` 时因 `/data/data/<pkg>` 被挂 `noexec` 而拒绝，报 `EACCES(13) Permission denied`（也可能是 SELinux 拦截 exec）。普通 App 用 `dlopen` 加载 `.so` 不受影响，但终端要 `exec` 二进制就中招——这就是「显示就绪却跑不了命令」的根因。
+- **修复：把外层启动二进制搬到 `/data/local/tmp`**。`TerminalManager` / `LocalTerminalProvider` / `SSHTerminalProvider` 的 `binDir` 由 `files/usr/bin` 改为 `/data/local/tmp/dweis_term_<pkg>/bin`。这些二进制（bash/proot/loader/busybox）由宿主**直接 exec**，必须落在允许执行的目录；rootfs 里的 ubuntu `/bin/bash` 仍由 proot+loader 接管、走 proot 的二进制加载、不受宿主 noexec 限制。
+- **目录权限**：`createDirectories()` 对 exec 目录链显式 `setReadable/setExecutable/setWritable(true)`，保证可遍历与可执行。
+- **杜绝假就绪**：`TerminalHost.envReallyReady()` 不再只看 `canExecute()`（它不校验 noexec），改为**真正 `exec` 一次 `bash -c 'exit 0'`** 并校验退出码；`diagnoseEnv()` 也附 `execProbe=ok|FAIL:...`，直接在 App「运行日志」页看清是 noexec 还是别的。
+
+### 🌐 浏览器体验修复（不再强制跳百度 / 触摸跟手）
+- **不再一打开就覆盖大模型的页面**：`BrowserOverlay` 原 `initState` 无条件 `loadUrl('https://www.baidu.com')`，而原生 `WebView` 是单例（AI 工具与浮层共用同一实例、状态持久），导致大模型刚导航好的页面被强制覆盖回百度。改为先查 `currentUrl()`——若已是真实页面则**不重载**，仅当空白时才加载主页。
+- **主页不再默认百度**：默认主页由 `https://www.baidu.com` 改为 `about:blank`（去掉「强行显示百度」）。搜索兜底改为**无广告的 Bing**（`https://www.bing.com/search?q=...`，抽成 `_searchEngine` 命名常量，方便日后更换）；URL 栏输入裸词/句子即走 Bing 搜索。
+- **触摸跟手**：`AndroidView`（默认 Virtual Display 合成，触摸由 Flutter 中转、易吞滑动手势，体感「不跟手」）改为 `PlatformViewLink` + `AndroidViewSurface` 走 **Hybrid Composition**（真实 Surface），并配 `EagerGestureRecognizer` 让 WebView 拿到原生真实触摸，滚动/点击才顺滑。为此新增原生 `currentUrl()` 通道方法支撑上述判断。
+
+### 🧪 测试
+- 原生改动（Kotlin）由 `flutter build apk` 编译把关；Dart 侧 `flutter analyze` 0 issue 保持不变。建议真机验证：开终端应直接就绪且能执行命令（如 `ls /`）。
+
 ## v1.6.4 — 终端「找不到 bash」根因修复 + 浏览器可用 (2026-07-14)
 
 ### 🐛 终端根因修复（bash 跨 4 个版本都建不出来的真因）
@@ -8,7 +24,7 @@
 
 ### 🌐 浏览器修复（「点击搜索什么都没显示」）
 - **打开即加载默认主页**（Baidu）：解决「打开浏览器一片空白、以为坏了」的体感问题。
-- **搜索兜底**：URL 栏输入裸词（如「天气」）或带空格的句子，不再当 `https://天气` 直接失败且毫无反馈，而是走 `https://www.baidu.com/s?wd=...` 搜索；含点无空格仍按主机名补 `https://`。
+- **搜索兜底**：URL 栏输入裸词（如「天气」）或带空格的句子，不再当 `https://天气` 直接失败且毫无反馈，而是走 `https://www.bing.com/search?q=...` 搜索（Bing，无百度式广告）；含点无空格仍按主机名补 `https://`。
 - **浏览器失败统一入 App 运行日志**：浮层与 `browser_*` 工具的所有 `BrowserException` 都补 `log.e`（tag `Browser`），加载/快照/点击等失败在「运行日志」页可见。
 
 ### 🧪 测试

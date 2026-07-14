@@ -53,6 +53,10 @@ class BrowserWebViewHost(context: Context) {
                     result.success(true)
                 }
             }
+            "currentUrl" -> runOnWebView {
+                // WebView.url 必须在主线程读取；未加载时为 null。
+                result.success(webView.url ?: "")
+            }
             "snapshot" -> {
                 runOnWebView {
                     webView.evaluateJavascript(SNAPSHOT_JS) { value ->
