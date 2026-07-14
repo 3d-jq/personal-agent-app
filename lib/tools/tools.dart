@@ -1,5 +1,6 @@
 export 'base_tool.dart';
 export 'browser_tool.dart';
+export 'terminal_tool.dart';
 export 'delegate_task_tool.dart';
 export 'ask_user_tool.dart';
 export 'context_doc_tool.dart';

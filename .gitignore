@@ -4,6 +4,8 @@
 .dart_tool/
 .packages
 build/
+# 终端沙箱构建临时目录（绕过被锁的旧 build/app 产物，非源码）
+build_terminal/
 pubspec.lock
 
 # Directory created by dartdoc
