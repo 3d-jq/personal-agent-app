@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.6.7 — 浏览器默认桌面版 + 顶部栏操作收进菜单 (2026-07-14)
+
+- **浏览器默认桌面版 UA**：`BrowserWebViewHost.createWebView` 覆盖为桌面版 Chrome UA（去掉 Mobile/Android 字样），并启用 `useWideViewPort` + `loadWithOverviewMode`，使网站默认返回 PC 布局、在手机屏自适应缩放。
+- **顶部栏精简**：右侧分散的 浏览器 / 终端沙箱 / 新建对话 / 会话信息(身份牌) 收进 `⋮` 更多菜单（`PopupMenuButton`），菜单项带激活勾选；左侧 模型芯片(`ChatModelChipButton`) 与 菜单图标保留，顶栏不再拥挤。
+- **对话框图片（截图 / 生成图）改小**：内联图片原 `width: double.infinity` 撑满气泡、整屏截图会极长。新增 `_kMaxInlineImageHeight=260` 上限，平时显示成小预览、点开仍走全屏大图（`_FullscreenImage`）。本地 `Image.file` 与网络 `CachedNetworkImage` 两个分支同步限高；`inline_video_launch_test` 新增两例断言高度=260。
+- `flutter analyze` 0 issue；`flutter test` 全绿。
+
 ## v1.6.6 — 浏览器回归修复 + 新增浏览器截图工具 (2026-07-14)
 
 ### 🌐 浏览器回归修复（「又用不了」）

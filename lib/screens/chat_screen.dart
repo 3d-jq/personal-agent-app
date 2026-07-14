@@ -11,7 +11,6 @@ import '../widgets/chat_bubble.dart';
 import '../widgets/chat_skeleton.dart';
 import '../widgets/chat_scroll_to_bottom_button.dart';
 import '../widgets/chat_input_bar.dart';
-import '../widgets/chat_new_chat_button.dart';
 import '../widgets/session_info_button.dart';
 import '../widgets/browser_overlay.dart';
 import '../widgets/terminal_overlay.dart';
@@ -165,7 +164,7 @@ class _ChatScreenState extends State<ChatScreen>
     _controller.resendLast();
   }
 
-  void _onNewChat() async {
+  Future<void> _onNewChat() async {
     _resetInput();
     await _controller.saveSession();
     _controller.newSession();
@@ -227,37 +226,82 @@ class _ChatScreenState extends State<ChatScreen>
       appBar: AgentTopBar(
         onMenuTap: _toggleSidebar,
         afterMenu: ChatModelChipButton(controller: _controller),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.language),
-              color: _showBrowser ? nc.primary : nc.textPrimary,
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                setState(() => _showBrowser = !_showBrowser);
-              },
-              tooltip: '浏览器',
+      trailing: PopupMenuButton<String>(
+        icon: Icon(Icons.more_vert, color: nc.textPrimary),
+        tooltip: '更多',
+        onSelected: (value) async {
+          switch (value) {
+            case 'browser':
+              HapticFeedback.lightImpact();
+              setState(() => _showBrowser = !_showBrowser);
+            case 'terminal':
+              HapticFeedback.lightImpact();
+              setState(() => _showTerminal = !_showTerminal);
+            case 'newchat':
+              await _onNewChat();
+            case 'session':
+              await SessionInfoSheet.show(
+                context,
+                listenable: _controller,
+                getTokens: () => _controller.estimatedContextTokens,
+                getWindowSize: () => _controller.contextWindowSize,
+                getThreshold: () => _controller.contextCompressionThreshold,
+              );
+          }
+        },
+        itemBuilder: (_) => [
+          PopupMenuItem<String>(
+            value: 'browser',
+            child: Row(
+              children: [
+                Icon(
+                  _showBrowser ? Icons.visibility : Icons.language,
+                  size: 20,
+                  color: nc.textPrimary,
+                ),
+                const SizedBox(width: 12),
+                const Expanded(child: Text('浏览器')),
+                if (_showBrowser) Icon(Icons.check, size: 18, color: nc.primary),
+              ],
             ),
-            IconButton(
-              icon: const Icon(Icons.terminal),
-              color: _showTerminal ? nc.primary : nc.textPrimary,
-              onPressed: () {
-                HapticFeedback.lightImpact();
-                setState(() => _showTerminal = !_showTerminal);
-              },
-              tooltip: '终端沙箱',
+          ),
+          PopupMenuItem<String>(
+            value: 'terminal',
+            child: Row(
+              children: [
+                Icon(
+                  _showTerminal ? Icons.visibility : Icons.terminal,
+                  size: 20,
+                  color: nc.textPrimary,
+                ),
+                const SizedBox(width: 12),
+                const Expanded(child: Text('终端沙箱')),
+                if (_showTerminal) Icon(Icons.check, size: 18, color: nc.primary),
+              ],
             ),
-            ChatNewChatButton(controller: _controller, onBeforeNew: _resetInput),
-            const SizedBox(width: 8),
-            SessionInfoButton(
-              getTokens: () => _controller.estimatedContextTokens,
-              getWindowSize: () => _controller.contextWindowSize,
-              getThreshold: () => _controller.contextCompressionThreshold,
-              listenable: _controller,
+          ),
+          PopupMenuItem<String>(
+            value: 'newchat',
+            child: Row(
+              children: [
+                Icon(Icons.edit_note, size: 20, color: nc.textPrimary),
+                const SizedBox(width: 12),
+                const Expanded(child: Text('新建对话')),
+              ],
             ),
-          ],
-        ),
+          ),
+          PopupMenuItem<String>(
+            value: 'session',
+            child: Row(
+              children: [
+                Icon(Icons.badge, size: 20, color: nc.textPrimary),
+                const SizedBox(width: 12),
+                const Expanded(child: Text('会话信息')),
+              ],
+            ),
+          ),
+        ],
+      ),
       ),
       resizeToAvoidBottomInset: true,
       body: Column(

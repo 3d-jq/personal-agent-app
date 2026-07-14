@@ -1,7 +1,7 @@
 name: personal_agent_app
 description: "Personal AI Agent App"
 publish_to: 'none'
-version: 1.6.6+43
+version: 1.6.7+44
 
 environment:
   sdk: ^3.11.5

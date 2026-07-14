@@ -43,6 +43,10 @@ class BrowserWebViewHost(context: Context) {
         wv.settings.databaseEnabled = true
         wv.webViewClient = WebViewClient()
         wv.webChromeClient = WebChromeClient()
+        // 默认桌面版：覆盖为 PC UA，并启用宽视口+概览模式，使 PC 网页在手机屏上自适应缩放
+        wv.settings.userAgentString = DESKTOP_USER_AGENT
+        wv.settings.useWideViewPort = true
+        wv.settings.loadWithOverviewMode = true
         return wv
     }
 
@@ -175,6 +179,10 @@ class BrowserWebViewHost(context: Context) {
     }
 
     companion object {
+        /** 桌面版 Chrome UA（不含 Mobile/Android 字样），让网站返回 PC 布局而非移动版 */
+        private const val DESKTOP_USER_AGENT =
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
         /** 快照脚本：给可交互元素打 data-bref 并返回结构化清单（对齐 Playwright）。 */
         const val SNAPSHOT_JS = """
 (function(){
