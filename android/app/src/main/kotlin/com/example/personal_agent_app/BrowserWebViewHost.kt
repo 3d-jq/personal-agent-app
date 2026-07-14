@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64
+import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -75,7 +76,7 @@ class BrowserWebViewHost(context: Context) {
                 val ref = call.argument<String>("ref") ?: ""
                 runOnWebView {
                     webView.evaluateJavascript(
-                        "var e=document.querySelector('[data-bref=\"$ref\"]'); if(e){e.click(); 'clicked'}else{'ref_not_found:$ref'}"
+                        "var e=document.querySelector('[data-bref=\"$ref\"]'); if(e){e.scrollIntoView({block:'center',inline:'center'}); e.click(); 'clicked'}else{'ref_not_found:$ref'}"
                     ) { result.success(it ?: "ok") }
                 }
             }
@@ -134,6 +135,48 @@ class BrowserWebViewHost(context: Context) {
                 webView.loadUrl("about:blank")
                 result.success(true)
             }
+            "setUserAgent" -> {
+                val ua = call.argument<String>("ua") ?: ""
+                runOnWebView {
+                    webView.settings.userAgentString = if (ua.isEmpty()) DESKTOP_USER_AGENT else ua
+                    result.success(true)
+                }
+            }
+            "setViewport" -> {
+                val width = call.argument<Int>("width") ?: 0
+                val height = call.argument<Int>("height") ?: 0
+                runOnWebView {
+                    if (width > 0 && height > 0) {
+                        val js = "(function(){var m=document.querySelector('meta[name=viewport]');" +
+                            "if(!m){m=document.createElement('meta');m.name='viewport';" +
+                            "document.head.appendChild(m);}m.content='width=$width,height=$height,initial-scale=1';" +
+                            "document.documentElement.style.width='${width}px';return 'ok';})()"
+                        webView.evaluateJavascript(js) { result.success(it ?: "ok") }
+                    } else {
+                        result.success("width/height 必须大于 0")
+                    }
+                }
+            }
+            "getCookies" -> {
+                val url = call.argument<String>("url")?.takeIf { it.isNotEmpty() } ?: webView.url ?: ""
+                runOnWebView {
+                    val cookie = CookieManager.getInstance().getCookie(url)
+                    result.success(cookie ?: "")
+                }
+            }
+            "setCookies" -> {
+                val url = call.argument<String>("url")?.takeIf { it.isNotEmpty() } ?: webView.url ?: ""
+                val cookies = call.argument<String>("cookies") ?: ""
+                runOnWebView {
+                    val cm = CookieManager.getInstance()
+                    cookies.split(";").forEach { pair ->
+                        val c = pair.trim()
+                        if (c.isNotEmpty()) cm.setCookie(url, c)
+                    }
+                    cm.flush()
+                    result.success(true)
+                }
+            }
             "screenshot" -> runOnWebView {
                 val w = webView.width
                 val h = webView.height
@@ -188,12 +231,19 @@ class BrowserWebViewHost(context: Context) {
 (function(){
   try {
     var SEL = 'a,button,input,textarea,select,[role=button],[contenteditable=true]';
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    var vw = window.innerWidth || document.documentElement.clientWidth;
     var els = document.querySelectorAll(SEL);
     var out = [];
     for (var i = 0; i < els.length; i++) {
       var e = els[i];
       e.setAttribute('data-bref', i);
       var r = e.getBoundingClientRect();
+      var cs = getComputedStyle(e);
+      var inView = (r.top < vh) && (r.bottom > 0) && (r.left < vw) && (r.right > 0);
+      var visible = (e.offsetWidth > 0) && (e.offsetHeight > 0) &&
+          (cs.visibility !== 'hidden') && (cs.display !== 'none') && (cs.opacity !== '0') && inView;
+      var disabled = (e.disabled === true) || e.hasAttribute('disabled');
       var txt = (e.innerText || e.value || e.getAttribute('aria-label') || e.getAttribute('title') || '').toString().slice(0, 100);
       out.push({
         ref: String(i),
@@ -205,7 +255,8 @@ class BrowserWebViewHost(context: Context) {
         placeholder: e.placeholder || '',
         href: e.href || '',
         value: e.value || '',
-        x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height)
+        x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height),
+        inViewport: inView, visible: visible, disabled: disabled
       });
     }
     return JSON.stringify(out);
