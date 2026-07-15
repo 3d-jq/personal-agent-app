@@ -109,11 +109,6 @@ class _ToastWidgetState extends State<_ToastWidget>
   @override
   Widget build(BuildContext context) {
     final nc = AgentColors.of(context);
-    final (IconData icon, Color accent) = switch (widget.type) {
-      ToastType.success => (Icons.check_circle_outline, nc.success),
-      ToastType.error => (Icons.error_outline, nc.error),
-      ToastType.info => (Icons.info_outline, nc.textSecondary),
-    };
     return Positioned(
       left: 0,
       right: 0,
@@ -132,33 +127,22 @@ class _ToastWidgetState extends State<_ToastWidget>
                   color: nc.surface,
                   borderRadius: BorderRadius.circular(RadiusToken.md),
                   border: Border.all(
-                    color: nc.divider.withValues(alpha: 0.6),
+                    color: nc.divider.withValues(alpha: 0.3),
                     width: 0.5,
                   ),
-                  boxShadow: nc.shadowMd,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icon, size: 18, color: accent),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        widget.message,
-                        softWrap: true,
-                        overflow: TextOverflow.visible,
-                        style: TextStyle(
-                          fontSize: FontToken.body,
-                          color: nc.textPrimary,
-                          height: 1.4,
-                          // 防御性关闭下划线：某些 Android 设备/主题默认会继承或绘制
-                          // 文字下划线，显式设为 none 并透明 decorationColor 可消除。
-                          decoration: TextDecoration.none,
-                          decorationColor: Colors.transparent,
-                        ),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  widget.message,
+                  textAlign: TextAlign.center,
+                  softWrap: true,
+                  overflow: TextOverflow.visible,
+                  style: TextStyle(
+                    fontSize: FontToken.body,
+                    color: nc.textPrimary,
+                    height: 1.4,
+                    decoration: TextDecoration.none,
+                    decorationColor: Colors.transparent,
+                  ),
                 ),
               ),
             ),

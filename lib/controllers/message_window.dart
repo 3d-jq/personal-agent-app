@@ -202,6 +202,7 @@ class MessageWindow {
     if (wasAtLatest) {
       _windowStart = (_messages.length - windowSize).clamp(0, _messages.length);
     }
+    _onChanged();
   }
 
   // ── Internal ──

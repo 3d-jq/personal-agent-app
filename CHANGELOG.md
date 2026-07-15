@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.7.5 — UI 体验修复 (消息窗口翻页 / token 显示 / AppToast / 输入框 / 菜单动画) (2026-07-15)
+
+- **消息窗口翻页修复**：`MessageWindow.append` 末尾补调 `_onChanged()`，消息超 20 条时 UI 自动刷新显示翻页按钮，不再需要离开再回来。
+- **工具调用上限 10→15**：`ToolExecutionLimits.maxConsecutiveCallsPerTool` 及测试同步更新。
+- **token 汇总显示优化**：`_Metric` 的 token 数字包裹 `FittedBox(BoxFit.scaleDown)`，数值大时自动缩小不换行。
+- **AppToast 样式简化**：移除图标与阴影，仅保留白底细线边框居中文字，对齐参考图无阴影风格。
+- **输入框防误聚焦**：`ChatInputBar` 的 `TextField` 显式设 `autofocus: false` + `enableSuggestions: false`。
+- **下拉菜单一次性弹出**：顶部 `PopupMenuButton` 设 `popUpAnimationStyle: AnimationStyle(duration: Duration.zero)`，无渐显动画。
+- `flutter analyze` 0 issue；`flutter test` 562 全绿。
+
 ## v1.7.4 — snapshot/cssPath 双定位：修复 React 重渲染后 ref 失效 (2026-07-14)
 
 - **问题**：React 虚拟 DOM diff 重渲染后，`data-bref` 属性失效 → click/type/hover 报 `ref_not_found`。

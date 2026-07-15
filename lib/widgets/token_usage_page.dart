@@ -431,11 +431,15 @@ class _Metric extends StatelessWidget {
           Text(label,
               style: TextStyle(fontSize: FontToken.small, color: secondary)),
           const SizedBox(height: 2),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: WeightToken.bold,
-                  color: nc.onPrimary)),
+          FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(value,
+                  maxLines: 1,
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: WeightToken.bold,
+                      color: nc.onPrimary)),
+            ),
         ],
       ),
     );
