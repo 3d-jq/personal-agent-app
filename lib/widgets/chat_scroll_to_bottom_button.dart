@@ -38,25 +38,11 @@ class ChatScrollToBottomButton extends StatelessWidget {
             ? BoxDecoration(
                 color: nc.primary,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: nc.primary.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
               )
             : BoxDecoration(
                 color: nc.surface,
                 shape: BoxShape.circle,
                 border: Border.all(color: nc.divider, width: 0.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.18),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
               ),
         child: hasUnread
             ? Row(
