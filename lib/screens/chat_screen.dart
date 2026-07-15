@@ -229,6 +229,7 @@ class _ChatScreenState extends State<ChatScreen>
       trailing: PopupMenuButton<String>(
         icon: Icon(Icons.more_vert, color: nc.textPrimary),
         tooltip: '更多',
+        popUpAnimationStyle: AnimationStyle(duration: Duration.zero),
         onSelected: (value) async {
           switch (value) {
             case 'browser':

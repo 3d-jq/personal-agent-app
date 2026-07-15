@@ -10,7 +10,7 @@ class ToolExecutionLimits {
   static const int maxToolResultChars = 20000;
 
   /// 单工具连续调用次数硬上限，超过则阻止执行（原 [ToolRegistry.maxConsecutiveCalls]）。
-  static const int maxConsecutiveCallsPerTool = 10;
+  static const int maxConsecutiveCallsPerTool = 15;
 
   /// 并发工具调用数参考上限（用于进度汇总/调度提示）。
   static const int maxConcurrentToolCalls = 8;

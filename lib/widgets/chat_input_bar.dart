@@ -126,6 +126,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
                       minLines: 1,
                       keyboardType: TextInputType.multiline,
                       textInputAction: TextInputAction.newline,
+                      autofocus: false,
+                      enableSuggestions: false,
                       enabled: !widget.isCompressing,
                       style: TextStyle(
                         fontSize: 16,

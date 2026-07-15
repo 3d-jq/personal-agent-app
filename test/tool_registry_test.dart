@@ -11,39 +11,39 @@ void main() {
     });
 
     test('checkFrequencyLimit returns null below threshold', () {
-      for (var i = 0; i < 10; i++) {
+      for (var i = 0; i < 15; i++) {
         expect(registry.checkFrequencyLimit('weather'), isNull);
       }
     });
 
-    test('checkFrequencyLimit blocks at 11th call', () {
-      for (var i = 0; i < 10; i++) {
+    test('checkFrequencyLimit blocks at 16th call', () {
+      for (var i = 0; i < 15; i++) {
         registry.checkFrequencyLimit('weather');
       }
       final msg = registry.checkFrequencyLimit('weather');
       expect(msg, isNotNull);
-      expect(msg, contains('11'));
+      expect(msg, contains('16'));
     });
 
-    test('checkFrequencyWarning null at 7 calls', () {
-      for (var i = 0; i < 7; i++) {
+    test('checkFrequencyWarning null at 12 calls', () {
+      for (var i = 0; i < 12; i++) {
         registry.checkFrequencyLimit('weather');
       }
       expect(registry.checkFrequencyWarning('weather'), isNull);
     });
 
-    test('checkFrequencyWarning warns at 8th call', () {
-      for (var i = 0; i < 8; i++) {
+    test('checkFrequencyWarning warns at 13th call', () {
+      for (var i = 0; i < 13; i++) {
         registry.checkFrequencyLimit('weather');
       }
       final warn = registry.checkFrequencyWarning('weather');
       expect(warn, isNotNull);
-      expect(warn, contains('8'));
-      expect(warn, contains('10'));
+      expect(warn, contains('13'));
+      expect(warn, contains('15'));
     });
 
-    test('checkFrequencyWarning warns at 9th and 10th call', () {
-      for (var i = 0; i < 9; i++) {
+    test('checkFrequencyWarning warns at 14th and 15th call', () {
+      for (var i = 0; i < 14; i++) {
         registry.checkFrequencyLimit('weather');
       }
       expect(registry.checkFrequencyWarning('weather'), isNotNull);
