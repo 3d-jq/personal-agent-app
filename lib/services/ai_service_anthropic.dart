@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import '../core/service_locator.dart';
 import '../services/performance_monitor.dart';
 import 'package:dio/dio.dart';
 import '../tools/tools.dart';
@@ -274,6 +275,21 @@ class AnthropicProtocol {
         return '';
       }
       final data = response.data;
+      // 压缩请求也是真实 API 消耗，计入统计。
+      final usage = data is Map ? data['usage'] : null;
+      if (usage is Map) {
+        final input = (usage['input_tokens'] as num?)?.toInt() ?? 0;
+        final output = (usage['output_tokens'] as num?)?.toInt() ?? 0;
+        final cachedRead = (usage['cache_read_input_tokens'] as num?)?.toInt() ?? 0;
+        final cachedCreate = (usage['cache_creation_input_tokens'] as num?)?.toInt() ?? 0;
+        getIt<TokenUsageTracker>().record(
+          vendor: provider,
+          model: model,
+          inputTokens: input,
+          outputTokens: output,
+          cachedInputTokens: cachedRead + cachedCreate,
+        );
+      }
       final content = data is Map ? data['content'] : null;
       if (content is List && content.isNotEmpty) {
         final text = content

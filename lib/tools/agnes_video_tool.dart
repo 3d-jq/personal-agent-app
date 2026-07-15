@@ -131,6 +131,7 @@ class AgnesVideoTool extends AgentTool {
           await _dio.download(videoUrl, tempFile.path);
           // Copy to permanent storage
           final docsFile = await tempFile.copy('${docsDir.path}/$fileName');
+          await tempFile.delete(); // 清理临时文件
           await getIt<MediaStorage>().add(
             MediaItem(
               id: const Uuid().v4(),

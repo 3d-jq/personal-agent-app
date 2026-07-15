@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import 'common_widgets.dart';
 
 class AcknowledgementView extends StatelessWidget {
@@ -28,9 +29,8 @@ class AcknowledgementView extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: nc.bgSubtle,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: nc.divider, width: 0.5),
+                color: nc.surface,
+                borderRadius: BorderRadius.circular(RadiusToken.md),
               ),
               child: Column(
                 children: [
@@ -61,7 +61,7 @@ class AcknowledgementView extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: nc.primarySurface,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(RadiusToken.md),
                     ),
                     child: Column(
                       children: [
@@ -116,9 +116,8 @@ class AcknowledgementView extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: nc.bgSubtle,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: nc.divider, width: 0.5),
+                color: nc.surface,
+                borderRadius: BorderRadius.circular(RadiusToken.md),
               ),
               child: Column(
                 children: [

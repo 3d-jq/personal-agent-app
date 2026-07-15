@@ -11,6 +11,8 @@ import 'timeline_view.dart';
 import 'shimmer_text.dart';
 import 'task_plan_panel.dart';
 import '../services/tts_service.dart';
+import '../services/theme_service.dart';
+import '../core/service_locator.dart';
 
 enum _BubbleAction { copy, speak, regenerate, delete }
 
@@ -201,8 +203,8 @@ class ChatBubble extends StatelessWidget {
   }
 
   Widget _userBubble(BuildContext context) {
-    // Apple HIG：用户消息用 system-blue 填充 + 白色文字
-    final bgColor = nc.primary;
+    // 用户气泡颜色：自定义色 > 主题 primary 色
+    final bgColor = getIt<ThemeService>().userBubbleColor ?? nc.primary;
     final hasImage =
         msg.attachmentType == 'image' && msg.attachmentPath != null;
     final hasDoc =
@@ -240,7 +242,7 @@ class ChatBubble extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: bgColor,
                   // Apple HIG：连续曲率圆角，无边框
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(RadiusToken.xl),
                 ),
                 child: Text(
                   cleanText,
@@ -281,7 +283,7 @@ class ChatBubble extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 240),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(RadiusToken.bubble),
           ),
           clipBehavior: Clip.antiAlias,
           child: Image.file(
@@ -294,7 +296,7 @@ class ChatBubble extends StatelessWidget {
               height: 120,
             decoration: BoxDecoration(
               color: bgColor,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(RadiusToken.bubble),
             ),
             child: Center(
                 child: Column(
@@ -330,7 +332,7 @@ class ChatBubble extends StatelessWidget {
       padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: bgColor,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(RadiusToken.bubble),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -340,7 +342,7 @@ class ChatBubble extends StatelessWidget {
                 height: 40,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(RadiusToken.r10),
             ),
               child: Icon(
               Icons.description,
@@ -560,7 +562,7 @@ class _AIBubbleState extends State<_AIBubble> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: nc.error.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(RadiusToken.r14),
           border: Border.all(color: nc.error.withValues(alpha: 0.25), width: 0.5),
         ),
         child: Row(
@@ -584,7 +586,7 @@ class _AIBubbleState extends State<_AIBubble> {
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         decoration: BoxDecoration(
                           color: nc.error.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(RadiusToken.r10),
                         ),
                         child: Text(
                           '重试',

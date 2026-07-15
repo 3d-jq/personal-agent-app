@@ -4,7 +4,7 @@ import 'package:personal_agent_app/screens/chat_helpers.dart';
 
 void main() {
   group('buildMessageHistory 时间注入（cache 稳定化）', () {
-    test('now 非空时末尾追加当前时间 user 消息，且不污染 system', () {
+    test('now 非空时末尾追加当前时间 system 消息，且不污染 system prompt 主体', () {
       final messages = [
         ChatMessage(text: '你好', isUser: true),
         ChatMessage(text: '你好！', isUser: false),
@@ -20,7 +20,7 @@ void main() {
 
       // 末尾追加一条当前时间消息
       final last = history.last;
-      expect(last['role'], 'user');
+      expect(last['role'], 'system');
       expect(last['content'], contains('当前时间：'));
       expect(last['content'], contains('2026'));
       expect(last['content'], contains('13:44'));

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import '../../models/agent.dart';
 import 'group_chat_coordinator.dart';
 
@@ -53,7 +54,7 @@ class GroupStatusBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: nc.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(RadiusToken.sm),
       ),
       child: Text(
         '第 $discussionRound 轮',
@@ -103,7 +104,7 @@ class _AgentIndicator extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: _backgroundColor,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(RadiusToken.sm),
         border: Border.all(color: _borderColor, width: 0.5),
       ),
       child: status == AgentStatus.thinking

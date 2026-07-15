@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.7.8 — 全项目视觉统一 Kimi iOS 风 + 圆角规范 + 气泡颜色 (2026-07-15)
+
+### 设计系统统一
+- **主题层下沉**：`buildAppTheme` 新增 `dialogTheme` / `bottomSheetTheme`（elevation 0, shadowColor transparent, 白卡, RadiusToken 圆角）。所有 AlertDialog / ModalBottomSheet 自动无阴影。
+- **浅色页底**：`AgentColors.light().background` 由 FAFAFA 改为 F2F2F7（iOS systemGroupedBackground），白卡自然浮起于浅灰底。
+- **卡片默认无边框**：`ElevatedCard` 默认 `bordered: false`（白卡 + 浅灰底对比界定边界，iOS 原生做法）。
+- **侧边栏 Drawer**：去描边、卡内项与项之间加左对齐到文字的细线分隔、图标转中性灰。底部 pill 图标同步转灰。
+- **全局去描边**：清理 22 处手写 0.5px divider 卡片/头像圈/输入框/Toast/FAB/代码块描边，覆盖全项目所有页面。
+- **保留语义描边**：头像环/错误气泡/状态彩边/复选框/表格线/时间线强调/代码框/分段控件选中态——12 处合理语义描边不删。
+
+### 圆角统一
+- **RadiusToken 补全**：新增 `xxs=4, xs=6, r10=10, r14=14, r22=22`，覆盖所有常见场景。
+- **全项目对齐**：110 处硬编码 `BorderRadius.circular(数字)` 一键替换为 `RadiusToken.xxx`。补 27 个文件 import，清 14 处冗余 import。
+
+### 图片残留清理
+- 图片/视频生成后删除临时文件（`agnes_image_tool` / `agnes_video_tool` 的 `tempFile.delete()`）。
+
+### 气泡颜色多选
+- 设置页新增「聊天气泡颜色」入口（8 色可选：默认/石墨/靛蓝/蓝绿/绿色/橙色/粉色/紫色），持久化到 `theme.json`。
+- `ChatBubble._userBubble` 颜色由硬编码 `nc.primary` 改为读取 `ThemeService.userBubbleColor`。
+
+---
+
 ## v1.7.5 — UI 体验修复 (消息窗口翻页 / token 显示 / AppToast / 输入框 / 菜单动画) (2026-07-15)
 
 - **消息窗口翻页修复**：`MessageWindow.append` 末尾补调 `_onChanged()`，消息超 20 条时 UI 自动刷新显示翻页按钮，不再需要离开再回来。

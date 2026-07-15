@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
-import '../core/app_animations.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import 'common_widgets.dart';
 import '../services/chat_storage.dart';
 import '../core/service_locator.dart';
@@ -131,7 +131,7 @@ class _SearchPageState extends State<SearchPage> {
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           color: nc.surface,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(RadiusToken.md),
                         ),
                         child: Row(
                           children: [
@@ -140,7 +140,7 @@ class _SearchPageState extends State<SearchPage> {
                               height: 36,
                               decoration: BoxDecoration(
                                 color: nc.primarySurface,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(RadiusToken.md),
                               ),
                               child: Icon(
                                 r.icon,
@@ -163,7 +163,7 @@ class _SearchPageState extends State<SearchPage> {
                                         decoration: BoxDecoration(
                                           color: nc.primarySurface,
                                           borderRadius: BorderRadius.circular(
-                                            4,
+                                            RadiusToken.xxs,
                                           ),
                                         ),
                                         child: Text(

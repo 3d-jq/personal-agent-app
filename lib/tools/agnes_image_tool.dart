@@ -140,6 +140,7 @@ class AgnesImageTool extends AgentTool {
         final tempFile = File('${tempDir.path}/$fileName');
         await _dio.download(imageResultUrl, tempFile.path);
         final docsFile = await tempFile.copy('${docsDir.path}/$fileName');
+        await tempFile.delete(); // 清理临时文件
         await getIt<MediaStorage>().add(
           MediaItem(
             id: const Uuid().v4(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import '../../models/agent.dart';
 
 /// 弹出 @ Agent 选择面板，选中后把 `@名字 ` 插入到输入框光标处。
@@ -75,8 +76,7 @@ void showGroupMentionSheet(
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: nc.primarySurface,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: nc.divider, width: 0.5),
+                        borderRadius: BorderRadius.circular(RadiusToken.r10),
                       ),
                       child: Text(
                         a.avatar.isNotEmpty

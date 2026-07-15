@@ -163,4 +163,6 @@ class FakeContextDocService extends ContextDocService {
 
   @override
   bool hasUserProfile() => false;
+  @override
+  bool get isFirstMeeting => true;
 }

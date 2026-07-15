@@ -102,7 +102,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context, int maxCac
             child: Container(
               decoration: BoxDecoration(
                 color: nc.primarySurface,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(RadiusToken.md),
               ),
               child: Stack(
                 alignment: Alignment.center,
@@ -130,7 +130,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context, int maxCac
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xAA000000),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(RadiusToken.sm),
                       ),
                       child: const Text(
                         '视频',
@@ -204,7 +204,7 @@ Widget _mediaWidget(String url, AgentColors nc, BuildContext context, int maxCac
                       borderRadius: BorderRadius.circular(RadiusToken.md),
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(RadiusToken.md),
                       child: Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -341,8 +341,7 @@ MarkdownStyleSheet _mdStyleSheet(AgentColors nc) {
     ),
     codeblockDecoration: BoxDecoration(
       color: nc.primarySurface,
-      border: Border.all(color: nc.divider, width: 0.5),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(RadiusToken.md),
     ),
     codeblockPadding: const EdgeInsets.all(14),
     blockquoteDecoration: BoxDecoration(
@@ -402,8 +401,7 @@ class CodeBlockBuilder extends MarkdownElementBuilder {
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: nc.primarySurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: nc.divider, width: 0.5),
+        borderRadius: BorderRadius.circular(RadiusToken.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -718,7 +716,7 @@ class _FullscreenVideoState extends State<_FullscreenVideo> {
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(RadiusToken.xl),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,

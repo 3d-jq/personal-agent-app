@@ -126,10 +126,6 @@ class _ToastWidgetState extends State<_ToastWidget>
                 decoration: BoxDecoration(
                   color: nc.surface,
                   borderRadius: BorderRadius.circular(RadiusToken.md),
-                  border: Border.all(
-                    color: nc.divider.withValues(alpha: 0.3),
-                    width: 0.5,
-                  ),
                 ),
                 child: Text(
                   widget.message,

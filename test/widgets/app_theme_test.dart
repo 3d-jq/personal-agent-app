@@ -45,5 +45,33 @@ void main() {
         expect(shape.borderRadius, equals(BorderRadius.circular(RadiusToken.md)));
       }
     });
+
+    test('dialogTheme 无阴影白卡统一圆角 RadiusToken.md', () {
+      final theme = buildAppTheme(Brightness.light);
+      final d = theme.dialogTheme;
+      expect(d.elevation, equals(0));
+      expect(d.shadowColor, equals(Colors.transparent));
+      expect(d.shape, isA<RoundedRectangleBorder>());
+      if (d.shape is RoundedRectangleBorder) {
+        expect(
+          (d.shape! as RoundedRectangleBorder).borderRadius,
+          equals(BorderRadius.circular(RadiusToken.md)),
+        );
+      }
+    });
+
+    test('bottomSheetTheme 无阴影顶部大圆角 RadiusToken.lg', () {
+      final theme = buildAppTheme(Brightness.light);
+      final b = theme.bottomSheetTheme;
+      expect(b.elevation, equals(0));
+      expect(b.shadowColor, equals(Colors.transparent));
+      expect(b.shape, isA<RoundedRectangleBorder>());
+      if (b.shape is RoundedRectangleBorder) {
+        expect(
+          (b.shape! as RoundedRectangleBorder).borderRadius,
+          equals(BorderRadius.vertical(top: Radius.circular(RadiusToken.lg))),
+        );
+      }
+    });
   });
 }

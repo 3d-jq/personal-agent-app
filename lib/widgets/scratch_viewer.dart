@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
-import '../core/app_animations.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import 'common_widgets.dart';
 import '../core/service_locator.dart';
 import '../services/virtual_fs.dart';
@@ -212,7 +212,7 @@ class _ScratchViewerPageState extends State<ScratchViewerPage> {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
                 color: nc.surface,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(RadiusToken.md),
               ),
               child: Row(
                 children: [

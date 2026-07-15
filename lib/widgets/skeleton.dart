@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
-import '../core/app_animations.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 
 /// 骨架屏组件 - 用于加载时显示占位内容
 class Skeleton extends StatefulWidget {
@@ -53,7 +53,7 @@ class _SkeletonState extends State<Skeleton>
           height: widget.height,
           decoration: BoxDecoration(
             color: nc.primarySurface.withValues(alpha: _animation.value),
-            borderRadius: widget.borderRadius ?? BorderRadius.circular(8),
+            borderRadius: widget.borderRadius ?? BorderRadius.circular(RadiusToken.sm),
           ),
         );
       },
@@ -79,7 +79,7 @@ class MessageListSkeleton extends StatelessWidget {
               Skeleton(
                 width: 48,
                 height: 48,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(RadiusToken.sm),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -89,13 +89,13 @@ class MessageListSkeleton extends StatelessWidget {
                     Skeleton(
                       width: 100 + (index % 3) * 30.0,
                       height: 16,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(RadiusToken.xxs),
                     ),
                     const SizedBox(height: 8),
                     Skeleton(
                       width: 200 + (index % 2) * 50.0,
                       height: 14,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(RadiusToken.xxs),
                     ),
                   ],
                 ),
@@ -126,7 +126,7 @@ class AgentListSkeleton extends StatelessWidget {
               Skeleton(
                 width: 40,
                 height: 40,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(RadiusToken.r10),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -136,13 +136,13 @@ class AgentListSkeleton extends StatelessWidget {
                     Skeleton(
                       width: 80 + (index % 3) * 20.0,
                       height: 16,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(RadiusToken.xxs),
                     ),
                     const SizedBox(height: 6),
                     Skeleton(
                       width: 120 + (index % 2) * 40.0,
                       height: 12,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(RadiusToken.xxs),
                     ),
                   ],
                 ),
@@ -172,7 +172,7 @@ class ChatBubbleSkeleton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(RadiusToken.r14),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,13 +180,13 @@ class ChatBubbleSkeleton extends StatelessWidget {
             Skeleton(
               width: 150,
               height: 14,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(RadiusToken.xxs),
             ),
             const SizedBox(height: 8),
             Skeleton(
               width: 100,
               height: 14,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(RadiusToken.xxs),
             ),
           ],
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import 'common_widgets.dart';
 import 'app_toast.dart';
 import '../core/service_locator.dart';
@@ -108,9 +109,8 @@ class _ImageCachePageState extends State<ImageCachePage> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: nc.bgSubtle,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: nc.divider, width: 0.5),
+                    color: nc.surface,
+                    borderRadius: BorderRadius.circular(RadiusToken.md),
                   ),
                   child: Column(
                     children: [
@@ -152,7 +152,7 @@ class _ImageCachePageState extends State<ImageCachePage> {
                       side: BorderSide(color: nc.error.withValues(alpha: 0.3)),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(RadiusToken.r10),
                       ),
                     ),
                   ),
@@ -163,7 +163,7 @@ class _ImageCachePageState extends State<ImageCachePage> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: nc.primarySurface,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(RadiusToken.md),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

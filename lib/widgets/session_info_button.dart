@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
-import '../core/app_animations.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import '../core/app_router.dart';
 import '../services/context_doc_service.dart';
 import 'context_docs_panel.dart';
@@ -44,7 +44,7 @@ class SessionInfoButton extends StatelessWidget {
         child: Container(
           width: 40,
           height: 40,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(RadiusToken.r10)),
           child: Icon(Icons.badge, size: 22, color: nc.textPrimary),
         ),
       ),
@@ -118,7 +118,7 @@ class SessionInfoSheet {
             child: Container(
               decoration: BoxDecoration(
                 color: nc.primarySurface,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(RadiusToken.r14),
               ),
               padding: const EdgeInsets.all(16),
               child: Column(

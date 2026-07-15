@@ -83,6 +83,44 @@ abstract class _ContextDocBase extends AgentTool {
   }
 }
 
+/// 标记 USER.md 首次见面流程已完成。
+/// 调用后 `state: completed`，不再触发首次见面引导。
+class ContextDocCompleteTool extends AgentTool {
+  @override
+  String get name => 'context_doc_complete';
+  @override
+  String get description => '标记 USER.md 首次见面引导已完成。'
+      '调用后 state 变为 completed，此引导不再出现。'
+      '仅在首次见面对话末尾（用户已告诉你称呼/风格/给你起名后）调用。';
+  @override
+  bool get readOnly => false;
+
+  @override
+  Map<String, dynamic> get parameters => {
+    'type': 'object',
+    'properties': {
+      'doc': {
+        'type': 'string',
+        'enum': ['user'],
+        'description': '固定传 "user"，标记 USER.md 完成',
+      },
+    },
+    'required': ['doc'],
+  };
+
+  @override
+  Future<String> execute(Map<String, dynamic> args) async {
+    final docRaw = (args['doc'] as String?)?.trim() ?? 'user';
+    if (docRaw != 'user') return '错误：context_doc_complete 仅支持 doc="user"';
+    try {
+      await getIt<ContextDocService>().markProfileComplete();
+      return '首次见面已完成！USER.md 已标记为 completed，后续对话不再触发首次见面引导。';
+    } on Exception catch (e) {
+      return '标记失败：$e';
+    }
+  }
+}
+
 /// 读取上下文文档（SOUL/USER/AGENT/MEMORY/knowledge）。
 class ContextDocReadTool extends _ContextDocBase {
   @override

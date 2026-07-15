@@ -291,7 +291,7 @@ class GroupChatController extends ChangeNotifier {
 
     // ── 混合协作引擎 ──
     // 每次发消息前刷新 MCP 工具，确保新连接的服务器能被大模型发现
-    registerMcpTools(_baseRegistry);
+    registerAllTools(_baseRegistry);
 
     // 压缩仅生成「发送视图」，不替换 _messages——完整群聊历史保留在 _messages
     // 供 UI 展示与 saveGroup 落盘。后续每个非隔离 Agent 通过 _historyView 引用

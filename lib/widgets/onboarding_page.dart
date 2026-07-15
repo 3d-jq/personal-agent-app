@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import '../core/service_locator.dart';
 import '../widgets/ai_settings_sheet.dart';
 
@@ -189,7 +190,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     color: sel
                         ? nc.success.withValues(alpha: 0.12)
                         : nc.surface,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(RadiusToken.md),
                     border: Border.all(
                       color: sel ? nc.success : nc.divider,
                       width: 1.2,

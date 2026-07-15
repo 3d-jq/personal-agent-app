@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.os.Handler
 import android.os.Looper
 import android.util.Base64
+import android.view.View
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -108,6 +109,28 @@ class BrowserWebViewHost(context: Context) {
                             "e.dispatchEvent(new Event('input',{bubbles:true}));" +
                             "e.dispatchEvent(new Event('change',{bubbles:true}));'typed'"
                     webView.evaluateJavascript(js) { result.success(it ?: "ok") }
+                }
+            }
+            "select" -> {
+                val ref = call.argument<String>("ref") ?: ""
+                val value = call.argument<String>("value") ?: ""
+                val cssPath = call.argument<String>("cssPath") ?: ""
+                runOnWebView {
+                    val sel = if (cssPath.isNotEmpty()) {
+                        val safe = cssPath.replace("'", "\\'")
+                        "document.querySelector('[data-bref=\"$ref\"]')||document.querySelector('$safe')"
+                    } else {
+                        "document.querySelector('[data-bref=\"$ref\"]')"
+                    }
+                    val escaped = value.replace("'", "\\'").replace("\\", "\\\\")
+                    webView.evaluateJavascript(
+                        "var e=$sel; if(!e||e.tagName!=='SELECT') return 'ref_not_select:$ref';" +
+                        "var opts=e.options; for(var i=0;i<opts.length;i++){" +
+                        "if(opts[i].value==='$escaped'||opts[i].text==='$escaped'){" +
+                        "e.selectedIndex=i; e.dispatchEvent(new Event('change',{bubbles:true}));" +
+                        "return 'selected'}}" +
+                        "return 'option_not_found:$escaped'"
+                    ) { result.success(it ?: "ok") }
                 }
             }
             "fillForm" -> {
@@ -214,16 +237,26 @@ class BrowserWebViewHost(context: Context) {
                 }
             }
             "screenshot" -> runOnWebView {
-                val w = webView.width
-                val h = webView.height
+                var w = webView.width
+                var h = webView.height
                 if (w <= 0 || h <= 0) {
-                    // WebView 尚未完成布局（如刚创建或从未显示过），无法截图。
-                    result.error(
-                        "screenshot_failed",
-                        "WebView 尚未布局（宽高无效），请先打开浏览器并加载页面",
-                        null,
+                    // WebView 尚未完成布局（如刚创建或从未显示过），先强制测量布局再截图。
+                    // 使用常见的移动端视口尺寸（1080×1920）作为默认值，若仍需定制请用 browser_set_viewport。
+                    webView.measure(
+                        View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.AT_MOST),
+                        View.MeasureSpec.makeMeasureSpec(1920, View.MeasureSpec.AT_MOST),
                     )
-                    return@runOnWebView
+                    webView.layout(0, 0, webView.measuredWidth, webView.measuredHeight)
+                    w = webView.measuredWidth
+                    h = webView.measuredHeight
+                    if (w <= 0 || h <= 0) {
+                        result.error(
+                            "screenshot_failed",
+                            "WebView 尚未布局（宽高无效），请先打开浏览器并加载页面",
+                            null,
+                        )
+                        return@runOnWebView
+                    }
                 }
                 val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                 val canvas = Canvas(bitmap)

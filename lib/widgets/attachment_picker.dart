@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
-import '../core/app_animations.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import '../widgets/app_toast.dart';
 
 class AttachmentPicker extends StatelessWidget {
@@ -55,9 +55,8 @@ class AttachmentPicker extends StatelessWidget {
           ),
           Container(
             decoration: BoxDecoration(
-              color: nc.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: nc.divider, width: 0.5),
+              color: nc.bgSubtle,
+              borderRadius: BorderRadius.circular(RadiusToken.md),
             ),
             child: Column(
               children: [

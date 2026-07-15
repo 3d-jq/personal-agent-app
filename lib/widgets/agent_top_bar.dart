@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 
 class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
@@ -58,7 +59,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(RadiusToken.r10),
                           ),
                           child: Icon(
                           Icons.list,
@@ -84,8 +85,7 @@ class AgentTopBar extends StatelessWidget implements PreferredSizeWidget {
                             ),
                             decoration: BoxDecoration(
                               color: colors.primarySurface,
-                              border: Border.all(color: colors.divider, width: 0.5),
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(RadiusToken.r10),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,

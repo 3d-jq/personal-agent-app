@@ -81,9 +81,10 @@ class PromptBuilder {
       buf.writeln();
       buf.writeln('聊完之后，记得同步到文档里：');
       buf.writeln('- USER.md：ta 的称呼 → 「怎么称呼」、你的名字 → 「怎么叫我」、偏好风格 → 「语气风格」');
-      buf.writeln('- SOUL.md：把「名称」改成 ta 给你起的新名字（先 context_doc_read 读全文，改完用 context_doc_update 写回，记得设 reviewed=true）');
+      buf.writeln('- SOUL.md：把「名称」改成 ta 给你起的新名字（⚠️ 硬约束：write 前必须先 context_doc_read，否则代码拒绝写入。收到 "ContextDocNotReadException" 时先 read 再重试 write）');
       buf.writeln();
-      buf.writeln('最后清掉所有「（待用户首次指定）」占位符，表示初次设置已经完成。');
+      buf.writeln('聊完之后调用 context_doc_complete(u)，标记首次见面已完成。完成后此引导不再出现。');
+      buf.writeln('⚠️ 如果用户跳过了引导或聊得不够，state 保持 in_progress，下次对话还会继续引导。');
       buf.writeln();
       buf.writeln('记住：你不是在填表，你是在认识一个人。放轻松，像第一次见面聊天一样。');
       buf.writeln('</first_meeting>');
@@ -138,8 +139,9 @@ class PromptBuilder {
     buf.writeln('ta 做的重大决定、定下来的事、跨会话需要保留的事实 → 记到 MEMORY.md。');
     buf.writeln('做完一个任务后沉淀下来的好方法或可复用经验 → 记到 AGENT.md。');
     buf.writeln();
-    buf.writeln('写之前先 context_doc_read 读一遍已有的内容，把新的整合进去再 context_doc_update');
-    buf.writeln('写回，别覆盖掉旧内容。AGENT.md 写入要设 reviewed=true，确保不会误伤 SOUL.md 的人格设定。');
+    buf.writeln('⚠️ 硬约束：写之前必须先 context_doc_read 读一遍已有内容，把新的整合进去再 context_doc_update');
+    buf.writeln('写回。未读就写会被代码拒绝（ContextDocNotReadException），补调 read 后重试 write 即可。');
+    buf.writeln('AGENT.md 写入要设 reviewed=true，确保不会误伤 SOUL.md 的人格设定。');
     buf.writeln();
     buf.writeln('只记录用户明确说出来的事实，不要自己脑补推断。');
     buf.writeln();

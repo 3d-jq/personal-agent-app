@@ -58,6 +58,7 @@ ThemeData buildAppTheme(Brightness brightness) {
     appBarTheme: AppBarTheme(
       elevation: 0,
       scrolledUnderElevation: 0,
+      shadowColor: Colors.transparent,
       // Apple HIG：导航栏毛玻璃材质，半透明背景
       backgroundColor: agentColors.background.withValues(alpha: 0.85),
       foregroundColor: agentColors.textPrimary,
@@ -99,19 +100,19 @@ ThemeData buildAppTheme(Brightness brightness) {
       fillColor: agentColors.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RadiusToken.r10),
         borderSide: BorderSide(color: agentColors.divider),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RadiusToken.r10),
         borderSide: BorderSide(color: agentColors.divider),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RadiusToken.r10),
         borderSide: BorderSide(color: agentColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RadiusToken.r10),
         borderSide: BorderSide(color: agentColors.error),
       ),
       labelStyle: TextStyle(color: agentColors.textSecondary),
@@ -123,7 +124,7 @@ ThemeData buildAppTheme(Brightness brightness) {
       space: 0.5,
     ),
     cardTheme: CardThemeData(
-      color: agentColors.cardBackground,
+      color: agentColors.surface,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(RadiusToken.md),
@@ -135,6 +136,28 @@ ThemeData buildAppTheme(Brightness brightness) {
     popupMenuTheme: PopupMenuThemeData(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(RadiusToken.md),
+      ),
+    ),
+    // iOS 风：对话框无阴影、白卡、统一圆角，消除 Material 默认 elevation 投影。
+    dialogTheme: DialogThemeData(
+      backgroundColor: agentColors.surface,
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(RadiusToken.md),
+      ),
+      titleTextStyle: textTheme.titleLarge,
+      contentTextStyle: textTheme.bodyMedium,
+    ),
+    // iOS 风：底部弹层无阴影、白卡、顶部大圆角（RadiusToken.lg = 16）。
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: agentColors.surface,
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(RadiusToken.lg)),
       ),
     ),
     extensions: [agentColors],

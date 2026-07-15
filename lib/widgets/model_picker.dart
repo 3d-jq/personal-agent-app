@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import '../services/ai_service.dart';
 import 'ai_settings.dart';
 import 'common_widgets.dart';
 import 'vendor_config.dart';
-import '../core/app_animations.dart';
 
 void showModelPicker(BuildContext context, AISettings s, VoidCallback cb) {
   final v = s.selectedVendor;
@@ -291,9 +291,8 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: nc.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: nc.divider, width: 0.5),
+              color: nc.bgSubtle,
+              borderRadius: BorderRadius.circular(RadiusToken.md),
             ),
             child: Row(
               children: [
@@ -331,7 +330,7 @@ class _ModelPickBodyState extends State<_ModelPickBody> {
                       elevation: 0,
                       shadowColor: Colors.transparent,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(RadiusToken.r10),
                       ),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
@@ -401,7 +400,7 @@ class _ModelSkeletonListState extends State<_ModelSkeletonList>
                 height: 14,
                 decoration: BoxDecoration(
                   color: c.textSecondary,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(RadiusToken.sm),
                 ),
               ),
             ),

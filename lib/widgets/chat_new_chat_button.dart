@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/chat_controller.dart';
 import '../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 
 class ChatNewChatButton extends StatelessWidget {
   final ChatController controller;
@@ -22,7 +23,7 @@ class ChatNewChatButton extends StatelessWidget {
         child: Container(
           width: 40,
           height: 40,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(RadiusToken.r10)),
           child: Icon(Icons.edit_note, size: 24, color: AgentColors.of(context).textPrimary),
         ),
     );

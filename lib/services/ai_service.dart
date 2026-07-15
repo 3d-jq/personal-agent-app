@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import '../core/service_locator.dart';
 import '../services/performance_monitor.dart';
 import 'package:dio/dio.dart';
 import '../tools/tools.dart';
@@ -8,6 +9,7 @@ import 'ai_service_openai.dart';
 import 'ai_service_anthropic.dart';
 import 'chat_stream_event.dart';
 import 'log_service.dart';
+import 'token_usage_tracker.dart';
 
 export 'ai_service_base.dart' show AiResponse;
 
@@ -30,29 +32,31 @@ class AIService {
     this.isAnthropic = false,
     this.provider = '',
     ToolRegistry? toolRegistry,
-  }) : toolRegistry = toolRegistry ?? ToolRegistry();
+  }) : toolRegistry = toolRegistry ?? ToolRegistry() {
+    _openAi = OpenAiProtocol(
+      baseUrl: baseUrl,
+      apiKey: apiKey,
+      model: model,
+      provider: provider,
+      toolRegistry: this.toolRegistry,
+      maxTokens: maxTokens,
+      thinkingEffort: thinkingEffort,
+      enablePromptCache: isAnthropic,
+    );
+    _anthropic = AnthropicProtocol(
+      baseUrl: baseUrl,
+      apiKey: apiKey,
+      model: model,
+      provider: provider,
+      toolRegistry: this.toolRegistry,
+      maxTokens: maxTokens,
+    );
+  }
 
   bool get _isAnthropic => isAnthropic;
 
-  OpenAiProtocol get _openAi => OpenAiProtocol(
-    baseUrl: baseUrl,
-    apiKey: apiKey,
-    model: model,
-    provider: provider,
-    toolRegistry: toolRegistry,
-    maxTokens: maxTokens,
-    thinkingEffort: thinkingEffort,
-    enablePromptCache: isAnthropic,
-  );
-
-  AnthropicProtocol get _anthropic => AnthropicProtocol(
-    baseUrl: baseUrl,
-    apiKey: apiKey,
-    model: model,
-    provider: provider,
-    toolRegistry: toolRegistry,
-    maxTokens: maxTokens,
-  );
+  late final OpenAiProtocol _openAi;
+  late final AnthropicProtocol _anthropic;
 
   /// Fetch available model IDs.
   Future<List<String>> fetchModels() async {
@@ -113,6 +117,21 @@ class AIService {
           ? choices[0] as Map<String, dynamic>
           : null;
       final result = (choice?['message']?['content'] as String? ?? '').trim();
+      // 压缩请求也是真实 API 消耗，需要计入统计。
+      final usage = rawData is Map ? rawData['usage'] : null;
+      if (usage is Map) {
+        final prompt = (usage['prompt_tokens'] as num?)?.toInt() ?? 0;
+        final completion = (usage['completion_tokens'] as num?)?.toInt() ?? 0;
+        final details = usage['prompt_tokens_details'];
+        final cached = details is Map ? (details['cached_tokens'] as num?)?.toInt() ?? 0 : 0;
+        getIt<TokenUsageTracker>().record(
+          vendor: provider,
+          model: model,
+          inputTokens: prompt,
+          outputTokens: completion,
+          cachedInputTokens: cached,
+        );
+      }
       log.d('AIService', 'Summarize success: ${result.length} chars');
       perf.summarize('完成', '${result.length} 字符');
       return result;

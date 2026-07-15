@@ -267,8 +267,7 @@ class _TokenUsagePageState extends State<TokenUsagePage> {
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: nc.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: nc.divider, width: 0.5),
+                      borderRadius: BorderRadius.circular(RadiusToken.r10),
                     ),
                     child: Row(
                       children: [
@@ -366,7 +365,7 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: nc.primary,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RadiusToken.lg),
       ),
       padding: const EdgeInsets.all(SpaceToken.lg),
       child: Column(
@@ -403,8 +402,15 @@ class _SummaryCard extends StatelessWidget {
           const SizedBox(height: SpaceToken.sm),
           _Line(nc: nc, label: '输入 Token', value: _fmtInt(inputTokens)),
           _Line(nc: nc, label: '输出 Token', value: _fmtInt(outputTokens)),
-          if (cachedTokens > 0)
-            _Line(nc: nc, label: '缓存命中 Token', value: _fmtInt(cachedTokens)),
+          _Line(nc: nc, label: '缓存命中 Token', value: _fmtInt(cachedTokens)),
+          _Line(
+            nc: nc,
+            label: '缓存命中率',
+            value: inputTokens > 0
+                ? '${(cachedTokens / inputTokens * 100).toStringAsFixed(1)}%'
+                : '—',
+            valueColor: cachedTokens > 0 ? nc.success : null,
+          ),
         ],
       ),
     );
@@ -451,10 +457,12 @@ class _Line extends StatelessWidget {
     required this.nc,
     required this.label,
     required this.value,
+    this.valueColor,
   });
   final AgentColors nc;
   final String label;
   final String value;
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -469,7 +477,7 @@ class _Line extends StatelessWidget {
                 style: TextStyle(
                     fontSize: FontToken.body,
                     fontWeight: WeightToken.medium,
-                    color: nc.onPrimary)),
+                    color: valueColor ?? nc.onPrimary)),
           ],
         ),
       );
@@ -541,7 +549,7 @@ class _DistributionSection extends StatelessWidget {
                     backgroundColor: nc.divider,
                     valueColor: AlwaysStoppedAnimation(color),
                     minHeight: 8,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(RadiusToken.xxs),
                   ),
                 ),
                 const SizedBox(width: SpaceToken.sm),
@@ -595,15 +603,15 @@ class _ModelCard extends StatelessWidget {
     final isToken = price.mode == BillingMode.token;
     return Material(
       color: nc.surface,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(RadiusToken.r14),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RadiusToken.r14),
         onTap: onEdit,
         child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: nc.divider, width: 0.5),
-            borderRadius: BorderRadius.circular(14),
-          ),
+            decoration: BoxDecoration(
+              color: nc.surface,
+              borderRadius: BorderRadius.circular(RadiusToken.r14),
+            ),
           padding: const EdgeInsets.all(SpaceToken.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -682,7 +690,7 @@ class _ModelCard extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: isToken ? nc.brandSoft : nc.primarySurface,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(RadiusToken.xs),
                     ),
                     child: Text(isToken ? '按 token' : '按次',
                         style: TextStyle(
@@ -750,7 +758,7 @@ class _PriceField extends StatelessWidget {
             labelStyle:
                 TextStyle(color: nc.textSecondary, fontSize: FontToken.small),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(RadiusToken.r10),
               borderSide: BorderSide(color: nc.divider),
             ),
             contentPadding: const EdgeInsets.symmetric(
@@ -778,9 +786,9 @@ class _BillingSegment extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: selected ? nc.primary : Colors.transparent,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(RadiusToken.sm),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(RadiusToken.sm),
         onTap: onTap,
         child: Container(
           height: 38,
@@ -845,13 +853,17 @@ class _CompressionSection extends StatelessWidget {
         const SizedBox(height: SpaceToken.md),
         ElevatedCard(
           nc: nc,
-          shadow: nc.shadowSm,
           child: Column(
             children: [
               for (var i = 0; i < compress.length.clamp(0, 5); i++) ...[
                 if (i > 0)
-                  Divider(height: 0.5, thickness: 0.5, color: nc.divider,
-                      indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                  Divider(
+                    height: 0.5,
+                    thickness: 0.5,
+                    color: nc.divider,
+                    indent: SpaceToken.lg,
+                    endIndent: SpaceToken.lg,
+                  ),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: SpaceToken.lg, vertical: SpaceToken.md),
@@ -869,7 +881,7 @@ class _CompressionSection extends StatelessWidget {
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: nc.success.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(RadiusToken.xs),
                         ),
                         child: Text(compress[i].value,
                             style: TextStyle(

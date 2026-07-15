@@ -89,7 +89,6 @@ class _AgentEditPageState extends State<AgentEditPage> {
               decoration: BoxDecoration(
                 color: nc.primarySurface,
                 borderRadius: BorderRadius.circular(RadiusToken.xl),
-                border: Border.all(color: nc.divider, width: 0.5),
               ),
               child: Text(
                 _name.text.isNotEmpty ? _name.text.characters.first : '?',
@@ -294,7 +293,7 @@ class _AgentEditPageState extends State<AgentEditPage> {
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: sel ? nc.success : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(6),
+                                  borderRadius: BorderRadius.circular(RadiusToken.xs),
                                   border: Border.all(
                                     color: sel ? nc.success : nc.divider,
                                     width: 1,
@@ -445,7 +444,7 @@ class _EditField extends StatelessWidget {
                 vertical: SpaceToken.md,
               ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(RadiusToken.md),
                 borderSide: BorderSide.none,
               ),
             ),

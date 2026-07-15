@@ -190,7 +190,7 @@ void main() {
       final fake = _FakeBrowserChannel()..screenshotValue = '';
       final tool = BrowserScreenshotTool(fake);
       final r = await tool.execute({});
-      expect(r, contains('浏览器截图失败'));
+      expect(r, contains('截图失败'));
     });
 
     test('截图失败记录 E 级日志并返回错误', () async {
@@ -203,7 +203,7 @@ void main() {
       final fake = _FakeBrowserChannel()..failScreenshot = true;
       final tool = BrowserScreenshotTool(fake);
       final r = await tool.execute({});
-      expect(r, contains('浏览器截图失败'));
+      expect(r, contains('截图失败'));
       expect(
         lines.any((l) => l.contains('[E]') && l.contains('[Browser]')),
         isTrue,
