@@ -148,7 +148,7 @@ class ChatBubble extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(RadiusToken.md),
       ),
-      elevation: 8,
+      elevation: 0,
       items: menuItems,
     );
 

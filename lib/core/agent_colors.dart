@@ -103,18 +103,9 @@ class AgentColors extends ThemeExtension<AgentColors> {
     divider: Color(0x333C3C43),
     drawerScrim: Color(0x61000000),
     shadowColor: Color(0x1A000000),
-    shadowSm: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 1), blurRadius: 2, color: Color(0x0A000000)),
-      BoxShadow(offset: Offset(0, 1), blurRadius: 1, color: Color(0x07000000)),
-    ],
-    shadowMd: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 4), blurRadius: 12, color: Color(0x0F000000)),
-      BoxShadow(offset: Offset(0, 1), blurRadius: 3, color: Color(0x0A000000)),
-    ],
-    shadowLg: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 12), blurRadius: 32, color: Color(0x1A000000)),
-      BoxShadow(offset: Offset(0, 4), blurRadius: 8, color: Color(0x0A000000)),
-    ],
+    shadowSm: <BoxShadow>[],
+    shadowMd: <BoxShadow>[],
+    shadowLg: <BoxShadow>[],
   );
 
   /// Apple HIG 深色模式。
@@ -140,15 +131,9 @@ class AgentColors extends ThemeExtension<AgentColors> {
     divider: Color(0x33EBEBF5),
     drawerScrim: Color(0x61000000),
     shadowColor: Color(0x80000000),
-    shadowSm: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 1), blurRadius: 2, color: Color(0x80000000)),
-    ],
-    shadowMd: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 8), blurRadius: 24, color: Color(0x99000000)),
-    ],
-    shadowLg: <BoxShadow>[
-      BoxShadow(offset: Offset(0, 16), blurRadius: 40, color: Color(0xB3000000)),
-    ],
+    shadowSm: <BoxShadow>[],
+    shadowMd: <BoxShadow>[],
+    shadowLg: <BoxShadow>[],
   );
 
   static AgentColors of(BuildContext context) {
