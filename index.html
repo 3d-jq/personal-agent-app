@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DWeis — 你的个人 AI 助手</title>
+<style>
+  :root {
+    --bg: #f2f2f2;
+    --card: #ffffff;
+    --text: #1d1d1f;
+    --text2: #86868b;
+    --accent: #0071e3;
+    --accent-light: #e8f0fe;
+    --border: #e8e8ed;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .hero {
+    text-align: center;
+    padding: 100px 24px 72px;
+  }
+  .hero h1 {
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+  .hero p {
+    font-size: 19px;
+    color: var(--text2);
+    max-width: 520px;
+    margin: 0 auto 36px;
+  }
+  .hero .tag {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    margin: 3px;
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+
+  .section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 64px 24px;
+  }
+  .section h2 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+  .section .lead {
+    font-size: 16px;
+    color: var(--text2);
+    margin-bottom: 40px;
+  }
+
+  .feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .feature-row {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .feature-row .label {
+    min-width: 140px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .feature-row .desc {
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  .tools-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 32px 20px;
+  }
+  .tool-group h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 12px;
+  }
+  .tool-group ul {
+    list-style: none;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 2;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 24px;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 28px;
+  }
+  .card h3 { font-size: 17px; margin-bottom: 10px; }
+  .card p { font-size: 14px; color: var(--text2); line-height: 1.7; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+  .footer {
+    text-align: center;
+    padding: 56px 24px;
+    color: var(--text2);
+    font-size: 13px;
+  }
+  .footer a { color: var(--accent); text-decoration: none; }
+
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 36px; }
+    .section h2 { font-size: 24px; }
+    .feature-row { flex-direction: column; gap: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <h1>DWeis</h1>
+  <p>多厂商大模型对话、40+ 内置工具、浏览器集成——在手机上一个 AI 全搞定。</p>
+  <div>
+    <span class="tag">v1.9.0</span>
+    <span class="tag">Android</span>
+    <span class="tag">Flutter</span>
+    <span class="tag">MIT</span>
+  </div>
+</section>
+
+<hr>
+
+<section class="section">
+  <h2>多厂商 AI</h2>
+  <p class="lead">不锁定单一模型。任意兼容 OpenAI / Anthropic API 的服务商都可接入，独立配置、独立计费。</p>
+
+  <div class="feature-list">
+    <div class="feature-row"><span class="label">流式响应</span><span class="desc">逐 token 实时渲染，打字机效果。支持 thinking / reasoning 模型的思考过程透明展示。</span></div>
+    <div class="feature-row"><span class="label">工具调用</span><span class="desc">Function Calling 驱动 40+ 工具，大模型自主选择何时调用、调哪个、怎么传参。</span></div>
+    <div class="feature-row"><span class="label">上下文窗口</span><span class="desc">支持 256K token 上下文，80% 阈值自动压缩，Prompt Caching 前缀命中减少重复计费。</span></div>
+    <div class="feature-row"><span class="label">用量追踪</span><span class="desc">输入 / 输出 / 缓存命中 Token 实时统计，按厂商 + 模型 + 单价独立核算成本。</span></div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>40+ 内置工具</h2>
+  <p class="lead">AI 不只会聊天——它能操控浏览器、搜网页、写笔记、排计划、设提醒。</p>
+
+  <div class="tools-section">
+    <div class="tool-group">
+      <h4>浏览器</h4>
+      <ul><li>browser.goto</li><li>browser.click</li><li>browser.type</li><li>browser.screenshot</li><li>browser.snapshot</li><li>browser.search</li><li>browser.getText</li><li>browser.evaluate</li></ul>
+    </div>
+    <div class="tool-group">
+      <h4>搜索</h4>
+      <ul><li>searxng.search</li><li>tavily.search</li><li>web.fetch</li><li>deep.search</li></ul>
+    </div>
+    <div class="tool-group">
+      <h4>媒体</h4>
+      <ul><li>generate.image</li><li>generate.video</li></ul>
+    </div>
+    <div class="tool-group">
+      <h4>文件 & 笔记</h4>
+      <ul><li>fs.read / write / ls</li><li>fs.mkdir / rm</li><li>notes.read / update</li><li>notes.list / delete</li></ul>
+    </div>
+    <div class="tool-group">
+      <h4>计划 & 提醒</h4>
+      <ul><li>plan.create / update</li><li>plan.advance / verify</li><li>reminder</li><li>calendar.add / query</li></ul>
+    </div>
+    <div class="tool-group">
+      <h4>知识 & 技能</h4>
+      <ul><li>context_doc.read</li><li>context_doc.update</li><li>skill.match / read</li><li>skill.create</li></ul>
+    </div>
+    <div class="tool-group">
+      <h4>其他</h4>
+      <ul><li>weather</li><li>location</li><li>delegate.task</li><li>ask.user</li></ul>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>浏览器</h2>
+  <p class="lead">内置 WebView，悬浮窗 + 工具双模式。大模型能真正"看见"网页内容。</p>
+
+  <div class="feature-list">
+    <div class="feature-row"><span class="label">完整操控</span><span class="desc">导航、点击、输入、滚动、悬停、选择、表单填充——全部可编程。</span></div>
+    <div class="feature-row"><span class="label">视觉感知</span><span class="desc">截图直接嵌入对话气泡，大模型分析页面布局和内容后给出操作建议。</span></div>
+    <div class="feature-row"><span class="label">文本提取</span><span class="desc">页面快照、正文提取、元素搜索——配合搜索工具可实现自动调研。</span></div>
+    <div class="feature-row"><span class="label">灵活配置</span><span class="desc">自定义 User-Agent、Viewport、Cookie——模拟任意设备和登录态。</span></div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>Agent 群聊</h2>
+  <p class="lead">多个 AI Agent 同场协作。每人独立人格、独立工具集、独立 AI 后端。</p>
+
+  <div class="grid-3">
+    <div class="card">
+      <h3>混合调度</h3>
+      <p>既支持 @ 某个 Agent 点名回复，也支持自动推举最合适的 Agent 发言。最多 5 轮接力。</p>
+    </div>
+    <div class="card">
+      <h3>身份隔离</h3>
+      <p>每个 Agent 只看得到自己与用户的对话，其他 Agent 的发言作为上下文注释——不串身份。</p>
+    </div>
+    <div class="card">
+      <h3>自定义 Agent</h3>
+      <p>自由创建 Agent，独立配置 system prompt、工具白名单、模型选择。就像给团队配人手。</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>记忆系统</h2>
+  <p class="lead">AI 不只是每次从零开始。它记得你、知道你的偏好、能跨会话延续上下文。</p>
+
+  <div class="feature-list">
+    <div class="feature-row"><span class="label">SOUL.md</span><span class="desc">AI 人格设定——名称、语气、风格、背景。定义"它是谁"。</span></div>
+    <div class="feature-row"><span class="label">USER.md</span><span class="desc">用户资料——称呼、偏好、习惯。每次对话自动注入 system prompt。</span></div>
+    <div class="feature-row"><span class="label">MEMORY.md</span><span class="desc">跨会话长期记忆——重要决定、项目约定、过往事实。压缩时合成摘要。</span></div>
+    <div class="feature-row"><span class="label">首次见面</span><span class="desc">新用户触发自然引导：聊聊天就把称呼、名字、风格偏好收集好了。</span></div>
+  </div>
+</section>
+
+<hr>
+
+<div class="footer">
+  <p>Flutter 3.27 &middot; Dart 3.9 &middot; Android 8.0+ &middot; Apache 2.0 / MIT</p>
+  <p style="margin-top:6px;">
+    <a href="https://github.com/3d-jq/personal-agent-app">GitHub</a>
+    &middot; 全本地存储 &middot; 无数据上传
+  </p>
+</div>
+
+</body>
+</html>
