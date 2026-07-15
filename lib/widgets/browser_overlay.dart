@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import '../platform/browser_channel.dart';
 import '../services/log_service.dart';
 
@@ -135,7 +136,6 @@ class _BrowserOverlayState extends State<BrowserOverlay> {
               padding: const EdgeInsets.symmetric(horizontal: 6),
               decoration: BoxDecoration(
                 color: nc.background,
-                border: Border(bottom: BorderSide(color: nc.divider, width: 0.5)),
               ),
               child: Row(
                 children: [
@@ -150,19 +150,30 @@ class _BrowserOverlayState extends State<BrowserOverlay> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
                         color: nc.bgSubtle,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(RadiusToken.r10),
                       ),
-                      child: Center(
-                        child: TextField(
-                          controller: _urlCtrl,
-                          onSubmitted: (_) => _go(),
-                          textInputAction: TextInputAction.go,
-                          decoration: InputDecoration.collapsed(
-                            hintText: '输入网址或搜索词',
-                            hintStyle: TextStyle(color: nc.textTertiary, fontSize: 14),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _urlCtrl,
+                              onSubmitted: (_) => _go(),
+                              textInputAction: TextInputAction.go,
+                              decoration: InputDecoration.collapsed(
+                                hintText: '输入网址或搜索词',
+                                hintStyle: TextStyle(color: nc.textTertiary, fontSize: 14),
+                              ),
+                              style: TextStyle(color: nc.textPrimary, fontSize: 14),
+                            ),
                           ),
-                          style: TextStyle(color: nc.textPrimary, fontSize: 14),
-                        ),
+                          GestureDetector(
+                            onTap: _busy ? null : _go,
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 8),
+                              child: Icon(Icons.search, size: 20, color: _busy ? nc.textDisabled : nc.primary),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -175,11 +186,8 @@ class _BrowserOverlayState extends State<BrowserOverlay> {
               ),
             ),
             // ── 原生 WebView ──
-            // 用稳定的 AndroidView（虚拟显示合成）嵌入共享 WebView 实例。
-            // 注：v1.6.5 曾改 Hybrid Composition（PlatformViewLink + AndroidViewSurface），
-            // 但因原生侧 BrowserWebViewFactory 返回的是【共享单例 WebView】（非自管理 View），
-            // Hybrid Composition 对其支持有缺陷导致浏览器整体打不开，故回退到 AndroidView。
-            // 代价是触摸手势不如 Hybrid Composition 跟手，但保证可用与稳定。
+            // AndroidView（虚拟显示合成）嵌入共享 WebView 实例。
+            // 滑动不如 Hybrid Composition 跟手是平台固有局限，后续可尝试 gestureRecognizers 优化。
             Expanded(
               child: Stack(
                 children: [
@@ -203,9 +211,6 @@ class _BrowserOverlayState extends State<BrowserOverlay> {
             // ── 底部操作条 ──
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: nc.divider, width: 0.5)),
-              ),
               child: Row(
                 children: [
                   Expanded(
@@ -235,7 +240,6 @@ class _BrowserOverlayState extends State<BrowserOverlay> {
               Container(
                 height: 196,
                 decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: nc.divider, width: 0.5)),
                   color: nc.background,
                 ),
                 child: Column(
@@ -287,7 +291,7 @@ class _BrowserOverlayState extends State<BrowserOverlay> {
                                         horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: nc.primarySurface,
-                                      borderRadius: BorderRadius.circular(6),
+                                      borderRadius: BorderRadius.circular(RadiusToken.xs),
                                     ),
                                     child: Text(
                                       e.tag,

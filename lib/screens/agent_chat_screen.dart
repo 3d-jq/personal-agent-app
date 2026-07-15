@@ -164,7 +164,7 @@ class _AgentChatScreenState extends State<AgentChatScreen>
     }
 
     // 每次发消息前刷新 MCP 工具
-    registerMcpTools(_baseRegistry);
+    registerAllTools(_baseRegistry);
 
     final placeholder = ChatMessage(
       text: '',
@@ -296,7 +296,6 @@ class _AgentChatScreenState extends State<AgentChatScreen>
               decoration: BoxDecoration(
                 color: nc.primarySurface,
                 borderRadius: BorderRadius.circular(RadiusToken.sm),
-                border: Border.all(color: nc.divider, width: 0.5),
               ),
               child: Text(
                 widget.agent.avatar.isNotEmpty

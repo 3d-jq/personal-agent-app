@@ -6,7 +6,7 @@ import '../core/agent_colors.dart';
 import '../core/app_config.dart';
 import 'ai_settings_sheet.dart';
 import 'attachment_picker.dart';
-import '../core/app_animations.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 
 class ChatInputBar extends StatefulWidget {
   final double bottomSafe;
@@ -97,9 +97,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
               child: Container(
                 decoration: BoxDecoration(
                   color: nc.surface,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(RadiusToken.pill),
                   // Apple HIG：用 0.5px 边框代替阴影区分空间
-                  border: Border.all(color: nc.divider, width: 0.5),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -127,7 +126,6 @@ class _ChatInputBarState extends State<ChatInputBar> {
                       keyboardType: TextInputType.multiline,
                       textInputAction: TextInputAction.newline,
                       autofocus: false,
-                      enableSuggestions: false,
                       enabled: !widget.isCompressing,
                       style: TextStyle(
                         fontSize: 16,
@@ -210,7 +208,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
           color: hasFile
               ? nc.success.withValues(alpha: 0.1)
               : nc.surface,
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(RadiusToken.r22),
         ),
         child: Icon(
           hasFile ? Icons.check : Icons.add,
@@ -234,7 +232,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
             : isActive
                 ? nc.primary
                 : nc.surface,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(RadiusToken.r22),
       ),
       child: Icon(
         widget.isLoading ? Icons.stop : Icons.arrow_upward,
@@ -274,13 +272,13 @@ class _ChatInputBarState extends State<ChatInputBar> {
         padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
           color: nc.primarySurface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(RadiusToken.md),
         ),
         child: Row(
           children: [
             if (isImage) ...[
               ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(RadiusToken.sm),
                 child: Image.file(
                   file,
                   width: 32,
@@ -291,7 +289,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                     height: 32,
                     decoration: BoxDecoration(
                       color: nc.surface,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(RadiusToken.sm),
                     ),
                     child: Icon(
                       Icons.image,
@@ -307,7 +305,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 height: 32,
                 decoration: BoxDecoration(
                   color: nc.surface,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(RadiusToken.sm),
                 ),
                 child: Icon(
                   Icons.description,

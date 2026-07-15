@@ -6,6 +6,7 @@ import '../models/chat_message.dart';
 import '../services/chat_controller_cache.dart';
 import '../core/service_locator.dart';
 import '../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import '../widgets/agent_top_bar.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_skeleton.dart';
@@ -14,7 +15,6 @@ import '../widgets/chat_input_bar.dart';
 import '../widgets/session_info_button.dart';
 import '../widgets/browser_overlay.dart';
 import '../widgets/terminal_overlay.dart';
-import '../core/app_animations.dart';
 import 'chat_drawer_content.dart';
 import 'chat_scroll_mixin.dart';
 
@@ -88,9 +88,10 @@ class _ChatScreenState extends State<ChatScreen>
       widget.sessionId,
       onNeedScroll: scrollDown,
     );
-    // 加载态：有会话 id 且控制器尚未就绪（首开/冷启动）才显示骨架屏；
-    // 缓存命中（已 initialized 且消息在内存）直接显示真实列表，不闪骨架。
-    _loading = _controller.currentSessionId != null && !_controller.isReady;
+    // 加载态：widget 传入的 sessionId 非空（非新建对话）且控制器尚未就绪才显示骨架屏。
+    // 用 widget.sessionId 而非 _controller.currentSessionId，因为 initState 同步执行时
+    // 控制器的 _sessionId 还是 initialize() 异步 loaded 之后才会赋值，过早读取必为 null。
+    _loading = widget.sessionId != null && !_controller.isReady;
     _controller.initialize().then((_) {
       if (mounted) setState(() => _loading = false);
       // 进入会话：定位到最新消息（聊天软件惯例：进会话即见最新），而非恢复上次
@@ -617,7 +618,7 @@ class _PagerTile extends StatelessWidget {
           style: TextButton.styleFrom(
             backgroundColor: nc.surface.withValues(alpha: 0.6),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(RadiusToken.xl),
             ),
           ),
         ),

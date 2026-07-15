@@ -90,7 +90,6 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
           SectionHeader(title: '当前选择', nc: nc),
           ElevatedCard(
             nc: nc,
-            shadow: nc.shadowSm,
             child: Column(
               children: [
                 _Row(
@@ -131,12 +130,17 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
           else
             ElevatedCard(
               nc: nc,
-              shadow: nc.shadowSm,
               child: Column(
                 children: [
                   for (var i = 0; i < _voices.length; i++) ...[
                     if (i > 0)
-                      Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                      Divider(
+                        height: 0.5,
+                        thickness: 0.5,
+                        color: nc.divider,
+                        indent: SpaceToken.lg,
+                        endIndent: 0,
+                      ),
                     _VoiceTile(
                       nc: nc,
                       voice: _voices[i],
@@ -152,7 +156,6 @@ class _TtsSettingsPageState extends State<TtsSettingsPage> {
           const SizedBox(height: SpaceToken.lg),
           ElevatedCard(
             nc: nc,
-            shadow: nc.shadowSm,
             child: _Row(
               nc: nc,
               label: '打开系统语音设置',
@@ -277,7 +280,7 @@ class _VoiceTile extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: nc.primarySurface,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(RadiusToken.xs),
                   ),
                   child: Text('中文', style: TextStyle(fontSize: FontToken.micro, color: nc.primary)),
                 ),

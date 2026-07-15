@@ -14,11 +14,14 @@ class CryptoUtil {
 
   /// 应用级混淆密钥。优先从构建参数读取，无法获取时用硬编码兜底。
   /// 构建: flutter build apk --dart-define=XOR_SECRET=your_key
+  /// ⚠️ 安全风险：兜底密钥硬编码，可分发 APK 中任何人解包即可拿到。
+  /// 生产环境务必通过 `--dart-define=XOR_SECRET=xxx` 在构建时注入，
+  /// 或迁移到 flutter_secure_storage 使用 Android KeyStore 硬件级保护。
   static String get _secret {
     // ignore: invalid_use_of_visible_for_testing_member
     const fromBuild = String.fromEnvironment('XOR_SECRET');
     if (fromBuild.isNotEmpty) return fromBuild;
-    return 'DWeisApp2026';
+    return 'DWeisApp2026'; // 仅本地开发兜底，切勿用于正式发布
   }
 
   /// 解密 Base64 密文。

@@ -120,7 +120,6 @@ class _GroupEditPageState extends State<GroupEditPage> {
                           decoration: BoxDecoration(
                             color: nc.primarySurface,
                             borderRadius: BorderRadius.circular(RadiusToken.sm),
-                            border: Border.all(color: nc.divider, width: 0.5),
                           ),
                           child: Text(
                             a.avatar.isNotEmpty ? a.avatar : a.name.characters.first,

@@ -299,7 +299,6 @@ class _SettingsPageState extends State<SettingsPage> {
           SectionHeader(title: '应用程序', nc: nc),
           ElevatedCard(
             nc: nc,
-            shadow: nc.shadowSm,
             child: Column(
               children: [
                 _SettingItem(
@@ -317,7 +316,21 @@ class _SettingsPageState extends State<SettingsPage> {
                     ts.setMode(next);
                   },
                 ),
-                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                Divider(
+                  height: 0.5,
+                  thickness: 0.5,
+                  color: nc.divider,
+                  indent: SpaceToken.lg + 20 + SpaceToken.md,
+                  endIndent: 0,
+                ),
+                _BubbleColorItem(nc: nc),
+                Divider(
+                  height: 0.5,
+                  thickness: 0.5,
+                  color: nc.divider,
+                  indent: SpaceToken.lg + 20 + SpaceToken.md,
+                  endIndent: 0,
+                ),
                 _SettingItem(
                   icon: Icons.layers,
                   label: '模型',
@@ -327,7 +340,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     AppRouter.toModelSettings(context);
                   },
                 ),
-                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                Divider(
+                  height: 0.5,
+                  thickness: 0.5,
+                  color: nc.divider,
+                  indent: SpaceToken.lg + 20 + SpaceToken.md,
+                  endIndent: 0,
+                ),
                 _SettingItem(
                   icon: Icons.delete,
                   label: '图片缓存',
@@ -343,7 +362,6 @@ class _SettingsPageState extends State<SettingsPage> {
           SectionHeader(title: '语音服务', nc: nc),
           ElevatedCard(
             nc: nc,
-            shadow: nc.shadowSm,
             child: _SettingItem(
               icon: Icons.record_voice_over,
               label: '语音服务',
@@ -358,7 +376,6 @@ class _SettingsPageState extends State<SettingsPage> {
           SectionHeader(title: '调试', nc: nc),
           ElevatedCard(
             nc: nc,
-            shadow: nc.shadowSm,
             child: SwitchListTile(
               title: Text('启用日志', style: TextStyle(fontSize: FontToken.body, color: nc.textPrimary)),
               subtitle: Text(
@@ -378,7 +395,6 @@ class _SettingsPageState extends State<SettingsPage> {
           SectionHeader(title: '关于', nc: nc),
           ElevatedCard(
             nc: nc,
-            shadow: nc.shadowSm,
             child: Column(
               children: [
                 _SettingItem(
@@ -387,7 +403,13 @@ class _SettingsPageState extends State<SettingsPage> {
                   trailing: AppConfig.displayVersion,
                   onTap: () => _checkUpdate(context, nc),
                 ),
-                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                Divider(
+                  height: 0.5,
+                  thickness: 0.5,
+                  color: nc.divider,
+                  indent: SpaceToken.lg + 20 + SpaceToken.md,
+                  endIndent: 0,
+                ),
                 _SettingItem(
                   icon: Icons.article,
                   label: '运行日志',
@@ -397,7 +419,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     AppRouter.toLog(context);
                   },
                 ),
-                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                Divider(
+                  height: 0.5,
+                  thickness: 0.5,
+                  color: nc.divider,
+                  indent: SpaceToken.lg + 20 + SpaceToken.md,
+                  endIndent: 0,
+                ),
                 _SettingItem(
                   icon: Icons.analytics,
                   label: 'Token 消耗',
@@ -407,7 +435,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     AppRouter.toTokenUsage(context);
                   },
                 ),
-                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                Divider(
+                  height: 0.5,
+                  thickness: 0.5,
+                  color: nc.divider,
+                  indent: SpaceToken.lg + 20 + SpaceToken.md,
+                  endIndent: 0,
+                ),
                 _SettingItem(
                   icon: Icons.info_outline,
                   label: '关于',
@@ -416,7 +450,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     AppRouter.toAbout(context);
                   },
                 ),
-                Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+                Divider(
+                  height: 0.5,
+                  thickness: 0.5,
+                  color: nc.divider,
+                  indent: SpaceToken.lg + 20 + SpaceToken.md,
+                  endIndent: 0,
+                ),
                 _SettingItem(
                   icon: Icons.favorite,
                   label: '致谢',
@@ -462,7 +502,7 @@ class _SettingItem extends StatelessWidget {
           child: Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 20, color: nc.textPrimary),
+                Icon(icon, size: 20, color: nc.textSecondary),
                 const SizedBox(width: SpaceToken.md),
               ],
               Expanded(
@@ -492,4 +532,127 @@ class _SettingItem extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── 聊天气泡颜色 ──
+
+const _bubbleColorOptions = <_ColorOption>[
+  _ColorOption('默认', null),
+  _ColorOption('石墨', Color(0xFF8E8E93)),
+  _ColorOption('靛蓝', Color(0xFF5856D6)),
+  _ColorOption('蓝绿', Color(0xFF5AC8FA)),
+  _ColorOption('绿色', Color(0xFF34C759)),
+  _ColorOption('橙色', Color(0xFFFF9500)),
+  _ColorOption('粉色', Color(0xFFFF2D55)),
+  _ColorOption('紫色', Color(0xFFAF52DE)),
+];
+
+class _ColorOption {
+  final String label;
+  final Color? color;
+  const _ColorOption(this.label, this.color);
+}
+
+class _BubbleColorItem extends StatelessWidget {
+  final AgentColors nc;
+  const _BubbleColorItem({required this.nc});
+
+  static Widget _circle(Color color) => Container(
+        width: 24,
+        height: 24,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final ts = getIt<ThemeService>();
+    final current = ts.userBubbleColor ?? nc.primary;
+    final label = ts.userBubbleColor == null ? '默认' : '';
+    return Material(
+      color: Colors.transparent,
+      child: PressableScale(
+        onTap: () => _showBubbleColorPicker(context, nc, ts),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            children: [
+              Icon(Icons.palette, size: 20, color: nc.textSecondary),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  '聊天气泡颜色',
+                  style: TextStyle(fontSize: 15, color: nc.textPrimary),
+                ),
+              ),
+              if (label.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(
+                    label,
+                    style: TextStyle(fontSize: 13, color: nc.textSecondary),
+                  ),
+                ),
+              _circle(current),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: nc.textSecondary.withValues(alpha: 0.5),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+void _showBubbleColorPicker(BuildContext context, AgentColors nc, ThemeService ts) {
+  final selected = ts.userBubbleColor;
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(
+        '聊天气泡颜色',
+        style: TextStyle(fontSize: FontToken.title, color: nc.textPrimary),
+      ),
+      content: Wrap(
+        spacing: 12,
+        runSpacing: 14,
+        children: [
+          for (final o in _bubbleColorOptions)
+            GestureDetector(
+              onTap: () {
+                ts.setUserBubbleColor(o.color);
+                Navigator.pop(ctx);
+              },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: o.color ?? nc.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: selected == o.color
+                        ? const Icon(Icons.check, color: Colors.white, size: 22)
+                        : null,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    o.label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: nc.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
 }

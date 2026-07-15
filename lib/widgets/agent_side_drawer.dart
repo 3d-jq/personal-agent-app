@@ -87,7 +87,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                           height: 36,
                           decoration: BoxDecoration(
                             color: nc.surface,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(RadiusToken.r10),
                           ),
                           child: Icon(Icons.arrow_back, size: 18, color: nc.textSecondary),
                         ),
@@ -253,7 +253,7 @@ class _AgentSideDrawerState extends State<AgentSideDrawer> {
                         ),
                         decoration: BoxDecoration(
                           color: nc.primary,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(RadiusToken.r10),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -328,8 +328,7 @@ class _Card extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: nc.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: nc.divider, width: 0.5),
+        borderRadius: BorderRadius.circular(RadiusToken.md),
       ),
       child: Column(children: children),
     );
@@ -361,7 +360,7 @@ class _CardItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    final content = Material(
       color: Colors.transparent,
       child: PressableScale(
         onTap: onTap,
@@ -371,7 +370,7 @@ class _CardItem extends StatelessWidget {
           child: Row(
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 20, color: nc.textPrimary),
+                Icon(icon, size: 20, color: nc.textSecondary),
                 const SizedBox(width: 14),
               ],
               Expanded(
@@ -416,6 +415,21 @@ class _CardItem extends StatelessWidget {
         ),
       ),
     );
+
+    return Column(
+      children: [
+        content,
+        // iOS 风：卡片内项与项之间用左对齐到文字的细线分隔（非末项）。
+        if (!isLast)
+          Divider(
+            height: 0.5,
+            thickness: 0.5,
+            color: nc.divider,
+            indent: icon != null ? 50 : 16,
+            endIndent: 0,
+          ),
+      ],
+    );
   }
 }
 
@@ -431,8 +445,8 @@ class _Pill extends StatelessWidget {
     return Container(
       width: 40,
       height: 40,
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-      child: Icon(icon, size: 18, color: nc.textPrimary),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(RadiusToken.r10)),
+      child: Icon(icon, size: 18, color: nc.textSecondary),
     );
   }
 }

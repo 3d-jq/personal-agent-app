@@ -15,6 +15,9 @@ enum ContextDoc {
   const ContextDoc(this.fileName);
 }
 
+/// USER.md 首次见面流程状态。
+enum DocState { notStarted, inProgress, completed }
+
 /// Markdown 上下文文档服务。
 ///
 /// 负责 SOUL.md / USER.md / AGENT.md / MEMORY.md 的读取、写入、缺省初始化。
@@ -24,6 +27,10 @@ class ContextDocService {
   ContextDocService();
 
   final Map<ContextDoc, String> _cache = {};
+
+  /// 记录每个文档最后一次被 read() 的时间戳，用于 write() 前置校验。
+  /// 确保大模型在修改前必须先读过当前内容，避免盲目覆盖。
+  final Map<ContextDoc, DateTime> _lastReadAt = {};
 
   /// 文档存储目录（应用文档目录下的 context 子目录）。
   Future<Directory> _dir() async {
@@ -56,6 +63,7 @@ class ContextDocService {
       }
       await file.writeAsString(content);
       _cache[doc] = content;
+      _lastReadAt[doc] = DateTime.now(); // 新建默认等同于已读
     }
   }
 
@@ -85,28 +93,78 @@ class ContextDocService {
 
     final content = await file.readAsString();
     _cache[doc] = content;
+    _lastReadAt[doc] = DateTime.now();
     return content;
   }
 
   /// 获取已缓存的文档内容；未加载时返回空字符串。
   String cached(ContextDoc doc) => _cache[doc] ?? '';
 
-  /// USER.md 是否包含有效用户资料（而非默认模板）。
-  ///
-  /// 完成判定走「哨兵」思路（对标 BOOTSTRAP.md 的 file-gate）：
-  /// 模板自带占位符「（待用户首次指定）」，存在即视为未完成；
-  /// 移除占位符且「怎么称呼」已填实才算完成。
-  /// 不依赖具体中文字段名（如「语气风格」），避免模板字段微调导致误判。
-  bool hasUserProfile() => isProfileContentComplete(_cache[ContextDoc.user]);
+  /// USER.md 是否已包含有效用户资料（首次见面已完成）。
+  /// 基于 frontmatter `state: completed` 判定，不再依赖字符串哨兵。
+  bool hasUserProfile() => _profileState() == DocState.completed;
 
-  /// 纯函数版，便于测试。判定逻辑见 [hasUserProfile]。
+  /// 当前是否为首次见面（profile 未完成）。
+  bool get isFirstMeeting => _profileState() != DocState.completed;
+
+  /// 标记首次见面进行中（发送首条消息时由 ChatController 调用）。
+  Future<void> markProfileInProgress() async {
+    if (_profileState() == DocState.notStarted) {
+      await _writeProfileState(DocState.inProgress);
+    }
+  }
+
+  /// 标记首次见面已完成（大模型引导完成后调用）。
+  Future<void> markProfileComplete() async {
+    await _writeProfileState(DocState.completed);
+  }
+
+  /// 读取当前 profile state。解析失败回到 notStarted。
+  DocState _profileState() {
+    final raw = (_cache[ContextDoc.user] ?? '').trim();
+    final match = RegExp(r'^state:\s*(\w+)', multiLine: true).firstMatch(raw);
+    if (match == null) return DocState.notStarted;
+    switch (match.group(1)) {
+      case 'completed':
+        return DocState.completed;
+      case 'in_progress':
+      case 'inProgress':
+        return DocState.inProgress;
+      default:
+        return DocState.notStarted;
+    }
+  }
+
+  /// 写入 frontmatter state 字段（保留文档其余内容不变）。
+  Future<void> _writeProfileState(DocState state) async {
+    final userDoc = _cache[ContextDoc.user] ?? '';
+    final trimmed = userDoc.trim();
+    final hasFrontmatter = trimmed.startsWith('---');
+    final nameStr = state == DocState.completed
+        ? 'completed'
+        : state == DocState.inProgress
+            ? 'in_progress'
+            : 'not_started';
+    final newContent = hasFrontmatter
+        ? trimmed.replaceFirst(
+            RegExp(r'^state:\s*\w+', multiLine: true),
+            'state: $nameStr',
+          )
+        : '---\nstate: $nameStr\n---\n\n$trimmed';
+    final file = await _file(ContextDoc.user);
+    await file.writeAsString(newContent);
+    _cache[ContextDoc.user] = newContent;
+  }
+
+  /// [DEPRECATED] 保留兼容旧哨兵判定（仅用于测试迁移期）。
   static bool isProfileContentComplete(String? content) {
     if (content == null || content.trim().isEmpty) return false;
-    // 哨兵：模板占位符仍在 → 未完成（任一字段留占位都算未完成）
+    // 新逻辑优先：有 frontmatter completed 即通过
+    if (content.contains('state: completed')) return true;
+    // 旧哨兵兜底（迁移期保留）
     if (content.contains('（待用户首次指定）')) return false;
     final fallback = _fallbackContent(ContextDoc.user);
     if (content.trim() == fallback.trim()) return false;
-    // 关键字段「怎么称呼」已填实（后面跟了非占位的实际内容）
     final nameFilled =
         RegExp(r'怎么称呼：\s*(?!（待用户首次指定）)\S').hasMatch(content);
     return nameFilled;
@@ -127,13 +185,16 @@ class ContextDocService {
 
   /// 写入文档内容。
   ///
-  /// [reviewed] 仅在写入 [ContextDoc.agent] 时有效：
-  /// 若未确认，会抛出异常，提示调用方需要二次确认。
+  /// [reviewed] 仅在写入 [ContextDoc.agent] 时有效。
+  ///
+  /// ⚠️ 硬约束：必须先通过 [read] 读取当前内容，才能调用本方法。
+  /// 若未读过，抛出 [ContextDocNotReadException]，强制大模型执行 context_doc_read 后再写。
   Future<void> write(
     ContextDoc doc,
     String content, {
     bool reviewed = false,
   }) async {
+    _requireRead(doc);
     if (doc == ContextDoc.agent && !reviewed) {
       throw ContextDocReviewRequiredException(
         '修改 AGENT.md 前需要确认：请检查本次写入不会覆盖 SOUL.md 中的人格设定。'
@@ -244,6 +305,24 @@ class ContextDocService {
         return ''; // 知识库文件不通过 _fallbackContent 兜底
     }
   }
+
+  void _requireRead(ContextDoc doc) {
+    if (!_lastReadAt.containsKey(doc)) {
+      throw ContextDocNotReadException(doc);
+    }
+  }
+}
+
+/// write() 未前置 read() 时抛出的硬约束异常。
+/// 大模型收到此异常后应自动补调 context_doc_read，再重试写入。
+class ContextDocNotReadException implements Exception {
+  final ContextDoc doc;
+  ContextDocNotReadException(this.doc);
+
+  @override
+  String toString() =>
+      '硬约束：修改 ${doc.fileName} 前必须先调用 context_doc_read 读取当前内容。'
+      '请先 read 再 write，避免盲目覆盖已有数据。';
 }
 
 /// AGENT.md 写入前的审核拦截异常。

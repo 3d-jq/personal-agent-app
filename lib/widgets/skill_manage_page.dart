@@ -151,7 +151,7 @@ class _SkillDetailSheet extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: nc.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(RadiusToken.xl),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -178,7 +178,7 @@ class _SkillDetailSheet extends StatelessWidget {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: nc.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(RadiusToken.md),
                       ),
                       child: Icon(
                         Icons.star,
@@ -248,7 +248,7 @@ class _SkillDetailSheet extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: nc.primarySurface,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(RadiusToken.sm),
                         ),
                         child: Text(
                           kw,

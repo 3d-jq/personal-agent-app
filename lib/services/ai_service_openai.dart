@@ -98,7 +98,7 @@ class OpenAiProtocol {
           }
         }
         log.e('OpenAiProtocol', 'Non-streaming request failed: $errorMsg');
-        return AiResponse(text: errorMsg);
+        throw Exception('OpenAI non-streaming HTTP $statusCode: $errorMsg');
       }
 
       final choice = firstChoice(response.data);

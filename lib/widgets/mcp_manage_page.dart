@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'mcp_add_server_sheet.dart';
 import 'mcp_edit_server_sheet.dart';
 import '../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import '../core/service_locator.dart';
 import '../models/mcp_server.dart';
 import '../services/mcp_manager.dart';
@@ -105,7 +106,7 @@ class _McpManagePageState extends State<McpManagePage> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: nc.primarySurface,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(RadiusToken.r10),
                   ),
                   child: Text(
                     t.name.characters.first,
@@ -144,7 +145,7 @@ class _McpManagePageState extends State<McpManagePage> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: nc.primarySurface,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(RadiusToken.r10),
                 ),
                 child: Icon(Icons.edit, size: 18, color: nc.textSecondary),
               ),
@@ -448,7 +449,7 @@ class _McpServerCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: nc.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(RadiusToken.r14),
         border: Border.all(
           color: isConnected ? nc.success.withValues(alpha: 0.3) : nc.divider,
           width: isConnected ? 1 : 0.5,
@@ -513,7 +514,7 @@ class _McpServerCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(RadiusToken.xs),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -613,7 +614,7 @@ class _ActionChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(RadiusToken.sm),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

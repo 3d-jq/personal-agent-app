@@ -1,4 +1,5 @@
 import '../models/chat_message.dart';
+import '../tools/tool_execution_limits.dart';
 import 'log_service.dart';
 import '../services/performance_monitor.dart';
 
@@ -23,9 +24,6 @@ class HistoryManager {
   /// 保留最近的 token 数（默认 8000）
   final int keepTokens;
 
-  /// 工具输出最大字符数（约 20000 字符 ≈ 5000 token）
-  static const int toolOutputMaxChars = 20000;
-
   HistoryManager({
     this.contextWindowSize = 256000,
     this.maxOutputTokens = 4096,
@@ -38,7 +36,9 @@ class HistoryManager {
   ///
   /// 中文约 2 字符 ≈ 1 token，英文约 4 字符 ≈ 1 token
   int estimateTokens(String text) {
-    final cached = _tokenCache[text];
+    // 用 text 的长度+hashCode 做缓存 key，避免在长对话中以几千字节的完整文本做 Map key
+    final cacheKey = '${text.length}_${text.hashCode}';
+    final cached = _tokenCache[cacheKey];
     if (cached != null) return cached;
 
     int cn = 0, en = 0;
@@ -56,7 +56,7 @@ class HistoryManager {
       }
     }
     final result = (cn / 2 + en / 4).ceil();
-    _tokenCache[text] = result;
+    _tokenCache[cacheKey] = result;
     return result;
   }
 
@@ -72,6 +72,11 @@ class HistoryManager {
     for (final m in messages) {
       if (m.isStreaming) continue;
       total += estimateTokens(_serializeMessage(m));
+      // 图片附件在 API 请求中会作为 base64 图像发送，实际 token 消耗远大于文本标签。
+      // 保守估计每张图片约 1000 token（OpenAI Vision 每 512×512 tile ≈ 170 token）。
+      if (m.attachmentPath != null && m.attachmentPath!.isNotEmpty) {
+        total += 1000;
+      }
     }
     return total;
   }
@@ -104,8 +109,8 @@ class HistoryManager {
 
   /// 截断工具输出到最大字符数
   String _truncateToolOutput(String content) {
-    if (content.length <= toolOutputMaxChars) return content;
-    return '${content.substring(0, toolOutputMaxChars)}\n[truncated]';
+    if (content.length <= ToolExecutionLimits.maxToolResultChars) return content;
+    return '${content.substring(0, ToolExecutionLimits.maxToolResultChars)}\n[truncated]';
   }
 
   /// 压缩阈值（token 数）。
@@ -175,8 +180,9 @@ class HistoryManager {
     final summaryText = await summarize(summaryInput);
 
     if (summaryText.trim().isEmpty) {
-      log.w('HistoryManager', 'Summary is empty, skipping compression');
-      return messages;
+      log.w('HistoryManager', 'Summarize 失败返回空——回退截断最早消息防 token 溢出');
+      // 保守截断：保留最后 keepTokens token 的消息
+      return _truncateToKeepToken(messages, systemPromptTokens);
     }
 
     log.d('HistoryManager', 'Compression done: ${summaryText.length} chars summary');
@@ -188,6 +194,24 @@ class HistoryManager {
     );
 
     return [summaryMessage, ...recent];
+  }
+
+  /// 截断摘要失败时的兜底：朴素地丢弃最早消息，保留最后 keepTokens token。
+  List<ChatMessage> _truncateToKeepToken(
+    List<ChatMessage> messages,
+    int systemPromptTokens,
+  ) {
+    int total = systemPromptTokens;
+    for (var i = messages.length - 1; i >= 0; i--) {
+      total += estimateTokens(_serializeMessage(messages[i]));
+      if (total > (contextWindowSize * 0.9).round() && i > 0) {
+        final kept = messages.sublist(i);
+        log.w('HistoryManager',
+            '截断完成：${messages.length}→${kept.length} 条消息保留 (~${estimateMessagesTokens(kept)} token)');
+        return kept;
+      }
+    }
+    return messages; // 消息不多，不需要截断
   }
 
   /// 构建摘要输入（结构化模板）

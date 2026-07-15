@@ -132,6 +132,13 @@ class BrowserChannel {
         if (cssPath != null && cssPath.isNotEmpty) 'cssPath': cssPath,
       });
 
+  /// 在 ref 的 `<select>` 元素中选择与 [value] 匹配的 option（按 value 或 text 匹配）。
+  Future<String> select(String ref, String value, [String? cssPath]) =>
+      _invoke('select', {
+        'ref': ref, 'value': value,
+        if (cssPath != null && cssPath.isNotEmpty) 'cssPath': cssPath,
+      });
+
   /// 批量填充表单字段：[{ref, text}, ...]。
   Future<String> fillForm(List<Map<String, String>> fields) =>
       _invoke('fillForm', {

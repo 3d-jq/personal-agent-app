@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import '../tools/task_plan_tool.dart';
-import '../core/app_animations.dart';
 
 /// 气泡内嵌的任务计划视图（极简 callout 风格）
 ///
@@ -54,7 +54,7 @@ class TaskPlanView extends StatelessWidget {
         decoration: BoxDecoration(
           // 极浅中性底色，无边框、无竖线，仅靠浅底+圆角作为引用块区分，最简洁
           color: nc.primarySurface,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(RadiusToken.md),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -92,7 +92,7 @@ class TaskPlanView extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: badgeBg,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(RadiusToken.r10),
                       ),
                       child: Text(
                         verified
@@ -116,7 +116,7 @@ class TaskPlanView extends StatelessWidget {
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             color: nc.textSecondary.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(RadiusToken.xs),
                           ),
                           child: Icon(
                             Icons.close,

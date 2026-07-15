@@ -87,7 +87,6 @@ class _GroupChatInputBarState extends State<GroupChatInputBar> {
                   color: nc.surface,
                   borderRadius: BorderRadius.circular(RadiusToken.pill),
                   // Apple HIG：用 0.5px 边框代替阴影
-                  border: Border.all(color: nc.divider, width: 0.5),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

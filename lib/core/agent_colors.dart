@@ -82,7 +82,8 @@ class AgentColors extends ThemeExtension<AgentColors> {
 
   /// Apple HIG 浅色模式。
   factory AgentColors.light() => const AgentColors._(
-    background: Color(0xFFFAFAFA),
+    // iOS grouped 风：页面底用中性浅灰（RGB 均衡），白卡浮于其上。
+    background: Color(0xFFF2F2F2),
     textPrimary: Color(0xFF1C1C1E),
     textSecondary: Color(0x993C3C43),
     textTertiary: Color(0x4D3C3C43),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/agent_colors.dart';
-import '../core/app_animations.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 
 /// 会话列表加载骨架屏：模拟左右气泡形状 + 微光扫过，替代「点开会话」时的空白突兀感。
 ///
@@ -64,7 +64,7 @@ class _ChatListSkeletonState extends State<ChatListSkeleton>
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: nc.bgSubtle,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(RadiusToken.md),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -111,7 +111,7 @@ class _SkeletonBubble extends StatelessWidget {
       height: 54,
       decoration: BoxDecoration(
         color: base,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(RadiusToken.lg),
       ),
     );
     return Padding(

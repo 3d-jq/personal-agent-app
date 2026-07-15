@@ -98,6 +98,8 @@ class FakeContextDocService extends ContextDocService {
 
   @override
   bool hasUserProfile() => false;
+  @override
+  bool get isFirstMeeting => true;
 }
 
 /// 支持游标分页的脚本化存储（与真实 ChatStorage 的「正序契约」一致）。

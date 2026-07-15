@@ -2,10 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:personal_agent_app/core/agent_colors.dart';
+import 'package:personal_agent_app/core/service_locator.dart';
 import 'package:personal_agent_app/models/chat_message.dart';
+import 'package:personal_agent_app/services/theme_service.dart';
 import 'package:personal_agent_app/widgets/chat_bubble.dart';
 
 void main() {
+  setUp(() {
+    getIt.registerSingleton<ThemeService>(ThemeService());
+  });
+  tearDown(() {
+    getIt.reset();
+  });
   group('ChatBubble', () {
     Widget build(ChatMessage msg, {VoidCallback? onRetry, VoidCallback? onDelete, VoidCallback? onRegenerate}) {
       return MaterialApp(

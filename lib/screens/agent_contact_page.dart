@@ -316,7 +316,6 @@ class _AgentTile extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: nc.primarySurface,
                   borderRadius: BorderRadius.circular(RadiusToken.sm),
-                  border: Border.all(color: nc.divider, width: 0.5),
                 ),
                 child: Text(
                   agent.avatar.isNotEmpty ? agent.avatar : agent.name.characters.first,
@@ -420,8 +419,7 @@ class _AgentCardSheet extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: nc.primarySurface,
                         borderRadius: BorderRadius.circular(RadiusToken.md),
-                        border: Border.all(color: nc.divider, width: 0.5),
-                      ),
+                        ),
                       child: Text(
                         agent.avatar.isNotEmpty ? agent.avatar : agent.name.characters.first,
                         style: TextStyle(
@@ -557,7 +555,7 @@ class _GroupCardSheet extends StatelessWidget {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: nc.primary,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(RadiusToken.md),
                       ),
                       child: Icon(Icons.group, size: 28, color: Colors.white),
                     ),

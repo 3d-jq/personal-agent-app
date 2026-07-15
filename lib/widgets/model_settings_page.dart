@@ -221,7 +221,7 @@ class _ModelSettingsViewState extends State<ModelSettingsView> {
             hintText: '输入 token 数',
             hintStyle: TextStyle(color: nc.textSecondary),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(RadiusToken.sm),
             ),
           ),
           style: TextStyle(color: nc.textPrimary),
@@ -385,7 +385,7 @@ class _SettingItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: SpaceToken.lg, vertical: SpaceToken.md),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: nc.textPrimary),
+              Icon(icon, size: 20, color: nc.textSecondary),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(

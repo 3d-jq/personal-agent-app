@@ -8,23 +8,41 @@ export 'app_animations.dart';
 /// 颜色 / 阴影见 [AgentColors]（含浅色与暗色双模）。
 
 /// 圆角（基于 4pt 栅格）。
+///
+/// 命名按 Apple HIG 层级；新增值覆盖常见硬编码数字（4/6/10/14/22），
+/// 所有 `BorderRadius.circular(数字)` 必须引用本类常量，禁止 magic number。
 class RadiusToken {
   RadiusToken._();
+
+  /// 极微圆角（骨架屏 / 微标签）
+  static const double xxs = 4;
+
+  /// 超小圆角（指示器 / 小标记）
+  static const double xs = 6;
 
   /// 小标签 / chip
   static const double sm = 8;
 
-  /// 卡片 / 按钮 / 输入框
+  /// 输入框外廓 / 分段控件 / 小卡片
+  static const double r10 = 10;
+
+  /// 卡片 / 按钮 / 输入框填充
   static const double md = 12;
+
+  /// 编辑卡 / 状态卡 / 弹窗卡片变体
+  static const double r14 = 14;
 
   /// 底部 Sheet / Modal 顶部
   static const double lg = 16;
 
+  /// 用户消息气泡
+  static const double bubble = 18;
+
   /// 大浮层 / 引导卡
   static const double xl = 20;
 
-  /// 用户消息气泡（现状保留）
-  static const double bubble = 18;
+  /// 输入胶囊变体（群聊输入栏）
+  static const double r22 = 22;
 
   /// 底部输入胶囊 / 头像组
   static const double pill = 24;

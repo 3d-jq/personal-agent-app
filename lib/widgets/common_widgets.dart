@@ -95,7 +95,7 @@ class SegmentedControl<T> extends StatelessWidget {
                       color: value == options[i].value
                           ? nc.primary.withValues(alpha: 0.12)
                           : nc.fillTertiary,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(RadiusToken.r10),
                       border: Border.all(
                         color: value == options[i].value ? nc.primary : nc.divider,
                         width: 1,
@@ -143,16 +143,17 @@ class RoundedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: nc.bgSubtle,
         borderRadius: BorderRadius.circular(RadiusToken.md),
-        border: Border.all(color: nc.divider, width: 0.5),
       ),
       child: Column(children: children),
     );
   }
 }
 
-/// 带阴影的浮起卡片（v2 统一卡片）。
+/// 通用圆角卡片（iOS 风：白卡 + 浅灰底对比，无边框无阴影）。
 ///
-/// `surface` 底 + `shadowSm` + 可选 0.5px `divider` 边框；圆角 [RadiusToken.md]。
+/// 默认 `bordered: false`、`shadow: null` —— 仅靠 `surface`(白) 与背景 `bgSubtle`(浅灰)
+/// 的对比界定卡片边界，符合 Apple HIG 设置页风格（Kimi 同款）。
+/// 如需强调分隔，可显式 `bordered: true`，但不推荐（会产生「描边阴影」观感）。
 class ElevatedCard extends StatelessWidget {
   final AgentColors nc;
   final Widget child;
@@ -166,7 +167,7 @@ class ElevatedCard extends StatelessWidget {
     required this.nc,
     required this.child,
     this.padding,
-    this.bordered = true,
+    this.bordered = false,
     this.shadow,
     this.borderRadius,
   });
@@ -288,7 +289,7 @@ void showAddMenu(BuildContext context, AgentColors nc, List<AddMenuItem> items) 
 /// 统一顶部导航栏（Apple 毛玻璃风格，可配置）。
 ///
 /// 替代全库散落的 `AppBar`。支持 `leading` / `title` / `actions`，
-/// 毛玻璃 `blur 20` + 半透明 `background(.82)` + 底部 0.5px 发丝线。
+/// 毛玻璃 `blur 20` + 半透明 `background(.82)`（无底部分隔线，全 App 统一无阴影）。
 class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   final Widget? titleWidget;
@@ -394,7 +395,6 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
     final bar = Container(
       decoration: BoxDecoration(
         color: nc.background.withValues(alpha: useGlass ? 0.82 : 1.0),
-        border: Border(bottom: BorderSide(color: nc.divider, width: 0.5)),
       ),
       child: bottom == null
           ? Padding(

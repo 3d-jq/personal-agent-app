@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/agent_colors.dart';
-import '../core/app_animations.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 
 /// 聊天列表「回到底部」浮钮：用户上滑离开底部时出现。
 ///
@@ -37,12 +37,11 @@ class ChatScrollToBottomButton extends StatelessWidget {
         decoration: hasUnread
             ? BoxDecoration(
                 color: nc.primary,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(RadiusToken.xl),
               )
             : BoxDecoration(
                 color: nc.surface,
                 shape: BoxShape.circle,
-                border: Border.all(color: nc.divider, width: 0.5),
               ),
         child: hasUnread
             ? Row(

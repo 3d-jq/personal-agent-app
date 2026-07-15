@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import 'common_widgets.dart';
 import '../models/reminder.dart';
 import '../core/service_locator.dart';
@@ -114,7 +115,7 @@ class _RemindersViewState extends State<RemindersView> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(RadiusToken.sm),
                 ),
                 child: Text(
                   statusText,
@@ -170,7 +171,7 @@ class _RemindersViewState extends State<RemindersView> {
                     ),
                     decoration: BoxDecoration(
                       color: nc.error.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(RadiusToken.sm),
                     ),
                     child: Text(
                       '取消',

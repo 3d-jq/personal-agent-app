@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import '../../models/agent.dart';
 import '../../models/chat_message.dart';
 import '../chat_bubble.dart';
@@ -32,7 +33,7 @@ class GroupMessageBubble extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: nc.primarySurface,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(RadiusToken.md),
             ),
             child: Text(
               msg.text,
@@ -70,8 +71,7 @@ class GroupMessageBubble extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: nc.primarySurface,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: nc.divider, width: 0.5),
+                  borderRadius: BorderRadius.circular(RadiusToken.sm),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -82,8 +82,7 @@ class GroupMessageBubble extends StatelessWidget {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: nc.surface,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: nc.divider, width: 0.5),
+                        borderRadius: BorderRadius.circular(RadiusToken.sm),
                       ),
                       child: Text(
                         speaker!.avatar.isNotEmpty

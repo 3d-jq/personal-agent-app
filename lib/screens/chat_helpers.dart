@@ -4,19 +4,11 @@ import '../models/chat_message.dart';
 import '../tools/tools.dart';
 import '../tools/plugin_registry.dart';
 
-/// 注册所有内置工具到 ToolRegistry。
+/// 注册所有工具到 ToolRegistry（内置 + Skill + MCP）。
 ///
-/// 现已统一委托给 [PluginRegistry]（核心工具 + Skill + MCP 三套能力插件），
-/// 见 [PluginRegistry.registerCapabilities]。保持此函数仅为兼容旧调用点。
+/// 委托给 [PluginRegistry.registerCapabilities]，含 MCP 工具增量同步。
+/// 应在每次发消息前调用，确保用户新连接的 MCP 服务器能被及时注册。
 void registerAllTools(ToolRegistry registry) {
-  PluginRegistry.instance.registerCapabilities(registry);
-}
-
-/// 把所有已连接 MCP 服务器的工具注册进 ToolRegistry。
-///
-/// MCP 工具同步已并入 [PluginRegistry] 的 [McpPlugin]，故此处直接委托。
-/// 应在每次发消息前调用，确保用户新连接的服务器能被及时注册。
-void registerMcpTools(ToolRegistry registry) {
   PluginRegistry.instance.registerCapabilities(registry);
 }
 
@@ -313,7 +305,7 @@ List<Map<String, dynamic>> buildMessageHistory({
   // 两厂商的 prompt cache 才能稳定命中（前缀逐 token 一致）。
   if (now != null) {
     history.add({
-      'role': 'user',
+      'role': 'system',
       'content': '当前时间：${PromptBuilder.currentTimeContext(now)}',
     });
   }

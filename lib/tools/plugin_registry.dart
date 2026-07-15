@@ -76,6 +76,7 @@ class CoreToolsPlugin extends AppPlugin {
     // context_doc 拆分为 2 个独立工具
     if (!registry.has('context_doc_read')) registry.register(ContextDocReadTool());
     if (!registry.has('context_doc_update')) registry.register(ContextDocUpdateTool());
+    if (!registry.has('context_doc_complete')) registry.register(ContextDocCompleteTool());
     // virtual_fs 拆分为 6 个独立工具
     if (!registry.has('fs_ls')) registry.register(FsLsTool());
     if (!registry.has('fs_read')) registry.register(FsReadTool());

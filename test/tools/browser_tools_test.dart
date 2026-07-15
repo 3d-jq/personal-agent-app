@@ -273,7 +273,7 @@ void main() {
     expect(c, 'x=1');
   });
 
-  test('BrowserToolsPlugin 注册全部 23 个浏览器工具', () {
+  test('BrowserToolsPlugin 注册全部 24 个浏览器工具', () {
     final registry = ToolRegistry();
     BrowserToolsPlugin().provideTools(registry);
     const expected = [
@@ -284,6 +284,7 @@ void main() {
       'browser_wait', 'browser_search', 'browser_set_user_agent',
       'browser_set_viewport', 'browser_get_cookies', 'browser_set_cookies',
       'browser_hover', 'browser_get_backbone', 'browser_scroll_and_collect',
+      'browser_select',
     ];
     for (final n in expected) {
       expect(registry.has(n), isTrue, reason: '缺少 $n');

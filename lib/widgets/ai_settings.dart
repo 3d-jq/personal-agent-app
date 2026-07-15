@@ -32,7 +32,13 @@ class AISettings extends ChangeNotifier {
       selectedVendor != null && selectedVendor!.apiKey.isNotEmpty;
 
   void _ensureBuiltIn() {
-    final agnesKey = CryptoUtil.decrypt(dotenv.env['AGNES_API_KEY'] ?? '');
+    String agnesKey;
+    try {
+      agnesKey = CryptoUtil.decrypt(dotenv.env['AGNES_API_KEY'] ?? '');
+    } catch (_) {
+      // dotenv 未初始化（.env 文件缺失或加载失败）→ 内置模型不可用但应用不崩溃
+      return;
+    }
     _builtIn = [
       ('Agnes-2.0-Flash', agnesKey, 'https://apihub.agnes-ai.com/v1'),
     ];

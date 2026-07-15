@@ -6,11 +6,13 @@ import 'log_service.dart';
 
 /// 主题服务（Claude Design System 版）。
 ///
-/// 仅保留浅色 / 深色 / 跟随系统三种模式，不再提供多主题预设或气泡颜色切换。
+/// 仅保留浅色 / 深色 / 跟随系统三种模式，并提供聊天气泡颜色自定义。
 class ThemeService extends ChangeNotifier {
   ThemeMode _mode = ThemeMode.light;
+  Color? _userBubbleColor; // null = 使用主题色 nc.primary
 
   ThemeMode get mode => _mode;
+  Color? get userBubbleColor => _userBubbleColor;
 
   ThemeService();
 
@@ -30,6 +32,8 @@ class ThemeService extends ChangeNotifier {
             : v == 'system'
             ? ThemeMode.system
             : ThemeMode.light;
+        final bubbleColorRaw = data['userBubbleColor'] as int?;
+        _userBubbleColor = bubbleColorRaw != null ? Color(bubbleColorRaw) : null;
         notifyListeners();
       }
     } catch (e) {
@@ -43,18 +47,26 @@ class ThemeService extends ChangeNotifier {
     _save();
   }
 
+  Future<void> setUserBubbleColor(Color? color) async {
+    _userBubbleColor = color;
+    notifyListeners();
+    _save();
+  }
+
   Future<void> _save() async {
     try {
       final file = await _file();
-      await file.writeAsString(
-        jsonEncode({
-          'mode': _mode == ThemeMode.dark
-              ? 'dark'
-              : _mode == ThemeMode.system
-              ? 'system'
-              : 'light',
-        }),
-      );
+      final json = <String, dynamic>{
+        'mode': _mode == ThemeMode.dark
+            ? 'dark'
+            : _mode == ThemeMode.system
+            ? 'system'
+            : 'light',
+      };
+      if (_userBubbleColor != null) {
+        json['userBubbleColor'] = _userBubbleColor!.toARGB32();
+      }
+      await file.writeAsString(jsonEncode(json));
     } catch (e) {
       log.e('ThemeService', '保存主题失败: $e');
     }

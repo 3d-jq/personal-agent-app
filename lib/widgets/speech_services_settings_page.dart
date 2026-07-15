@@ -161,7 +161,6 @@ class _SpeechServicesSettingsPageState
 
   Widget _httpConfigCard({required AgentColors nc}) => ElevatedCard(
         nc: nc,
-        shadow: nc.shadowSm,
         child: Padding(
           padding: const EdgeInsets.all(SpaceToken.lg),
           child: Column(
@@ -178,7 +177,6 @@ class _SpeechServicesSettingsPageState
 
   Widget _systemConfigCard({required AgentColors nc}) => ElevatedCard(
         nc: nc,
-        shadow: nc.shadowSm,
         child: Column(
           children: [
             _SettingRow(
@@ -190,7 +188,13 @@ class _SpeechServicesSettingsPageState
                 AppRouter.push(context, const TtsSettingsPage());
               },
             ),
-            Divider(height: 0.5, thickness: 0.5, color: nc.divider, indent: SpaceToken.lg, endIndent: SpaceToken.lg),
+            Divider(
+              height: 0.5,
+              thickness: 0.5,
+              color: nc.divider,
+              indent: SpaceToken.lg + 20 + SpaceToken.md,
+              endIndent: 0,
+            ),
             _SettingRow(
               icon: Icons.settings_voice,
               label: '安装语音包',
@@ -206,7 +210,6 @@ class _SpeechServicesSettingsPageState
 
   Widget _ratePitchCard({required AgentColors nc}) => ElevatedCard(
         nc: nc,
-        shadow: nc.shadowSm,
         child: Padding(
           padding: const EdgeInsets.all(SpaceToken.lg),
           child: Column(
@@ -264,11 +267,11 @@ class _Field extends StatelessWidget {
           hintStyle: TextStyle(color: nc.textDisabled, fontSize: FontToken.small),
           labelStyle: TextStyle(color: nc.textSecondary, fontSize: FontToken.small),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(RadiusToken.r10),
             borderSide: BorderSide(color: nc.divider),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(RadiusToken.r10),
             borderSide: BorderSide(color: nc.divider),
           ),
           contentPadding: const EdgeInsets.symmetric(
@@ -307,7 +310,7 @@ class _SettingRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: nc.textPrimary),
+              Icon(icon, size: 20, color: nc.textSecondary),
               const SizedBox(width: SpaceToken.md),
               Expanded(
                 child: Text(
@@ -399,7 +402,7 @@ class _VendorSegmented extends StatelessWidget {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: nc.surface,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(RadiusToken.r10),
       ),
       child: Row(
         children: [
@@ -435,9 +438,9 @@ class _VendorSegment extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: selected ? nc.primary : Colors.transparent,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(RadiusToken.sm),
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(RadiusToken.sm),
         onTap: onTap,
         child: Container(
           height: 38,

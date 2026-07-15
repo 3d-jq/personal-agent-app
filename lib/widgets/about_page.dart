@@ -156,7 +156,7 @@ class _CapabilityItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: nc.textPrimary),
+          Icon(icon, size: 20, color: nc.textSecondary),
           const SizedBox(width: 14),
           Text(label, style: TextStyle(fontSize: 15, color: nc.textPrimary)),
         ],
@@ -182,7 +182,7 @@ class _SettingItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: SpaceToken.lg, vertical: SpaceToken.md),
           child: Row(
             children: [
-              Icon(icon, size: 20, color: nc.textPrimary),
+              Icon(icon, size: 20, color: nc.textSecondary),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'attachment_handler.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
@@ -115,6 +116,9 @@ class ChatController extends ChangeNotifier {
   int _usageMsgLen = -1;
   int _usageLastLen = -1;
   int? _usageTokenCache;
+  int? _toolTokensCache; // 工具定义 JSON token 估算（对话内不变，算一次）
+  List<ChatMessage>? _fullViewCache; // sendView 缓存
+  int? _fullViewCacheEndSeq;         // 缓存的最后一条 seq
   /// 系统提示（SOUL+USER+rules+skill catalog）估算 token，计入面板占用展示。
   int? _systemPromptTokens;
   /// 上一次计算缓存时「最后一条消息是否在流式」；翻转时强制重算，
@@ -140,7 +144,7 @@ class ChatController extends ChangeNotifier {
       _usageLastStreaming = lastStreaming;
       _usageTokenCache = _ensureHistoryManager().estimateMessagesTokens(_messages);
     }
-    return (_usageTokenCache ?? 0) + (_systemPromptTokens ?? 0);
+    return (_usageTokenCache ?? 0) + (_systemPromptTokens ?? 0) + (_toolTokensCache ?? 0);
   }
   /// 上下文窗口大小（token 数）。
   int get contextWindowSize => _aiSettings.contextWindowSize;
@@ -201,6 +205,9 @@ class ChatController extends ChangeNotifier {
     // 这正是「发送消息不显示 + 大模型不返回」回归的根因（MessageWindow 拆分引入）。
     _messages.clear();
     _window.reset();
+    _window.bindSession(_sessionId!);
+    _fullViewCache = null;
+    _fullViewCacheEndSeq = null;
     _notify();
   }
 
@@ -230,11 +237,21 @@ class ChatController extends ChangeNotifier {
   /// 阈值触发 [HistoryManager] 压缩。UI 窗口 40 条只影响界面显示，绝不参与模型上下文。
   Future<List<ChatMessage>> buildSendView() async {
     if (_sessionId == null) return List.of(_messages);
+    // 内存消息最多的 seq 没超过缓存覆盖范围 → 命中缓存，省一次 DB 查询。
+    final latestSeq = _messages.isNotEmpty ? _messages.last.seq : -1;
+    if (_fullViewCache != null &&
+        _fullViewCacheEndSeq != null &&
+        latestSeq <= _fullViewCacheEndSeq!) {
+      // DB 缓存未变，但需合并可能尚未落盘的最新内存消息
+      final pending = _messages.where((m) => m.seq >= (_fullViewCacheEndSeq! + 1)).toList();
+      if (pending.isEmpty) return _fullViewCache!;
+      return [..._fullViewCache!, ...pending];
+    }
     final full = await _window.loadFullHistory();
     if (full.isEmpty) return List.of(_messages);
-    final lastSeq = full.last.seq;
-    // 合并内存中比全量历史更新的、尚未落盘的消息（按全局 seq 判定，避免重复计入）。
-    final pending = _messages.where((m) => m.seq > lastSeq).toList();
+    _fullViewCache = full;
+    _fullViewCacheEndSeq = full.last.seq;
+    final pending = _messages.where((m) => m.seq > full.last.seq).toList();
     if (pending.isEmpty) return full;
     return [...full, ...pending];
   }
@@ -356,11 +373,13 @@ class ChatController extends ChangeNotifier {
     final trimmed = text.trim();
     if (isWaitingUserPrompt) return;
     if ((trimmed.isEmpty && _pendingAttachment == null) || _isLoading) return;
+    // 最早置位，消除重入窗口：后续所有 await 之前已防住二次触发
+    _isLoading = true;
     if (_sessionId == null) newSession();
 
     _toolRegistry.resetCallCounts();
     // 每次发消息前刷新 MCP 工具，确保新连接的服务器能被大模型发现
-    registerMcpTools(_toolRegistry);
+    registerAllTools(_toolRegistry);
 
     if (!_aiSettings.hasVendor) {
       _appendMessage(ChatMessage(text: '请先配置 AI 后端（点击输入框内存图标）', isUser: false));
@@ -376,38 +395,27 @@ class ChatController extends ChangeNotifier {
       return;
     }
 
-    // 同步置位，收窄重入窗口：避免流式首个 await 之前重复触发开第二条流覆盖 _aiStream
-    _isLoading = true;
-
-    String displayText = trimmed;
-    String? attachmentBase64;
-    String? attachmentName;
-    if (_pendingAttachment != null) {
-      try {
-        final bytes = await _pendingAttachment!.readAsBytes();
-        attachmentBase64 = base64Encode(bytes);
-        attachmentName = _pendingAttachment!.path
-            .split(Platform.pathSeparator)
-            .last;
-        final typeLabel = _pendingAttachmentType == 'image' ? '图片' : '文档';
-        displayText = trimmed.isEmpty
-            ? '[附件: $typeLabel $attachmentName]'
-            : '$trimmed\n[附件: $typeLabel $attachmentName]';
-      } catch (e) {
-        // 附件读取失败（文件损坏/权限问题）：忽略附件继续发送文本，避免崩溃
-        debugPrint('附件读取失败，已忽略: $e');
-        attachmentBase64 = null;
-        attachmentName = null;
-      }
-    }
+    final encoded = await encodeAttachment(
+      file: _pendingAttachment,
+      originalText: trimmed,
+      attachmentType: _pendingAttachmentType,
+    );
+    String displayText = encoded.displayText;
+    String? attachmentBase64 = encoded.base64;
+    String? attachmentName = encoded.name;
 
     final contextDocs = getIt<ContextDocService>();
     await contextDocs.loadAll();
 
-    // 首次见面判定：只取决于 USER.md 是否已完成（不依赖消息数）。
-    // 去掉原来的 `&& _messages.isEmpty` 一次性门禁——否则首条消息没完成引导后，
-    // 后续消息因 _messages 不空而永久不再触发，用户陷入"既不引导、又算没完成"的死区。
-    final isFirstMeeting = !contextDocs.hasUserProfile();
+    // 首次见面状态机：notStarted → 发首条消息时自动标记 in_progress → 大模型完成后调用 markProfileComplete
+    try {
+      if (contextDocs.isFirstMeeting) {
+        await contextDocs.markProfileInProgress();
+      }
+    } catch (_) {
+      // markProfileInProgress 是尽力操作，文件写入失败不应阻断消息发送
+    }
+    final isFirstMeeting = contextDocs.isFirstMeeting;
 
     _appendMessage(
       ChatMessage(
@@ -438,6 +446,10 @@ class ChatController extends ChangeNotifier {
     );
     // 系统提示占用计入面板上下文统计（问题：之前只算消息、漏算 SOUL/USER/rules/skill catalog）。
     _systemPromptTokens = _ensureHistoryManager().estimateTokens(systemPrompt);
+    // 工具定义 JSON 也参与实际 API 消耗，加入面板估算。
+    _toolTokensCache = _ensureHistoryManager().estimateTokens(
+      jsonEncode(_toolRegistry.functionDefinitions),
+    );
 
     final ai = AIService(
       baseUrl: _aiSettings.baseUrl,
@@ -526,7 +538,9 @@ class ChatController extends ChangeNotifier {
     _isLoading = false;
     _notify();
     // 停止后立即存盘，保留已生成的内容
-    saveSession().catchError((e) {});
+    saveSession().catchError((e) {
+      log.e('ChatController', 'saveSession failed', e);
+    });
   }
 
   // ═══ Stream handling ═══
@@ -811,7 +825,9 @@ class ChatController extends ChangeNotifier {
     }
     _isLoading = false;
     _notify();
-    saveSession().catchError((e) {});
+    saveSession().catchError((e) {
+      log.e('ChatController', 'saveSession failed', e);
+    });
   }
 
   void _onStreamError(Object e, _StreamState state, ChatMessage aiMsg) {
@@ -829,7 +845,9 @@ class ChatController extends ChangeNotifier {
     _isLoading = false;
     _notify();
     // 出错后也存盘，保留出错前已生成的内容
-    saveSession().catchError((e) {});
+    saveSession().catchError((e) {
+      log.e('ChatController', 'saveSession failed', e);
+    });
   }
 
   String _toolLabel(String name) => toolLabel(name);

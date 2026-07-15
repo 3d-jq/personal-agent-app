@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import 'ai_settings_sheet.dart';
 
 class ChatModelChip extends StatelessWidget {
@@ -26,7 +27,7 @@ class ChatModelChip extends StatelessWidget {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(RadiusToken.r10),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

@@ -2,8 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 import 'common_widgets.dart';
-import '../core/app_animations.dart';
 import '../core/app_router.dart';
 import '../models/media_item.dart';
 import '../core/service_locator.dart';
@@ -88,8 +88,7 @@ class _MediaViewState extends State<MediaView> {
         child: Container(
           decoration: BoxDecoration(
             color: nc.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: nc.divider, width: 0.5),
+            borderRadius: BorderRadius.circular(RadiusToken.md),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -116,7 +115,7 @@ class _MediaViewState extends State<MediaView> {
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0xAA000000),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(RadiusToken.sm),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
@@ -274,7 +273,7 @@ class _MediaDetail extends StatelessWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           color: nc.primarySurface,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(RadiusToken.md),
                         ),
                         child: Center(
                           child: Column(

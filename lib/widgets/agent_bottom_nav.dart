@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../core/agent_colors.dart';
-import '../core/app_animations.dart';
+import 'package:personal_agent_app/core/design_tokens.dart';
 
 /// 统一底部导航（Apple 胶囊风格，2-tab：消息 / Agent）。
 ///
@@ -91,7 +91,6 @@ class _AgentBottomNavState extends State<AgentBottomNav>
                   Container(
                     decoration: BoxDecoration(
                       color: nc.surface.withValues(alpha: 0.9),
-                      border: Border.all(color: nc.divider, width: 0.5),
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: nc.shadowMd,
                     ),
@@ -108,7 +107,7 @@ class _AgentBottomNavState extends State<AgentBottomNav>
                           height: 44,
                           decoration: BoxDecoration(
                             color: nc.primarySurface,
-                            borderRadius: BorderRadius.circular(22),
+                            borderRadius: BorderRadius.circular(RadiusToken.r22),
                           ),
                         ),
                       );
